@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
 
-require 'd3/apps/d3admin'
+require 'xolo/apps/d3admin'
 
-D3::AdminApp.new.run
+Xolo::AdminApp.new.run

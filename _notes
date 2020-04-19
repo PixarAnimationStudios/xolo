@@ -17,38 +17,38 @@ Classes:
 
 Title -  the former concept of 'basename' now a class.
 
-D3::AbstractTitle: Common code for app and server titles
+Xolo::AbstractTitle: Common code for app and server titles
   - handles all d3-specific data related to titles
-  - contains @versions, a hash of D3::AbstractVersion subclass instances
+  - contains @versions, a hash of Xolo::AbstractVersion subclass instances
 
-D3::Server::Title: A title on the server
+Xolo::Server::Title: A title on the server
   - Stored on disk as YAML files
   - loaded into a threadsafe in-memory datastore on startup
   - transmitted over https as JSON (far safer - YAML has code-injection problems)
 
-D3::Title: A title in a d3 app (d3 and d3admin)
+Xolo::Title: A title in a d3 app (d3 and d3admin)
   - defines setters & validators (for d3admin)
   - talks to the d3 server for d3-specific data
   - talks to Jamf CAPI for jss data
 
-Version - the former concept of 'edition', now a full class, mixed with some aspects of the d3v3 D3::Package
+Version - the former concept of 'edition', now a full class, mixed with some aspects of the d3v3 Xolo::Package
 
-D3::AbstractVersion: Common code for app and server titles
+Xolo::AbstractVersion: Common code for app and server titles
 
-D3::Server::Version: A version on the  server
+Xolo::Server::Version: A version on the  server
 
-D3::Version: A version in a d3 app (d3 and d3admin)
+Xolo::Version: A version in a d3 app (d3 and d3admin)
   - every version has a :package_id attribute that is a reference to a JSS::Package
 
-D3::Receipt: The former D3::Client::Receipt.
+Xolo::Receipt: The former Xolo::Client::Receipt.
   - Will probably change a lot, and be smaller, since Jamf patch management abilities will take over some of the functionality.
   - has class methods for working with all rcpts on a client.
   - Still needed, because we want to implement features still missing in Jamf, e.g. expiration.
 
-D3::KillApp: the former concept of 'prohibiting_process'
+Xolo::KillApp: the former concept of 'prohibiting_process'
   - may work differently, see notes below
 
-D3::Server::App: A sinatra-based HTTPS server with 4 purposes:
+Xolo::Server::App: A sinatra-based HTTPS server with 4 purposes:
   - stores & retrieves d3-specific data about titles & versions
     This replaces the need for a MySQL table in d3v3
   - Admin and Client authentication via CAPI only. In d3v3, d3admins needed to store three
@@ -62,29 +62,29 @@ D3::Server::App: A sinatra-based HTTPS server with 4 purposes:
     via 'autopilot' to add Patches to d3 automatically.
     - DO THIS? Or use Chook?  Prob simpler to do this, since its very specific
 
-D3::Client: An 'app' object (has a 'run' method)
+Xolo::Client: An 'app' object (has a 'run' method)
   - will have a wrapper executable called 'd3'
   - runs on a client to un/install, expire, sync, etc.
 
-D3::Admin: An 'app' object (has a 'run' method)
+Xolo::Admin: An 'app' object (has a 'run' method)
   - will have a wrapper executable called 'd3admin'
-  - manipulates D3::Titles, D3::Patches, D3::Packages,
+  - manipulates Xolo::Titles, Xolo::Patches, Xolo::Packages,
   - Will probably NOT have a walkthru mode, but will probably have a GUI wrapper.
   - does reporting
   - freezing & piloting now done via d3admin & policies/scoping (?)
 
 Jamf Patch :
 
-D3::Version::Component: An element of a Patch
+Xolo::Version::Component: An element of a Patch
   -  currently only one per patch, contains Criteria defining which computers have a patch installed.
 
-D3::Criteria & D3::Criterion: Similar to JSS::Criteriable classes, used in Titles and Versions
+Xolo::Criteria & Xolo::Criterion: Similar to JSS::Criteriable classes, used in Titles and Versions
   - As 'requirements' in Titles
   - As 'capabilities' in Patches
     - As 'criteria' in Patch 'components'
   - see notes below
 
-D3::ExtentionAttribute: similar to 'script' JSS::ComputerExtentionAttributes. Titles can have one or more of them
+Xolo::ExtentionAttribute: similar to 'script' JSS::ComputerExtentionAttributes. Titles can have one or more of them
 and they can be used in the criteria for the title and it's versions.
   - these have a matching JSS::ComputerExtentionAttribute, once fully accepted by the admin.
 
@@ -104,9 +104,9 @@ contents:
  - dir: config - various server needs
    - file: config.yml - the server config file
  - dir: titles - holds title and version data
-   - file: <name_id>.yml - the yaml file for the D3::Title
+   - file: <name_id>.yml - the yaml file for the Xolo::Title
    - dir: <name_id> - holds the versions for a given title
-       - file: <version_id>.yml - the yaml file for the D3::Version
+       - file: <version_id>.yml - the yaml file for the Xolo::Version
 
 
 

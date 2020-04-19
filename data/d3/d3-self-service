@@ -91,7 +91,7 @@ class App
 
   ############## Setup
   def initialize(args)
-    D3::Client.connect
+    Xolo::Client.connect
 
     # Only send to stdout/stderr if there's a fatal error.
     D3.verbosity = :fatal
@@ -137,7 +137,7 @@ class App
       # if any install was successful, notify if requested
       notify if @need_notify
 
-    rescue D3::SelfServiceError => err
+    rescue Xolo::SelfServiceError => err
       display_error err
     end
   end # run
@@ -173,7 +173,7 @@ class App
   def install(item)
     pkg = pkg_from_item item
 
-    current_rcpt = D3::Client::Receipt.all[pkg.basename]
+    current_rcpt = Xolo::Client::Receipt.all[pkg.basename]
     if current_rcpt
       return unless reinstall_ok? pkg, current_rcpt
       return unless downgrade_ok? pkg, current_rcpt
@@ -184,25 +184,25 @@ class App
     begin
       pkg.install admin: "#{D3_INSTALL_ADMIN_PREFIX}-#{ENV['USER']}", puppywalk: true, force: true
     rescue => err
-      raise D3::SelfServiceError, "#{err.class}: #{$ERROR_INFO}"
+      raise Xolo::SelfServiceError, "#{err.class}: #{$ERROR_INFO}"
     end
     @need_reboot ||= pkg.reboot?
     @need_notify = true
   end
 
-  # Given a basename or edition, get the D3::Package object
+  # Given a basename or edition, get the Xolo::Package object
   #
   # @param item[String] a basename or edition
   #
-  # @return [D3::Package] the matching package object
+  # @return [Xolo::Package] the matching package object
   #
   def pkg_from_item(item)
-    if D3::Package.all_basenames.include? item
-      D3::Package.new basename: item
-    elsif D3::Package.all_editions.include? item
-      D3::Package.new edition: item
+    if Xolo::Package.all_basenames.include? item
+      Xolo::Package.new basename: item
+    elsif Xolo::Package.all_editions.include? item
+      Xolo::Package.new edition: item
     else
-      raise D3::SelfServiceError, "The item '#{item}' isn't available in d3."
+      raise Xolo::SelfServiceError, "The item '#{item}' isn't available in d3."
     end
   end
 
@@ -210,9 +210,9 @@ class App
   # Always true unless the pkg and Receipt ids are the same
   # in which case we ask the user.
   #
-  # @param pkg[D3::Package] The pkg to install
+  # @param pkg[Xolo::Package] The pkg to install
   #
-  # @param rcpt[D3::Client::Receipt] The matching Receipt
+  # @param rcpt[Xolo::Client::Receipt] The matching Receipt
   #
   # @return [Boolean] Is it ok to install?
   #
@@ -227,9 +227,9 @@ class App
   # Always true unless the pkg id is lower than the rcpt id
   # in which case we ask the user.
   #
-  # @param pkg[D3::Package] The pkg to install
+  # @param pkg[Xolo::Package] The pkg to install
   #
-  # @param rcpt[D3::Client::Receipt] The matching Receipt
+  # @param rcpt[Xolo::Client::Receipt] The matching Receipt
   #
   # @return [Boolean] Is it ok to install?
   #
@@ -243,7 +243,7 @@ class App
   # Is it OK to install knowing that we WILL reboot at the end?
   # always ask the user. Always true if no reboot needed
   #
-  # @param pkg[D3::Package] The pkg to install
+  # @param pkg[Xolo::Package] The pkg to install
   #  #
   # @return [Boolean] Is it ok to install & reboot?
   #

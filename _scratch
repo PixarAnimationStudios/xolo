@@ -115,8 +115,8 @@ curl --insecure  -X GET --cookie-jar /tmp/curlcooks  'https://d3server.pixar.com
 ##############
 #  Startup and connect
 
-require 'd3/admin'
-app = D3::AdminApp.new
+require 'xolo/admin'
+app = Xolo::AdminApp.new
 app.connect
 
 ARGV << '--debug'
@@ -129,15 +129,15 @@ app.parse_cli_opts
 ##############
 # Titles and versions via the server
 
-require 'd3/admin'
+require 'xolo/admin'
 
 def li ; D3.cnx.connect ENV['USER'], File.read('/tmp/deleteme').chomp ; end
 li
 
-pp D3::Title.all
-pp D3::Title.all :added_by, :category, :publisher, :foobar
+pp Xolo::Title.all
+pp Xolo::Title.all :added_by, :category, :publisher, :foobar
 
-dt = D3::Title.new name: 'MyNewTitle', admin: 'chrisl'
+dt = Xolo::Title.new name: 'MyNewTitle', admin: 'chrisl'
 
 dt.display_name = 'My New Title'
 dt.description = 'nada' # raises JSS::InvalidDataError, to short
@@ -164,7 +164,7 @@ dt.add_expiration_path '/bar/foo'
 dt.remove_expiration_path '/foo/bar'
 dt.create
 
-dt = D3::Title.fetch 'MyNewTitle'
+dt = Xolo::Title.fetch 'MyNewTitle'
 
 dt.description = 'A cool thing that does cool stuff, and things.'
 dt.publisher = 'foo'
@@ -175,7 +175,7 @@ dt.delete
 
 #######
 
-dt2 = D3::Title.new name: 'Printalope', admin: 'chrisltest', display_name: 'Printalope'
+dt2 = Xolo::Title.new name: 'Printalope', admin: 'chrisltest', display_name: 'Printalope'
 
 dt2.description = "Its the Pixar Mac Printer tool\nNo Really!"
 
@@ -187,7 +187,7 @@ dt2.delete
 
 #######
 
-dt = D3::Title.fetch 'MyNewTitle'
+dt = Xolo::Title.fetch 'MyNewTitle'
 
 dt.description = 'A cool thing that does cool stuff, and things.'
 
@@ -195,13 +195,13 @@ dt.add_auto_groups "bingbongbeta"
 dt.add_auto_groups "chrisltest"
 
 #######
-dt2 = D3::Title.fetch 'Printalope'
+dt2 = Xolo::Title.fetch 'Printalope'
 
-vers = D3::Version.new admin: 'chrisl', title: 'Printalope', version: '1.0.0'
+vers = Xolo::Version.new admin: 'chrisl', title: 'Printalope', version: '1.0.0'
 
 vers.create
 
-versf = D3::Version.fetch 'Printalope', '1.0.0'
+versf = Xolo::Version.fetch 'Printalope', '1.0.0'
 
 versf.minimum_os = '34324' # err
 versf.minimum_os = '10.12.2'
@@ -215,19 +215,19 @@ versf.post_remove_script = 'chrisltest'
 
 versf.package = '323' # err
 
-v2 = D3::Version.new admin: 'chrisltest', title: 'MyNewTitle', version: '13.1.0a3'
+v2 = Xolo::Version.new admin: 'chrisltest', title: 'MyNewTitle', version: '13.1.0a3'
 
 v2.create
 
-v2f = D3::Version.fetch 'MyNewTitle', '13.1.0a3'
+v2f = Xolo::Version.fetch 'MyNewTitle', '13.1.0a3'
 
-v2fail = D3::Version.new admin: 'chrisltest', title: 'MyNewTitle', version: '13.1.0a3'
+v2fail = Xolo::Version.new admin: 'chrisltest', title: 'MyNewTitle', version: '13.1.0a3'
 
-v3 = D3::Version.new admin: 'chrisltest', title: 'MyNewTitle', version: '13.1.0'
+v3 = Xolo::Version.new admin: 'chrisltest', title: 'MyNewTitle', version: '13.1.0'
 
 v3.create
 
-pp D3::Version.all :status, :package_id, :pre_install_script
+pp Xolo::Version.all :status, :package_id, :pre_install_script
 
 
 ### pkgs
@@ -327,7 +327,7 @@ def self.generate_title_list
     @title_list_mutex.synchronize do
       title_list = []
       DATA_DIR.children.each do |child|
-        next unless child.basename.to_s.end_with? D3::DOT_YML
+        next unless child.basename.to_s.end_with? Xolo::DOT_YML
         title = YAML.load child.read
         title_list << {
           name: title.name,
@@ -351,18 +351,18 @@ end
 
 The server keeps 4 things in memory:
 
-D3::Title.data_store:
-# A Hash of every D3::Title instance in d3, keyed by name
+Xolo::Title.data_store:
+# A Hash of every Xolo::Title instance in d3, keyed by name
 #
 #   {
-#     'title_name' => D3::Title,
-#     'title_name' => D3::Title,
-#     'title_name' => D3::Title,
+#     'title_name' => Xolo::Title,
+#     'title_name' => Xolo::Title,
+#     'title_name' => Xolo::Title,
 #     ...
 #   }
 #
 
-D3::Title.json_summary_list
+Xolo::Title.json_summary_list
 # A JSON Array of Hashes, one per title
 # This is passed to clients when they GET the ../titles route.
 #
@@ -381,24 +381,24 @@ D3::Title.json_summary_list
 #     not be able to install this title without force
 
 
-D3::Version.data_store:
-# A 2-tiered Hash of every D3::Version instance in d3
+Xolo::Version.data_store:
+# A 2-tiered Hash of every Xolo::Version instance in d3
 #   {
 #     'title_name' => {
-#       'version_string' => D3::Version,
-#       'version_string2' => D3::Version,
+#       'version_string' => Xolo::Version,
+#       'version_string2' => Xolo::Version,
 #       ...
 #     }
 #     'title_name' => {
-#       'version_string' => D3::Version,
-#       'version_string2' => D3::Version,
+#       'version_string' => Xolo::Version,
+#       'version_string2' => Xolo::Version,
 #       ...
 #     }
 #    ...
 #   }
 
 
-D3::Version.json_summary_list
+Xolo::Version.json_summary_list
 # A JSON Array of Hashes, one per version
 # This is passed to clients when they GET the ../versions route.
 #
@@ -415,11 +415,11 @@ When the server starts, the data stores are loaded from files on disk:
 /path/to/d3server/data/dir/titles/
   - contains title and version data
 /path/to/d3server/data/dir/titles/XXX.yml
-  - the YAML file representing D3::Title XXX
+  - the YAML file representing Xolo::Title XXX
 /path/to/d3server/data/dir/titles/XXX/
-  - contains all the version data for D3::Title XXX
+  - contains all the version data for Xolo::Title XXX
 /path/to/d3server/data/dir/titles/XXX/YYY.yml
-  - the YAML file representing D3::Version YYY of D3::Title XXX
+  - the YAML file representing Xolo::Version YYY of Xolo::Title XXX
 
 When the server recieves changes to any title or version, it performs these steps
 within a synchronized Mutex:

@@ -12,10 +12,10 @@
 - Fix: return nil when asked for current foreground application on client, and there is none.
 
 ## v3.0.18 - 2017-12-01
-- Change: D3::Client.install: freeze prev. installed rcpts when 'freeze on install' requested.
+- Change: Xolo::Client.install: freeze prev. installed rcpts when 'freeze on install' requested.
 
 ## v3.0.17 - 2017-07-14
-- Fix: D3::Package.upload_master_file, call #update after #super
+- Fix: Xolo::Package.upload_master_file, call #update after #super
 
 ## v3.0.16 - 2017-04-10
 - Update: Max DB schema version bumped for 9.98 and 9.99
@@ -53,7 +53,7 @@
 - Change: remove hard-coded client timeout, use whatever is in ruby-jss.conf
 - Fix: github issue #13 when adding pkgs with new version, revision resets to 1 by default.
 - Fix: github issue #12allow 'n' or 'none' to unset expiration path
-- Added: method D3::Admin::Auth.connected?
+- Added: method Xolo::Admin::Auth.connected?
 - Fix: no attempt to write log if it isn't writable to the user
 - Change: bump max DB schema version to 9.93
 - Change: remove 2-line log entries
@@ -69,7 +69,7 @@
 - README: better contact info
 - lots of comment changes for YARD parsing fix
 - Package::Validate.check\_for\_exlusions: bugfix
-- Added D3::DEBUG_FILE support for d3, d3admin, & d3helper. Used getting debug logging/output when d3 command is embedded in other tools. If the file /tmp/d3debug-on exists, it's the same using the --debug option
+- Added Xolo::DEBUG_FILE support for d3, d3admin, & d3helper. Used getting debug logging/output when d3 command is embedded in other tools. If the file /tmp/d3debug-on exists, it's the same using the --debug option
 - d3: actions that don't need server connections can be done witout root: list-installed, list-manual, list-pilot, list-frozen, list-queue
 
 ## v3.0.8 - 2016-04-01

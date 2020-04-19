@@ -39,7 +39,7 @@
 # "files and processes" section of the policy
 #
 # This script also expects a policy to be defined in
-# D3::CONFIG.puppy_reboot_policy, which can contain policy name, custom-trigger
+# Xolo::CONFIG.puppy_reboot_policy, which can contain policy name, custom-trigger
 # or JSS id number.
 #
 # That policy may do any other actions after installing the packages in the
@@ -47,7 +47,7 @@
 # system may be in an unstable state after the installs. The policy itself
 # *must* do the actual reboot.
 #
-# If the D3::CONFIG.puppy_reboot_policy is not defined, or doesn't exist exist
+# If the Xolo::CONFIG.puppy_reboot_policy is not defined, or doesn't exist exist
 # in the JSS, this script will reboot with 'shutdown -r now'
 #
 #
@@ -69,8 +69,8 @@ class App
     # debugging?
     if args.include? "--debug"
       @debug = true
-      D3::LOG.level = :debug
-      D3::Client.set_env :debug
+      Xolo::LOG.level = :debug
+      Xolo::Client.set_env :debug
       args.delete_if{|f| f == "--debug" }
     end
 
@@ -84,27 +84,27 @@ class App
 
 
     # use config values or defaults
-    @optout_text = D3::CONFIG.puppy_optout_text || D3::PuppyTime::DFT_OPTOUT_TEXT
+    @optout_text = Xolo::CONFIG.puppy_optout_text || Xolo::PuppyTime::DFT_OPTOUT_TEXT
 
-    @optout_image_path = Pathname.new(D3::CONFIG.puppy_optout_image_path || D3::PuppyTime::DFT_OPTOUT_IMAGE)
+    @optout_image_path = Pathname.new(Xolo::CONFIG.puppy_optout_image_path || Xolo::PuppyTime::DFT_OPTOUT_IMAGE)
 
-    @optout_seconds = D3::CONFIG.puppy_optout_seconds || D3::PuppyTime::DFT_OPTOUT_SECS
+    @optout_seconds = Xolo::CONFIG.puppy_optout_seconds || Xolo::PuppyTime::DFT_OPTOUT_SECS
 
-    @slideshow_folder_path = Pathname.new(D3::CONFIG.puppy_slideshow_folder_path || D3::PuppyTime::DFT_SLIDESHOW_DIR)
+    @slideshow_folder_path = Pathname.new(Xolo::CONFIG.puppy_slideshow_folder_path || Xolo::PuppyTime::DFT_SLIDESHOW_DIR)
 
-    @image_size = D3::CONFIG.puppy_image_size || D3::PuppyTime::DFT_IMG_SIZE
+    @image_size = Xolo::CONFIG.puppy_image_size || Xolo::PuppyTime::DFT_IMG_SIZE
 
-    @title = D3::CONFIG.puppy_title || D3::PuppyTime::DFT_TITLE
+    @title = Xolo::CONFIG.puppy_title || Xolo::PuppyTime::DFT_TITLE
 
-    @display_secs = D3::CONFIG.puppy_display_secs || D3::PuppyTime::DFT_DISPLAY_SECS
+    @display_secs = Xolo::CONFIG.puppy_display_secs || Xolo::PuppyTime::DFT_DISPLAY_SECS
 
-    @show_captions = D3::CONFIG.puppy_display_captions
+    @show_captions = Xolo::CONFIG.puppy_display_captions
 
-    @dft_caption = D3::PuppyTime::DFT_CAPTION || D3::PuppyTime::DFT_CAPTION
+    @dft_caption = Xolo::PuppyTime::DFT_CAPTION || Xolo::PuppyTime::DFT_CAPTION
 
     # paths must exist, or use defaults
-    @optout_image_path = D3::PuppyTime::DFT_OPTOUT_IMAGE unless @optout_image_path.file?
-    @slideshow_folder_path = D3::PuppyTime::DFT_SLIDESHOW_DIR unless @slideshow_folder_path.directory?
+    @optout_image_path = Xolo::PuppyTime::DFT_OPTOUT_IMAGE unless @optout_image_path.file?
+    @slideshow_folder_path = Xolo::PuppyTime::DFT_SLIDESHOW_DIR unless @slideshow_folder_path.directory?
 
 
   end # init
@@ -124,9 +124,9 @@ class App
       :lock_hud => true,
       :title => @title,
       :heading => "It's PuppyTime!",
-      :align_heading => D3::PuppyTime::CAPTION_POSITION,
+      :align_heading => Xolo::PuppyTime::CAPTION_POSITION,
       :description => @optout_text,
-      :align_description => D3::PuppyTime::TEXT_POSITION,
+      :align_description => Xolo::PuppyTime::TEXT_POSITION,
       :icon => @optout_image_path.to_s,
       :icon_size => @image_size,
       :button1 => "OK",
@@ -135,7 +135,7 @@ class App
       :cancel_button => 2,
       :timeout => @optout_seconds,
       :countdown => true,
-      :align_countdown => D3::PuppyTime::COUNTDOWN_POSITION
+      :align_countdown => Xolo::PuppyTime::COUNTDOWN_POSITION
     )
 
     # TODO test if we need #startlaunchd
@@ -146,7 +146,7 @@ class App
       return true
     end
 
-    D3::Client.connect
+    Xolo::Client.connect
 
     # start the slideshow
     # this sets up @write_to_slideshow as our end of the pipe to
@@ -155,11 +155,11 @@ class App
 
     # now loop through the puppy queue, installing
     # each one with a call to d3 itself
-    D3::PUPPY_Q.queue.each do |pupname,pup|
+    Xolo::PUPPY_Q.queue.each do |pupname,pup|
 
         # make sure the pkg exists
-        unless D3::Package.all_patchs.include? pup.patch
-          D3::PUPPY_Q - pup
+        unless Xolo::Package.all_patchs.include? pup.patch
+          Xolo::PUPPY_Q - pup
           D3.log "Removed invalid puppy #{pup.patch} from the queue.", :info
           next
         end
@@ -167,7 +167,7 @@ class App
         write_to_slideshow "Installing: #{pup.patch}"
         pup.install
 
-    end # D3::PUPPY_Q.queue.each
+    end # Xolo::PUPPY_Q.queue.each
 
     write_to_slideshow "All Done with installs!\nThis computer will reboot in a moment.\nThanks for playing!"
     sleep @display_secs
@@ -182,7 +182,7 @@ class App
 
   def show_version
     puts <<-ENDVERS
-D3 module version: #{D3::VERSION}
+D3 module version: #{Xolo::VERSION}
 JSS module version: #{JSS::VERSION}
 ENDVERS
   end
@@ -244,9 +244,9 @@ ENDVERS
             :lock_hud => true,
             :title => @title,
             :heading => caption,
-            :align_heading => D3::PuppyTime::CAPTION_POSITION,
+            :align_heading => Xolo::PuppyTime::CAPTION_POSITION,
             :description => description,
-            :align_description => D3::PuppyTime::TEXT_POSITION,
+            :align_description => Xolo::PuppyTime::TEXT_POSITION,
             :icon => slide_img,
             :icon_size => @image_size,
             :timeout => @display_secs
@@ -287,7 +287,7 @@ ENDVERS
   def do_reboot
 
     # get the policy name or id from the d3 config
-    policy = D3::CONFIG.puppy_reboot_policy
+    policy = Xolo::CONFIG.puppy_reboot_policy
 
     unless policy
       D3.log "No puppy reboot policy in configuration, using 'shutdown -r now'", :debug
@@ -305,10 +305,10 @@ end # class App
 ############
 begin
   # exit asap if there are not puppies in the queue
-  exit 0 if D3::PUPPY_Q.pups.empty?
+  exit 0 if Xolo::PUPPY_Q.pups.empty?
 
-  D3::LOG.progname = "puppytime"
-  D3::Client.set_env :puppytime
+  Xolo::LOG.progname = "puppytime"
+  Xolo::Client.set_env :puppytime
 
   if app = App.new(ARGV)
     app.run
@@ -329,6 +329,6 @@ rescue
 ensure
   if JSS::API.connected?
     JSS::DistributionPoint.my_distribution_point.unmount if JSS::DistributionPoint.my_distribution_point.mounted?
-    D3::Client.disconnect
+    Xolo::Client.disconnect
   end # if
 end

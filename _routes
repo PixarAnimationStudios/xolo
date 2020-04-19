@@ -29,13 +29,13 @@ GET
 /titles/<name>
 GET
   - retrieve a title
-  - BODY: the JSON data for instantiating a D3::Title
+  - BODY: the JSON data for instantiating a Xolo::Title
 POST
   - create a new title
-  - BODY: the JSON data for instantiating a D3::Title to be created on the server
+  - BODY: the JSON data for instantiating a Xolo::Title to be created on the server
 PUT
   - update a title
-  - BODY: the JSON data for instantiating a D3::Title to be updated on the server
+  - BODY: the JSON data for instantiating a Xolo::Title to be updated on the server
 DELETE
   - delete a title and all associated versions
   - BODY: none
@@ -51,13 +51,13 @@ GET
 /titles/<name>/version/<vers>
 GET
   - retrieve a version in a title
-  - BODY: the JSON data for instantiating a D3::Version on the client
+  - BODY: the JSON data for instantiating a Xolo::Version on the client
 POST
   - create a new version in a title
-  - BODY: the JSON data for instantiating a D3::Version to be created on the server
+  - BODY: the JSON data for instantiating a Xolo::Version to be created on the server
 PUT
   - update a version in a title
-  - BODY: the JSON data for instantiating a D3::Version to be updated on the server
+  - BODY: the JSON data for instantiating a Xolo::Version to be updated on the server
 DELETE
   - delete a version in a title and all associated packages, scripts etc
   - BODY: none

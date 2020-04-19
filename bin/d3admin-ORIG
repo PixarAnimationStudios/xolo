@@ -71,7 +71,7 @@ class App
     end
 
     # run config if it hasn't ever run
-    unless D3::Admin::Prefs.prefs[:last_config] || JSS.superuser?
+    unless Xolo::Admin::Prefs.prefs[:last_config] || JSS.superuser?
       puts
       puts "********  INITIAL D3ADMIN CONFIGURATION  ********"
       puts
@@ -84,8 +84,8 @@ class App
     @admin = @options.admin || ENV['USER']
 
     # admin can't be a badmin
-    if D3.badmins.include? @admin and D3::Admin::ACTIONS_NEEDING_ADMIN.include? @action
-      raise D3::PermissionError, "d3admin cannot do '#{@action}' as #{@admin}."
+    if D3.badmins.include? @admin and Xolo::Admin::ACTIONS_NEEDING_ADMIN.include? @action
+      raise Xolo::PermissionError, "d3admin cannot do '#{@action}' as #{@admin}."
     end
 
     # config before connecting
@@ -96,9 +96,9 @@ class App
 
     # connect to the server, prompting for info as needed
     if @admin == 'root'
-      D3::Client.connect
+      Xolo::Client.connect
     else
-      D3::Admin::Auth.connect
+      Xolo::Admin::Auth.connect
     end
 
     case @action
@@ -125,7 +125,7 @@ class App
         show_report
 
       else
-        raise ArgumentError, "#{D3::Admin::Help::USAGE}\nUnknown action, must be one of #{D3::Admin::ACTIONS.join(', ')}"
+        raise ArgumentError, "#{Xolo::Admin::Help::USAGE}\nUnknown action, must be one of #{Xolo::Admin::ACTIONS.join(', ')}"
 
     end # case
 
@@ -139,7 +139,7 @@ class App
   def parse_commandline
 
     # Debugging file? if so, always set debug.
-    ARGV << "--debug" if D3::DEBUG_FILE.exist?
+    ARGV << "--debug" if Xolo::DEBUG_FILE.exist?
 
     # this holds everything that comes from the commandline
     # or from prompting the user
@@ -153,7 +153,7 @@ class App
     @options.status = []
 
     # see Admin::CLIOpts
-    opt_arry = D3::Admin::OPTIONS.values.map{|o| o[:cli] }
+    opt_arry = Xolo::Admin::OPTIONS.values.map{|o| o[:cli] }
     opts = GetoptLong.new *opt_arry
 
     opts.each do |opt, arg|
@@ -169,7 +169,7 @@ class App
           @options.helptype = :extended_help
           return
         when '--debug'
-          D3::Admin.debug = true
+          Xolo::Admin.debug = true
 
         when '--d3-version'
           @action = "help"
@@ -298,14 +298,14 @@ class App
     action_arg = ARGV.shift
 
     unless action_arg
-      raise ArgumentError, "#{D3::Admin::Help::USAGE}\nAction, must be one of #{D3::Admin::ACTIONS.join(', ')}"
+      raise ArgumentError, "#{Xolo::Admin::Help::USAGE}\nAction, must be one of #{Xolo::Admin::ACTIONS.join(', ')}"
     end
 
     # one or more letters is all we need to specify the action...
-    @action = D3::Admin::ACTIONS.select{|a| a.start_with? action_arg}.first
+    @action = Xolo::Admin::ACTIONS.select{|a| a.start_with? action_arg}.first
 
-    unless @action and D3::Admin::ACTIONS.include? @action
-      raise ArgumentError, "#{D3::Admin::Help::USAGE}\nAction, must be one of #{D3::Admin::ACTIONS.join(', ')}"
+    unless @action and Xolo::Admin::ACTIONS.include? @action
+      raise ArgumentError, "#{Xolo::Admin::Help::USAGE}\nAction, must be one of #{Xolo::Admin::ACTIONS.join(', ')}"
     end
 
     # anything remaining in ARGV is one or more targets
@@ -321,9 +321,9 @@ class App
   def show_help (type)
     text = case type
            when :help
-            D3::Admin::Help.help_text
+            Xolo::Admin::Help.help_text
            when :extended_help
-             D3::Admin::Help.extended_help_text
+             Xolo::Admin::Help.extended_help_text
            when :show_d3_version
              d3_version_text
            end
@@ -336,7 +336,7 @@ class App
   # @return [String] the text
   def d3_version_text
   <<-ENDVERS
-D3 module version: #{D3::VERSION}
+D3 module version: #{Xolo::VERSION}
 JSS module version: #{JSS::VERSION}
 ENDVERS
   end
@@ -346,19 +346,19 @@ ENDVERS
   def import_pilot_pkg_from_jss
 
     if @options.walkthru
-      @options.import_from = D3::Admin::Interactive.get_value :import unless @options.import_from
-      @options.version = D3::Admin::Interactive.get_value :version
-      @options.revision = D3::Admin::Interactive.get_value :revision
+      @options.import_from = Xolo::Admin::Interactive.get_value :import unless @options.import_from
+      @options.version = Xolo::Admin::Interactive.get_value :version
+      @options.revision = Xolo::Admin::Interactive.get_value :revision
     else
       raise JSS::MissingDataError, "A version must be provided with --version" unless @options.version
       raise JSS::MissingDataError, "A revision must be provided with --revision" unless @options.revision
     end # if walk thru
 
-    imported_pkg = D3::Package.import( @options.import_from,
+    imported_pkg = Xolo::Package.import( @options.import_from,
       title: @options.title,
       version: @options.version,
       revision: @options.revision,
-      dist_pw: D3::Admin::Auth.rw_credentials(:dist)[:password]
+      dist_pw: Xolo::Admin::Auth.rw_credentials(:dist)[:password]
       )
     imported_pkg.admin = @admin
     edit_package imported_pkg
@@ -368,7 +368,7 @@ ENDVERS
   # In this method, the following are OpenStructs:
   # - @options holds the value from the commandline
   # - default_options holds the default values, either as
-  #     defined in D3::Admin::OPTIONS or inherited
+  #     defined in Xolo::Admin::OPTIONS or inherited
   #     from an older package
   # - new_package_options holds the validated values for
   #     making the new package
@@ -380,7 +380,7 @@ ENDVERS
     ## we must have a title before going farther
     @options.title = @targets.first
     if @options.walkthru
-      @options.title ||= D3::Admin::Interactive.get_title
+      @options.title ||= Xolo::Admin::Interactive.get_title
     else
       raise ArgumentError, "A title must be provided as a target. Use -H for help" unless @options.title
     end
@@ -396,12 +396,12 @@ ENDVERS
     new_package_options = OpenStruct.new
 
     # now figure out our default values..
-    default_options = D3::Admin::Add.get_default_options(@options.title, @options.no_inherit)
+    default_options = Xolo::Admin::Add.get_default_options(@options.title, @options.no_inherit)
 
     # get all new package options into new_package_options
     #  via walkthru ...
     if @options.walkthru
-      new_package_options = D3::Admin::Add.loop_thru_add_walkthru default_options
+      new_package_options = Xolo::Admin::Add.loop_thru_add_walkthru default_options
 
     # via the commandline
     else
@@ -420,7 +420,7 @@ ENDVERS
       default_options.each_pair { |opt, val| @options[opt] ||= val }
 
 
-      new_package_options = D3::Admin::Add.add_pilot_cli(@options)
+      new_package_options = Xolo::Admin::Add.add_pilot_cli(@options)
 
       ##########################
 
@@ -432,15 +432,15 @@ ENDVERS
     unless @options.walkthru
       lines = []
 
-      opts_to_confirm = D3::Admin::Add::NEW_PKG_OPTIONS
-      opts_to_confirm += D3::Admin::Add::BUILD_OPTIONS if new_package_options.package_build_type
-      opts_to_confirm += D3::Admin::Add::PKG_OPTIONS if new_package_options.package_build_type == :pkg
+      opts_to_confirm = Xolo::Admin::Add::NEW_PKG_OPTIONS
+      opts_to_confirm += Xolo::Admin::Add::BUILD_OPTIONS if new_package_options.package_build_type
+      opts_to_confirm += Xolo::Admin::Add::PKG_OPTIONS if new_package_options.package_build_type == :pkg
 
-      #D3::Admin::Add::NEW_PKG_OPTIONS.each do |opt|
+      #Xolo::Admin::Add::NEW_PKG_OPTIONS.each do |opt|
       opts_to_confirm.each do |opt|
-        lbl = D3::Admin::OPTIONS[opt][:label]
-        if D3::Admin::OPTIONS[opt][:display_conversion]
-          disp = D3::Admin::OPTIONS[opt][:display_conversion].call(new_package_options[opt])
+        lbl = Xolo::Admin::OPTIONS[opt][:label]
+        if Xolo::Admin::OPTIONS[opt][:display_conversion]
+          disp = Xolo::Admin::OPTIONS[opt][:display_conversion].call(new_package_options[opt])
         else
           disp = new_package_options[opt]
         end
@@ -457,7 +457,7 @@ ENDVERS
     # Get confirmation
     confirm "Create a new package '#{new_package_options.patch}' in d3\nwith settings shown above."
 
-    D3::Admin::Add.add_new_package new_package_options
+    Xolo::Admin::Add.add_new_package new_package_options
 
     puts "Done!"
     puts "To pilot it, run 'sudo d3 install #{new_package_options.patch}' on a test machine."
@@ -477,7 +477,7 @@ ENDVERS
       puts "No patch given to make live or no matching package found"
       return
     end
-    pkg = D3::Package.new id: pkg_id
+    pkg = Xolo::Package.new id: pkg_id
 
     if pkg.status == :live
       puts "Doh, '#{pkg.patch}' is already live"
@@ -493,9 +493,9 @@ ENDVERS
 
     # is the prev. live pkg in use in any policies?
     policy_warning = ""
-    pkg_id_being_deprecated = D3::Package.titles_to_live_ids[pkg.title]
+    pkg_id_being_deprecated = Xolo::Package.titles_to_live_ids[pkg.title]
     if pkg_id_being_deprecated
-      outgoing_pkg = D3::Package.new(id: pkg_id_being_deprecated)
+      outgoing_pkg = Xolo::Package.new(id: pkg_id_being_deprecated)
       pols_used_by_old_pkg  = outgoing_pkg.policy_ids
       unless pols_used_by_old_pkg.empty?
         names = pols_used_by_old_pkg.map { |pid| JSS::Policy.map_all_ids_to(:name)[pid] }.join(', ')
@@ -516,7 +516,7 @@ ENDVERS
 
   # Edit an existing or importing package
   #
-  # @param pkg[D3::Package, nil] A possibly unsaved D3::Package to edit.
+  # @param pkg[Xolo::Package, nil] A possibly unsaved Xolo::Package to edit.
   #   This is usually used for importing JSS pkgs into d3.
   #
   # @return [void]
@@ -525,7 +525,7 @@ ENDVERS
 
     unless pkg
       pkg_id = get_pkg_from_cli_or_prompt
-      pkg = pkg_id ? D3::Package.new(id: pkg_id) : nil
+      pkg = pkg_id ? Xolo::Package.new(id: pkg_id) : nil
     end
     if pkg.nil?
       puts "No targets given to edit or no matching package found"
@@ -534,17 +534,17 @@ ENDVERS
 
 
     if @options.walkthru
-      changes_to_make = D3::Admin::Edit.loop_thru_editing_walkthru pkg
+      changes_to_make = Xolo::Admin::Edit.loop_thru_editing_walkthru pkg
     else
 
-      changes_to_make = D3::Admin::Edit.validate_cli_edits (@options)
+      changes_to_make = Xolo::Admin::Edit.validate_cli_edits (@options)
     end # if @options.walkthru
 
     # Confirm the patch is still good if vers or rev changed
-    changes_to_make = D3::Admin::Edit.check_new_patch pkg, changes_to_make
+    changes_to_make = Xolo::Admin::Edit.check_new_patch pkg, changes_to_make
 
     # Confirm the auto and excl groups don't conflict with each other
-    D3::Admin::Edit.check_for_new_group_overlaps pkg, changes_to_make
+    Xolo::Admin::Edit.check_for_new_group_overlaps pkg, changes_to_make
 
 
     # exit if no changes on edit
@@ -562,10 +562,10 @@ ENDVERS
       conf_deets = "Here are the changes..."
     end
 
-    D3::Admin::Edit::EDITING_OPTIONS.each do |opt|
+    Xolo::Admin::Edit::EDITING_OPTIONS.each do |opt|
       next unless changes_to_make.keys.include? opt
       new_val = changes_to_make[opt]
-      opt_def = D3::Admin::OPTIONS[opt]
+      opt_def = Xolo::Admin::OPTIONS[opt]
       label = opt_def[:label]
       if opt_def[:display_conversion]
         new_val_display = opt_def[:display_conversion].call(new_val)
@@ -581,7 +581,7 @@ ENDVERS
     pkg.save if @options.import
 
     # make the changes
-    D3::Admin::Edit.process_edits pkg, changes_to_make
+    Xolo::Admin::Edit.process_edits pkg, changes_to_make
 
     puts @options.import ? "Done: the package has been imported to d3." : "Done! Your changes have been saved."
 
@@ -601,11 +601,11 @@ ENDVERS
     end
 
     # check to see if the pkg is missing
-    if D3::Package.package_data[pkg_id][:status] == :missing || (not JSS::Package.all_ids.include? pkg_id)
+    if Xolo::Package.package_data[pkg_id][:status] == :missing || (not JSS::Package.all_ids.include? pkg_id)
       delete_missing_package pkg_id
       return
     else
-      pkg = D3::Package.new id: pkg_id
+      pkg = Xolo::Package.new id: pkg_id
     end
 
     got_scripts = (not pkg.script_ids.values.empty?)
@@ -613,9 +613,9 @@ ENDVERS
     if got_scripts
 
       if @options.walkthru
-        @options.keep_scripts =  D3::Admin::Interactive.get_value(:get_keep_scripts, default = 'n', check_method = :validate_yes_no)
+        @options.keep_scripts =  Xolo::Admin::Interactive.get_value(:get_keep_scripts, default = 'n', check_method = :validate_yes_no)
 
-        @options.keep_in_jss = D3::Admin::Interactive.get_value(:get_keep_in_jss, default = 'n', check_method = :validate_yes_no)
+        @options.keep_in_jss = Xolo::Admin::Interactive.get_value(:get_keep_in_jss, default = 'n', check_method = :validate_yes_no)
       end # if @options.walkthru
 
 
@@ -645,7 +645,7 @@ ENDVERS
         admin: @admin,
         keep_scripts: @options.keep_scripts,
         keep_in_jss: @options.keep_in_jss,
-        rwpw: D3::Admin::Auth.rw_credentials(:dist)[:password]
+        rwpw: Xolo::Admin::Auth.rw_credentials(:dist)[:password]
         )
 
     unless script_actions.empty?
@@ -660,7 +660,7 @@ ENDVERS
   #
   #
   def delete_missing_package (pkgid)
-    pkg_data = D3::Package.package_data[pkgid]
+    pkg_data = Xolo::Package.package_data[pkgid]
     script_ids = [pkg_data[:pre_install_script_id], pkg_data[:post_install_script_id], pkg_data[:pre_remove_script_id], pkg_data[:post_remove_script_id] ].compact
 
     if script_ids.empty?
@@ -675,7 +675,7 @@ ENDVERS
 
     confirm "DELETE #{pkg_data[:patch]}\n** Already missing from the JSS **", deets
 
-    JSS::DB_CNX.db.query "DELETE FROM #{D3::Database::PACKAGE_TABLE[:table_name]} WHERE package_id = #{pkgid}"
+    JSS::DB_CNX.db.query "DELETE FROM #{Xolo::Database::PACKAGE_TABLE[:table_name]} WHERE package_id = #{pkgid}"
     puts "Package #{pkg_data[:patch]} deleted."
 
     if (not @options.keep_scripts) && (not script_ids.empty?)
@@ -692,8 +692,8 @@ ENDVERS
             pol_users << pol
           end
         end # policy scripts.each
-        d3_users = (D3::Package.packages_for_script(victim_script_id) - [pkgid])
-        d3_users.each{|pkgid| puts "Script '#{victim_script_name}' in use by d3 patch '#{D3::Package.ids_to_patchs[pkgid]}'" }
+        d3_users = (Xolo::Package.packages_for_script(victim_script_id) - [pkgid])
+        d3_users.each{|pkgid| puts "Script '#{victim_script_name}' in use by d3 patch '#{Xolo::Package.ids_to_patchs[pkgid]}'" }
         if pol_users.empty? and d3_users.empty?
           JSS::Script.new(id: victim_script_id).delete
           puts "Deleted script '#{victim_script_name}'"
@@ -711,9 +711,9 @@ ENDVERS
   #
   def get_pkg_from_cli_or_prompt
     if @options.walkthru and @targets.first.nil?
-      D3::Admin::Interactive.get_value :get_existing_package, nil, :validate_existing_package
+      Xolo::Admin::Interactive.get_value :get_existing_package, nil, :validate_existing_package
     else
-      pkg_data = D3::Package.find_package(@targets.first, :hash)
+      pkg_data = Xolo::Package.find_package(@targets.first, :hash)
       return pkg_data ? pkg_data[:id] : nil
     end
   end
@@ -761,7 +761,7 @@ ENDVERS
       return
     end
 
-    pkg = D3::Package.new id: pkg_id
+    pkg = Xolo::Package.new id: pkg_id
 
     pkg_deets = <<-ENDDEETS
 *****************************************
@@ -780,11 +780,11 @@ ENDDEETS
     end
 
     done = [:title, :version, :revision, :added_by, :added_date, :released_by, :release_date]
-    D3::Admin::Edit::EDITING_OPTIONS.each do |opt|
+    Xolo::Admin::Edit::EDITING_OPTIONS.each do |opt|
       next if done.include? opt
-      label = D3::Admin::OPTIONS[opt][:label]
-      if D3::Admin::OPTIONS[opt][:display_conversion]
-        val_display = D3::Admin::OPTIONS[opt][:display_conversion].call(pkg.send opt)
+      label = Xolo::Admin::OPTIONS[opt][:label]
+      if Xolo::Admin::OPTIONS[opt][:display_conversion]
+        val_display = Xolo::Admin::OPTIONS[opt][:display_conversion].call(pkg.send opt)
       else
         val_display =  pkg.send opt
       end
@@ -802,11 +802,11 @@ ENDDEETS
   # @return [void]
   #
   def search
-    D3::Admin::Report.connect_for_reports
+    Xolo::Admin::Report.connect_for_reports
 
     if @options.walkthru
       # prompt for search type?
-        search_for = D3::Admin::Interactive.prompt_for_data(
+        search_for = Xolo::Admin::Interactive.prompt_for_data(
           desc: "SEARCH PACKAGES BY?\nAre you searching for packages by title, or by scoped groups?\nEnter 'b' or 'g'",
           prompt: "titles or Groups",
           default: 'b',
@@ -814,8 +814,8 @@ ENDDEETS
         )
       @options.search_groups = true if search_for =~ /^g/i
 
-      @targets = [D3::Admin::Interactive.get_search_target] if @targets.empty?
-      @options.status = D3::Admin::Interactive.get_status_for_filter.split(/,\s*/) if @options.status.empty?
+      @targets = [Xolo::Admin::Interactive.get_search_target] if @targets.empty?
+      @options.status = Xolo::Admin::Interactive.get_status_for_filter.split(/,\s*/) if @options.status.empty?
     end #if @options.walkthru
 
     @options.status = [] if @options.status.include? "all"
@@ -823,9 +823,9 @@ ENDDEETS
     # show all pkgs or group scope
     if @targets.empty? or @targets.include? "all"
       if @options.search_groups
-        D3::Admin::Report.list_all_pkgs_with_scope @options.status
+        Xolo::Admin::Report.list_all_pkgs_with_scope @options.status
       else
-        D3::Admin::Report.list_packages nil, @options.status
+        Xolo::Admin::Report.list_packages nil, @options.status
       end
       return
     end
@@ -840,18 +840,18 @@ ENDDEETS
           puts "No computer groups in Jamf Pro match '#{search_target}'"
         else
           found_groups.each {|fgn|
-            D3::Admin::Report.list_scoped_installs fgn, @options.status, :auto
-            D3::Admin::Report.list_scoped_installs fgn, @options.status, :excluded
+            Xolo::Admin::Report.list_scoped_installs fgn, @options.status, :auto
+            Xolo::Admin::Report.list_scoped_installs fgn, @options.status, :excluded
           } # found_groups.each
         end # if found_groups.empty?
 
       # titles
       else
-        found_titles = D3::Package.all_titles.select{|bn| bn =~ /#{search_target}/}
+        found_titles = Xolo::Package.all_titles.select{|bn| bn =~ /#{search_target}/}
         if found_titles.empty?
           puts "No titles in d3 match '#{search_target}'"
         else
-          found_titles.each {|fbn| D3::Admin::Report.list_packages fbn, @options.status }
+          found_titles.each {|fbn| Xolo::Admin::Report.list_packages fbn, @options.status }
         end # if found_titles.empty?
       end # if @options.search_groups
     end # @targets.each do |search_target|
@@ -862,7 +862,7 @@ ENDDEETS
   # @return [void]
   #
   def show_report
-    D3::Admin::Report.connect_for_reports
+    Xolo::Admin::Report.connect_for_reports
 
     # targets are titles or computer names
 
@@ -870,7 +870,7 @@ ENDDEETS
 
       # prompt for target?
       if @targets.empty?
-        one_or_all = D3::Admin::Interactive.prompt_for_data(
+        one_or_all = Xolo::Admin::Interactive.prompt_for_data(
           desc: "ALL COMPUTERS?\nAre you reporting for a single computer or all computers?\nEnter 'all' for all computers, '1' for one",
           prompt: "All or 1",
           default: 'all',
@@ -879,18 +879,18 @@ ENDDEETS
 
         # title report across computers
         if one_or_all == "all"
-          @targets = [(D3::Admin::Interactive.get_value :get_title, nil, :validate_title)]
+          @targets = [(Xolo::Admin::Interactive.get_value :get_title, nil, :validate_title)]
 
         # reporting single computers
         else
           @options.report_computers = true
-          computer_id = D3::Admin::Interactive.get_value :get_computer, nil, :validate_computer
+          computer_id = Xolo::Admin::Interactive.get_value :get_computer, nil, :validate_computer
           @targets = [JSS::Computer.map_all_ids_to(:name)[computer_id]]
         end
       end # if targets empty
 
       # prompt for rcpts or puppies
-      rcpts_or_pups = D3::Admin::Interactive.prompt_for_data(
+      rcpts_or_pups = Xolo::Admin::Interactive.prompt_for_data(
           desc: "RECEIPTS OR PUPPIES?\nShould the report list receipts or pending puppytime installs?\nEnter 'r' for receipts, 'p' for puppies",
           prompt: "Receipts or puppies",
           required: false,
@@ -899,7 +899,7 @@ ENDDEETS
       @options.report_q  =  rcpts_or_pups =~ /^p/i ?  true : false
 
       # prompt for status or frozen
-      @options.status = D3::Admin::Interactive.get_status_for_filter(:with_frozen).split(/,\s*/) if @options.status.empty?
+      @options.status = Xolo::Admin::Interactive.get_status_for_filter(:with_frozen).split(/,\s*/) if @options.status.empty?
 
     end #if @options.walkthru
 
@@ -922,17 +922,17 @@ ENDDEETS
       # report puppies
       if reporting == :puppies
         if @options.report_computers
-          D3::Admin::Report.report_single_puppy_queue target, @options.status
+          Xolo::Admin::Report.report_single_puppy_queue target, @options.status
         else
-          D3::Admin::Report.report_puppy_queues target, @options.status
+          Xolo::Admin::Report.report_puppy_queues target, @options.status
         end
 
       # report receipts
       else
         if @options.report_computers
-          D3::Admin::Report.report_single_computer_receipts target, @options.status
+          Xolo::Admin::Report.report_single_computer_receipts target, @options.status
         else
-          D3::Admin::Report.report_title_receipts target, @options.status
+          Xolo::Admin::Report.report_title_receipts target, @options.status
         end
 
       end # if reporting puppies
@@ -953,9 +953,9 @@ ENDDEETS
   def config
 
     if @targets.include? 'display'
-      D3::Admin::Prefs.display_config
+      Xolo::Admin::Prefs.display_config
     else
-      D3::Admin::Prefs.config @targets, @options
+      Xolo::Admin::Prefs.config @targets, @options
     end
   end # config
 
@@ -980,11 +980,11 @@ begin
   app.run
 rescue
   puts "An error occurred: #{$!.class}: #{$!}"
-  puts $@ if D3::Admin.debug
+  puts $@ if Xolo::Admin.debug
   exit 1
 ensure
-  if D3::Admin::Auth.connected?
+  if Xolo::Admin::Auth.connected?
     # JSS::DistributionPoint.master_distribution_point.unmount if JSS::DistributionPoint.master_distribution_point.mounted?
-    D3::Admin::Auth.disconnect
+    Xolo::Admin::Auth.disconnect
   end
 end # begin

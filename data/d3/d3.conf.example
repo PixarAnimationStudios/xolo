@@ -6,7 +6,7 @@
 # on all d3 clients and d3admin machines.
 #
 # When the D3 module is loaded, this file is read into a
-# D3::Configuration instance stored in the constant D3::CONFIG
+# Xolo::Configuration instance stored in the constant Xolo::CONFIG
 #
 # The file format is one attribute per line, thus:
 #
@@ -20,7 +20,7 @@
 # (e.g. /Library/Ruby/Gems/2.0.0/gems/depot3-3.0.0/data/d3.conf.default)
 #
 # The conf file may be edited with any text editor, however developers should
-# look at the manipulation methods in the D3::Configuration class.
+# look at the manipulation methods in the Xolo::Configuration class.
 #
 
 
