@@ -1,0 +1,149 @@
+full discussion now at
+
+https://wiki.pixar.com/pages/viewpage.action?pageId=567230127
+
+d3admin actions:
+
+add-title <title> [options]
+edit-title <title> [options]
+delete-title <title> [options]
+add-version  <title> --version 'versString' [options]
+edit-version <edition> [options]
+delete-version <edition> [options]
+release <edition>
+info <title>|<edition> [options]
+search <titlePattern> [options]
+report <title>|<edition> [options]
+config [options]
+help
+
+#*#*#*#**#*#*#*#*#* Older Notes #*#**#*#*#*#*#*#*#*#**#
+
+
+  - add title (must add first verion too)
+    - activate title in jamf patch management
+
+  - add version
+
+
+    - create version in d3
+      - create/upload the JSS pkg & asscociated scripts
+      - add version to patchsource (makes client reporting work)
+      - asscociate package with version in the title
+    - if in SS
+      - create orig install policy - wrapper around `d3 install` cuz policies can't do all that d3 can
+      - create update policy - wrapper around `d3 install` cuz patch policies do even less than regular policies.
+        - better yet - one policy does both ?
+        - can we replicate the deadline/graceperiod stuff in patch pols?
+      - configure notification stuff
+    - if not in SS
+      - replicate the graceperiod stuff.
+
+  - edit
+    - update data as needed
+      - is it ok to edit a version in a patch source?
+
+  - make live
+    - change status in d3, nothing in jamf
+
+  - delete
+
+  - report
+    - use patchtitle reports
+
+- d3
+  - install
+    - same as now
+    - self svc
+      - same as now, add some notifications
+  - uninstall
+  - sync
+  - lists
+  - freeze/thaw
+  - forget
+
+#########################
+
+d3admin add/edit
+  - create/update title in d3server if needed
+  - create/update version in d3server
+  - create/update JSS::Package via ruby-jss (no JSS indexing)
+  - upload/update pkg through d3server
+  - create/update any JSS::Scripts via ruby-jss
+  - create/update SSvc policy if needed via ruby-jss
+
+  (once we do patch)
+  - create/update patch source data in d3server
+
+
+
+
+#########################
+INVESTIGATE:
+
+KillApps:
+patch stuff uses bundle ids like "com.fournova.Tower3"
+d3v3  uses process names
+
+Should d3v4 use bundle Ids via lsappinfo?  This command
+returns nothing if its not running
+    lsappinfo info "com.fournova.Tower3"
+
+
+
+Repoman:q
+
+rewrite in ruby using this shell command:
+
+`lsappinfo listen +becameFrontmost forever`
+
+notifications like this come in -
+
+Notification: kLSNotifyBecameFrontmost time=11/08/2018 03:43:35.184 dataRef={ "ApplicationType"="Foreground", "CFBundleIdentifier"="com.github.atom", "LSASN"=ASN:0x0-0x558257d:, "LSFrontApplicationSeed"=5331, "LSMenuBarOwnerApplicationSeed"=5027, "LSMenuBarOwnerASN"=ASN:0x0-0x558257d:, "LSOtherASN"=ASN:0x0-0x558057b: } affectedASN="Atom" ASN:0x0-0x558257d:  context=0x0 sessionID=186a7 notificationID=0x7fdb89700ae0
+
+Notification: kLSNotifyBecameFrontmost time=+2.60129s  dataRef={ "ApplicationType"="Foreground", "CFBundleIdentifier"="com.apple.Terminal", "LSASN"=ASN:0x0-0x558057b:, "LSFrontApplicationSeed"=5332, "LSMenuBarOwnerApplicationSeed"=5028, "LSMenuBarOwnerASN"=ASN:0x0-0x558057b:, "LSOtherASN"=ASN:0x0-0x558257d: } affectedASN="Terminal" ASN:0x0-0x558057b:  context=0x0 sessionID=186a7 notificationID=0x7fdb89700ae0
+
+
+They can trigger a repoman update based on bundle ID ratther than executable path,
+and a list of bundle IDs we care about can be consulted, and updated by d3 installing
+pkgs with expiration
+
+
+#########################
+
+Separate title actions & version actions
+
+d3admin add/edit title chrisltest
+ --display-name
+ --description
+ --publisher
+ --category
+ --standard
+ --auto-group(s)
+ --excluded_group(s)
+ --expiration
+ --expiration-bundle/path/whatever
+ --app-name
+ --bundle-id
+ --in-selfsvc
+ --icon
+ --feature
+ --display-categpry
+ --feature-category
+
+d3admin add/edit version chrisltest 1.2.3
+ --no-inherit
+ --min-os
+ --max-os
+ --pre-install
+ --post-install
+ --pre-remove
+ --post-remove
+ --remove-first
+ --killapp(s)
+ --reboot
+ --removable
+ --package
+ --preserve-owners
+ --signing-id
+ --signing-opts

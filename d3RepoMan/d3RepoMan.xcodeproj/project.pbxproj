@@ -1,0 +1,447 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9547FA7B1B5EACBA007E908A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9547FA7A1B5EACBA007E908A /* AppDelegate.swift */; };
+		9547FA7D1B5EACBA007E908A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9547FA7C1B5EACBA007E908A /* Images.xcassets */; };
+		9547FA801B5EACBA007E908A /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9547FA7E1B5EACBA007E908A /* MainMenu.xib */; };
+		9547FA8C1B5EACBA007E908A /* d3RepoManTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9547FA8B1B5EACBA007E908A /* d3RepoManTests.swift */; };
+		9547FA971B5EC839007E908A /* last-foreground-times-template.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9547FA961B5EC839007E908A /* last-foreground-times-template.plist */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9547FA861B5EACBA007E908A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9547FA6D1B5EACBA007E908A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9547FA741B5EACBA007E908A;
+			remoteInfo = d3RepoMan;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		9547FA751B5EACBA007E908A /* d3RepoMan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = d3RepoMan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9547FA791B5EACBA007E908A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9547FA7A1B5EACBA007E908A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		9547FA7C1B5EACBA007E908A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+		9547FA7F1B5EACBA007E908A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		9547FA851B5EACBA007E908A /* d3RepoManTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = d3RepoManTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9547FA8A1B5EACBA007E908A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9547FA8B1B5EACBA007E908A /* d3RepoManTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = d3RepoManTests.swift; sourceTree = "<group>"; };
+		9547FA961B5EC839007E908A /* last-foreground-times-template.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "last-foreground-times-template.plist"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9547FA721B5EACBA007E908A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9547FA821B5EACBA007E908A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9547FA6C1B5EACBA007E908A = {
+			isa = PBXGroup;
+			children = (
+				9547FA771B5EACBA007E908A /* d3RepoMan */,
+				9547FA881B5EACBA007E908A /* d3RepoManTests */,
+				9547FA761B5EACBA007E908A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9547FA761B5EACBA007E908A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9547FA751B5EACBA007E908A /* d3RepoMan.app */,
+				9547FA851B5EACBA007E908A /* d3RepoManTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9547FA771B5EACBA007E908A /* d3RepoMan */ = {
+			isa = PBXGroup;
+			children = (
+				9547FA7A1B5EACBA007E908A /* AppDelegate.swift */,
+				9547FA7C1B5EACBA007E908A /* Images.xcassets */,
+				9547FA7E1B5EACBA007E908A /* MainMenu.xib */,
+				9547FA951B5EC829007E908A /* Resources */,
+				9547FA781B5EACBA007E908A /* Supporting Files */,
+			);
+			path = d3RepoMan;
+			sourceTree = "<group>";
+		};
+		9547FA781B5EACBA007E908A /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				9547FA791B5EACBA007E908A /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		9547FA881B5EACBA007E908A /* d3RepoManTests */ = {
+			isa = PBXGroup;
+			children = (
+				9547FA8B1B5EACBA007E908A /* d3RepoManTests.swift */,
+				9547FA891B5EACBA007E908A /* Supporting Files */,
+			);
+			path = d3RepoManTests;
+			sourceTree = "<group>";
+		};
+		9547FA891B5EACBA007E908A /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				9547FA8A1B5EACBA007E908A /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		9547FA951B5EC829007E908A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				9547FA961B5EC839007E908A /* last-foreground-times-template.plist */,
+			);
+			name = Resources;
+			path = ..;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9547FA741B5EACBA007E908A /* d3RepoMan */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9547FA8F1B5EACBA007E908A /* Build configuration list for PBXNativeTarget "d3RepoMan" */;
+			buildPhases = (
+				9547FA711B5EACBA007E908A /* Sources */,
+				9547FA721B5EACBA007E908A /* Frameworks */,
+				9547FA731B5EACBA007E908A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = d3RepoMan;
+			productName = d3RepoMan;
+			productReference = 9547FA751B5EACBA007E908A /* d3RepoMan.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9547FA841B5EACBA007E908A /* d3RepoManTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9547FA921B5EACBA007E908A /* Build configuration list for PBXNativeTarget "d3RepoManTests" */;
+			buildPhases = (
+				9547FA811B5EACBA007E908A /* Sources */,
+				9547FA821B5EACBA007E908A /* Frameworks */,
+				9547FA831B5EACBA007E908A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9547FA871B5EACBA007E908A /* PBXTargetDependency */,
+			);
+			name = d3RepoManTests;
+			productName = d3RepoManTests;
+			productReference = 9547FA851B5EACBA007E908A /* d3RepoManTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9547FA6D1B5EACBA007E908A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftMigration = 0700;
+				LastSwiftUpdateCheck = 0700;
+				LastUpgradeCheck = 0700;
+				ORGANIZATIONNAME = "Pixar Animation Studios";
+				TargetAttributes = {
+					9547FA741B5EACBA007E908A = {
+						CreatedOnToolsVersion = 6.4;
+					};
+					9547FA841B5EACBA007E908A = {
+						CreatedOnToolsVersion = 6.4;
+						TestTargetID = 9547FA741B5EACBA007E908A;
+					};
+				};
+			};
+			buildConfigurationList = 9547FA701B5EACBA007E908A /* Build configuration list for PBXProject "d3RepoMan" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9547FA6C1B5EACBA007E908A;
+			productRefGroup = 9547FA761B5EACBA007E908A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9547FA741B5EACBA007E908A /* d3RepoMan */,
+				9547FA841B5EACBA007E908A /* d3RepoManTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9547FA731B5EACBA007E908A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9547FA7D1B5EACBA007E908A /* Images.xcassets in Resources */,
+				9547FA971B5EC839007E908A /* last-foreground-times-template.plist in Resources */,
+				9547FA801B5EACBA007E908A /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9547FA831B5EACBA007E908A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9547FA711B5EACBA007E908A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9547FA7B1B5EACBA007E908A /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9547FA811B5EACBA007E908A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9547FA8C1B5EACBA007E908A /* d3RepoManTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9547FA871B5EACBA007E908A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9547FA741B5EACBA007E908A /* d3RepoMan */;
+			targetProxy = 9547FA861B5EACBA007E908A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		9547FA7E1B5EACBA007E908A /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9547FA7F1B5EACBA007E908A /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		9547FA8D1B5EACBA007E908A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		9547FA8E1B5EACBA007E908A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		9547FA901B5EACBA007E908A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALTERNATE_GROUP = wheel;
+				ALTERNATE_OWNER = root;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Developer ID Application: Pixar Animation Studios (F3G5LR2F93)";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 0.1;
+				INFOPLIST_FILE = d3RepoMan/Info.plist;
+				INSTALL_PATH = "/Library/Application Support/JAMF/d3";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pixar.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		9547FA911B5EACBA007E908A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALTERNATE_GROUP = wheel;
+				ALTERNATE_OWNER = root;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Developer ID Application: Pixar Animation Studios (F3G5LR2F93)";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 0.1;
+				INFOPLIST_FILE = d3RepoMan/Info.plist;
+				INSTALL_PATH = "/Library/Application Support/JAMF/d3";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pixar.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		9547FA931B5EACBA007E908A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+					"$(inherited)",
+				);
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = d3RepoManTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pixar.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/d3RepoMan.app/Contents/MacOS/d3RepoMan";
+			};
+			name = Debug;
+		};
+		9547FA941B5EACBA007E908A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = d3RepoManTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pixar.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/d3RepoMan.app/Contents/MacOS/d3RepoMan";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9547FA701B5EACBA007E908A /* Build configuration list for PBXProject "d3RepoMan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9547FA8D1B5EACBA007E908A /* Debug */,
+				9547FA8E1B5EACBA007E908A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9547FA8F1B5EACBA007E908A /* Build configuration list for PBXNativeTarget "d3RepoMan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9547FA901B5EACBA007E908A /* Debug */,
+				9547FA911B5EACBA007E908A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9547FA921B5EACBA007E908A /* Build configuration list for PBXNativeTarget "d3RepoManTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9547FA931B5EACBA007E908A /* Debug */,
+				9547FA941B5EACBA007E908A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9547FA6D1B5EACBA007E908A /* Project object */;
+}

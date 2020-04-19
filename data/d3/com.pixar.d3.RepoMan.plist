@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+This should be installed as a top-level launch agent, in /Library/LaunchAgents.
+It should have owner:group  'root:wheel'  and permissions 0644
+It will be launched automatically when each user logs in, and will record
+timestamps for applications coming to the foreground into a plist in
+/Library/Application Support/d3/Usage/
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.pixar.d3.RepoMan</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Library/Application Support/d3/d3RepoMan.app/Contents/MacOS/d3RepoMan</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+</dict>
+</plist>

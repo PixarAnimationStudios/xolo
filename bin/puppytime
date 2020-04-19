@@ -1,0 +1,334 @@
+#!/usr/bin/ruby
+# Copyright 2018 Pixar
+#
+#    Licensed under the Apache License, Version 2.0 (the "Apache License")
+#    with the following modification; you may not use this file except in
+#    compliance with the Apache License and the following modification to it:
+#    Section 6. Trademarks. is deleted and replaced with:
+#
+#    6. Trademarks. This License does not grant permission to use the trade
+#       names, trademarks, service marks, or product names of the Licensor
+#       and its affiliates, except as required to comply with Section 4(c) of
+#       the License and to reproduce the content of the NOTICE file.
+#
+#    You may obtain a copy of the Apache License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the Apache License with the above modification is
+#    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#    KIND, either express or implied. See the Apache License for the specific
+#    language governing permissions and limitations under the Apache License.
+#
+#
+
+
+# PuppyTime!  Install all d3 packages listed in the puppy-queue while displaying
+# a slideshow.
+#
+# The default images are of cute puppies, but they can be customized.
+# See http://some/url/ for details.
+#
+# If there are no items in the queue, the script exits immediately.
+#
+# This script is intended to be executed at logout. This is best accomplished
+# with a Jamf Pro policy triggered at logout. The policy can either run this script
+# as a Jamf Pro script (in which case you need to add it to the JSS) or
+# can call it locally using the "execute command" field of the
+# "files and processes" section of the policy
+#
+# This script also expects a policy to be defined in
+# D3::CONFIG.puppy_reboot_policy, which can contain policy name, custom-trigger
+# or JSS id number.
+#
+# That policy may do any other actions after installing the packages in the
+# queue, but before the reboot. It shouldn't to too much, however, since the
+# system may be in an unstable state after the installs. The policy itself
+# *must* do the actual reboot.
+#
+# If the D3::CONFIG.puppy_reboot_policy is not defined, or doesn't exist exist
+# in the JSS, this script will reboot with 'shutdown -r now'
+#
+#
+require 'd3'
+require 'ostruct'
+
+class App
+
+  VERSION = "3.0.0"
+
+  # app attributes
+  attr_reader :slideshow_pid
+
+  # Set up
+  def initialize(args)
+
+    @show_version = (args.include? "--version") || (args.include? "-v")
+
+    # debugging?
+    if args.include? "--debug"
+      @debug = true
+      D3::LOG.level = :debug
+      D3::Client.set_env :debug
+      args.delete_if{|f| f == "--debug" }
+    end
+
+    # These come from the JAMF binary and how it runs scripts
+    # the first arg is the target drive
+    # the second arg is the computer name
+    # the third arg is always the user.
+    @target_drive  = args[0]
+    @comp_name = args[1]
+    @user = args[2]
+
+
+    # use config values or defaults
+    @optout_text = D3::CONFIG.puppy_optout_text || D3::PuppyTime::DFT_OPTOUT_TEXT
+
+    @optout_image_path = Pathname.new(D3::CONFIG.puppy_optout_image_path || D3::PuppyTime::DFT_OPTOUT_IMAGE)
+
+    @optout_seconds = D3::CONFIG.puppy_optout_seconds || D3::PuppyTime::DFT_OPTOUT_SECS
+
+    @slideshow_folder_path = Pathname.new(D3::CONFIG.puppy_slideshow_folder_path || D3::PuppyTime::DFT_SLIDESHOW_DIR)
+
+    @image_size = D3::CONFIG.puppy_image_size || D3::PuppyTime::DFT_IMG_SIZE
+
+    @title = D3::CONFIG.puppy_title || D3::PuppyTime::DFT_TITLE
+
+    @display_secs = D3::CONFIG.puppy_display_secs || D3::PuppyTime::DFT_DISPLAY_SECS
+
+    @show_captions = D3::CONFIG.puppy_display_captions
+
+    @dft_caption = D3::PuppyTime::DFT_CAPTION || D3::PuppyTime::DFT_CAPTION
+
+    # paths must exist, or use defaults
+    @optout_image_path = D3::PuppyTime::DFT_OPTOUT_IMAGE unless @optout_image_path.file?
+    @slideshow_folder_path = D3::PuppyTime::DFT_SLIDESHOW_DIR unless @slideshow_folder_path.directory?
+
+
+  end # init
+
+  # walk them puppies!
+  def run
+
+    if @show_version
+      show_version
+      return
+    end
+
+    D3.log "Starting PuppyTime", :warn
+
+    # show the  opt-out window
+    button_clicked = JSS::Client.jamf_helper( :hud,
+      :lock_hud => true,
+      :title => @title,
+      :heading => "It's PuppyTime!",
+      :align_heading => D3::PuppyTime::CAPTION_POSITION,
+      :description => @optout_text,
+      :align_description => D3::PuppyTime::TEXT_POSITION,
+      :icon => @optout_image_path.to_s,
+      :icon_size => @image_size,
+      :button1 => "OK",
+      :button2 => "Cancel",
+      :default_button => 1,
+      :cancel_button => 2,
+      :timeout => @optout_seconds,
+      :countdown => true,
+      :align_countdown => D3::PuppyTime::COUNTDOWN_POSITION
+    )
+
+    # TODO test if we need #startlaunchd
+
+    # did the user cancel in time?
+    if button_clicked == 2
+      D3.log "User cancelled puppytime.", :warn
+      return true
+    end
+
+    D3::Client.connect
+
+    # start the slideshow
+    # this sets up @write_to_slideshow as our end of the pipe to
+    # update the text on the slideshow
+    show_puppies
+
+    # now loop through the puppy queue, installing
+    # each one with a call to d3 itself
+    D3::PUPPY_Q.queue.each do |pupname,pup|
+
+        # make sure the pkg exists
+        unless D3::Package.all_patchs.include? pup.patch
+          D3::PUPPY_Q - pup
+          D3.log "Removed invalid puppy #{pup.patch} from the queue.", :info
+          next
+        end
+
+        write_to_slideshow "Installing: #{pup.patch}"
+        pup.install
+
+    end # D3::PUPPY_Q.queue.each
+
+    write_to_slideshow "All Done with installs!\nThis computer will reboot in a moment.\nThanks for playing!"
+    sleep @display_secs
+
+    # end the slideshow
+    stop_puppies
+    D3.log "Puppies have been walked, rebooting.", :warn
+    do_reboot
+
+  end # run
+
+
+  def show_version
+    puts <<-ENDVERS
+D3 module version: #{D3::VERSION}
+JSS module version: #{JSS::VERSION}
+ENDVERS
+  end
+
+  # Update the slideshow with a new message
+  #
+  # @param message[String] the new message to display
+  #
+  # @return [void]
+  #
+  def write_to_slideshow (message)
+    @write_to_slideshow.puts message if @write_to_slideshow
+  end
+
+  # Start the puppy slideshow!
+  # This forks off a process to show the puppy pics while we
+  # do the installs. It just loops indefinitely through all
+  # the puppy pics.
+  # It returns the PID of the subprocess
+  # which we'll kill when we're done with the installs
+  #
+  # @return [Integer] the pid of the slideshow process
+  #
+  def show_puppies
+
+    # these pipe-ends will be duplicated in the forked child.
+    # we'll use the write_to_slideshow end to send the text of the latest
+    # thing we're installing.
+    #
+    # The forked child will use the read_from_main_process end to get that text from us
+    @read_from_main_process, @write_to_slideshow = IO.pipe
+
+    @slideshow_pid = Process.fork do
+
+      # the slideshow doesn't use this end of the pipe
+      @write_to_slideshow.close
+
+      # collect all the slideshow images and shuffle them into a random order
+      image_paths = @slideshow_folder_path.children.shuffle
+
+      # Start with this window description
+      description = "Preparing Installers."
+
+      while true do
+        image_paths.each do |slide_img|
+
+          caption = @show_captions ? slide_img.title.to_s.chomp(slide_img.extname) : @dft_caption
+
+          # Read a new description, if one was sent, up to 3000 chars
+          begin
+            raw_read = @read_from_main_process.read_nonblock 3000
+            description = raw_read.lines.first.chomp
+          rescue
+            # this catches the error when read_from_main_process has nothing to give us
+          end
+
+          # Show this puppy
+          JSS::Client.jamf_helper( :hud,
+            :lock_hud => true,
+            :title => @title,
+            :heading => caption,
+            :align_heading => D3::PuppyTime::CAPTION_POSITION,
+            :description => description,
+            :align_description => D3::PuppyTime::TEXT_POSITION,
+            :icon => slide_img,
+            :icon_size => @image_size,
+            :timeout => @display_secs
+          )
+        end # each slide_img
+      end # while true
+
+      # the slideshow is done reading if we get here.
+      @read_from_main_process.close
+
+    end # fork
+
+    # the main process doesn't use this end of the pipe
+    @read_from_main_process.close
+
+    return @slideshow_pid
+  end #show_puppies
+
+  # Stop the puppy slideshow
+  #
+  # @return [void]
+  #
+  def stop_puppies
+    return if @puppies_stopped
+    @write_to_slideshow.close if @write_to_slideshow
+    Process.kill("TERM", @slideshow_pid) if @slideshow_pid
+    @slideshow_pid = nil
+    @puppies_stopped = true
+  end
+
+  # Reboot the machine
+  # If a reboot policy is defined and exists, use it
+  # and expect it to do the reboot.
+  # otherwise use 'shutdown -r now'
+  #
+  # @return [void]
+  #
+  def do_reboot
+
+    # get the policy name or id from the d3 config
+    policy = D3::CONFIG.puppy_reboot_policy
+
+    unless policy
+      D3.log "No puppy reboot policy in configuration, using 'shutdown -r now'", :debug
+      system "/sbin/shutdown -r now"
+      return
+    end
+    unless D3.run_policy policy, :puppy_reboot, :verbose
+      D3.log "Invalid reboot policy '#{policy_config}' in configuration, using 'shutdown -r now'.", :warn
+      system "/sbin/shutdown -r now"
+    end
+  end # do reboot
+
+end # class App
+
+############
+begin
+  # exit asap if there are not puppies in the queue
+  exit 0 if D3::PUPPY_Q.pups.empty?
+
+  D3::LOG.progname = "puppytime"
+  D3::Client.set_env :puppytime
+
+  if app = App.new(ARGV)
+    app.run
+    # make sure we don't leave zombie puppies running around.
+    Process.wait  if app.respond_to? :slideshow_pid and app.slideshow_pid
+  end
+
+rescue
+  if defined?(app)
+    app.write_to_slideshow "*** AN ERROR OCCURED ***\nStopping puppies for now" if app.respond_to? :write_to_slideshow
+    app.stop_puppies  if app.respond_to? :stop_puppies
+  end
+  # handle exceptions not handled elsewhere
+  D3.log "#{$!.class}: #{$!}", :fatal
+  D3.log_backtrace
+  puts $@
+  exit 12
+ensure
+  if JSS::API.connected?
+    JSS::DistributionPoint.my_distribution_point.unmount if JSS::DistributionPoint.my_distribution_point.mounted?
+    D3::Client.disconnect
+  end # if
+end
