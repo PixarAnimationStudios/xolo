@@ -117,7 +117,7 @@ class App
       return
     end
 
-    D3.log "Starting PuppyTime", :warn
+    Xolo.log "Starting PuppyTime", :warn
 
     # show the  opt-out window
     button_clicked = JSS::Client.jamf_helper( :hud,
@@ -142,7 +142,7 @@ class App
 
     # did the user cancel in time?
     if button_clicked == 2
-      D3.log "User cancelled puppytime.", :warn
+      Xolo.log "User cancelled puppytime.", :warn
       return true
     end
 
@@ -160,7 +160,7 @@ class App
         # make sure the pkg exists
         unless Xolo::Package.all_patchs.include? pup.patch
           Xolo::PUPPY_Q - pup
-          D3.log "Removed invalid puppy #{pup.patch} from the queue.", :info
+          Xolo.log "Removed invalid puppy #{pup.patch} from the queue.", :info
           next
         end
 
@@ -174,7 +174,7 @@ class App
 
     # end the slideshow
     stop_puppies
-    D3.log "Puppies have been walked, rebooting.", :warn
+    Xolo.log "Puppies have been walked, rebooting.", :warn
     do_reboot
 
   end # run
@@ -290,12 +290,12 @@ ENDVERS
     policy = Xolo::CONFIG.puppy_reboot_policy
 
     unless policy
-      D3.log "No puppy reboot policy in configuration, using 'shutdown -r now'", :debug
+      Xolo.log "No puppy reboot policy in configuration, using 'shutdown -r now'", :debug
       system "/sbin/shutdown -r now"
       return
     end
-    unless D3.run_policy policy, :puppy_reboot, :verbose
-      D3.log "Invalid reboot policy '#{policy_config}' in configuration, using 'shutdown -r now'.", :warn
+    unless Xolo.run_policy policy, :puppy_reboot, :verbose
+      Xolo.log "Invalid reboot policy '#{policy_config}' in configuration, using 'shutdown -r now'.", :warn
       system "/sbin/shutdown -r now"
     end
   end # do reboot
@@ -322,8 +322,8 @@ rescue
     app.stop_puppies  if app.respond_to? :stop_puppies
   end
   # handle exceptions not handled elsewhere
-  D3.log "#{$!.class}: #{$!}", :fatal
-  D3.log_backtrace
+  Xolo.log "#{$!.class}: #{$!}", :fatal
+  Xolo.log_backtrace
   puts $@
   exit 12
 ensure

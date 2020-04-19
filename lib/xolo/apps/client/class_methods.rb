@@ -70,10 +70,10 @@ module Xolo
           if curr_rcpt && curr_rcpt.id >= desired_pkg.id && options.freeze_on_install
             if options.force || curr_rcpt.id == desired_pkg.id
               freeze_receipts([curr_rcpt.basename]) unless curr_rcpt.frozen?
-              D3.log "Freezing previously installed #{curr_rcpt.edition}", :warn
+              Xolo.log "Freezing previously installed #{curr_rcpt.edition}", :warn
               break
             end # if options.force elsif curr_rcpt.id == desired_pkg.id
-            D3.log "Cannot freeze previously installed #{curr_rcpt.edition} (#{curr_rcpt.status}) It is newer than #{desired_pkg.edition}. Use --force if needed.", :warn
+            Xolo.log "Cannot freeze previously installed #{curr_rcpt.edition} (#{curr_rcpt.status}) It is newer than #{desired_pkg.edition}. Use --force if needed.", :warn
             break
           end
 
@@ -94,14 +94,14 @@ module Xolo
           end # unless options.force
 
           if curr_rcpt
-            D3.log("Un-freezing #{curr_rcpt.patch} by installing #{desired_pkg.patch}", :warn) if curr_rcpt.frozen?
+            Xolo.log("Un-freezing #{curr_rcpt.patch} by installing #{desired_pkg.patch}", :warn) if curr_rcpt.frozen?
 
             if  desired_pkg.id == curr_rcpt.id
-              D3.log("Re-installing #{desired_pkg.patch}(#{desired_pkg.status})", :warn)
+              Xolo.log("Re-installing #{desired_pkg.patch}(#{desired_pkg.status})", :warn)
             elsif  desired_pkg.id < curr_rcpt.id
-              D3.log("Rolling back #{curr_rcpt.patch}(#{curr_rcpt.status}) to #{desired_pkg.patch}(#{desired_pkg.status})", :warn)
+              Xolo.log("Rolling back #{curr_rcpt.patch}(#{curr_rcpt.status}) to #{desired_pkg.patch}(#{desired_pkg.status})", :warn)
             else
-              D3.log("Updating #{curr_rcpt.patch}(#{curr_rcpt.status}) to #{desired_pkg.patch}(#{desired_pkg.status})", :warn)
+              Xolo.log("Updating #{curr_rcpt.patch}(#{curr_rcpt.status}) to #{desired_pkg.patch}(#{desired_pkg.status})", :warn)
             end
           end # if curr rcpt
 
@@ -118,17 +118,17 @@ module Xolo
 
           freeze_receipts([desired_pkg.basename]) if options.freeze_on_install
 
-          D3.log "Finished installing #{desired_pkg.patch}(#{desired_pkg.status})", :info
+          Xolo.log "Finished installing #{desired_pkg.patch}(#{desired_pkg.status})", :info
 
         rescue JSS::MissingDataError, JSS::NoSuchItemError, JSS::InvalidDataError, Xolo::InstallError
-          D3.log "Skipping installation of #{pkg_to_search}: #{$ERROR_INFO}", :error
-          D3.log_backtrace
+          Xolo.log "Skipping installation of #{pkg_to_search}: #{$ERROR_INFO}", :error
+          Xolo.log_backtrace
         rescue Xolo::PreInstallError
-          D3.log "There was an error with the pre-install script for #{desired_pkg.edition}: #{$ERROR_INFO}", :error
-          D3.log_backtrace
+          Xolo.log "There was an error with the pre-install script for #{desired_pkg.edition}: #{$ERROR_INFO}", :error
+          Xolo.log_backtrace
         rescue Xolo::PostInstallError
-          D3.log "There was an error with the post-install script for #{desired_pkg.edition}: #{$ERROR_INFO} NOTE: it was installed, but may have problems.", :error
-          D3.log_backtrace
+          Xolo.log "There was an error with the post-install script for #{desired_pkg.edition}: #{$ERROR_INFO} NOTE: it was installed, but may have problems.", :error
+          Xolo.log_backtrace
         end # begin
       end # args.each
     end # install
@@ -147,13 +147,13 @@ module Xolo
           rcpt = Xolo::Client::Receipt.find_receipt rcpt_to_remove
           raise Xolo::UninstallError, "No receipt for '#{rcpt_to_remove}', can't uninstall." unless rcpt
 
-          D3.log "Uninstalling #{rcpt.patch}...", :info
+          Xolo.log "Uninstalling #{rcpt.patch}...", :info
           rcpt.uninstall options.verbose, options.force
-          D3.log "Finished uninstalling #{rcpt.patch}.", :info
+          Xolo.log "Finished uninstalling #{rcpt.patch}.", :info
 
         rescue JSS::MissingDataError, Xolo::UninstallError, JSS::InvalidDataError
-          D3.log "Skipping uninstall of #{rcpt_to_remove}: #{$ERROR_INFO}", :error
-          D3.log_backtrace
+          Xolo.log "Skipping uninstall of #{rcpt_to_remove}: #{$ERROR_INFO}", :error
+          Xolo.log_backtrace
           next
         end # begin
       end # rcpts.each
@@ -181,7 +181,7 @@ module Xolo
         # start with the cli options
         admin = options.admin
         # then do a lookup if no cli option
-        admin ||= D3.admin
+        admin ||= Xolo.admin
 
       end # if @options.puppies
 
@@ -199,14 +199,14 @@ module Xolo
       puppies = Xolo::PUPPY_Q.pups if puppies.include? 'all'
       puppies.each do |pup|
         unless the_puppy = Xolo::PUPPY_Q.q[pup]
-          D3.log "No pkg for title '#{pup}' in the puppy queue.", :warn
+          Xolo.log "No pkg for title '#{pup}' in the puppy queue.", :warn
           next
         end # unless
         begin
-          D3.log "Removing '#{the_puppy.patch}' from the puppy queue.", :warn
+          Xolo.log "Removing '#{the_puppy.patch}' from the puppy queue.", :warn
           Xolo::PUPPY_Q - the_puppy
         rescue
-          D3.log "Couldn't remove #{the_puppy.edition} from the puppy queue: #{$ERROR_INFO}", :error
+          Xolo.log "Couldn't remove #{the_puppy.edition} from the puppy queue: #{$ERROR_INFO}", :error
         end # begin
       end
     end
@@ -219,7 +219,7 @@ module Xolo
     ###
     def self.sync(options = OpenStruct.new)
       Xolo::Client.set_env :sync
-      D3.log 'Starting sync', :warn
+      Xolo.log 'Starting sync', :warn
 
       begin
         # update rcpts
@@ -247,7 +247,7 @@ module Xolo
         # updates)
         clean_missing_receipts
 
-        D3.log 'Finished sync', :warn
+        Xolo.log 'Finished sync', :warn
       ensure
         Xolo::Client.unset_env :sync
       end
@@ -267,14 +267,14 @@ module Xolo
     # @return [void]
     #
     def self.update_rcpts
-      D3.log 'Updating receipts', :warn
+      Xolo.log 'Updating receipts', :warn
 
       Xolo::Client::Receipt.all.each do |title, rcpt|
         pkgdata = Xolo::Package.find_package rcpt.patch, :hash
 
         unless pkgdata
           # if this pkg is missing, mark it so...
-          D3.log "Receipt '#{rcpt.patch}' is missing from d3. Updating receipt.", :info
+          Xolo.log "Receipt '#{rcpt.patch}' is missing from d3. Updating receipt.", :info
           rcpt.status = :missing
           rcpt.update
           next
@@ -291,7 +291,7 @@ module Xolo
           if rcpt.status != pkgdata[:status]
             # update the status
             rcpt.status = pkgdata[:status]
-            D3.log "Updating status for #{rcpt.patch} to #{pkgdata[:status]}", :info
+            Xolo.log "Updating status for #{rcpt.patch} to #{pkgdata[:status]}", :info
             need_update = true
           end # if
         end # unless
@@ -299,24 +299,24 @@ module Xolo
         # pre-remove script
         if rcpt.pre_remove_script_id != pkgdata[:pre_remove_script_id]
           rcpt.pre_remove_script_id = pkgdata[:pre_remove_script_id]
-          D3.log "Updating pre-remove script for #{rcpt.patch}", :info
+          Xolo.log "Updating pre-remove script for #{rcpt.patch}", :info
           need_update = true
         end # if
 
         # post-remove script
         if rcpt.post_remove_script_id != pkgdata[:post_remove_script_id]
           rcpt.post_remove_script_id = pkgdata[:post_remove_script_id]
-          D3.log "Updating post-remove script for #{rcpt.patch}", :info
+          Xolo.log "Updating post-remove script for #{rcpt.patch}", :info
           need_update = true
         end # if
 
         # removability
         if rcpt.removable? != pkgdata[:removable]
           rcpt.removable = pkgdata[:removable]
-          D3.log "Updating removability for #{rcpt.patch}", :info
+          Xolo.log "Updating removability for #{rcpt.patch}", :info
           unless rcpt.removable?
             rcpt.expiration = 0
-            D3.log "#{rcpt.patch} is not expirable now that it's not removable", :info
+            Xolo.log "#{rcpt.patch} is not expirable now that it's not removable", :info
           end
           need_update = true
         end # if
@@ -326,13 +326,13 @@ module Xolo
 
           unless rcpt.expiration_bundle_ids_match? pkgdata[:expiration_bundle_ids]
             rcpt.expiration_bundle_ids = pkgdata[:expiration_bundle_ids]
-            D3.log "Updating expiration path(s) for #{rcpt.patch}", :info
+            Xolo.log "Updating expiration path(s) for #{rcpt.patch}", :info
             need_update = true
           end # if
 
           if (rcpt.expiration != pkgdata[:expiration].to_i) && !rcpt.custom_expiration
             rcpt.expiration = pkgdata[:expiration].to_i
-            D3.log "Updating expiration for #{rcpt.patch}", :info
+            Xolo.log "Updating expiration for #{rcpt.patch}", :info
             need_update = true
           end # if
         end # if removable
@@ -345,7 +345,7 @@ module Xolo
         end
         if rcpt.prohibiting_processes.sort != pkgdata[:prohibiting_processes].sort
           rcpt.prohibiting_processes = pkgdata[:prohibiting_processes]
-          D3.log "Updating prohibiting_processes for #{rcpt.patch}", :info
+          Xolo.log "Updating prohibiting_processes for #{rcpt.patch}", :info
           need_update = true
         end # if
 
@@ -359,15 +359,15 @@ module Xolo
     # @return [void]
     #
     def self.clean_doghouse
-      D3.log 'Checking for invalid puppies in the queue', :warn
+      Xolo.log 'Checking for invalid puppies in the queue', :warn
       Xolo::PUPPY_Q.pending_puppies.each do |basename, pup|
         unless Xolo::Package.all_ids.include? pup.id
-          D3.log "Removing #{pup.patch} from puppy queue: no longer in d3", :info
+          Xolo.log "Removing #{pup.patch} from puppy queue: no longer in d3", :info
           Xolo::PUPPY_Q - pup
           next
         end
         if Xolo::Package.missing_data.keys.include? pup.id
-          D3.log "Removing #{pup.edition} from puppy queue: status is 'missing'", :info
+          Xolo.log "Removing #{pup.edition} from puppy queue: status is 'missing'", :info
           Xolo::PUPPY_Q - pup
         end
       end
@@ -381,8 +381,8 @@ module Xolo
     ###
     def self.do_auto_installs(options)
       verbose = options.verbose
-      force = options.force || D3.forced?
-      D3.log 'Checking for new packages to auto-install', :warn
+      force = options.force || Xolo.forced?
+      Xolo.log 'Checking for new packages to auto-install', :warn
       Xolo::Client.set_env :auto_install
       begin # for ensure below
         Xolo::Client::Receipt.basenames :refresh
@@ -411,13 +411,13 @@ module Xolo
             if new_pkg.reboot?
               queued_id = puppy_in_queue new_pkg.title
               if queued_id && queued_id >= new_pkg.id
-                D3.log "Skipping auto-install of puppy-package #{new_pkg.patch}, there's a newer one in the queue already", :info
+                Xolo.log "Skipping auto-install of puppy-package #{new_pkg.patch}, there's a newer one in the queue already", :info
                 next
               end # if queued_id && queued_id >= new_pkg.id
             end #  if new_pkg.reboot?
 
             begin
-              D3.log "Auto-installing #{new_pkg.basename} for group '#{group}'", :info
+              Xolo.log "Auto-installing #{new_pkg.basename} for group '#{group}'", :info
               cloud = cloud_dist_point_to_use(pkg: new_pkg)
               new_pkg.install(
                 admin: Xolo::AUTO_INSTALL_ADMIN,
@@ -426,16 +426,16 @@ module Xolo
                 puppywalk: options.puppies,
                 alt_download_url: cloud
               )
-              D3.log "Auto-installed #{new_pkg.title}", :warn
+              Xolo.log "Auto-installed #{new_pkg.title}", :warn
             rescue JSS::MissingDataError, JSS::InvalidDataError, Xolo::InstallError
-              D3.log "Skipping auto-install of #{new_pkg.patch}: #{$!}", :error
-              D3.log_backtrace
+              Xolo.log "Skipping auto-install of #{new_pkg.patch}: #{$!}", :error
+              Xolo.log_backtrace
             rescue Xolo::PreInstallError
-              D3.log "There was an error with the pre-install script for #{new_pkg.patch}: #{$!}", :error
-              D3.log_backtrace
+              Xolo.log "There was an error with the pre-install script for #{new_pkg.patch}: #{$!}", :error
+              Xolo.log_backtrace
             rescue Xolo::PostInstallError
-              D3.log "There was an error with the post-install script for #{new_pkg.patch}: #{$!} NOTE: #{new_pkg.patch} was installed, but may not work.", :error
-              D3.log_backtrace
+              Xolo.log "There was an error with the post-install script for #{new_pkg.patch}: #{$!} NOTE: #{new_pkg.patch} was installed, but may not work.", :error
+              Xolo.log_backtrace
             end # begin
           end # live_ids_for_group.each do |live_id|
         end # each group
@@ -448,11 +448,11 @@ module Xolo
     #
     #
     def self.clean_missing_receipts
-      D3.log "Checking for receipts no longer in d3", :warn
+      Xolo.log "Checking for receipts no longer in d3", :warn
       Xolo::Client::Receipt.all.values.select{|r| r.status == :missing}.each do |mrcpt|
-        D3.log "Removing receipt for missing patch #{mrcpt.patch}", :info
+        Xolo.log "Removing receipt for missing patch #{mrcpt.patch}", :info
         Xolo::Client::Receipt.remove_receipt mrcpt.title
-        D3.log "Removed receipt for missing patch #{mrcpt.patch}", :info
+        Xolo.log "Removed receipt for missing patch #{mrcpt.patch}", :info
       end
     end
 
@@ -465,8 +465,8 @@ module Xolo
     #
     def self.update_installed_pkgs(options)
       verbose = options.verbose
-      force = options.force || D3.forced?
-      D3.log 'Checking for updates to installed packages', :warn
+      force = options.force || Xolo.forced?
+      Xolo.log 'Checking for updates to installed packages', :warn
       Xolo::Client.set_env :auto_update
       begin # see ensure below
 
@@ -481,7 +481,7 @@ module Xolo
             live_id = live_titles_to_ids[rcpt.title]
             live_pkg_data = Xolo::Package.package_data[live_id]
           else
-            D3.log "Skipping update for #{rcpt.patch}: no currently live package for title", :info
+            Xolo.log "Skipping update for #{rcpt.patch}: no currently live package for title", :info
             next
           end
 
@@ -489,7 +489,7 @@ module Xolo
           if live_pkg_data[:id] < rcpt.id
 
             if rcpt.pilot?
-              D3.log "Skipping rollback of #{live_pkg_data[:patch]}, #{rcpt.patch} is in pilot", :info
+              Xolo.log "Skipping rollback of #{live_pkg_data[:patch]}, #{rcpt.patch} is in pilot", :info
               next
             else
               rollback = true
@@ -498,14 +498,14 @@ module Xolo
           else
             # skip unless the live id is higher than the rcpt id
             unless live_pkg_data[:id] > rcpt.id
-              D3.log "No update for #{rcpt.patch}", :debug
+              Xolo.log "No update for #{rcpt.patch}", :debug
               next
             end
           end
 
           # skip any frozen receipts
           if rcpt.frozen?
-            D3.log "Skipping update check for #{rcpt.patch}(#{rcpt.status}): currently frozen on this machine.", :warn
+            Xolo.log "Skipping update check for #{rcpt.patch}(#{rcpt.status}): currently frozen on this machine.", :warn
             next
           end
 
@@ -513,16 +513,16 @@ module Xolo
           if live_pkg_data[:reboot]
             queued_id = puppy_in_queue(live_pkg_data[:title])
             if queued_id && queued_id >= live_pkg_data[:id]
-              D3.log "Skipping auto-update of puppy-queue item #{live_pkg_data[:edition]}, there's a newer one in the queue already", :info
+              Xolo.log "Skipping auto-update of puppy-queue item #{live_pkg_data[:edition]}, there's a newer one in the queue already", :info
               next
             end # if queued_id && queued_id >= live_pkg.id
           end #  if live_pkg.reboot?
 
           # mention rollbacks
           if rollback
-            D3.log "Rolling back #{rcpt.patch} (#{rcpt.status}) to older live #{live_pkg_data[:patch]}.", :warn
+            Xolo.log "Rolling back #{rcpt.patch} (#{rcpt.status}) to older live #{live_pkg_data[:patch]}.", :warn
           else
-            D3.log "Updating #{rcpt.patch} (#{rcpt.status}) to #{live_pkg_data[:patch]} (#{live_pkg_data[:status]})", :warn
+            Xolo.log "Updating #{rcpt.patch} (#{rcpt.status}) to #{live_pkg_data[:patch]} (#{live_pkg_data[:status]})", :warn
           end
 
           # are we bringing over a custom expiration period?
@@ -541,19 +541,19 @@ module Xolo
               puppywalk: options.puppies,
               alt_download_url: cloud
             )
-            D3.log "Done updating #{rcpt.edition} (#{rcpt.status}) to #{live_pkg.edition} (#{live_pkg.status})", :info
+            Xolo.log "Done updating #{rcpt.edition} (#{rcpt.status}) to #{live_pkg.edition} (#{live_pkg.status})", :info
           rescue JSS::MissingDataError, JSS::InvalidDataError, Xolo::InstallError
-            D3.log "Skipping update of #{rcpt.edition} to #{live_pkg.edition}: #{$ERROR_INFO}", :error
-            D3.log_backtrace
+            Xolo.log "Skipping update of #{rcpt.edition} to #{live_pkg.edition}: #{$ERROR_INFO}", :error
+            Xolo.log_backtrace
           rescue Xolo::PreInstallError
-            D3.log "There was an error with the pre-install script for #{live_pkg.edition}: #{$ERROR_INFO}", :error
-            D3.log_backtrace
+            Xolo.log "There was an error with the pre-install script for #{live_pkg.edition}: #{$ERROR_INFO}", :error
+            Xolo.log_backtrace
           rescue Xolo::PostInstallError
-            D3.log "There was an error with the post-install script for #{live_pkg.edition}: #{$ERROR_INFO} NOTE: #{live_pkg.edition} was installed, but may not work.", :error
-            D3.log_backtrace
+            Xolo.log "There was an error with the post-install script for #{live_pkg.edition}: #{$ERROR_INFO} NOTE: #{live_pkg.edition} was installed, but may not work.", :error
+            Xolo.log_backtrace
           rescue Xolo::UninstallError
-            D3.log "Skipping update of #{rcpt.edition} to #{live_pkg.edition}: There was an error uninstalling the older #{rcpt.edition}: #{$ERROR_INFO}", :error
-            D3.log_backtrace
+            Xolo.log "Skipping update of #{rcpt.edition} to #{live_pkg.edition}: There was an error uninstalling the older #{rcpt.edition}: #{$ERROR_INFO}", :error
+            Xolo.log_backtrace
           end # begin
         end # Xolo::Client::Receipt.all.values.each
       ensure
@@ -572,12 +572,12 @@ module Xolo
         rcpt = Xolo::Client::Receipt.all[bn]
         next unless rcpt
         if rcpt.frozen
-          D3.log "Can't freeze receipt for #{rcpt.patch}: already frozen.", :warn
+          Xolo.log "Can't freeze receipt for #{rcpt.patch}: already frozen.", :warn
           next
         end
         rcpt.freeze
         rcpt.update
-        D3.log "Freezing receipt for #{rcpt.patch}, will not auto-update during sync", :warn
+        Xolo.log "Freezing receipt for #{rcpt.patch}, will not auto-update during sync", :warn
       end
     end # freeze receipts
 
@@ -592,12 +592,12 @@ module Xolo
         rcpt = Xolo::Client::Receipt.all[bn]
         next unless rcpt
         unless rcpt.frozen
-          D3.log "Can't thaw receipt for #{rcpt.patch}: not frozen.", :warn
+          Xolo.log "Can't thaw receipt for #{rcpt.patch}: not frozen.", :warn
           next
         end
         rcpt.thaw
         rcpt.update
-        D3.log "Thawing receipt for #{rcpt.patch}, will resume auto-update during sync", :warn
+        Xolo.log "Thawing receipt for #{rcpt.patch}, will resume auto-update during sync", :warn
       end
     end # thaw_receipts
 
@@ -613,7 +613,7 @@ module Xolo
         next unless rcpt
         rcpt.apple_pkg_ids.each { |ar| system "/usr/sbin/pkgutil --forget '#{ar}'" }
         Xolo::Client::Receipt.remove_receipt bn
-        D3.log "Receipt for #{rcpt.patch} has been forgotten", :warn
+        Xolo.log "Receipt for #{rcpt.patch} has been forgotten", :warn
       end
     end # thaw_receipts
 
@@ -623,10 +623,10 @@ module Xolo
     def self.do_puppy_queue_installs_from_sync(options)
       return unless options.puppies
       return if Xolo::PUPPY_Q.q.empty?
-      D3.log 'Installing all pkgs from puppy-queue during sync with --puppies', :info
+      Xolo.log 'Installing all pkgs from puppy-queue during sync with --puppies', :info
       Xolo::PUPPY_Q.q.each do |basename, puppy|
         begin
-          D3.log "Installing #{puppy.edition} from puppy-queue during sync with --puppies", :debug
+          Xolo.log "Installing #{puppy.edition} from puppy-queue during sync with --puppies", :debug
           new_pkg = Xolo::Package.new id: puppy.id
           cloud = cloud_dist_point_to_use(pkg: new_pkg)
           new_pkg.install(
@@ -640,18 +640,18 @@ module Xolo
 
           Xolo::PUPPY_Q - puppy
         rescue JSS::NoSuchItemError
-          D3.log "Skipping install of #{new_pkg.patch} from queue:\n   no longer in d3.", :error
-          D3.log_backtrace
+          Xolo.log "Skipping install of #{new_pkg.patch} from queue:\n   no longer in d3.", :error
+          Xolo.log_backtrace
           Xolo::PUPPY_Q - puppy
         rescue JSS::MissingDataError, JSS::InvalidDataError, Xolo::InstallError
-          D3.log "Skipping install of #{new_pkg.edition} from queue: #{$ERROR_INFO}", :error
-          D3.log_backtrace
+          Xolo.log "Skipping install of #{new_pkg.edition} from queue: #{$ERROR_INFO}", :error
+          Xolo.log_backtrace
         rescue Xolo::PreInstallError
-          D3.log "There was an error with the pre-install script for #{new_pkg.edition}: #{$ERROR_INFO}", :error
-          D3.log_backtrace
+          Xolo.log "There was an error with the pre-install script for #{new_pkg.edition}: #{$ERROR_INFO}", :error
+          Xolo.log_backtrace
         rescue Xolo::PostInstallError
-          D3.log "There was an error with the post-install script for #{new_pkg.edition}: #{$ERROR_INFO} NOTE: #{new_pkg.edition} was installed, but may not work.", :error
-          D3.log_backtrace
+          Xolo.log "There was an error with the post-install script for #{new_pkg.edition}: #{$ERROR_INFO} NOTE: #{new_pkg.edition} was installed, but may not work.", :error
+          Xolo.log_backtrace
           Xolo::PUPPY_Q - puppy
         end # begin
       end # each do puppy
@@ -684,9 +684,9 @@ module Xolo
     #
     # @return [void]
     #
-    def self.do_expirations (verbose = false, force = D3.forced?)
+    def self.do_expirations (verbose = false, force = Xolo.forced?)
       @@editions_expired = []
-      D3.log 'Starting expiration check', :warn
+      Xolo.log 'Starting expiration check', :warn
 
       Xolo::Client::Receipt.all.values.each do |rcpt|
         begin
@@ -694,8 +694,8 @@ module Xolo
           expired_patch = rcpt.expire verbose, force
           @@patchs_expired << expired_patch if expired_patch
         rescue
-          D3.log "There was an error expiring #{rcpt.edition}: #{$ERROR_INFO}", :error
-          D3.log_backtrace
+          Xolo.log "There was an error expiring #{rcpt.edition}: #{$ERROR_INFO}", :error
+          Xolo.log_backtrace
         end
       end
 
@@ -704,7 +704,7 @@ module Xolo
       Xolo::Client.set_env :finished_expirations, @@editions_expired.join(' ')
 
       if policy = Xolo::CONFIG.client_expiration_policy
-        D3.run_policy policy, :expiration, verbose
+        Xolo.run_policy policy, :expiration, verbose
       end # if Xolo::CONFIG.client exp policy
 
       Xolo::Client.unset_env :finished_expirations
@@ -769,26 +769,26 @@ module Xolo
 
       # Should we try a cloud distribution point if the primary is unavailable ?
       unless Xolo::CONFIG.client_try_cloud_distpoint
-        D3.log "Config is not to try cloud, using only Distribution Point '#{mdp.name}'", :info
+        Xolo.log "Config is not to try cloud, using only Distribution Point '#{mdp.name}'", :info
         return @@cloud_dist_url = nil
       end
 
       # Can we reach the primary distribution point? Return nil if true.
       if mdp.reachable_for_download?(get_ro_pass(:http)) || mdp.reachable_for_download?(get_ro_pass(:dist))
-        D3.log "Distribution Point '#{mdp.name}' is reachable, no need for cloud", :info
+        Xolo.log "Distribution Point '#{mdp.name}' is reachable, no need for cloud", :info
         return @@cloud_dist_url = nil
       end
 
       # Get the cloud distribution point defined in the JSS
       cloud_url = cloud_distribution_point_url
       unless cloud_url
-        D3.log 'No cloud distribution URL found.', :info
+        Xolo.log 'No cloud distribution URL found.', :info
         return @@cloud_dist_url = nil
       end
       # Make sure the package is available on the cloud distribution point
       pkg_available = validate_pkg_in_cloud(cloud_url, pkg) if cloud_url
       unless pkg_available
-        D3.log "#{pkg.edition} is not available in the cloud", :info
+        Xolo.log "#{pkg.edition} is not available in the cloud", :info
         return @@cloud_dist_url = nil
       end
 

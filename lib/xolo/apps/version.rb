@@ -38,7 +38,7 @@ module Xolo
     ##############################
 
     def self.all(*attribs)
-      attribs.empty? ? D3.cnx.get(LIST_RSRC) : D3.cnx.get("#{LIST_RSRC}/?fields=#{attribs.join ','}")
+      attribs.empty? ? Xolo.cnx.get(LIST_RSRC) : Xolo.cnx.get("#{LIST_RSRC}/?fields=#{attribs.join ','}")
     end
 
     def self.all_for_title(title)
@@ -67,14 +67,14 @@ module Xolo
 
       rsrc = "#{Xolo::Title::OBJECT_RSRC}#{title}/version/#{CGI.escape version}"
 
-      new from_json: D3.cnx.get(rsrc)
+      new from_json: Xolo.cnx.get(rsrc)
     end
 
     # delete a version
     def self.delete(title, version)
       validate_version_exists(title, version)
       rsrc = "#{Xolo::Title::OBJECT_RSRC}#{title}/version/#{CGI.escape version}"
-      D3.cnx.delete rsrc
+      Xolo.cnx.delete rsrc
     end
 
     # Public Instance Methods
@@ -248,7 +248,7 @@ module Xolo
     # the d3 server will interact with the JSS
     def create
       return if @added_date
-      response = D3.cnx.post rest_rsrc, to_json
+      response = Xolo.cnx.post rest_rsrc, to_json
       @id = response[:id]
       @added_date = Time.parse response[:added_date]
       @changes.clear
@@ -260,7 +260,7 @@ module Xolo
     def update(admin)
       return if @changes.empty?
       JSS::Validate.non_empty_string admin, 'admin name must be provided for updating'
-      D3.cnx.put rest_rsrc, to_json
+      Xolo.cnx.put rest_rsrc, to_json
       @changes.clear
     end
 
@@ -276,7 +276,7 @@ module Xolo
 
     def script_name(id)
       return nil if id.nil?
-      D3.scripts.invert[id]
+      Xolo.scripts.invert[id]
     end
 
   end # class version

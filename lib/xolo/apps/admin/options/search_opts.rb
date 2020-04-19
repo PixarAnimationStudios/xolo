@@ -28,7 +28,7 @@ module Xolo
   # the admin app
   class AdminApp
 
-    SEARCH_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    SEARCH_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Search for d3 for titles or versions matching given text.
       Alternatively search for computer group names used in d3 scoping.
 

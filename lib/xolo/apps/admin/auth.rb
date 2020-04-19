@@ -43,14 +43,14 @@ module Xolo
     #
     def connect
       admin, pw = admin_credentials
-      D3.cnx.connect admin, pw
+      Xolo.cnx.connect admin, pw
       JSS.api.connect user: admin, pw: pw, open_timeout: 10
       @connected = true
       admin
     end
 
     def disconnect
-      D3.cnx.disconnect
+      Xolo.cnx.disconnect
       JSS.api.disconnect
       @connected = false
       @admin = nil

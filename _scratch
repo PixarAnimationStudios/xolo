@@ -131,7 +131,7 @@ app.parse_cli_opts
 
 require 'xolo/admin'
 
-def li ; D3.cnx.connect ENV['USER'], File.read('/tmp/deleteme').chomp ; end
+def li ; Xolo.cnx.connect ENV['USER'], File.read('/tmp/deleteme').chomp ; end
 li
 
 pp Xolo::Title.all
@@ -233,7 +233,7 @@ pp Xolo::Version.all :status, :package_id, :pre_install_script
 ### pkgs
 
 # huge array
-pp D3.cnx.get 'packages/all_filenames'
+pp Xolo.cnx.get 'packages/all_filenames'
 
 # [:name, :filename, :allow_uninstalled, :reboot_required, :info, :notes, :os_requirements, :send_notification}
 
@@ -244,18 +244,18 @@ new_pkg_data = {
   info: "Informatve\non 2 lines",
   os_requirements: '>=10.13',
 }
-pp D3.cnx.post 'packages', new_pkg_data.to_json
+pp Xolo.cnx.post 'packages', new_pkg_data.to_json
 
-pp D3.cnx.post 'packages/5859/upload', file: File.new('Desktop/net-ssh-2.9.1.gem', 'rb')
+pp Xolo.cnx.post 'packages/5859/upload', file: File.new('Desktop/net-ssh-2.9.1.gem', 'rb')
 # => RestClient::BadRequest: Uploaded file must end with .pkg
 
-pp D3.cnx.post 'packages/5859/upload', file: File.new('Desktop/net-ssh-2.9.1.gem.pkg', 'rb')
+pp Xolo.cnx.post 'packages/5859/upload', file: File.new('Desktop/net-ssh-2.9.1.gem.pkg', 'rb')
 # => RestClient::BadRequest: Uploaded file is not a valid .pkg
 
-pp D3.cnx.post 'packages/5859/upload', file: File.new('/Users/chrisl/d3roots/chrisltest-d3v4Test.pkg', 'rb')
+pp Xolo.cnx.post 'packages/5859/upload', file: File.new('/Users/chrisl/d3roots/chrisltest-d3v4Test.pkg', 'rb')
 # => {:status=>"OK", :message=>"Upload complete"}
 
-pkg = D3.cnx.get 'packages/5859'
+pkg = Xolo.cnx.get 'packages/5859'
 
 new_pkg_data = {
   name: 'd3v4TestPkg',
@@ -265,7 +265,7 @@ new_pkg_data = {
   os_requirements: '>=10.13',
 }
 
-pp D3.cnx.put 'packages/5859', new_pkg_data.to_json
+pp Xolo.cnx.put 'packages/5859', new_pkg_data.to_json
 
 ########## generate ssl key & cert
 

@@ -106,7 +106,7 @@ module Xolo
         else
           # if this is a manual install, we should know
           # who's doing it
-          args[:admin] ||= D3.admin
+          args[:admin] ||= Xolo.admin
         end
 
         forced = args[:force] or Xolo::forced?
@@ -163,27 +163,27 @@ module Xolo
 
           remove_previous_installs_if_needed (args[:verbose])
 
-          D3.log "Installing: #{patch} (#{@status})#{@using_force}", :warn
+          Xolo.log "Installing: #{patch} (#{@status})#{@using_force}", :warn
 
           # pre-install script
           pre_install_status = run_pre_install_script(args[:verbose])
 
           # exit 111 means write receipts, but don't acutally install
           if pre_install_status == 111 then
-            D3.log "Pre-install script for #{patch} exited with status '111'; Not installing but writing receipt.", :info
+            Xolo.log "Pre-install script for #{patch} exited with status '111'; Not installing but writing receipt.", :info
             write_rcpt
             # if this was a puppy install, remove it from the queue
             Xolo::PUPPY_Q - @title
             return pre_install_status
           elsif pre_install_status != 0  then
-             D3.log  "Pre_install script for #{patch} failed, exit status: #{pre_install_status}, not installing.", :error
+             Xolo.log  "Pre_install script for #{patch} failed, exit status: #{pre_install_status}, not installing.", :error
             raise Xolo::PreInstallError,  "Pre_install script for #{patch} failed, exit status: #{pre_install_status}, not installing."
           end # pre_install_status == 111
 
           # if forced, make the os forget this has been installed before
           if forced and @apple_receipt_data.is_a? Array
             @apple_receipt_data.each do |r|
-              D3.log "Forcing OS to forget installer receipt for: #{r[:apple_pkg_id]}", :info
+              Xolo.log "Forcing OS to forget installer receipt for: #{r[:apple_pkg_id]}", :info
               system "#{JSS::Composer::PKG_UTIL} --forget '#{r[:apple_pkg_id]}' &>/dev/null"
             end # each do r
           end # if force
@@ -192,10 +192,10 @@ module Xolo
           args[:ro_pw] =  Xolo::Client.get_ro_pass :dist
 
           # Install It Already!
-          D3.log "Running 'jamf install' of #{patch}", :info
+          Xolo.log "Running 'jamf install' of #{patch}", :info
 
           if install_result = super(args)  # install was good...
-            D3.log "Finished 'jamf install' of #{patch}", :debug
+            Xolo.log "Finished 'jamf install' of #{patch}", :debug
 
             # write our receipt
             write_rcpt
@@ -206,10 +206,10 @@ module Xolo
             # run a postflight if needed
             post_install_status = run_post_install_script(args[:verbose])
             if  post_install_status != 0
-              D3.log "Post_install script for #{patch} failed, exit status: #{post_install_status}", :error
+              Xolo.log "Post_install script for #{patch} failed, exit status: #{post_install_status}", :error
               raise Xolo::PostInstallError, "Post_install script for #{patch} failed, exit status: #{post_install_status}"
             end
-            D3.log "Done installing #{patch}#{@using_force}", :warn
+            Xolo.log "Done installing #{patch}#{@using_force}", :warn
 
           else #  bad install
             raise Xolo::InstallError, "There was a problem installing #{patch}, 'jamf install' failed"
@@ -243,7 +243,7 @@ module Xolo
         added_2_q = Xolo::PUPPY_Q + new_pup
 
         # tell someone
-        D3.log "Added #{patch} (#{@status}) to the puppy queue#{@using_force}", :warn if added_2_q
+        Xolo.log "Added #{patch} (#{@status}) to the puppy queue#{@using_force}", :warn if added_2_q
 
         return true
     end
@@ -258,9 +258,9 @@ module Xolo
       return 0 unless pre_install_script?
       begin
         Xolo::Client.set_env :pre_install, patch
-        D3.log "Running pre_install script for #{patch}", :info
+        Xolo.log "Running pre_install script for #{patch}", :info
         (exit_status, output) = JSS::Script.new(:id => @pre_install_script_id).run :verbose => verbose, :show_output => verbose
-        D3.log "Finished pre_install script for #{patch}", :debug
+        Xolo.log "Finished pre_install script for #{patch}", :debug
       rescue Xolo::ScriptError
         raise PreInstallError, $!
       ensure
@@ -279,9 +279,9 @@ module Xolo
       return 0 unless post_install_script?
       begin
         Xolo::Client.set_env :post_install, patch
-        D3.log "Running post_install script for #{patch}", :info
+        Xolo.log "Running post_install script for #{patch}", :info
         (exit_status, output) = JSS::Script.new(:id => @post_install_script_id).run :verbose => verbose, :show_output => verbose
-        D3.log "Finished post_install script for #{patch}", :debug
+        Xolo.log "Finished post_install script for #{patch}", :debug
       rescue Xolo::ScriptError
         raise PostInstallError, $!
       ensure

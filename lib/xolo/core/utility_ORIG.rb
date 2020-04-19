@@ -82,35 +82,35 @@ module Xolo
   # @return [boolean] Did the policy run?
   #
   def self.run_policy(policy, type, verbose = false)
-    D3.log "Running #{type} policy", :info
+    Xolo.log "Running #{type} policy", :info
 
     # if numeric, and there's a policy with that id
     if policy =~ /^\d+$/ && (polname = JSS::Policy.map_all_ids_to(:name)[policy])
-      D3.log "Executing #{type} policy '#{polname}', id: #{policy}", :debug
+      Xolo.log "Executing #{type} policy '#{polname}', id: #{policy}", :debug
       pol_to_run = "-id #{policy}"
 
     # if there's a policy with that name
     elsif polid = JSS::Policy.map_all_ids_to(:name).invert[policy]
-      D3.log "Executing #{type} policy '#{policy}', id: #{polid}", :debug
+      Xolo.log "Executing #{type} policy '#{policy}', id: #{polid}", :debug
       pol_to_run = "-id #{polid}"
 
     # else assume its a trigger
     else
-      D3.log "Executing #{type} policy with trigger '#{policy}'", :debug
+      Xolo.log "Executing #{type} policy with trigger '#{policy}'", :debug
       pol_to_run = "-event '#{policy}'"
     end
 
     output = JSS::Client.run_jamf 'policy', pol_to_run, verbose
     if Xolo::LOG.level == :debug
-      D3.log 'Policy execution output:', :debug
-      output.lines.each { |l| D3.log "  #{l.chomp}", :debug }
+      Xolo.log 'Policy execution output:', :debug
+      output.lines.each { |l| Xolo.log "  #{l.chomp}", :debug }
     end
 
     if output.include? 'No policies were found for the'
-      D3.log "No policy matching '#{policy}' was found in the JSS", :warn
+      Xolo.log "No policy matching '#{policy}' was found in the JSS", :warn
       return false
     else
-      D3.log "Done executing #{type} policy", :debug
+      Xolo.log "Done executing #{type} policy", :debug
       return true
     end
   end # run policy

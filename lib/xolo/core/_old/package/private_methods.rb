@@ -37,7 +37,7 @@ module Xolo
     def install_prohibited_by_process?
       return false unless @prohibiting_processes
       return false if @prohibiting_processes.empty?
-      D3.prohibited_by_process_running? @prohibiting_processes
+      Xolo.prohibited_by_process_running? @prohibiting_processes
     end #
 
     # If needed, uninstall any previously installed versions of this title
@@ -46,7 +46,7 @@ module Xolo
       if @remove_first && Xolo::Client::Receipt.titles.include?(@title)
         previous_rcpt = Xolo::Client::Receipt.all[@title]
         if previous_rcpt.removable?
-          D3.log "Uninstalling previously installed version of #{@title}" , :info
+          Xolo.log "Uninstalling previously installed version of #{@title}" , :info
           begin
             Xolo::Client.set_env :uninstalling_before_install, previous_rcpt.patch
             previous_rcpt.uninstall(verbose)
@@ -54,7 +54,7 @@ module Xolo
             Xolo::Client.unset_env :uninstalling_before_install
           end # begin
         else
-          D3.log "Previously installed version of #{@title} is not uninstallable, not uninstalling.", :info
+          Xolo.log "Previously installed version of #{@title} is not uninstallable, not uninstalling.", :info
         end # if previous_rcpt.removable?
       end # @remove_first && Xolo::Client::Receipt.titles
     end # remove_previous_installs_if_needed
@@ -181,7 +181,7 @@ module Xolo
 
       # gather the ids of all scripts used by all policies
       # this is a hash of arrays  pol_name => [id,id,id]
-      policy_scripts = D3.policy_scripts
+      policy_scripts = Xolo.policy_scripts
 
       script_deletion_actions = []
 

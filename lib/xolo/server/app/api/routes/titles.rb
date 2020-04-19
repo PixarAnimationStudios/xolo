@@ -53,7 +53,7 @@ module Xolo
             request.body.rewind
             title = Xolo::Server::Title.new_from_client_json request.body.read
             title.create session[:user]
-            D3.logger.info "Created new title '#{params[:title]}' by #{whodat}"
+            Xolo.logger.info "Created new title '#{params[:title]}' by #{whodat}"
             json_response(
               Xolo::API_OK_STATUS,
               Xolo::API_CREATED_MSG,
@@ -74,7 +74,7 @@ module Xolo
             request.body.rewind
             title = Xolo::Server::Title.new_from_client_json request.body.read
             title.update session[:user]
-            D3.logger.info "Updated title '#{params[:title]}' by #{whodat}"
+            Xolo.logger.info "Updated title '#{params[:title]}' by #{whodat}"
             json_response(
               Xolo::API_OK_STATUS,
               Xolo::API_UPDATED_MSG,
@@ -88,7 +88,7 @@ module Xolo
             halt_if_title_not_found! params[:title]
             title = Xolo::Server::Title.fetch(params[:title])
             title.delete
-            D3.logger.info "Deleted title '#{params[:title]}' by #{whodat}"
+            Xolo.logger.info "Deleted title '#{params[:title]}' by #{whodat}"
             json_response(
               Xolo::API_OK_STATUS,
               Xolo::API_DELETED_MSG

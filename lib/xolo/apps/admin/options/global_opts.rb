@@ -30,7 +30,7 @@ module Xolo
 
     USAGE = 'Usage: d3admin [global opts] <action> <target> [action opts]'.freeze
 
-    GLOBAL_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    GLOBAL_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       d3admin is a command-line tool for administering software in d3, a
       package/patch management & deployment tool that enhances the capabilities
       of Jamf Pro.

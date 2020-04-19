@@ -158,12 +158,12 @@ module Xolo
 
   end # module server
 
-  # access from everywhere as D3.logger
+  # access from everywhere as Xolo.logger
   def self.logger
     Server::Log.logger
   end
 
-  # log an exception via D3.log_exception - multiple log lines,
+  # log an exception via Xolo.log_exception - multiple log lines,
   # the first being the error message the rest being indented backtrace
   def self.log_exception(exception)
     logger.error exception.to_s

@@ -31,7 +31,7 @@ module Xolo
 
     # these actions write to the server and
     # need a legit admin, not one
-    # listed in D3.badmins.
+    # listed in Xolo.badmins.
     #
     ACTIONS_NEEDING_ADMIN = %w(add edit live delete).freeze
 

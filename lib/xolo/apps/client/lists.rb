@@ -97,7 +97,7 @@ module Xolo
       if lines.empty?
         puts "No #{kind}receipts on this computer"
       else
-        D3.less_text D3.generate_report(lines, :title => title, :header_row => colheaders)
+        Xolo.less_text Xolo.generate_report(lines, :title => title, :header_row => colheaders)
       end
     end # list_all_installed
 
@@ -135,7 +135,7 @@ module Xolo
       Xolo::PUPPY_Q.q.values.each do | pup|
         lines << [pup.patch, pup.status, (pup.queued_at.strftime "%b %d %Y %H:%M:%S"), pup.admin]
       end # do pup
-      D3.less_text D3.generate_report(lines, :title => title, :header_row => colheaders)
+      Xolo.less_text Xolo.generate_report(lines, :title => title, :header_row => colheaders)
 
     end # list pending pups
 
@@ -146,7 +146,7 @@ module Xolo
     def self.list_available(force = false)
 
       # If using force, show all live pkgs
-      if force or D3.forced?
+      if force or Xolo.forced?
         ids_to_show = Xolo::Package.live_ids
         title = "All live packages in d3 (* = installed, ^ = puppies)"
 
@@ -173,7 +173,7 @@ module Xolo
         lines << [bn, "#{pkg[:version]}-#{pkg[:revision]}", auto_grps ]
       end
       lines.sort_by! {|l| l[0]}
-      D3.less_text D3.generate_report(lines, header_row: header, title: title)
+      Xolo.less_text Xolo.generate_report(lines, header_row: header, title: title)
 
       return true
 
@@ -201,11 +201,11 @@ module Xolo
           file_list += "#==========================================================================\n"
           file_list += found_pkg.installed_files.join("\n")
 
-          D3.less_text file_list
+          Xolo.less_text file_list
 
         rescue JSS::MissingDataError, JSS::InvalidDataError
-          D3.log "Skipping #{item_to_match}:\n   #{$!}", :error
-          D3.log_backtrace
+          Xolo.log "Skipping #{item_to_match}:\n   #{$!}", :error
+          Xolo.log_backtrace
         end # begin
       end # isntallers.each
     end # list files
@@ -239,10 +239,10 @@ module Xolo
               pkg = Xolo::Package.new id: id
               lines << [pkg.patch, pkg.status.to_s, (pkg.installed? ? "yes" : "no")]
             rescue
-              D3.log "Couldn't get pkg for id #{id}", :error
+              Xolo.log "Couldn't get pkg for id #{id}", :error
             end # begin
           end
-          D3.less_text D3.generate_report(lines, header_row: colheader, title: title)
+          Xolo.less_text Xolo.generate_report(lines, header_row: colheader, title: title)
 
         end # if ids.empty?
       end # paths each path
@@ -291,8 +291,8 @@ module Xolo
           end # if rcpt
 
         rescue
-          D3.log "An error occured getting the details of #{item_to_match}:\n   #{$!}", :error
-          D3.log_backtrace
+          Xolo.log "An error occured getting the details of #{item_to_match}:\n   #{$!}", :error
+          Xolo.log_backtrace
           next
         end # begin
 
@@ -311,7 +311,7 @@ module Xolo
       db_ro_user = Xolo::CONFIG.client_db_ro_user
       db_ro_user ||= JSS::CONFIG.db_username
 
-      D3.connect_for_reports  jss_ro_user, get_ro_pass(:jss), db_ro_user, get_ro_pass(:db)
+      Xolo.connect_for_reports  jss_ro_user, get_ro_pass(:jss), db_ro_user, get_ro_pass(:db)
     end # connect for report
 
   end # class

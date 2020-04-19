@@ -44,7 +44,7 @@ module Xolo
             pkg = JSS::Package.make name: Dir::Tmpname.make_tmpname('d3tmp-file-name', nil)
             apply_new_pkg_vals pkg
 
-            D3.logger.info "Created Jamf Package '#{pkg.name}' by #{whodat}"
+            Xolo.logger.info "Created Jamf Package '#{pkg.name}' by #{whodat}"
 
             json_response Xolo::API_OK_STATUS, 'Created Jamf Package', pkg_name: pkg.name, pkg_id: pkg.id
           end
@@ -52,7 +52,7 @@ module Xolo
           # Process uploaded .pkg to be stored on the dist point
           #
           # Upload with:
-          #   D3.cnx.post 'packages/1234/upload', file: File.new('path/to/pkg.pkg', 'rb')
+          #   Xolo.cnx.post 'packages/1234/upload', file: File.new('path/to/pkg.pkg', 'rb')
           #
           # (RestClient::Resource knows to do the right thing when a
           #  File object is passed in)
@@ -63,7 +63,7 @@ module Xolo
 
             save_pkg_to_dist pkg, uploaded_pkgfile
 
-            D3.logger.info "Uploaded .pkg file '#{uploaded_pkgfile.basename}' to DistPoint for Jamf Package '#{pkg.name}' by #{whodat}"
+            Xolo.logger.info "Uploaded .pkg file '#{uploaded_pkgfile.basename}' to DistPoint for Jamf Package '#{pkg.name}' by #{whodat}"
 
             json_response(Xolo::API_OK_STATUS, 'Upload complete')
           end
@@ -76,7 +76,7 @@ module Xolo
             apply_new_pkg_vals pkg
 
             # TODO: record in version/title changelog?
-            D3.logger.info "Updated Jamf Package '#{name}' by #{whodat}"
+            Xolo.logger.info "Updated Jamf Package '#{name}' by #{whodat}"
 
             json_response Xolo::API_OK_STATUS, 'Updated Jamf Package', pkg_name: pkg.name, pkg_id: pkg.id
           end
@@ -88,7 +88,7 @@ module Xolo
             name = pkg.name
             pkg.delete delete_file: true, rw_pw: Xolo::Server::Helpers::Auth.dist_point_pw, unmount: false
 
-            D3.logger.info "Deleted Jamf Package '#{name}' by #{whodat}"
+            Xolo.logger.info "Deleted Jamf Package '#{name}' by #{whodat}"
 
             json_response Xolo::API_OK_STATUS, 'Deleted Jamf Package', pkg_name: pkg.name, pkg_id: pkg.id
           end

@@ -167,39 +167,39 @@ module Xolo
   # @return [Hash{String => Integer}] names => ids for JSS packages
   def self.packages
     hash = {}
-    D3.cnx.get('packages')[:packages].each { |g| hash[g[:name]] = g[:id] }
+    Xolo.cnx.get('packages')[:packages].each { |g| hash[g[:name]] = g[:id] }
     hash
   end
 
   # @return [Hash{String => Integer}] names => ids for JSS scripts
   def self.scripts
     hash = {}
-    D3.cnx.get('scripts')[:scripts].each { |g| hash[g[:name]] = g[:id] }
+    Xolo.cnx.get('scripts')[:scripts].each { |g| hash[g[:name]] = g[:id] }
     hash
   end
 
   # @return [Hash{String => Integer}] names => ids for JSS categories
   def self.categories
     hash = {}
-    D3.cnx.get('categories')[:categories].each { |g| hash[g[:name]] = g[:id] }
+    Xolo.cnx.get('categories')[:categories].each { |g| hash[g[:name]] = g[:id] }
     hash
   end
 
   # @return [Hash{String => Integer}] names => ids for JSS policies
   def self.policies
     hash = {}
-    D3.cnx.get('policies')[:policies].each { |g| hash[g[:name]] = g[:id] }
+    Xolo.cnx.get('policies')[:policies].each { |g| hash[g[:name]] = g[:id] }
     hash
   end
 
   # @return [Array<String>] the names of all d3/patch extension attribs
   def self.d3_extension_attribs
-    @current_d3_extension_attribs ||= D3.cnx.get('ext_attrs')
+    @current_d3_extension_attribs ||= Xolo.cnx.get('ext_attrs')
   end
 
   # @return [Array<String>] the names of all regular Computer extension attribs
   def self.computer_extension_attribs
-    @current_computer_extension_attribs ||= D3.cnx.get('ext_attrs/nonpatch')
+    @current_computer_extension_attribs ||= Xolo.cnx.get('ext_attrs/nonpatch')
   end
 
 end # module Xolo

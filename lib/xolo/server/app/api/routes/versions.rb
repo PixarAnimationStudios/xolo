@@ -46,7 +46,7 @@ module Xolo
             title = Xolo::Server::Title.fetch vers.title
             title.latest_version = vers.version
             title.update session[:user]
-            D3.logger.info "Created new version '#{params[:version]}' for title '#{params[:title]}' by #{whodat}"
+            Xolo.logger.info "Created new version '#{params[:version]}' for title '#{params[:title]}' by #{whodat}"
             json_response(
               Xolo::API_OK_STATUS,
               Xolo::API_CREATED_MSG,
@@ -67,7 +67,7 @@ module Xolo
             request.body.rewind
             vers = Xolo::Server::Version.new_from_client_json request.body.read
             vers.update session[:user]
-            D3.logger.info "Updated version '#{params[:version]}' for title '#{params[:title]}' by #{whodat}"
+            Xolo.logger.info "Updated version '#{params[:version]}' for title '#{params[:title]}' by #{whodat}"
             json_response(
               Xolo::API_OK_STATUS,
               Xolo::API_UPDATED_MSG,
@@ -85,7 +85,7 @@ module Xolo
                 "#{params[:title]} v #{params[:version]} is already released by #{vers.added_by} at #{vers.added_date}"
               else
                 vers.release session[:user]
-                D3.logger.info "Released version '#{params[:version]}' of title '#{params[:title]}' by #{whodat}"
+                Xolo.logger.info "Released version '#{params[:version]}' of title '#{params[:title]}' by #{whodat}"
                 "#{params[:title]} v #{params[:version]} has been released"
               end
 
@@ -101,7 +101,7 @@ module Xolo
           delete '/:title/version/:version', api_admin_only: true do
             halt_if_version_not_found_in_title! params[:title], params[:version]
             Xolo::Server::Version.fetch(params[:title], params[:version]).delete
-            D3.logger.info "Deleted version '#{params[:version]}' for title '#{params[:title]}' by #{whodat}"
+            Xolo.logger.info "Deleted version '#{params[:version]}' for title '#{params[:title]}' by #{whodat}"
             json_response(
               Xolo::API_OK_STATUS,
               Xolo::API_DELETED_MSG

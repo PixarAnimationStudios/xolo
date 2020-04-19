@@ -56,7 +56,7 @@ module Xolo
       publisher
     ].freeze
 
-    TITLE_EXT_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    TITLE_EXT_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Working with titles in d3:
       ------------------
       Add a new title:
@@ -215,12 +215,12 @@ module Xolo
       period ($DELAY_MINUTES) and the title's display name ($SOFTWARE_TITLE)
     ENDBANNER
 
-    TITLE_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    TITLE_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Options for d3 titles
       ------------------
     ENDBANNER
 
-    TITLE_END_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    TITLE_END_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
 
      The following options can be given multiple times:
        --pilot-group, -auto-group, --excluded-group, --expiration-bundle,

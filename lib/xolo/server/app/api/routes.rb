@@ -22,7 +22,7 @@ module Xolo
         condition do
           break unless admin_only
           if Xolo::Server::Helpers::Auth::ADMIN_ROLE == session[:role]
-            D3.logger.debug "Accepted Admin session from #{whodat} for #{request.request_method} #{request.path_info}"
+            Xolo.logger.debug "Accepted Admin session from #{whodat} for #{request.request_method} #{request.path_info}"
             return
           end
 
@@ -38,7 +38,7 @@ module Xolo
 
         before do
           content_type JSON_CONTENT_TYPE
-          D3.logger.debug "Processing #{request.request_method} #{request.path_info} for #{session[:user] || :unknown}@#{request.ip}"
+          Xolo.logger.debug "Processing #{request.request_method} #{request.path_info} for #{session[:user] || :unknown}@#{request.ip}"
           # all api routes other than the session route must be logged in
           break if request.path_info.start_with? SESSION_ROUTE
           halt_if_not_logged_in!

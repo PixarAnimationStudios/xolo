@@ -20,7 +20,7 @@ module Xolo
             pw: Xolo::Server::Helpers::Auth.jamf_pw
           )
 
-          D3.logger.info "Established Jamf Classic API connection: #{JSS.api.user}@#{JSS.api.host}"
+          Xolo.logger.info "Established Jamf Classic API connection: #{JSS.api.user}@#{JSS.api.host}"
         end
 
         # Access to our Jamf API connection from wherever
@@ -123,7 +123,7 @@ module Xolo
             end # if validate signature
 
           end # if pkgutil executable
-          D3.logger.debug "Validated uploaded package '#{name}' from #{whodat}"
+          Xolo.logger.debug "Validated uploaded package '#{name}' from #{whodat}"
 
           file_to_store
         end

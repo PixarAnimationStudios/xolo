@@ -16,14 +16,14 @@ module Xolo
         # Stop login API routes for auth failures
         def halt_if_login_auth_role_unknown!
           return if Xolo::Server::Helpers::Auth::AUTH_ROLES.include? params[:role]
-          D3.logger.debug "Login failed: unknown role: #{params[:role]}, from: #{request.ip}"
+          Xolo.logger.debug "Login failed: unknown role: #{params[:role]}, from: #{request.ip}"
           headers['WWW-Authenticate'] = "Basic realm=\"#{params[:role]}\""
           halt 401, error_response("Login failed: Unknown role: #{params[:role]}")
         end
 
         # Stop login API routes for auth failures
         def halt_login_failed!(role, msg)
-          D3.logger.debug "Login failed: #{msg}, role: #{role}, from: #{request.ip}"
+          Xolo.logger.debug "Login failed: #{msg}, role: #{role}, from: #{request.ip}"
           headers['WWW-Authenticate'] = "Basic realm=\"#{role}\""
           halt 401, error_response("Login failed: #{msg}")
         end

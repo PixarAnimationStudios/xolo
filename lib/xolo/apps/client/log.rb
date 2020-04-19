@@ -73,7 +73,7 @@ module Xolo
   # but only if the current severity is :debug
   def self.log_backtrace
     return unless Xolo::LOG.level == :debug
-    $@.each{|line| D3.log "   #{line}", :debug }
+    $@.each{|line| Xolo.log "   #{line}", :debug }
   end
 
 

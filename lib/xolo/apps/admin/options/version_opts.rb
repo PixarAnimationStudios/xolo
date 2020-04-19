@@ -51,7 +51,7 @@ module Xolo
       package
     ].freeze
 
-    VERSION_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    VERSION_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Working with versions in d3:
 
       Add a new version:

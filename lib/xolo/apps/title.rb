@@ -41,7 +41,7 @@ module Xolo
     # A an array of Hashes, summary data for all titles
     #
     def self.all(*attribs)
-      attribs.empty? ? D3.cnx.get(LIST_RSRC) : D3.cnx.get("#{LIST_RSRC}/?fields=#{attribs.join ','}")
+      attribs.empty? ? Xolo.cnx.get(LIST_RSRC) : Xolo.cnx.get("#{LIST_RSRC}/?fields=#{attribs.join ','}")
     end
 
     # @return [Array<String>] the names of all titles in d3
@@ -57,12 +57,12 @@ module Xolo
     # Fetch an existing title from the d3 server by name
     def self.fetch(name)
       validate_title_exists name
-      new from_json: D3.cnx.get(OBJECT_RSRC + name)
+      new from_json: Xolo.cnx.get(OBJECT_RSRC + name)
     end
 
     def self.delete(name)
       validate_title_exists name
-      D3.cnx.delete(OBJECT_RSRC + name)
+      Xolo.cnx.delete(OBJECT_RSRC + name)
     end
 
     # Version summary data for all versions for a given title
@@ -95,7 +95,7 @@ module Xolo
     #
     def self.changelog(name)
       validate_title_exists name
-      log_from_json = D3.cnx.get "#{OBJECT_RSRC}#{name}/changelog"
+      log_from_json = Xolo.cnx.get "#{OBJECT_RSRC}#{name}/changelog"
       # change the keys back into Times
       log_from_json.each { |change| change[:timestamp] = Time.parse change[:timestamp] }
     end
@@ -277,7 +277,7 @@ module Xolo
     #
     def remove_pilot_groups(*groups)
       groups.flatten!
-      current_groups = D3.computer_groups
+      current_groups = Xolo.computer_groups
       groups.map! { |g| current_groups[g] }
       new_groups = (pilot_group_ids - groups.compact)
       new_groups.sort!
@@ -338,7 +338,7 @@ module Xolo
     #
     def remove_auto_groups(*groups)
       groups.flatten!
-      current_groups = D3.computer_groups
+      current_groups = Xolo.computer_groups
       groups.map! { |g| current_groups[g] }
       new_groups = (auto_group_ids - groups.compact)
       new_groups.sort!
@@ -384,7 +384,7 @@ module Xolo
     #
     def remove_excluded_groups(*groups)
       groups.flatten!
-      current_groups = D3.computer_groups
+      current_groups = Xolo.computer_groups
       groups.map! { |g| current_groups[g] }
       new_groups = (excluded_group_ids - groups.compact)
       new_groups.sort!
@@ -536,7 +536,7 @@ module Xolo
     #
     def remove_excluded_groups(*groups)
       groups.flatten!
-      current_groups = D3.computer_groups
+      current_groups = Xolo.computer_groups
       groups.map! { |g| current_groups[g] }
       new_groups = (excluded_group_ids - groups.compact)
       new_groups.sort!
@@ -558,7 +558,7 @@ module Xolo
     def create
       return if @added_date
       validate_for_saving
-      response = D3.cnx.post(rest_rsrc, to_json)
+      response = Xolo.cnx.post(rest_rsrc, to_json)
       @added_date = Time.parse response[:added_date]
       @last_modified = @added_date
       @changes.clear
@@ -570,7 +570,7 @@ module Xolo
     def update
       return if @changes.empty?
       validate_for_saving
-      response = D3.cnx.put rest_rsrc, to_json
+      response = Xolo.cnx.put rest_rsrc, to_json
       @last_modified = Time.parse response[:last_modified]
       @changes.clear
       name
@@ -603,7 +603,7 @@ module Xolo
         when :auto then auto_group_ids
         when :excl then excluded_group_ids
         end
-      curr_groups = D3.computer_groups.invert
+      curr_groups = Xolo.computer_groups.invert
       list.map! do |gid|
         curr_groups[gid] || "Missing Group: id #{gid}"
       end
@@ -616,7 +616,7 @@ module Xolo
     # @return [Hash{Symbol: Array}] The defunct ids, either :auto or :excluded
     #
     def clean_invalid_groups
-      current_groups = D3.computer_groups
+      current_groups = Xolo.computer_groups
 
       piots_to_remove = pilot_group_ids - current_groups.values
       unless piots_to_remove.empty?

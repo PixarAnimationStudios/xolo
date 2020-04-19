@@ -28,7 +28,7 @@ module Xolo
   # the admin app
   class AdminApp
 
-    CONFIG_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    CONFIG_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Put Text Here about config
 
 

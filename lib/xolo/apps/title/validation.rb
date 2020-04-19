@@ -211,7 +211,7 @@ module Xolo
     # @return [Integer] the id of the valid  group
     #
     def validate_excluded_group(group)
-      id = D3.computer_groups[group]
+      id = Xolo.computer_groups[group]
       raise JSS::NoSuchItemError, "No computer group '#{group}' in Jamf Pro" unless id
       raise JSS::InvalidDataError, "Group '#{group}' auto-installs this title." if auto_group_ids.include? id
       id

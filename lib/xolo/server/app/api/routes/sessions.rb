@@ -66,9 +66,9 @@ module Xolo
         delete '/?' do
           case session[:role]
           when Xolo::Server::Helpers::Auth::ADMIN_ROLE
-            D3.logger.info "Admin API logout for #{whodat}"
+            Xolo.logger.info "Admin API logout for #{whodat}"
           when Xolo::Server::Helpers::Auth::CLIENT_ROLE
-            D3.logger.debug "Client API logout from #{request.ip}"
+            Xolo.logger.debug "Client API logout from #{request.ip}"
           end
           session[:logged_in] = false
           session[:user] = nil

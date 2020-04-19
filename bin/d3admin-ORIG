@@ -84,7 +84,7 @@ class App
     @admin = @options.admin || ENV['USER']
 
     # admin can't be a badmin
-    if D3.badmins.include? @admin and Xolo::Admin::ACTIONS_NEEDING_ADMIN.include? @action
+    if Xolo.badmins.include? @admin and Xolo::Admin::ACTIONS_NEEDING_ADMIN.include? @action
       raise Xolo::PermissionError, "d3admin cannot do '#{@action}' as #{@admin}."
     end
 
@@ -327,7 +327,7 @@ class App
            when :show_d3_version
              d3_version_text
            end
-    D3.less_text text
+    Xolo.less_text text
     return true
   end #show help
 
@@ -680,7 +680,7 @@ ENDVERS
 
     if (not @options.keep_scripts) && (not script_ids.empty?)
       puts "Scanning for other packages or policies using  pre- or post- scripts before deleting..."
-      policy_scripts = D3.policy_scripts
+      policy_scripts = Xolo.policy_scripts
       script_ids.each do |victim_script_id|
         next unless JSS::Script.all_ids.include? victim_script_id
 

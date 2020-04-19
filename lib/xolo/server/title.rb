@@ -65,7 +65,7 @@ module Xolo
         @data_dir ||= Pathname.new "#{Xolo::Server.config.data_dir}/titles"
         return @data_dir if @data_dir.exist?
         @data_dir.mkpath
-        D3.logger.info "Created Title Data Directory '#{@data_dir}'"
+        Xolo.logger.info "Created Title Data Directory '#{@data_dir}'"
         @data_dir
       end
 
@@ -94,15 +94,15 @@ module Xolo
         return if @data_store
         @changelog_locks ||= {}
         @data_store = Concurrent::Map.new
-        D3.logger.debug 'Loading Title data-store'
+        Xolo.logger.debug 'Loading Title data-store'
         data_dir.children.each do |item|
           next if item.basename.to_s.include? CHANGELOG
           next unless item.extname == Xolo::DOT_YML
           name = item.basename.to_s.chomp Xolo::DOT_YML
           @data_store[name] = item.d3_load_yaml
-          D3.logger.debug "Loaded title '#{name}'"
+          Xolo.logger.debug "Loaded title '#{name}'"
         end # do item
-        D3.logger.info 'Title data-store loaded'
+        Xolo.logger.info 'Title data-store loaded'
         refresh_json_summary_list
       end
 
@@ -110,14 +110,14 @@ module Xolo
         title.disk_version_dir.mkpath
         title.disk_file.d3_atomic_write title.to_yaml
         @data_store[title.name] = title
-        D3.logger.debug "Title added to data-store: #{title.name}"
+        Xolo.logger.debug "Title added to data-store: #{title.name}"
         refresh_json_summary_list
       end
 
       def self.update_title_in_data_store(title)
         title.disk_file.d3_atomic_write title.to_yaml
         @data_store[title.name] = title
-        D3.logger.debug "Title updated in data-store: #{title.name}"
+        Xolo.logger.debug "Title updated in data-store: #{title.name}"
         refresh_json_summary_list
       end
 
@@ -127,7 +127,7 @@ module Xolo
         title.disk_version_dir.rmtree if title.disk_version_dir.directory?
         title.disk_changelog_file.delete if title.disk_changelog_file.file?
         @data_store.delete title.name
-        D3.logger.debug "Title deleted from data-store: #{title.name}"
+        Xolo.logger.debug "Title deleted from data-store: #{title.name}"
         refresh_json_summary_list
       end
 
@@ -154,7 +154,7 @@ module Xolo
           chlog << { timestamp: Time.now, admin: admin, msg: msg }
           file.d3_atomic_write YAML.dump(chlog)
         end # sync
-        D3.logger.debug "Updated changelog for title '#{titlename}'"
+        Xolo.logger.debug "Updated changelog for title '#{titlename}'"
       end # update_changelog
 
       # GETting the collection resource ../titles returns a JSON Array of
@@ -189,7 +189,7 @@ module Xolo
 
       def self.refresh_json_summary_list
         @json_summary_list = @data_store.values.map(&:summary_hash).to_json
-        D3.logger.debug 'Title json summary list refreshed'
+        Xolo.logger.debug 'Title json summary list refreshed'
         @json_summary_list
       end
 
@@ -200,7 +200,7 @@ module Xolo
         @data_store.values.each do |title|
           list << title.summary_hash(fields)
         end
-        D3.logger.debug "Processed custom Title summary list with fields: #{fields}"
+        Xolo.logger.debug "Processed custom Title summary list with fields: #{fields}"
         list.to_json
       end
 

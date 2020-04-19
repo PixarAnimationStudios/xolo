@@ -28,7 +28,7 @@ module Xolo
   # the admin app
   class AdminApp
 
-    REPORT_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    REPORT_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Report on titles installed on computers.
 
           List all computers with a given title:

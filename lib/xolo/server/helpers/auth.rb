@@ -117,7 +117,7 @@ module Xolo
           failed = false
           failed = "JSS authentication failed for admin: #{admin_user}" unless jss_authed? admin_user, admin_pw
           failed = "JSS user #{admin_user} not in admin group" unless failed || in_admin_group?(admin_user)
-          D3.logger.info "Admin API login for #{admin_user}@#{request.ip}" unless failed
+          Xolo.logger.info "Admin API login for #{admin_user}@#{request.ip}" unless failed
           [ADMIN_ROLE, failed]
         end # authenticate_webhooks_user
 
@@ -132,7 +132,7 @@ module Xolo
           client_user = Xolo::Server.config.client_acct
           failed = false
           failed = 'Client authentication failed' unless client_pw == Xolo::Server::Helpers::Auth.client_pw
-          D3.logger.debug "Client API login from #{request.ip}" unless failed
+          Xolo.logger.debug "Client API login from #{request.ip}" unless failed
           [CLIENT_ROLE, failed]
         end # authenticate_webhooks_user
 

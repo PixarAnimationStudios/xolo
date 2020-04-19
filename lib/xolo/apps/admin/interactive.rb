@@ -629,7 +629,7 @@ Enter 'v' to view a list of scripts in the JSS.
         result = "v"
         while result == "v" do
           result = prompt_for_data(opt: opt, desc: desc, default: default, required: true)
-          D3.less_text JSS::Script.all_names.sort_by{|s| s.downcase}.join("\n") if result == "v"
+          Xolo.less_text JSS::Script.all_names.sort_by{|s| s.downcase}.join("\n") if result == "v"
         end
         return result
       end
@@ -710,7 +710,7 @@ Enter 'all' to show all statuses
         result = "v"
         while result == "v" do
           result = prompt_for_data(opt: opt, desc: desc,  default: default, required: true)
-          D3.less_text JSS::ComputerGroup.all_names.sort_by{|s| s.downcase}.join("\n") if result == "v"
+          Xolo.less_text JSS::ComputerGroup.all_names.sort_by{|s| s.downcase}.join("\n") if result == "v"
         end
 
         return result
@@ -766,7 +766,7 @@ Enter:
         result = "v"
         while result == "v" do
           result = prompt_for_data(desc: desc, prompt: "Category", default: default, required: true)
-          D3.less_text JSS::Category.all_names.sort_by{|c| c.downcase}.join("\n") if result == "v"
+          Xolo.less_text JSS::Category.all_names.sort_by{|c| c.downcase}.join("\n") if result == "v"
         end
         return nil if result == 'n'
         result

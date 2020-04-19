@@ -94,7 +94,7 @@ class App
     Xolo::Client.connect
 
     # Only send to stdout/stderr if there's a fatal error.
-    D3.verbosity = :fatal
+    Xolo.verbosity = :fatal
 
     # since this is running via a Jamf Policy,
     # args 0, 1, and 2 are used for other things we

@@ -23,7 +23,7 @@
 #
 
 
-#
+# TODO: most of this stuff belongs elsewhere
 module Xolo
 
   # is the module fully loaded?

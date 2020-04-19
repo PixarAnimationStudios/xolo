@@ -90,7 +90,7 @@ module Xolo
         return if @data_store
         @data_store = Concurrent::Map.new
         @max_id = Concurrent::AtomicFixnum.new
-        D3.logger.debug 'Loading Version data-store'
+        Xolo.logger.debug 'Loading Version data-store'
         Xolo::Server::Title.data_dir.children.each do |item|
           next unless item.directory?
           title_name = item.basename.to_s
@@ -99,10 +99,10 @@ module Xolo
             vers = versfile.d3_load_yaml
             @data_store[title_name][vers.version] = vers
             @max_id.value = vers.id if vers.id > @max_id.value
-            D3.logger.debug "Loaded version '#{vers.version}' for title '#{title_name}'"
+            Xolo.logger.debug "Loaded version '#{vers.version}' for title '#{title_name}'"
           end # each versfile
         end # Xolo::Server::Title.data_dir.children.each do |item|
-        D3.logger.info 'Version data-store loaded'
+        Xolo.logger.info 'Version data-store loaded'
         refresh_json_summary_list
       end # load_data_store
 
@@ -112,7 +112,7 @@ module Xolo
         vers.disk_file.d3_atomic_write vers.to_yaml
         @data_store[vers.title] ||= {}
         @data_store[vers.title][vers.version] = vers
-        D3.logger.debug "Version added to data-store: title: #{vers.title}, vers: #{vers.version}"
+        Xolo.logger.debug "Version added to data-store: title: #{vers.title}, vers: #{vers.version}"
         refresh_json_summary_list
       end
 
@@ -121,7 +121,7 @@ module Xolo
         validate_version_exists vers.title, vers.version
         vers.disk_file.d3_atomic_write vers.to_yaml
         @data_store[vers.title][vers.version] = vers
-        D3.logger.debug "Version updated in data-store: title: #{vers.title}, vers: #{vers.version}"
+        Xolo.logger.debug "Version updated in data-store: title: #{vers.title}, vers: #{vers.version}"
         refresh_json_summary_list
       end
 
@@ -130,7 +130,7 @@ module Xolo
         vers.disk_file.delete if vers.disk_file.file?
         return unless @data_store[vers.title]
         @data_store[vers.title].delete vers.version
-        D3.logger.debug "Version deleted from data-store: title: #{vers.title}, vers: #{vers.version}"
+        Xolo.logger.debug "Version deleted from data-store: title: #{vers.title}, vers: #{vers.version}"
         refresh_json_summary_list
       end
 
@@ -138,13 +138,13 @@ module Xolo
       # This is called when titles themselves are deleted.
       def self.delete_all_for_title(title_name)
         return unless @data_store[title_name]
-        D3.logger.debug "Deleting all Versions from data-store for title: #{title_name}"
+        Xolo.logger.debug "Deleting all Versions from data-store for title: #{title_name}"
         # delete the yml files
         @data_store[title_name].values.each do |vers|
           vers.disk_file.delete if vers.disk_file.file?
         end
         @data_store.delete title_name
-        D3.logger.debug "Deleted all Versions from data-store for title: #{title_name}"
+        Xolo.logger.debug "Deleted all Versions from data-store for title: #{title_name}"
         refresh_json_summary_list
       end
 
@@ -169,7 +169,7 @@ module Xolo
           new_list += hsh.values.map(&:summary_hash)
         end
         @json_summary_list = new_list.to_json
-        D3.logger.debug 'Version json summary list refreshed'
+        Xolo.logger.debug 'Version json summary list refreshed'
         @json_summary_list
       end
 
@@ -181,7 +181,7 @@ module Xolo
           next if hsh.empty?
           list += hsh.values.map { |v| v.summary_hash(fields) }
         end
-        D3.logger.debug "Processed custom Version summary list with fields: #{fields}"
+        Xolo.logger.debug "Processed custom Version summary list with fields: #{fields}"
         list.to_json
       end
 

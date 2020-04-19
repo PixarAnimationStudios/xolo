@@ -72,10 +72,10 @@ module Xolo
         def read_q
           if QUEUE_FILE.exist?
             @q = YAML.load(QUEUE_FILE.read)
-            D3.log "Puppy queue loaded from disk", :debug
+            Xolo.log "Puppy queue loaded from disk", :debug
           else
             @q = {}
-            D3.log "Created new empty puppy queue", :debug
+            Xolo.log "Created new empty puppy queue", :debug
           end
         end  # read_q
 
@@ -84,13 +84,13 @@ module Xolo
         # @return [void]
         #
         def save_q
-          D3.log "Saving puppy queue", :debug
+          Xolo.log "Saving puppy queue", :debug
           if @q.empty?
-            D3.log "Puppy queue is empty, deleting from disk", :debug
+            Xolo.log "Puppy queue is empty, deleting from disk", :debug
             QUEUE_FILE.delete if QUEUE_FILE.exist?
           else
             QUEUE_FILE.jss_save YAML.dump(@q)
-            D3.log "Puppy queue saved to disk", :debug
+            Xolo.log "Puppy queue saved to disk", :debug
           end
 
         end # save_q
@@ -114,7 +114,7 @@ module Xolo
 
           raise TypeError, "You can only add PendingPuppy ojects to the PuppyQueue" unless puppy.class == Xolo::PuppyTime::PendingPuppy
 
-          D3.log "Adding to puppy queue: #{puppy.patch}", :info
+          Xolo.log "Adding to puppy queue: #{puppy.patch}", :info
 
           # does this title already exist in the queue?
           # we can only have one patch per title in the queue at a time
@@ -123,14 +123,14 @@ module Xolo
 
             # if the pre-queued one is older, replace it with this one.
             if in_q.id < puppy.id
-              D3.log "Replacing older puppy in queue: #{in_q.patch}", :warm
+              Xolo.log "Replacing older puppy in queue: #{in_q.patch}", :warm
               self - puppy.title
             else
               if puppy.force
-                D3.log "Puppy already in queue for '#{puppy.title}' is the same or newer (#{in_q.patch}), but force-adding", :warn
+                Xolo.log "Puppy already in queue for '#{puppy.title}' is the same or newer (#{in_q.patch}), but force-adding", :warn
                 self - puppy.title
               else
-                D3.log "Puppy already in queue for '#{puppy.title}' is the same or newer (#{in_q.patch}), not adding", :warn
+                Xolo.log "Puppy already in queue for '#{puppy.title}' is the same or newer (#{in_q.patch}), not adding", :warn
                 return false
               end # if force
             end
@@ -144,7 +144,7 @@ module Xolo
 
           # add the new puppy
           @q[puppy.title] = puppy
-          D3.log "Added puppy to queue: #{puppy.patch}", :info
+          Xolo.log "Added puppy to queue: #{puppy.patch}", :info
 
           # save it
           save_q
@@ -169,7 +169,7 @@ module Xolo
 
           # remove it
           @q.delete puppy
-          D3.log "Removed title #{puppy} from the puppy queue", :debug
+          Xolo.log "Removed title #{puppy} from the puppy queue", :debug
 
           # save the queue
           save_q
@@ -186,19 +186,19 @@ module Xolo
         def should_run_notification_policy
           # no puppies, no notify
           if @q.empty?
-            D3.log "Not running puppytime notification policy: No puppies in queue", :debug
+            Xolo.log "Not running puppytime notification policy: No puppies in queue", :debug
             return false
           end
 
           # no policy, no notify
           unless policy = Xolo::CONFIG.puppy_notification_policy
-            D3.log "Not running puppytime notification policy: No policy in config", :debug
+            Xolo.log "Not running puppytime notification policy: No policy in config", :debug
             return false
           end
 
           # no-notification option was given, no notify
           unless Xolo::Client.puppy_notification_ok_with_admin?
-            D3.log "Not running puppytime notification policy: --no-puppy-notification was given", :debug
+            Xolo.log "Not running puppytime notification policy: --no-puppy-notification was given", :debug
             return false
           end
 
@@ -209,24 +209,24 @@ module Xolo
           case frequency
           # zero means never notify
           when 0
-            D3.log "Not running puppytime notification policy: Frequency set to Zero", :debug
+            Xolo.log "Not running puppytime notification policy: Frequency set to Zero", :debug
             return false
           # -1 means always notify
           when -1
-            D3.log "Frequency set to -1, always running puppytime notification policy", :debug
+            Xolo.log "Frequency set to -1, always running puppytime notification policy", :debug
             return policy
           end
 
           unless last_notification = Xolo::CONFIG.puppy_last_notification
             # never been notified? always notify.
-            D3.log "Puppytime notification policy never run, running now.", :debug
+            Xolo.log "Puppytime notification policy never run, running now.", :debug
             return policy
           end # if last notiv
 
           # not long enough since last? no notify
           last_notification_days_ago = ((Time.now - last_notification) / 60 / 60 / 24).to_i
           unless last_notification_days_ago >= frequency
-            D3.log "Not running puppytime notification policy: last notification #{last_notification_days_ago}/#{frequency} days ago", :debug
+            Xolo.log "Not running puppytime notification policy: last notification #{last_notification_days_ago}/#{frequency} days ago", :debug
             return false
           end
 
@@ -246,7 +246,7 @@ module Xolo
           puppies = @q.values.map{|p| p.patch}.join " "
           Xolo::Client.set_env :puppytime_notification, puppies
 
-          D3.run_policy policy, :puppy_notification, verbose
+          Xolo.run_policy policy, :puppy_notification, verbose
 
           update_last_notification
           Xolo::Client.unset_env :puppytime_notification
@@ -258,7 +258,7 @@ module Xolo
         # @return [void]
         #
         def update_last_notification
-          D3.log "Updating last puppy notification time", :debug
+          Xolo.log "Updating last puppy notification time", :debug
           Xolo::CONFIG.puppy_last_notification = Time.now
           Xolo::CONFIG.save
         end # update last notification

@@ -142,7 +142,7 @@ module Xolo
         # (use self.reload if needed)
         return if @@installed_rcpts
 
-        D3.log "Loading receipts, #{rw ? 'read-write' : 'read-only'}", :debug
+        Xolo.log "Loading receipts, #{rw ? 'read-write' : 'read-only'}", :debug
 
         # get the lock if needed
         self.get_datastore_lock(lock_timeout) if rw
@@ -150,7 +150,7 @@ module Xolo
         @@installed_rcpts = DATASTORE.file? ? YAML.load(DATASTORE.read) : {}
         @@installed_rcpts ||= {}
 
-        D3.log "Receipts loaded", :debug
+        Xolo.log "Receipts loaded", :debug
       end # seld.load_receipts
 
       # Reload the existing rcpt database
@@ -171,7 +171,7 @@ module Xolo
           return
         end # unless @@installed_rcpts
 
-        D3.log "Reloading receipts, #{rw ? 'read-write' : 'read-only'}", :debug
+        Xolo.log "Reloading receipts, #{rw ? 'read-write' : 'read-only'}", :debug
 
         # Are we trying to re-load with rw?
         if rw
@@ -185,7 +185,7 @@ module Xolo
         # reload it
         @@installed_rcpts = DATASTORE.file? ? YAML.load(DATASTORE.read) : {}
         @@installed_rcpts ||= {}
-        D3.log "Receipts reloaded", :debug
+        Xolo.log "Receipts reloaded", :debug
       end # self.reload_receipts
 
       # Write existing rcpt database to disk
@@ -194,10 +194,10 @@ module Xolo
       #
       def self.save_receipts(release_lock = true)
         raise JSS::MissingDataError, "Receipts not loaded, can't save." unless @@installed_rcpts
-        D3.log "Saving receipts", :debug
+        Xolo.log "Saving receipts", :debug
 
         unless @@got_lock
-          D3.log "Receipts were loaded read-only, can't save", :error
+          Xolo.log "Receipts were loaded read-only, can't save", :error
           raise JSS::UnsupportedError,"Receipts were loaded read-only, can't save"
         end
 
@@ -206,7 +206,7 @@ module Xolo
 
         DATASTORE.parent.mktree unless DATASTORE.parent.directory?
         DATASTORE.jss_save YAML.dump(@@installed_rcpts)
-        D3.log "Receipts saved", :debug
+        Xolo.log "Receipts saved", :debug
         if release_lock
           self.release_datastore_lock
         end
@@ -220,10 +220,10 @@ module Xolo
       # @return [void]
       #
       def self.get_datastore_lock (lock_timeout = DATASTORE_LOCK_TIMEOUT)
-        D3.log "Attempting to get receipt datastore write lock.", :debug
+        Xolo.log "Attempting to get receipt datastore write lock.", :debug
         # try to get it 10x per second...
         if DATASTORE_LOCKFILE.exist?
-          D3.log "Lock in use, retrying for #{lock_timeout} secs", :debug
+          Xolo.log "Lock in use, retrying for #{lock_timeout} secs", :debug
           max_tries = lock_timeout * 10
           tries = 0
           while tries < max_tries do
@@ -238,12 +238,12 @@ module Xolo
 
           # if its stale, warn that it might need manual fixing
           errmsg += " Potentially stale. Please investigate manually." if lockfile_age > DATASTORE_STALE_LOCK_AGE
-          D3.log errmsg, :error
+          Xolo.log errmsg, :error
           raise JSS::TimeoutError, errmsg
         else
           DATASTORE_LOCKFILE.parent.mkpath
           DATASTORE_LOCKFILE.jss_save $$.to_s
-          D3.log "Acquired write lock on receipt datastore.", :debug
+          Xolo.log "Acquired write lock on receipt datastore.", :debug
           @@got_lock = true
         end
       end #self.get_datastore_lock
@@ -253,7 +253,7 @@ module Xolo
       def self.release_datastore_lock
         return nil unless @@got_lock
         DATASTORE_LOCKFILE.delete if DATASTORE_LOCKFILE.exist?
-        D3.log "Receipt datastore write lock released", :debug
+        Xolo.log "Receipt datastore write lock released", :debug
         @@got_lock = false
       end # self.release_datastore_lock
 
@@ -261,7 +261,7 @@ module Xolo
       # Useful for testing, but very dangerous - could cause data loss.
       #
       def self.force_clear_datastore_lock
-        D3.log "Force-clearing the receipt write lock", :debug
+        Xolo.log "Force-clearing the receipt write lock", :debug
         DATASTORE_LOCKFILE.delete if DATASTORE_LOCKFILE.exist?
         @@got_lock = false
       end
@@ -284,7 +284,7 @@ module Xolo
       #
       def self.add_receipt(receipt, replace = false)
         raise JSS::InvalidDataError, "Argument must be a Xolo::Client::Receipt" unless receipt.is_a? Xolo::Client::Receipt
-        D3.log "Attempting to #{replace ? "replace" : "add"} receipt for #{receipt.patch}.", :debug
+        Xolo.log "Attempting to #{replace ? "replace" : "add"} receipt for #{receipt.patch}.", :debug
         self.reload_receipts :rw
         begin
           unless replace
@@ -296,7 +296,7 @@ module Xolo
           replacing = @@installed_rcpts[receipt.title] ? true : false
           @@installed_rcpts[receipt.title] = receipt
           self.save_receipts
-          D3.log "#{replacing ? "Replaced" : "Added"} receipt for #{receipt.patch}", :info
+          Xolo.log "#{replacing ? "Replaced" : "Added"} receipt for #{receipt.patch}", :info
 
         ensure
           # always release the rw lock even after an error
@@ -310,18 +310,18 @@ module Xolo
       #
       def self.remove_receipt(title)
 
-        D3.log "Attempting to remove receipt for title #{title}", :info
+        Xolo.log "Attempting to remove receipt for title #{title}", :info
 
         self.reload_receipts :rw
         begin
           old_rcpt = self.all[title]
           if old_rcpt
             @@installed_rcpts.delete title
-            D3.log "Removed receipt for #{old_rcpt.patch}", :debug
+            Xolo.log "Removed receipt for #{old_rcpt.patch}", :debug
 
             self.save_receipts
           else
-            D3.log "No receipt for title #{title}", :debug
+            Xolo.log "No receipt for title #{title}", :debug
           end # if old_rcpt
         ensure
           self.release_datastore_lock
@@ -456,7 +456,7 @@ module Xolo
           # someone installed a d3 pkg via non-d3 means) then
           # which one wins? I say the last one, but log it.
           if new_rcpts.keys.include? d3_pkg.title
-            D3.log "Rebuilding local receipt database: multiple Casper installs of title '#{d3_pkg.title}'", :warn
+            Xolo.log "Rebuilding local receipt database: multiple Casper installs of title '#{d3_pkg.title}'", :warn
             new_rcpts.delete d3_pkg.title
           end # new_rcpts.keys.include? d3_pkg.title
 
@@ -628,14 +628,14 @@ module Xolo
             raise Xolo::InstallError, "#{patch} cannot be uninstalled now because one or more of the following processes is running: #{Xolo::Admin::OPTIONS[:prohibiting_processes][:display_conversion].call @prohibiting_processes}"
           end
           Xolo::Client.set_env :removing, patch
-          D3.log "Uninstalling #{patch}", :warn
+          Xolo.log "Uninstalling #{patch}", :warn
 
           # run a preflight if needed.
           if pre_remove_script?
             (exit_status, output) = run_pre_remove verbose
             if exit_status == 111
               delete
-              D3.log "pre_remove script exited 111, deleted receipt for #{patch} but not doing any more.", :info
+              Xolo.log "pre_remove script exited 111, deleted receipt for #{patch} but not doing any more.", :info
               return true
             elsif exit_status != 0
               raise Xolo::UninstallError, "Error running pre_remove script (exited #{exit_status}), not uninstalling #{patch}"
@@ -645,23 +645,23 @@ module Xolo
           # if it is still on the server...
           if JSS::Package.all_ids.include? @id
             # uninstall the pkg
-            D3.log "Running 'jamf uninstall' of #{patch}", :debug
+            Xolo.log "Running 'jamf uninstall' of #{patch}", :debug
             uninstall_worked = JSS::Package.new(:id => @id).uninstall(:verbose => verbose).exitstatus == 0
 
           # if it isn't on the server any more....
           else
-            D3.log "Package is gone from server, no index available", :info
+            Xolo.log "Package is gone from server, no index available", :info
 
             # if forced, deleting the rcpt is 'uninstalling'
             if force
-              D3.log "Force-deleting receipt for #{patch}.", :info
+              Xolo.log "Force-deleting receipt for #{patch}.", :info
               uninstall_worked = true
 
             # no force
             else
               # we can't do anything with dmgs
               if @package_type == :dmg
-                D3.log "Package was a .dmg, can't uninstall.\n   Use --force to remove the receipt", :error
+                Xolo.log "Package was a .dmg, can't uninstall.\n   Use --force to remove the receipt", :error
                 uninstall_worked = false
               else
                 uninstall_worked = uninstall_via_apple_rcpt
@@ -675,7 +675,7 @@ module Xolo
 
             # remove this rcpt
             delete
-            D3.log "Done, uninstalled #{patch}", :warn
+            Xolo.log "Done, uninstalled #{patch}", :warn
             # run a postflight if needed
             if post_remove_script?
               (exit_status, output) = run_post_remove verbose
@@ -687,7 +687,7 @@ module Xolo
           # uninstall failed, but force deletes rececipt
           else
             if force
-              D3.log "Uninstall failed, but force-deleting receipt for #{patch}.", :warn
+              Xolo.log "Uninstall failed, but force-deleting receipt for #{patch}.", :warn
               delete
             else
               raise Xolo::UninstallError, "There was a problem uninstalling #{patch}"
@@ -713,7 +713,7 @@ module Xolo
       #
       def run_pre_remove (verbose = false)
         Xolo::Client.set_env :pre_remove, patch
-        D3.log "Running pre_remove script", :debug
+        Xolo.log "Running pre_remove script", :debug
         begin
           result = JSS::Script.new(:id => @pre_remove_script_id).run :verbose => verbose, :show_output => verbose
         rescue Xolo::ScriptError
@@ -721,7 +721,7 @@ module Xolo
         ensure
           Xolo::Client.unset_env :pre_remove
         end
-        D3.log "Finished pre_remove script", :debug
+        Xolo.log "Finished pre_remove script", :debug
         return result
       end
 
@@ -733,7 +733,7 @@ module Xolo
       #
       def run_post_remove (verbose = false)
         Xolo::Client.set_env :post_remove, patch
-        D3.log "Running post_remove script", :debug
+        Xolo.log "Running post_remove script", :debug
         begin
           result = JSS::Script.new(:id => @post_remove_script_id).run :verbose => verbose, :show_output => verbose
         rescue Xolo::ScriptError
@@ -741,7 +741,7 @@ module Xolo
         ensure
           Xolo::Client.unset_env :post_remove
         end
-        D3.log "Finished post_remove script", :debug
+        Xolo.log "Finished post_remove script", :debug
         return result
       end
 
@@ -757,14 +757,14 @@ module Xolo
       #
       def uninstall_via_apple_rcpt (verbose = false)
 
-        D3.log "Uninstalling #{patch} via Apple pkg receipts", :debug
+        Xolo.log "Uninstalling #{patch} via Apple pkg receipts", :debug
         raise Xolo::UninstallError,  "#{patch} is not a .pkg installer. Can't use Apple receipts." if @package_type == :dmg
         to_delete = {}
         begin
           installed_apple_rcpts = `#{JSS::Composer::PKG_UTIL} --pkgs`.split("\n")
           @apple_pkg_ids.each do |pkgid|
             unless installed_apple_rcpts.include? pkgid
-              D3.log "No local Apple receipt for '#{pkgid}', ignoring", :warn
+              Xolo.log "No local Apple receipt for '#{pkgid}', ignoring", :warn
               next
             end
 
@@ -775,18 +775,18 @@ module Xolo
           end # each pkgid
 
           to_delete.each do |pkgid, paths|
-            D3.log "Deleting items installed by apple pkg-id #{pkgid}", :debug
+            Xolo.log "Deleting items installed by apple pkg-id #{pkgid}", :debug
             paths.each do |path|
               target = Pathname.new "/#{path}"
               target.delete if target.file?
               target.rmdir if target.directory? and target.children.empty?
-              D3.log "Deleted #{path}", :debug
+              Xolo.log "Deleted #{path}", :debug
             end # each path
             system "#{JSS::Composer::PKG_UTIL} --forget '#{pkgid}' &>/dev/null"
           end # each |pkgid, paths|
         rescue
-          D3.log $!, :warn
-          D3.log_backtrace
+          Xolo.log $!, :warn
+          Xolo.log_backtrace
           return false
         end # begin
         return true
@@ -890,7 +890,7 @@ module Xolo
       def delete
         @jamf_rcpt_file.delete if @jamf_rcpt_file.exist?
         Xolo::Client::Receipt.remove_receipt @title
-        D3.log "Deleted JAMF receipt file #{@jamf_rcpt_file.title}", :debug
+        Xolo.log "Deleted JAMF receipt file #{@jamf_rcpt_file.title}", :debug
         @deleted = true
       end
 
@@ -961,7 +961,7 @@ Last brought to foreground: #{last_usage_display}
       #
       def make_live
         return true if live?
-        D3.log "Marking pilot receipt #{patch} live", :debug
+        Xolo.log "Marking pilot receipt #{patch} live", :debug
         @status = :live
         update
       end
@@ -977,7 +977,7 @@ Last brought to foreground: #{last_usage_display}
 
         # gotta have an expiration path
         if @expiration_bundle_ids.empty?
-          D3.log "Not expiring #{patch} because: No Expiration Path(s) for #{patch}", :debug
+          Xolo.log "Not expiring #{patch} because: No Expiration Path(s) for #{patch}", :debug
           return false
         end
 
@@ -988,44 +988,44 @@ Last brought to foreground: #{last_usage_display}
 
         # gotta have expirations turned on system-wide
         unless Xolo::CONFIG.client_expiration_allowed
-          D3.log "Not expiring #{patch} because: expirations not allowed on this client", :debug
+          Xolo.log "Not expiring #{patch} because: expirations not allowed on this client", :debug
           return false
         end
 
         # gotta be removable
         unless @removable
-          D3.log "Not expiring #{patch} because: not removable", :debug
+          Xolo.log "Not expiring #{patch} because: not removable", :debug
           return false
         end
 
         # gotta have an expiration set for this rcpt.
         if (not @expiration.is_a? Fixnum) or @expiration <= 0
-          D3.log "Not expiring #{patch} because: expiration value is invalid", :debug
+          Xolo.log "Not expiring #{patch} because: expiration value is invalid", :debug
           return false
         end
 
         # the app usage monitor must be running
         all_procs = `/bin/ps -A -c -o user -o comm`.split("\n")
         if all_procs.select{|p| p =~ /\s#{APP_USAGE_MONITOR_PROC}$/}.empty?
-          D3.log "Not expiring #{patch} because: '#{APP_USAGE_MONITOR_PROC}' isn't running", :debug
+          Xolo.log "Not expiring #{patch} because: '#{APP_USAGE_MONITOR_PROC}' isn't running", :debug
           return false
         end
 
         # did we get any usage dates above?
         unless my_last_usage and unlaunched_days
-          D3.log "Not expiring #{patch} because: could not retrieve last usage data", :debug
+          Xolo.log "Not expiring #{patch} because: could not retrieve last usage data", :debug
           return false
         end
 
         # must be unlaunched for at least the expiration period
         if unlaunched_days <= @expiration
-          D3.log "Not expiring #{patch} because: path has launched within #{expiration} days", :debug
+          Xolo.log "Not expiring #{patch} because: path has launched within #{expiration} days", :debug
           return false
         end
 
         # gotta be connected to d3
-        unless D3.connected?
-          D3.log "Not expiring #{patch} because: not connected to the servers", :debug
+        unless Xolo.connected?
+          Xolo.log "Not expiring #{patch} because: not connected to the servers", :debug
           return false
         end
 
@@ -1038,16 +1038,16 @@ Last brought to foreground: #{last_usage_display}
       #
       # @return [String, nil] the patch that was expired or nil if none
       #
-      def expire(verbose = false, force = D3.forced?)
+      def expire(verbose = false, force = Xolo.forced?)
         return nil unless should_expire?
         begin
           Xolo::Client.set_env :expiring, patch
-          D3.log "Expiring #{patch} after #{expiration} days of no use.", :warn
+          Xolo.log "Expiring #{patch} after #{expiration} days of no use.", :warn
           uninstall verbose, force
-          D3.log "Done expiring #{patch}", :info
+          Xolo.log "Done expiring #{patch}", :info
         rescue
-          D3.log "There was an error expiring #{patch}:\n   #{$!}", :error
-          D3.log_backtrace
+          Xolo.log "There was an error expiring #{patch}:\n   #{$!}", :error
+          Xolo.log_backtrace
         ensure
           Xolo::Client.unset_env :expiring
         end
@@ -1108,7 +1108,7 @@ Last brought to foreground: #{last_usage_display}
 
           # usage data dir must exist
           unless LAST_APP_USAGE_DIR.directory?
-            D3.log "Last app usage dir '#{LAST_APP_USAGE_DIR}' doesn't exist or isn't a directory.", :debug
+            Xolo.log "Last app usage dir '#{LAST_APP_USAGE_DIR}' doesn't exist or isn't a directory.", :debug
             return nil
           end
 
@@ -1119,7 +1119,7 @@ Last brought to foreground: #{last_usage_display}
           newest_mtime = plists.map{|pl| pl.stat.mtime}.max
           app_usage_update_age =  (now - newest_mtime).to_i
           if app_usage_update_age > MAX_APP_USAGE_UPDATE_AGE
-            D3.log "Last app usage update more than #{MAX_APP_USAGE_UPDATE_AGE} seconds ago.", :debug
+            Xolo.log "Last app usage update more than #{MAX_APP_USAGE_UPDATE_AGE} seconds ago.", :debug
             return nil
           end
 
@@ -1127,7 +1127,7 @@ Last brought to foreground: #{last_usage_display}
           # expiration paths, and append it to all_usages
           all_usages = []
           plists.each do |plist|
-            usage_times = D3.parse_plist plist
+            usage_times = Xolo.parse_plist plist
             my_usage_keys = usage_times.keys.map{|p| Pathname.new(p)}
             exp_paths_with_usage = @expiration_bundle_ids & my_usage_keys
             exp_paths_with_usage.each{|p| all_usages <<  usage_times[p.to_s].to_time }
@@ -1178,7 +1178,7 @@ Last brought to foreground: #{last_usage_display}
       # @return [Boolean]
       #
       def uninstall_prohibited_by_process?
-        D3.prohibited_by_process_running? @prohibiting_processes
+        Xolo.prohibited_by_process_running? @prohibiting_processes
       end #
 
     end # class Receipt

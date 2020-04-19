@@ -681,7 +681,7 @@ module Xolo
         rcpt_data = {}
         info_plist = pkg_path + "Contents/Info.plist"
         if info_plist.exist?
-          plist = D3.parse_plist info_plist
+          plist = Xolo.parse_plist info_plist
           rcpt_data[:apple_pkg_id] = plist["CFBundleIdentifier"]
           rcpt_data[:apple_pkg_id] ||= plist["Bundle Identifier"]
           rcpt_data[:apple_pkg_id] ||= pkg_path.title.to_s

@@ -44,7 +44,7 @@ module Xolo
       def self.run!(log_level = config.log_level)
         prep_to_run log_level
 
-        D3.logger.info 'Starting Server'
+        Xolo.logger.info 'Starting Server'
 
         super({}) do |svr|
           svr.ssl = true

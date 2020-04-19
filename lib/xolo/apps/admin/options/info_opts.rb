@@ -28,7 +28,7 @@ module Xolo
   # the admin app
   class AdminApp
 
-    INFO_BANNER = D3.squiggilize_heredoc <<-ENDBANNER
+    INFO_BANNER = Xolo.squiggilize_heredoc <<-ENDBANNER
       Display info about titles and versions in d3:
 
          d3admin info <title> [--version <version>]

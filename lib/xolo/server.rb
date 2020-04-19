@@ -25,6 +25,7 @@
 
 # Server specifc gems & libs
 require 'jss'
+require 'jamf'
 require 'yaml'
 require 'thread'
 require 'sinatra/base'

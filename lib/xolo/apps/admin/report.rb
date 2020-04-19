@@ -114,7 +114,7 @@ module Xolo
         if lines.empty?
           puts "# No#{status_display} receipts for '#{title}' were found"
         else
-          D3.less_text D3.generate_report(lines.sort_by{|c| c[0]}, header_row: header, title: title)
+          Xolo.less_text Xolo.generate_report(lines.sort_by{|c| c[0]}, header_row: header, title: title)
         end # if lines emtpy?
 
       end # report_title_receipts (title, statuses)
@@ -227,7 +227,7 @@ module Xolo
           stati = statuses.empty? ? '' : " #{ statuses.join(' or ')}"
           puts "# No#{stati} receipts on '#{computer_name}'"
         else
-          D3.less_text D3.generate_report lines, header_row: header, title: title
+          Xolo.less_text Xolo.generate_report lines, header_row: header, title: title
         end
       end # report_single_computer_receipts
 
@@ -271,7 +271,7 @@ module Xolo
         if lines.empty?
           puts "# No computers with '#{title}' queued."
         else
-          D3.less_text D3.generate_report lines, header_row: header, title: title
+          Xolo.less_text Xolo.generate_report lines, header_row: header, title: title
         end # if lines emtpy?
       end # ef puppy_installs (titles)
 
@@ -322,7 +322,7 @@ module Xolo
           as_of = computer.last_recon.strftime s"%Y-%m-%d"
           lines << [patch, pup[:status], qa, pup[:admin], as_of]
         end
-        D3.less_text D3.generate_report lines, header_row: header, title: title
+        Xolo.less_text Xolo.generate_report lines, header_row: header, title: title
 
       end #report_single_puppy_queue (computer_name, statuses)
 
@@ -352,7 +352,7 @@ module Xolo
           ] }
 
 
-        D3.less_text D3.generate_report lines, header_row: header, title: "Packages in d3"
+        Xolo.less_text Xolo.generate_report lines, header_row: header, title: "Packages in d3"
       end
 
       # Show a list of all titles known to d3
@@ -369,7 +369,7 @@ module Xolo
         # map each one to an array of desired data
         lines = sorted_data.map{ |p| [ p[:title], p[:patch], p[:status]] }
 
-        D3.less_text D3.generate_report lines, header_row: header, title: "titles and patchs in d3."
+        Xolo.less_text Xolo.generate_report lines, header_row: header, title: "titles and patchs in d3."
       end
 
       # Show a list of JSS package names that are NOT in d3.
@@ -378,7 +378,7 @@ module Xolo
       def show_pkgs_available_for_import
         lines = (JSS::Package.all_names -  Xolo::Package.all_names).sort.map{|p| [p]}
         header = ['Package name']
-        D3.less_text D3.generate_report lines, header_row: header, title: "JSS Packages available for importing to d3"
+        Xolo.less_text Xolo.generate_report lines, header_row: header, title: "JSS Packages available for importing to d3"
       end
 
       # Show a list of computers in the JSS, to select one for reporting
@@ -388,7 +388,7 @@ module Xolo
       def show_available_computers_for_reports
         lines = JSS::Computer.all_names.sort.map{|c| [c]}
         header = ['Computer name']
-        D3.less_text D3.generate_report lines, header_row: header, title: "Computers in the JSS"
+        Xolo.less_text Xolo.generate_report lines, header_row: header, title: "Computers in the JSS"
       end
 
       #### Lists for 'd3admin search'
@@ -428,7 +428,7 @@ module Xolo
           return
         end
         lines.sort_by! {|l| l[0]}
-        D3.less_text D3.generate_report(lines, header_row: header, title: title)
+        Xolo.less_text Xolo.generate_report(lines, header_row: header, title: title)
         puts # empty line between
       end # display_package_list
 
@@ -548,7 +548,7 @@ module Xolo
           db_user = db[:user]
           db_pw = db[:password]
         end
-        D3.connect_for_reports jss_user, jss_pw, db_user, db_pw
+        Xolo.connect_for_reports jss_user, jss_pw, db_user, db_pw
       end # connect for report
 
       # Get the raw data for a client-install report, from the EA if available
