@@ -135,7 +135,7 @@ module XoloZeitwerkConfig
   def self.eager_load_for_testing
     return unless EAGER_LOAD_FILE.file?
 
-    @loader.eager_load(force: true)
+    loader.eager_load(force: true)
     warn :loaded
     # rescue Zeitwerk::NameError => e
     #   warn e.message

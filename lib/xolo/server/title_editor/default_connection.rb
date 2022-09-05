@@ -28,7 +28,6 @@ module Xolo
 
   module Server 
 
-    # Title Editor
     module TitleEditor
 
       # Module methods and aliases for dealing with the default connection
@@ -87,8 +86,6 @@ module Xolo
         alias logout disconnect
 
       end # module DefaultConnection
-      
-      extend DefaultConnection
 
     end # module Title Editor
 
