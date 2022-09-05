@@ -23,40 +23,54 @@
 
 # frozen_string_literal: true
 
-# This file is the entry point for loading the Xolo Server.
-#
-# one never does: 
+# This file just loads the core shared module
 #    require 'xolo' 
 #
-# but rather one of:
+# After requiring, do one of these
 #    require 'xolo/server'
 #    require 'xolo/client'
 #    require 'xolo/admin'
 
-# The Xolo Server is the focal point for a Xolo installation.
-# It centralizes and standardizes call communication between
-# the parts of Xolo:
-#
-# - A Jamf Pro server
-# - A Jamf Title Editor server
-# - The Xolo Admin application
-# 
-# The Xolo Client application running on managed Macs doesn't 
-# talk directly to the Xolo server, it does all its work via Jamf Pro.
-
 # Standard Libraries
 ######
-require 'pathname'
+require 'English'
 
-# Gems
+# Zeitwerk
 ######
 
-# Manual loading
-######
+# TODO: Encapsulate the ruby-jss zeitwerk loader stuff, like it is here.
+# As written, it doesn't play with other gems (like this one) using Zeitwerk
+# require 'ruby-jss'
+
+# Configure the Zeitwerk loader, See https://github.com/fxn/zeitwerk
+# This also defines other Xolo module methods related to loading
+# 
+require 'xolo/zeitwerk_config'
+
+# the `Zeitwerk::Loader.for_gem` creates the loader object, and must
+# happen in this file, so we pass it into a method defined in
+# zeitwerk_config
+XoloZeitwerkConfig.setup_zeitwerk_loader Zeitwerk::Loader.for_gem
 
 # The main module
 module Xolo
 
-  module Server; end
+  extend Xolo::Core::Loading
+  include Xolo::Core::Constants
+  include Xolo::Core::Exceptions
+  extend Xolo::Core::Utility
+
+  # the single instance of our configuration object
+  def self.config
+    Xolo::Core::Configuration.instance
+  end
 
 end # module Xolo
+
+# Manual loading
+######
+
+require 'xolo/ruby_extensions'
+
+# testing zeitwerk loading, if the correct file is present
+XoloZeitwerkConfig.eager_load_for_testing 

@@ -21,10 +21,9 @@
 #    language governing permissions and limitations under the Apache License.
 #
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+proj_name = 'depot3'
 
-require "./lib/#{lib_dir}/version"
+require './lib/d3/version'
 
 Gem::Specification.new do |s|
   # General
@@ -37,17 +36,32 @@ Gem::Specification.new do |s|
   s.license     = 'Nonstandard'
   s.date        = Time.now.utc.strftime('%Y-%m-%d')
   s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
+  s.description = <<-EODDESC
+d3 extends the package-deployment capabilities of Jamf Pro, an
+enterprise/education tool for managing Apple devices.
+For details, see http://pixaranimationstudios.github.io/depot3/index.html
   EODDESC
 
   # files
-  s.files = Dir['lib/**/*.rb']
+  s.files       = Dir['lib/**/*.rb']
+  s.files      += Dir['data/d3/**/*']
+  s.files << '.yardopts'
+
+  # executables
+  s.executables << 'd3'
+  s.executables << 'd3admin'
+  s.executables << 'd3helper'
+  s.executables << 'd3server'
 
   # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+  s.required_ruby_version = '>= 2.0.0'
 
   # Dependencies
+  s.add_runtime_dependency 'concurrent-ruby', '~>1.1'
+  s.add_runtime_dependency 'ruby-jss', '~>1.0'
+  s.add_runtime_dependency 'ruby-keychain', '~> 0.2', '> 0.2.0'
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
+  # Rdoc
+  s.extra_rdoc_files = ['README.md', 'LICENSE.txt', 'CHANGES.md', 'THANKS.md']
+  s.rdoc_options << '--title' << 'Depot3' << '--line-numbers' << '--main' << 'README.md'
 end

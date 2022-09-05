@@ -25,6 +25,6 @@
 # main module
 module Xolo
 
-  VERSION = '0.0.0a2'.freeze
+  VERSION = '0.0.1'.freeze
 
 end # module

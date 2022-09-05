@@ -21,33 +21,35 @@
 #    language governing permissions and limitations under the Apache License.
 #
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+# frozen_string_literal: true
 
-require "./lib/#{lib_dir}/version"
+module Xolo
 
-Gem::Specification.new do |s|
-  # General
+  module Core
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
+    module Loading
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+      def self.extended(extender)
+        Xolo.verbose_extend extender, self 
+      end
 
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+      # Use the load_msg method defined for Zeitwerk
+      def load_msg(msg)
+        XoloZeitwerkConfig.load_msg msg
+      end
 
-  # Dependencies
+      # Mention that a module is being included into something
+      def verbose_include(includer, includee)
+        load_msg "--> #{includer} is including #{includee}"
+      end
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-end
+      # Mention that a module is being extended into something
+      def verbose_extend(extender, extendee)
+        load_msg "--> #{extender} is extending #{extendee}"
+      end
+
+    end # module
+
+  end # module  
+
+end # module Xolo

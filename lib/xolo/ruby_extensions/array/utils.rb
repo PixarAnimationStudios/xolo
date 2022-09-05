@@ -1,4 +1,5 @@
-# Copyright 2018 Pixar
+# Copyright 2022 Pixar
+
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -19,35 +20,46 @@
 #    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
-#
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+module Xolo
 
-require "./lib/#{lib_dir}/version"
+  module RubyExtensions
 
-Gem::Specification.new do |s|
-  # General
+    module Array
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
+      # Useful monkey patches for Array
+      module Utils
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+        def self.included(includer)
+          Xolo.load_msg "--> #{includer} is including #{self}"
+        end
+        
+        # Fetch a items from an Array case-insensitively
+        #
+        # e.g. if my_array contains 'thrasher',
+        #    my_array.x_ci_fetch('ThRashEr')
+        # will return 'thrasher'
+        #
+        # returns nil if no match
+        #
+        # Array elements that don't respond to casecmp? are ignored.
+        #
+        # (Strings and Symbols do respond)
+        #
+        # @param somestring [String] the String to search for
+        #
+        # @return [String, nil] The matching string as it exists in the Array,
+        #   nil if it doesn't exist
+        #
+        def x_ci_fetch(somestring)
+          each { |s| return s if s.respond_to?(:casecmp?) && s.casecmp?(somestring) }
+          nil
+        end
 
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+      end # module
 
-  # Dependencies
+    end # module
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
+  end # module
+
 end

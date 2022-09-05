@@ -1,4 +1,5 @@
-# Copyright 2018 Pixar
+# Copyright 2022 Pixar
+
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -19,48 +20,42 @@
 #    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
-#
-#
 
-# the main module
+# frozen_string_literal: true
+
 module Xolo
 
-  # Core Modules Constants, used by the server and clients
-  ####################################
+  # When using included modules to define constants, 
+  # the constants have to be defined at the level where they will be
+  # referenced, or else they
+  # aren't available to other broken-out-and-included sub modules 
+  # 
+  # See https://cultivatehq.com/posts/ruby-constant-resolution/ for 
+  # an explanation
 
-  # File-related constants
+  # The minimum Ruby version needed for ruby-jss
+  MINIMUM_RUBY_VERSION = '2.6.3'
 
-  DOT_YML = '.yml'.freeze
-  DOT_PKG = '.pkg'.freeze
-  PKGUTIL = Pathname.new '/usr/sbin/pkgutil'
+  # These are handy for testing values without making new arrays, strings, etc every time.
+  TRUE_FALSE = [true, false].freeze
+  
+  # Empty strings are used in various places
+  BLANK = ''
 
-  # API constants
+  module Core
 
-  SESSION_KEY = 'd3.session'.freeze
+    # Constants useful throughout Xolo
+    # This should be included into the Jamf module
+    #####################################
+    module Constants
 
-  API_OK_STATUS = 'OK'.freeze
-  API_ERROR_STATUS = 'ERROR'.freeze
-  API_RESPONSE_STATUSES = [API_OK_STATUS, API_ERROR_STATUS].freeze
+      # when this module is included, also extend our Class Methods
+      def self.included(includer)
+        Xolo.load_msg "--> #{includer} is including Xolo::Core::Constants"
+      end
 
-  API_LOGGED_IN_MSG = 'logged in'.freeze
-  API_NOT_LOGGED_IN_MSG = 'not logged in'.freeze
-  API_LOGGED_OUT_MSG = 'logged out'.freeze
-  API_CREATED_MSG = 'created'.freeze
-  API_UPDATED_MSG = 'updated'.freeze
-  API_DELETED_MSG = 'deleted'.freeze
+    end # module constants
 
-  # Package constants
+  end # module core
 
-  # which attributes of a JSS::Package are used by d3?
-  # These are fetched by id, so we dn't need to include it
-  PACKAGE_ATTRIBUTES = %i[
-    name
-    allow_uninstalled
-    reboot_required
-    info
-    notes
-    os_requirements
-    send_notification
-  ].freeze
-
-end # module
+end # module Jamf

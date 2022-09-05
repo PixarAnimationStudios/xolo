@@ -22,26 +22,49 @@
 #
 #
 
-
-#
 module Xolo
 
-  class ConnectionError < RuntimeError ; end
+  module Core
 
-  class InstallError < RuntimeError ; end
+    module Exceptions
 
-  class ScriptError < RuntimeError ; end
+      # Connections & Access
 
-  class PreInstallError < ScriptError ; end
+      class ConnectionError < RuntimeError; end
+      
+      class NotConnectedError < RuntimeError; end
 
-  class PostInstallError < ScriptError ; end
+      class AuthenticationError < RuntimeError; end
+      
+      class PermissionError < RuntimeError; end
 
-  class PreRemoveError < ScriptError ; end
+      class InvalidTokenError < RuntimeError; end
 
-  class PostRemoveError < ScriptError ; end
+      # General errors
 
-  class UninstallError < RuntimeError ; end
+      class MissingDataError < RuntimeError; end
 
-  class PermissionError < RuntimeError ; end
+      class InvalidDataError < RuntimeError; end
 
-end # module PixD3
+      class NoSuchItemError < RuntimeError; end
+
+      # Installing
+
+      class InstallError < RuntimeError; end
+
+      class ScriptError < RuntimeError; end
+
+      class PreInstallError < ScriptError; end
+
+      class PostInstallError < ScriptError; end
+
+      class PreRemoveError < ScriptError; end
+
+      class PostRemoveError < ScriptError; end
+      
+
+    end # module Exceptions
+
+  end # module Core 
+
+end # module Xolo

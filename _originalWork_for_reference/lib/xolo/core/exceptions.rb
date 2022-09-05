@@ -20,34 +20,32 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+module Xolo
 
-require "./lib/#{lib_dir}/version"
+  class ConnectionError < RuntimeError; end
 
-Gem::Specification.new do |s|
-  # General
+  class InstallError < RuntimeError; end
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
+  class ScriptError < RuntimeError; end
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+  class PreInstallError < ScriptError; end
 
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+  class PostInstallError < ScriptError; end
 
-  # Dependencies
+  class PreRemoveError < ScriptError; end
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-end
+  class PostRemoveError < ScriptError; end
+
+  class UninstallError < RuntimeError; end
+
+  class PermissionError < RuntimeError; end
+
+  class InvalidDataError < RuntimeError; end
+
+  class AuthenticationError < RuntimeError; end
+
+  class InvalidTokenError < RuntimeError; end
+
+end # module PixD3

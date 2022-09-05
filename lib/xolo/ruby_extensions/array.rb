@@ -1,4 +1,5 @@
-# Copyright 2018 Pixar
+# Copyright 2022 Pixar
+
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -20,34 +21,15 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+require 'xolo/ruby_extensions/array/predicates'
+require 'xolo/ruby_extensions/array/utils'
 
-require "./lib/#{lib_dir}/version"
+# an array
+class Array
 
-Gem::Specification.new do |s|
-  # General
+  include Xolo::RubyExtensions::Array::Predicates
+  include Xolo::RubyExtensions::Array::Utils
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
-
-  # files
-  s.files = Dir['lib/**/*.rb']
-
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
-
-  # Dependencies
-
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-end
+end # class

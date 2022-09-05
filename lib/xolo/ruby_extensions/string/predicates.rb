@@ -1,4 +1,5 @@
-# Copyright 2018 Pixar
+# Copyright 2022 Pixar
+
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -20,34 +21,46 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+module Xolo
 
-require "./lib/#{lib_dir}/version"
+  module RubyExtensions
 
-Gem::Specification.new do |s|
-  # General
+    module String
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
+      module Predicates
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+        
+        def self.included(includer)
+          Xolo.load_msg "--> #{includer} is including #{self}"
+        end
 
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+        INTEGER_RE = /\A-?[0-9]+\Z/.freeze
+        FLOAT_RE = /\A-?[0-9]+\.[0-9]+\Z/.freeze
 
-  # Dependencies
+        # Is this string also an integer?
+        # (i.e. it consists only of numberic digits, maybe with a dash in front)
+        #
+        # @return [Boolean]
+        #
+        def x_integer?
+          self =~ INTEGER_RE ? true : false
+        end
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-end
+        # Is this string also a floar?
+        # (i.e. it consists only of numberic digits)
+        #
+        # @return [Boolean]
+        #
+        def x_float?
+          self =~ FLOAT_RE ? true : false
+        end
+
+      end # module
+
+    end # module
+
+  end # module
+
+end # module

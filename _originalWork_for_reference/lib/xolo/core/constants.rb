@@ -20,34 +20,47 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+# the main module
+module Xolo
 
-require "./lib/#{lib_dir}/version"
+  # Core Modules Constants, used by the server and clients
+  ####################################
 
-Gem::Specification.new do |s|
-  # General
+  # File-related constants
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
+  DOT_YML = '.yml'.freeze
+  DOT_PKG = '.pkg'.freeze
+  PKGUTIL = Pathname.new '/usr/sbin/pkgutil'
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+  # API constants
 
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+  SESSION_KEY = 'd3.session'.freeze
 
-  # Dependencies
+  API_OK_STATUS = 'OK'.freeze
+  API_ERROR_STATUS = 'ERROR'.freeze
+  API_RESPONSE_STATUSES = [API_OK_STATUS, API_ERROR_STATUS].freeze
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-end
+  API_LOGGED_IN_MSG = 'logged in'.freeze
+  API_NOT_LOGGED_IN_MSG = 'not logged in'.freeze
+  API_LOGGED_OUT_MSG = 'logged out'.freeze
+  API_CREATED_MSG = 'created'.freeze
+  API_UPDATED_MSG = 'updated'.freeze
+  API_DELETED_MSG = 'deleted'.freeze
+
+  # Package constants
+
+  # which attributes of a JSS::Package are used by d3?
+  # These are fetched by id, so we dn't need to include it
+  PACKAGE_ATTRIBUTES = %i[
+    name
+    allow_uninstalled
+    reboot_required
+    info
+    notes
+    os_requirements
+    send_notification
+  ].freeze
+
+end # module

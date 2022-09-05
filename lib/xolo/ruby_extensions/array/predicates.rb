@@ -1,4 +1,5 @@
-# Copyright 2018 Pixar
+# Copyright 2022 Pixar
+
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -20,34 +21,38 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+module Xolo
+  
+  module RubyExtensions
 
-require "./lib/#{lib_dir}/version"
+    module Array
 
-Gem::Specification.new do |s|
-  # General
+      module Predicates
 
-  s.name        = proj_name
-  s.version     = Xolo::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
+        def self.included(includer)
+          Xolo.load_msg "--> #{includer} is including #{self}"
+        end
+        
+        # A case-insensitive version of #include? 
+        #
+        # Array elements that don't respond to casecmp? are ignored.
+        #
+        # (Strings and Symbols do respond)
+        #
+        # @param somestring [String] the String to search for
+        #
+        # @return [Boolean] Does the Array contain the String, ignoring case?
+        #
+        def x_ci_include?(somestring)
+          any? { |s| s.respond_to?(:casecmp?) && s.casecmp?(somestring) }
+        end
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+      end # module
 
-  # Ruby version
-  s.required_ruby_version = '>= 2.6.3'
+    end # module
 
-  # Dependencies
+  end # module
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
 end

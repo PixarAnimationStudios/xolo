@@ -1,4 +1,5 @@
-# Copyright 2018 Pixar
+# Copyright 2022 Pixar
+
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -19,82 +20,29 @@
 #    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
-#
-#
 
-# the main modile
+# frozen_string_literal: true
+
 module Xolo
 
-  # This file defines useful, general-use methods
-  # for d3
-  ################################################
+  module Core
 
-  # Take in a multiline string and remove whitespace as if it was a
-  # Ruby 2.3 'squiggly heredoc' e.g.:
-  #
-  # The indentation of the least-indented line will be removed
-  # from each line of the content.
-  #
-  # This allows us to get the same results in earlier rubies.
-  #
-  # @param text[String] The text to squiggilize
-  #
-  # @return [String] the squiggilized text
-  #
-  def self.squiggilize_heredoc(text)
-    leading_space_re = /^( +)/
-    trim_length =
-      text.lines.reject { |l| l.chomp.empty? }.map do |l|
-        l =~ leading_space_re
-        Regexp.last_match(1) ? Regexp.last_match(1).length : 0
-      end.min
-    trim_sub_re = /^ {#{trim_length}}/
-    trimmed_text = ''
-    text.each_line { |l| trimmed_text << l.sub(trim_sub_re, '') }
-    trimmed_text
-  end
+    # This should be extended into the Xolo module
+    module Utility  
 
-  # Send a string to the terminal, possibly piping it through 'less'
-  # if the number of lines is greater than the number of terminal lines
-  # minus 3
-  #
-  # @param text[String] the text to send to the terminal
-  #
-  # @param show_help[Boolean] should the text have a line at the top
-  #   showing basic 'less' key commands.
-  #
-  # @return [void]
-  #
-  def self.less_text(text, show_help = true)
-    unless IO.console
-      puts text
-      return
-    end
+      def self.extended(extender)
+        Xolo.verbose_extend extender, self 
+      end
 
-    height = IO.console.winsize.first
+      # not needed, done via gemspec
+      def validate_ruby_version
+        return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(Xolo::Core::Constants::MINIMUM_RUBY_VERSION)
 
-    if text.lines.count <= (height - 3)
-      puts text
-      return
-    end
+        raise "Can't use xolo #{Jamf::VERSION}, ruby itself must be version #{MINIMUM_RUBY_VERSION} or greater, this is ruby #{RUBY_VERSION}."
+      end
 
-    if show_help
-      help = "#------' ' next, 'b' prev, 'q' exit, 'h' help ------"
-      text = "#{help}\n#{text}"
-    end
+    end # Utility
 
-    # point stdout through less, print, then restore stdout
-    less = IO.popen('/usr/bin/less', 'w')
-    begin
-      less.puts text
+  end # Core
 
-    # this catches the quitting of 'less' before all the output
-    # is displayed
-    rescue Errno::EPIPE
-      true
-    ensure
-      less.close
-    end
-  end
-
-end # module Xolo
+end # Xolo
