@@ -25,6 +25,46 @@
 # main module
 module Xolo
 
-  VERSION = '0.0.1'.freeze
+  module BaseClasses
+
+    # The base class for objects that are instantiated from 
+    # a JSON Hash
+    class JSONObject
+
+      # Constants
+      ######################
+
+      # When using prettyprint, don't spit out these instance variables.
+      PP_OMITTED_INST_VARS = %i[@init_data].freeze
+
+      # Attributes
+      ######################
+      
+      # @return [Hash] The raw JSON data this object was instantiated with
+      attr_reader :init_data
+
+      # Constructor
+      ######################
+      def initialize(json_data)
+        @init_data = json_data
+        @init_data.each do |key, val|
+          next unless respond_to? key
+
+          instance_variable_set "@#{key}", val
+        end
+      end
+
+      # Only selected items are displayed with prettyprint
+      # otherwise its too much data in irb.
+      #
+      # @return [Array] the desired instance_variables
+      #
+      def pretty_print_instance_variables
+        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
+      end
+
+    end # class RequirementBase
+
+  end # module Code
 
 end # module

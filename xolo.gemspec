@@ -24,7 +24,7 @@
 proj_name = 'xolo'
 lib_dir = 'xolo'
 
-require "./lib/#{lib_dir}/version"
+require "./lib/#{lib_dir}/core/version"
 
 Gem::Specification.new do |s|
   # General

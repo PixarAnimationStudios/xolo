@@ -23,7 +23,7 @@
 
 # frozen_string_literal: true
 
-# This file just loads the core shared module
+# This file sets up zeitwerk and loads the core module
 #    require 'xolo' 
 #
 # After requiring, do one of these
@@ -31,7 +31,7 @@
 #    require 'xolo/client'
 #    require 'xolo/admin'
 
-# Standard Libraries
+# Core Standard Libraries
 ######
 require 'English'
 
@@ -67,9 +67,8 @@ module Xolo
 
 end # module Xolo
 
-# Manual loading
+# Manual Xolo loading
 ######
-
 require 'xolo/ruby_extensions'
 
 # testing zeitwerk loading, if the correct file is present

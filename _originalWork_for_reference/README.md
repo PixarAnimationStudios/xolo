@@ -1,4 +1,4 @@
-# d3 - Command line package and patch management for Jamf Pro
+# Xolo - Command line package and patch management for Jamf Pro
 
 d3 (a.k.a. depot3) is a package deployment and patch management system for OS X that enhances
 [Jamf Pro](https://www.jamf.com/products/jamf-pro/), an enterprise-level management system for Apple devices. It was created by [Pixar Animation Studios](http://www.pixar.com/).

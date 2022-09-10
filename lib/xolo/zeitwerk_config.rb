@@ -24,7 +24,7 @@
 
 # Gems
 ######
-
+require 'pathname'
 require 'zeitwerk'
 
 # Xolo's Zeitwerk Config and processes
@@ -90,12 +90,20 @@ module XoloZeitwerkConfig
     # defines 'OAPIObject'
     ###############################################
 
-    # loader.inflector.inflect 'oapi_schemas' => 'OAPISchemas'  
+    loader.inflector.inflect 'json_object' => 'JSONObject'  
 
     ##### Ingored Paths
     #
     # These should be ignored, some will be required directly
     ###############################################
+
+    # ignore the convenience files at the top level
+    top = Pathname.new(__dir__).parent
+    loader.ignore "#{top}/xolo-server.rb"
+    loader.ignore "#{top}/xolo-admin.rb"
+    loader.ignore "#{top}/xolo-client.rb"
+
+    # ignore things that are manually loaded by our code
     loader.ignore "#{__dir__}/ruby_extensions.rb"
     loader.ignore "#{__dir__}/ruby_extensions"
     loader.ignore "#{__dir__}/optimist.rb"

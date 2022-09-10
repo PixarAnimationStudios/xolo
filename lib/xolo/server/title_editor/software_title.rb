@@ -23,45 +23,36 @@
 
 # frozen_string_literal: true
 
-# This file is the entry point for loading the Xolo Server.
-#
-# one never does: 
-#    require 'xolo' 
-#
-# but rather one of:
-#    require 'xolo/server'
-#    require 'xolo/client'
-#    require 'xolo/admin'
-
-# The Xolo Server is the focal point for a Xolo installation.
-# It centralizes and standardizes call communication between
-# the parts of Xolo:
-#
-# - A Jamf Pro server
-# - A Jamf Title Editor server
-# - The Xolo Admin application
-# 
-# The Xolo Client application running on managed Macs doesn't 
-# talk directly to the Xolo server, it does all its work via Jamf Pro.
-
-# Server Standard Libraries
-######
-require 'pathname'
-
-# Gems
-######
-
-# Manual Xolo loading
-######
-
-# Define the module for Zeitwerk
 module Xolo
 
-  # The Xolo Server is the glue that connects the xoloadmin commandline application, 
-  # a Jamf Title Editor, and a Jamf Pro server.
-  #
-  # It also implements a Webhook handling server that specifically handles PatchSoftwareTitleUpdated
-  # events, to take automatic action on them.
-  module Server; end
+  module Server
 
-end
+    module TitleEditor
+
+      class SoftwareTitle < Xolo::BaseClasses::SoftwareTitle
+
+        LOCAL_TITLE_EDITOR_SOURCE_NAME = 'Local'
+        LOCAL_TITLE_EDITOR_SOURCE_ID = 0
+        
+        # @return [String] The name of the Patch Source that hosts ultimately
+        #   hosts this title definition. If hosted by our TitleEditor 
+        #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_NAME
+        attr_reader :source
+
+        # @return [Integer] The id of the Patch Source that hosts ultimately
+        #   hosts this title definition. If hosted by our TitleEditor 
+        #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_ID
+        attr_reader :sourceId
+
+        def initialize(json_data)
+          super
+          @requirements.map! { |data| Xolo::Server::TitleEditor::Requirement.new data }
+        end
+
+      end # class SoftwareTitle
+
+    end # Module TitleEditor
+
+  end # Module Server
+
+end # Module Xolo

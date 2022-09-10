@@ -21,47 +21,7 @@
 #    language governing permissions and limitations under the Apache License.
 #
 
-# frozen_string_literal: true
+# Shortcut for the two steps below
 
-# This file is the entry point for loading the Xolo Server.
-#
-# one never does: 
-#    require 'xolo' 
-#
-# but rather one of:
-#    require 'xolo/server'
-#    require 'xolo/client'
-#    require 'xolo/admin'
-
-# The Xolo Server is the focal point for a Xolo installation.
-# It centralizes and standardizes call communication between
-# the parts of Xolo:
-#
-# - A Jamf Pro server
-# - A Jamf Title Editor server
-# - The Xolo Admin application
-# 
-# The Xolo Client application running on managed Macs doesn't 
-# talk directly to the Xolo server, it does all its work via Jamf Pro.
-
-# Server Standard Libraries
-######
-require 'pathname'
-
-# Gems
-######
-
-# Manual Xolo loading
-######
-
-# Define the module for Zeitwerk
-module Xolo
-
-  # The Xolo Server is the glue that connects the xoloadmin commandline application, 
-  # a Jamf Title Editor, and a Jamf Pro server.
-  #
-  # It also implements a Webhook handling server that specifically handles PatchSoftwareTitleUpdated
-  # events, to take automatic action on them.
-  module Server; end
-
-end
+require 'xolo'
+require 'xolo/server'
