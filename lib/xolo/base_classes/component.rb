@@ -27,43 +27,35 @@ module Xolo
 
   module BaseClasses
 
-    # The base class for objects that are instantiated from 
-    # a JSON Hash
-    class JSONObject
-
-      # Constants
-      ######################
-
-      # When using prettyprint, don't spit out these instance variables.
-      PP_OMITTED_INST_VARS = %i[@init_data].freeze
+    # The base class for dealing with the 'Components' of a Patch 
+    # in the TitleEditor and the Admin modules.
+    # 
+    # There can only be one component, even though its stored in an 
+    # Array. The component is used to define which computers have 
+    # this specific patch installed.
+    #
+    class Component < Xolo::BaseClasses::JSONObject
 
       # Attributes
       ######################
-      
-      # @return [Hash] The raw JSON data this object was instantiated with
-      attr_reader :init_data
+        
+      # @return [Integer] The id number of this component
+      attr_reader :componentId
 
-      # Constructor
-      ######################
-      def initialize(json_data)
-        @init_data = json_data
-        @init_data.each do |key, val|
-          next unless respond_to? key
+      # @return [Integer] The id number of the patch which uses this component 
+      attr_reader :patchId
 
-          instance_variable_set "@#{key}", val.dup
-        end
-      end
+      # @return [String] The name of the Software Title for this patch
+      attr_reader :name
 
-      # Only selected items are displayed with prettyprint
-      # otherwise its too much data in irb.
-      #
-      # @return [Array] the desired instance_variables
-      #
-      def pretty_print_instance_variables
-        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
-      end
+      # @return [String] The version installed by this patch
+      attr_reader :version
 
-    end # class RequirementBase
+      # @return [Array<Xolo::BaseClasses::ComponentCriterion>] The criteria used by
+      #   this component
+      attr_reader :criteria
+
+    end # class Requirement
 
   end # module Code
 

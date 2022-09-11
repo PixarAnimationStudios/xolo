@@ -27,43 +27,20 @@ module Xolo
 
   module BaseClasses
 
-    # The base class for objects that are instantiated from 
-    # a JSON Hash
-    class JSONObject
-
-      # Constants
-      ######################
-
-      # When using prettyprint, don't spit out these instance variables.
-      PP_OMITTED_INST_VARS = %i[@init_data].freeze
+    # The base class for dealing with the criteria of Patch Components
+    # 
+    class ComponentCriterion < Xolo::BaseClasses::Criterion
 
       # Attributes
       ######################
-      
-      # @return [Hash] The raw JSON data this object was instantiated with
-      attr_reader :init_data
+        
+      # @return [Integer] The id number of this criterion
+      attr_reader :criteriaId
 
-      # Constructor
-      ######################
-      def initialize(json_data)
-        @init_data = json_data
-        @init_data.each do |key, val|
-          next unless respond_to? key
+      # @return [Integer] The id number of the component which uses this criterion 
+      attr_reader :componentId
 
-          instance_variable_set "@#{key}", val.dup
-        end
-      end
-
-      # Only selected items are displayed with prettyprint
-      # otherwise its too much data in irb.
-      #
-      # @return [Array] the desired instance_variables
-      #
-      def pretty_print_instance_variables
-        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
-      end
-
-    end # class RequirementBase
+    end # class Requirement
 
   end # module Code
 

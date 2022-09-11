@@ -27,43 +27,42 @@ module Xolo
 
   module BaseClasses
 
-    # The base class for objects that are instantiated from 
-    # a JSON Hash
-    class JSONObject
-
-      # Constants
-      ######################
-
-      # When using prettyprint, don't spit out these instance variables.
-      PP_OMITTED_INST_VARS = %i[@init_data].freeze
+    # The base class for dealing with Software Title Requirements in the 
+    # TitleEditor and the Admin modules.
+    # 
+    # A requirement is one criterion, a group of which define which computers
+    # have the title installed, regardless of version.
+    class ExtensionAttribute < Xolo::BaseClasses::JSONObject
 
       # Attributes
       ######################
-      
-      # @return [Hash] The raw JSON data this object was instantiated with
-      attr_reader :init_data
+        
+      # @return [Integer] The id number of this extension attribute in the Title Editor
+      attr_reader :extensionAttributeId
 
-      # Constructor
+      # @return [Integer] The id number of the title which uses this extension attribute 
+      attr_reader :softwareTitleId
+
+      # @return [String] The name of the extension attribute as it appears in Jamf Pro
+      #    NOTE: must be unique in Jamf Pro.
+      attr_reader :key
+
+      # @return [String] The Base64 encoded script code for this extension attribute 
+      attr_reader :value
+
+      # @return [String] The name of the extension attribute as it appears in Title Editor
+      attr_reader :displayName
+
+      # Public Instance Methods
       ######################
-      def initialize(json_data)
-        @init_data = json_data
-        @init_data.each do |key, val|
-          next unless respond_to? key
 
-          instance_variable_set "@#{key}", val.dup
-        end
+      # @return [String] The script code for this extension attribute
+      def script
+        require 'base64'
+        Base64.decode64 value
       end
 
-      # Only selected items are displayed with prettyprint
-      # otherwise its too much data in irb.
-      #
-      # @return [Array] the desired instance_variables
-      #
-      def pretty_print_instance_variables
-        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
-      end
-
-    end # class RequirementBase
+    end # class Requirement
 
   end # module Code
 

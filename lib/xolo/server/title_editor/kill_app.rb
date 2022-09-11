@@ -20,51 +20,24 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
 
-# main module
+# frozen_string_literal: true
+
 module Xolo
 
-  module BaseClasses
+  module Server
 
-    # The base class for objects that are instantiated from 
-    # a JSON Hash
-    class JSONObject
+    module TitleEditor
 
-      # Constants
-      ######################
+      class KillApp < Xolo::BaseClasses::KillApp
 
-      # When using prettyprint, don't spit out these instance variables.
-      PP_OMITTED_INST_VARS = %i[@init_data].freeze
+        # Attributes
+        ######################
 
-      # Attributes
-      ######################
-      
-      # @return [Hash] The raw JSON data this object was instantiated with
-      attr_reader :init_data
+      end # class KillApp
 
-      # Constructor
-      ######################
-      def initialize(json_data)
-        @init_data = json_data
-        @init_data.each do |key, val|
-          next unless respond_to? key
+    end # Module TitleEditor
 
-          instance_variable_set "@#{key}", val.dup
-        end
-      end
+  end # Module Server
 
-      # Only selected items are displayed with prettyprint
-      # otherwise its too much data in irb.
-      #
-      # @return [Array] the desired instance_variables
-      #
-      def pretty_print_instance_variables
-        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
-      end
-
-    end # class RequirementBase
-
-  end # module Code
-
-end # module
+end # Module Xolo

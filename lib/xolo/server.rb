@@ -25,28 +25,20 @@
 
 # This file is the entry point for loading the Xolo Server.
 #
-# one never does: 
-#    require 'xolo' 
+# Do not require this file directly unless you've already done:
 #
-# but rather one of:
-#    require 'xolo/server'
-#    require 'xolo/client'
-#    require 'xolo/admin'
-
-# The Xolo Server is the focal point for a Xolo installation.
-# It centralizes and standardizes call communication between
-# the parts of Xolo:
-#
-# - A Jamf Pro server
-# - A Jamf Title Editor server
-# - The Xolo Admin application
+#    require 'xolo'
 # 
-# The Xolo Client application running on managed Macs doesn't 
-# talk directly to the Xolo server, it does all its work via Jamf Pro.
+# because the top-level xolo.rb file must set up autoloading and
+# load the Core module first.
+#
+# You can and should require the convenience file 'xolo-server.rb'
+# to load things in the correct order:
+#
+#    require 'xolo-server'
 
 # Server Standard Libraries
 ######
-require 'pathname'
 
 # Gems
 ######
@@ -57,11 +49,30 @@ require 'pathname'
 # Define the module for Zeitwerk
 module Xolo
 
-  # The Xolo Server is the glue that connects the xoloadmin commandline application, 
-  # a Jamf Title Editor, and a Jamf Pro server.
+  # The Xolo Server is the focal point for a Xolo installation.
+  # It centralizes and standardizes all communication between
+  # the parts of Xolo:
   #
-  # It also implements a Webhook handling server that specifically handles PatchSoftwareTitleUpdated
-  # events, to take automatic action on them.
+  # - The Xolo Admin command-line application
+  #   - Used to manage software deployed by xolo either manually
+  #     or via automated scripts
+  #
+  # - A Jamf Title Editor server
+  #   - Used as the 'external patch source' hosting locally-developed
+  #     software, and/or titles from other sources
+  #
+  # - A Jamf Pro server
+  #   - Connected to the Title Editor, the Jamf internal patch source,
+  #     and perhaps other external patch sources.
+  #   - Handles initial installation and patching of software on the
+  #     managed client Macs via Policies and Patch Policies.
+  #
+  # It also implements a webhook handling server that specifically handles 
+  # PatchSoftwareTitleUpdated events from the Jamf Pro server. This allows
+  # for the automatic packaging, piloting, and maintenance of titles using 
+  # tools such as AutoPkg.
+  # 
+  #
   module Server; end
 
 end

@@ -27,40 +27,38 @@ module Xolo
 
   module BaseClasses
 
-    # The base class for objects that are instantiated from 
-    # a JSON Hash
-    class JSONObject
+    # The base class for dealing with Kill Apps
+    # TitleEditor and the Admin modules.
+    # 
+    # A kill app is used by a patch to indicate which running applications
+    # must be quit before the patch can be installed.
+    class KillApp < Xolo::BaseClasses::JSONObject
 
       # Constants
-      ######################
-
-      # When using prettyprint, don't spit out these instance variables.
-      PP_OMITTED_INST_VARS = %i[@init_data].freeze
+      #####################
 
       # Attributes
       ######################
+
+      # @return [Integer] The id number of this kill app
+      attr_reader :killAppId
+            
+      # @return [Integer] The id number of the patch which uses this
+      #   kill app
+      attr_reader :patchId
+
+      # @return [String] The bundle id of the app that must be quit
+      #   e.g. com.apple.Safari
+      attr_reader :bundleId
       
-      # @return [Hash] The raw JSON data this object was instantiated with
-      attr_reader :init_data
+      # @return [String] The name of the app that must be quit
+      #   e.g. Safari.app
+      attr_reader :appName
 
       # Constructor
       ######################
       def initialize(json_data)
-        @init_data = json_data
-        @init_data.each do |key, val|
-          next unless respond_to? key
-
-          instance_variable_set "@#{key}", val.dup
-        end
-      end
-
-      # Only selected items are displayed with prettyprint
-      # otherwise its too much data in irb.
-      #
-      # @return [Array] the desired instance_variables
-      #
-      def pretty_print_instance_variables
-        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
+        super
       end
 
     end # class RequirementBase

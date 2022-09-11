@@ -27,65 +27,23 @@ module Xolo
 
   module BaseClasses
 
-  
-    # The base class for dealing with Software Titles in the 
+    # The base class for dealing with Software Title Requirements in the 
     # TitleEditor and the Admin modules.
-    class Requirement < Xolo::BaseClasses::JSONObject
-
-      # The definitive list of available types can be read from the API
-      # at GET 'valuelists/criteria/types'
-
-      TYPE_RECON = 'recon'
-      TYPE_EA = 'extensionAttribute'
-
-      TYPES = [TYPE_RECON, TYPE_EA].freeze
+    # 
+    # A requirement is one criterion, a group of which define which computers
+    # have the title installed, regardless of version.
+    class Requirement < Xolo::BaseClasses::Criterion
 
       # Attributes
       ######################
-
+        
       # @return [Integer] The id number of this requirement in the Title Editor
       attr_reader :requirementId
 
-      # @return [Integer] The id number of this title which uses this requirement 
+      # @return [Integer] The id number of the title which uses this requirement 
       attr_reader :softwareTitleId
-            
-      # @return [Integer] The zero-based position of this requirement among
-      #   all those used by the title. Should be identical to the Array index
-      #   of this requirement in the #requirements attribute of the SoftwareTitle
-      #   instance that uses this requirement
-      attr_reader :absoluteOrderId
 
-      # @return [Boolean] Is this requirement joined to the next with 'and'?
-      #   if false, it is joined to the next with 'or'
-      attr_reader :and
-      alias and? and
-
-      # @return [String] The name of the criteria to search in this requirement.
-      #    See the API resource GET 'valuelists/criteria/names'
-      attr_reader :name
-      
-      # @return [String] The criteria operator to apply to the criteria name
-      #    See the API resource POST 'valuelists/criteria/names',  {name: 'Criteria Name'}
-      attr_reader :operator
-
-      # @return [String] The the value to apply with the operator to the named criteria
-      attr_reader :value
-
-      # @return [String] What type of criteria is the named one? 
-      #   Must be one of the values in TYPES
-      attr_reader :type   
-
-      # Constructor
-      ######################
-      def initialize(json_data)
-        json_data.each do |key, val|
-          next unless respond_to? key
-
-          instance_variable_set "@#{key}", val
-        end
-      end
-
-    end # class RequirementBase
+    end # class Requirement
 
   end # module Code
 

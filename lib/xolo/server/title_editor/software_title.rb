@@ -31,9 +31,15 @@ module Xolo
 
       class SoftwareTitle < Xolo::BaseClasses::SoftwareTitle
 
+        # Constants
+        ######################
+
         LOCAL_TITLE_EDITOR_SOURCE_NAME = 'Local'
         LOCAL_TITLE_EDITOR_SOURCE_ID = 0
         
+        # Attributes
+        ######################
+
         # @return [String] The name of the Patch Source that hosts ultimately
         #   hosts this title definition. If hosted by our TitleEditor 
         #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_NAME
@@ -44,9 +50,13 @@ module Xolo
         #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_ID
         attr_reader :sourceId
 
+        # Construcor
+        ######################
         def initialize(json_data)
           super
-          @requirements.map! { |data| Xolo::Server::TitleEditor::Requirement.new data }
+          @requirements = requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
+          @patches = patches.map { |data| Xolo::Server::TitleEditor::Patch.new data }
+          @extensionAttributes = extensionAttributes.map { |data| Xolo::Server::TitleEditor::ExtensionAttribute.new data }
         end
 
       end # class SoftwareTitle

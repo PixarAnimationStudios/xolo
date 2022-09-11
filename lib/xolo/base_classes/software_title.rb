@@ -57,22 +57,25 @@ module Xolo
       # @return [String] the version number of the most recent patch
       attr_reader :currentVersion
 
-      # @return [Array<RequirementBase>] The requirements - criteria that 
+      # @return [Array<Xolo::BaseClasses::Requirement>] The requirements - criteria that 
       #   define which computers have the software installed.
       attr_reader :requirements
 
-      # @return [Integer] How many patches are available for this software
+      # @return [Array<Xolo::BaseClasses::Patch>] The patches available for this title
       attr_reader :patches
+
+      # @return [Array<Xolo::BaseClasses::ExtensionAttribute>] The Extension Attributes used by this title
+      attr_reader :extensionAttributes
 
       # Constructor
       ######################
       def initialize(json_data)
         super
-        @lastModified = Time.parse(lastModified)
+        @lastModified &&= Time.parse(lastModified)
 
         # Do this in the subclasses to convert the
         # requirements to the appropriate class
-        # @requirements.map! { |data| Xolo::Server::TitleEditor::Requirement.new data }
+        # @requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
       end
 
     end # class SoftwareTitleBase
