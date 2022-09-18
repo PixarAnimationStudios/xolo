@@ -31,6 +31,24 @@ module Xolo
 
       class Requirement < Xolo::Core::BaseClasses::Requirement
 
+        # Mixins
+        ######################
+
+        include Xolo::Core::Mixins::APICollection
+
+        # Constants
+        ######################
+
+        RSRC_PATH = 'requirements'
+
+        # Public Class Methods
+        ######################
+
+        ####
+        def self.fetch(*_args)
+          raise Xolo::UnsupportedError, 'Requirements are fetched as part of the SoftwareTitle that contains them'
+        end
+
       end # class Requirement
 
     end # Module TitleEditor

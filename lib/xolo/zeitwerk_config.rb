@@ -91,6 +91,7 @@ module XoloZeitwerkConfig
     ###############################################
 
     loader.inflector.inflect 'json_object' => 'JSONObject'  
+    loader.inflector.inflect 'api_collection' => 'APICollection'  
 
     ##### Ingored Paths
     #

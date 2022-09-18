@@ -29,7 +29,7 @@ module Xolo
 
     module BaseClasses
 
-      # The base class for objects that are instantiated from 
+      # The base class for objects that are instantiated from
       # a JSON Hash
       class JSONObject
 
@@ -41,7 +41,7 @@ module Xolo
 
         # Attributes
         ######################
-        
+
         # @return [Hash] The raw JSON data this object was instantiated with
         attr_reader :init_data
 
@@ -57,6 +57,43 @@ module Xolo
           true
         end
 
+        # The merged JSON_ATTRIBUTES Hashes of
+        # any subclass of JSONObject including
+        # all ancestors up to JSONObject itself
+        def self.json_attributes
+          return {} if self == Xolo::Core::BaseClasses::JSONObject
+          return @json_attributes if @json_attributes
+
+          @json_attributes = defined?(self::JSON_ATTRIBUTES) ? self::JSON_ATTRIBUTES.dup : {}
+          @json_attributes.merge! superclass.json_attributes if superclass.respond_to?(:json_attributes)
+          @json_attributes
+        end
+
+        # @return [Array<Symbol>] the available identifier keys for objects that have them
+        def self.ident_keys
+          return @ident_keys if @ident_keys
+
+          @ident_keys = []
+
+          json_attributes.each do |key, deets|
+            next unless deets[:identifier]
+
+            @primary_ident_key = key if deets[:identifier] == :primary
+            @ident_keys << key
+          end
+
+          @ident_keys
+        end
+
+        # @return [Symbol] the key of the primary identifier, if there is one
+        def self.primary_ident_key
+          return @primary_ident_key if @primary_ident_key
+
+          # this method sets @primary_ident_key as it loops through json_attributes
+          ident_keys
+          @primary_ident_key
+        end
+
         # create getters and setters for subclasses of JSONObject
         # based on their JSON_ATTRIBUTES Hash.
         #
@@ -66,7 +103,7 @@ module Xolo
         def self.parse_json_attributes
           # nothing to do if JSON_ATTRIBUTES is not defined for this class
           return unless defined? self::JSON_ATTRIBUTES
-          
+
           self::JSON_ATTRIBUTES.each do |attr_name, attr_def|
             if attribute_already_parsed?(attr_name)
               Xolo.load_msg "Ancestor of #{self} has already parsed attribute #{attr_name}"
@@ -75,7 +112,7 @@ module Xolo
 
             Xolo.load_msg "Creating getters and setters for attribute '#{attr_name}' of #{self}"
 
-            # TODO: Implement list-methods 
+            # TODO: Implement list-methods
             # create_list_methods(attr_name, attr_def) if need_list_methods
 
             # there can be only one (primary ident)
@@ -90,7 +127,7 @@ module Xolo
 
             # Don't crete setters for readonly attrs, or immutable objects
             create_setters attr_name, attr_def unless attr_def[:readonly] || !mutable?
-            
+
             json_attributes_parsed << attr_name
           end #  do |attr_name, attr_def|
         end # parse_object_model
@@ -99,8 +136,8 @@ module Xolo
         # we shoudn't do it again, and this can be used to check
         def self.json_attributes_parsed
           @json_attributes_parsed ||= []
-        end      
-            
+        end
+
         # Used by auto-generated setters and .create to validate new values.
         #
         # returns a valid value or raises an exception
@@ -121,13 +158,13 @@ module Xolo
           # validate the value based on the OAPI definition.
           Xolo::Core::Validate.json_attr value, attr_def: attr_def, attr_name: attr_name
         end # validate_attr(attr_name, value)
-        
+
         # Private Class Methods
         #####################################
 
         # has one of our superclasses already parsed this attribute?
         ##############################
-        def attribute_already_parsed?(attr_name)
+        def self.attribute_already_parsed?(attr_name)
           superclass.respond_to?(:json_attributes_parsed) && superclass.json_attributes_parsed.include?(attr_name)
         end
 
@@ -160,9 +197,9 @@ module Xolo
           # multi_value
           if attr_def[:multi]
             create_array_setters(attr_name, attr_def)
-          
+
             # single value
-          else  
+          else
             Xolo.load_msg "Creating setter method #{self}##{attr_name}="
 
             define_method("#{attr_name}=") do |new_value|
@@ -346,8 +383,7 @@ module Xolo
           end # define method
         end # create_insert_setters
         private_class_method :create_delete_if_setters
-    
-      
+
         # Constructor
         ######################
         def initialize(json_data)
@@ -359,7 +395,6 @@ module Xolo
           end
         end
 
-        
         # Public Instance Methods
         #####################
 
@@ -391,7 +426,6 @@ module Xolo
           @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
         end
 
-      
         # Private Instance Methods
         #####################################
         private

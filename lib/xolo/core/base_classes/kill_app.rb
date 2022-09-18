@@ -31,7 +31,7 @@ module Xolo
 
       # The base class for dealing with Kill Apps
       # TitleEditor and the Admin modules.
-      # 
+      #
       # A kill app is used by a patch to indicate which running applications
       # must be quit before the patch can be installed.
       class KillApp < Xolo::Core::BaseClasses::JSONObject
@@ -44,19 +44,20 @@ module Xolo
           # @!attribute killAppId
           # @return [Integer] The id number of this kill app
           killAppId: {
-            class: :Integer
+            class: :Integer,
+            identifier: :primary
           },
 
           # @!attribute patchId
           # @return [Integer] The id number of the patch which uses this
-          #   kill app        
+          #   kill app
           patchId: {
             class: :Integer
           },
 
           # @!attribute bundleId
           # @return [String] The bundle id of the app that must be quit
-          #   e.g. com.apple.Safari        
+          #   e.g. com.apple.Safari
           bundleId: {
             class: :String
           },

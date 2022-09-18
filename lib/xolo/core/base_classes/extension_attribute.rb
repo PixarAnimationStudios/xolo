@@ -29,26 +29,27 @@ module Xolo
 
     module BaseClasses
 
-      # The base class for dealing with Software Title Requirements in the 
+      # The base class for dealing with Software Title Requirements in the
       # TitleEditor and the Admin modules.
-      # 
+      #
       # A requirement is one criterion, a group of which define which computers
       # have the title installed, regardless of version.
       class ExtensionAttribute < Xolo::Core::BaseClasses::JSONObject
 
         # Attributes
         ######################
-          
+
         JSON_ATTRIBUTES = {
 
           # @!attribute extensionAttributeId
           # @return [Integer] The id number of this extension attribute in the Title Editor
           extensionAttributeId: {
-            class: :Integer
+            class: :Integer,
+            identifier: :primary
           },
 
           # @!attribute softwareTitleId
-          # @return [Integer] The id number of the title which uses this extension attribute 
+          # @return [Integer] The id number of the title which uses this extension attribute
           softwareTitleId: {
             class: :Integer
           },
@@ -61,7 +62,7 @@ module Xolo
           },
 
           # @!attribute value
-          # @return [String] The Base64 encoded script code for this extension attribute 
+          # @return [String] The Base64 encoded script code for this extension attribute
           value: {
             class: :String
           },

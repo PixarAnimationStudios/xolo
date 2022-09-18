@@ -29,38 +29,46 @@ module Xolo
 
   module Core
 
-    module BaseClasses
+    module Mixins
 
-      # The base class for dealing with the capabilities of Patches in the
-      # TitleEditor and the Admin modules.
+      # This should be included into The TitleEditor and
+      # Admin classes that represent API collections in their
+      # respective servers.
       #
-      # A capability is one criterion, a group of which define which computers
-      # are capable of running, and this alloed to install, a Patch.
-      class Capability < Xolo::Core::BaseClasses::Criterion
+      # It defines core methods for dealing with such collections.
+      module APICollection
 
-        # Attributes
-        ######################
+        # when this module is included, also extend our Class Methods
+        def self.included(includer)
+          Xolo.verbose_include includer, self
+          includer.extend(ClassMethods)
+        end
 
-        JSON_ATTRIBUTES = {
+        # Class Methods
+        #####################################
+        module ClassMethods
 
-          # @!attribute capabilityId
-          # @return [Integer] The id number of this capability
-          capabilityId: {
-            class: :Integer,
-            identifier: :primary
-          },
+          def self.extended(extender)
+            Xolo.verbose_extend extender, self
+          end
 
-          # @!attribute patchId
-          # @return [Integer] The id number of the Patch which uses this capability
-          patchId: {
-            class: :Integer
-          }
+          # @return [API Collection Member]
+          ####
+          def fetch(primary_ident)
+            new Xolo::Server::TitleEditor.cnx.get("#{self::RSRC_PATH}/#{primary_ident}")
+          end
 
-        }.freeze
+        end # module ClassMethods
 
-      end # class Capability
+        # Public Instance Methods
+        ####################
 
-    end # module BaseClasses
+        ####
+        def save; end
+
+      end # module APICollection
+
+    end # module Mixins
 
   end # module Core
 

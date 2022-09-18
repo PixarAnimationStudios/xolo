@@ -25,26 +25,31 @@
 # main module
 module Xolo
 
-  module Mixins
+  module Core 
 
-    # by default, instances of JSONObject subclasses are mutable
-    #
-    # To make them immutable, they should extend this module
-    #    Xolo::Mixins::Immutable, 
-    # which overrides the mutable? method
-    module Immutable
+    module Mixins
 
-      def self.extended(extender)
-        Xolo.verbose_extend extender, self 
-      end
+      # by default, instances of JSONObject subclasses are mutable
+      # as a whole, even if some of their attributes are not.
+      #
+      # To make them immutable, they should extend this module
+      #    Xolo::Core::Mixins::Immutable, 
+      # which overrides the mutable? method
+      module Immutable
 
-      # this class is immutable
-      def mutable?
-        false
-      end
+        def self.extended(extender)
+          Xolo.verbose_extend extender, self 
+        end
 
-    end # class Immutable
+        # this class is immutable
+        def mutable?
+          false
+        end
 
-  end # module BaseClasses
+      end # module Immutable
 
-end # module
+    end # module Mixins
+
+  end # module Core
+
+end # module Xolo

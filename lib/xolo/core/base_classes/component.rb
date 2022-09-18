@@ -29,34 +29,35 @@ module Xolo
 
     module BaseClasses
 
-      # The base class for dealing with the 'Components' of a Patch 
+      # The base class for dealing with the 'Components' of a Patch
       # in the TitleEditor and the Admin modules.
-      # 
-      # There can only be one component, even though its stored in an 
-      # Array. The component is used to define which computers have 
+      #
+      # There can only be one component, even though its stored in an
+      # Array. The component is used to define which computers have
       # this specific patch installed.
       #
       class Component < Xolo::Core::BaseClasses::JSONObject
 
         # Attributes
         ######################
-          
+
         JSON_ATTRIBUTES = {
 
           # @!attribute componentId
           # @return [Integer] The id number of this component
           componentId: {
-            class: :Integer
+            class: :Integer,
+            identifier: :primary
           },
 
           # @!attribute patchId
-          # @return [Integer] The id number of the patch which uses this component 
+          # @return [Integer] The id number of the patch which uses this component
           patchId: {
             class: :Integer
           },
 
           # @return [String] The name of the Software Title for this patch
-          # @return [String] The id number of the patch which uses this component 
+          # @return [String] The id number of the patch which uses this component
           name: {
             class: :String
           },
@@ -68,10 +69,10 @@ module Xolo
           }
 
           # DEFINE THIS IN THE SUBCLASSES OF Xolo::Core::BaseClasses::ComponentCriterion
-          
+
           # _!attribute criteria
           # _return [Array<Xolo::Core::BaseClasses::ComponentCriterion>] The criteria used by
-          # this component. 
+          # this component.
           # criteria: {
           #   class: Xolo::Core::BaseClasses::ComponentCriterion,
           #   multi: true

@@ -29,26 +29,27 @@ module Xolo
 
     module BaseClasses
 
-      # The base class for dealing with Software Title Requirements in the 
+      # The base class for dealing with Software Title Requirements in the
       # TitleEditor and the Admin modules.
-      # 
+      #
       # A requirement is one criterion, a group of which define which computers
       # have the title installed, regardless of version.
       class Requirement < Xolo::Core::BaseClasses::Criterion
 
         # Attributes
         ######################
-        
+
         JSON_ATTRIBUTES = {
 
           # @!attribute requirementId
           # @return [Integer] The id number of this requirement in the Title Editor
           requirementId: {
-            class: :Integer
+            class: :Integer,
+            identifier: :primary
           },
 
           # @!attribute softwareTitleId
-          # @return [Integer] The id number of the title which uses this requirement 
+          # @return [Integer] The id number of the title which uses this requirement
           softwareTitleId: {
             class: :Integer
           }

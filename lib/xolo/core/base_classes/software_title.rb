@@ -39,21 +39,26 @@ module Xolo
         JSON_ATTRIBUTES = {
 
           # @!attribute softwareTitleId
-          #  @return [Integer] The id number of this title in the Title Editor
+          #   @return [Integer] The id of this title in the Title Editor
           softwareTitleId: {
-            class: :Integer, 
-            identifier: :primary,
-            readonly: true
+            class: :Integer,
+            # primary means this is the one used to fetch via API calls
+            identifier: :primary 
           },
 
           # @!attribute id
-          #  @return [String] A unique string identifying this title in the
-          #    Title Editor
+          # @return [String] A string, unique any patch source (in this case
+          #   the TitleEditor), that identifies this Software Title.
+          #   Can be thought of as the unique name on the Title Editor.
+          #   Not to be confused with the 'name' attribute, which is more
+          #   of a Display Name, and is not unique   
           id: {
             class: :String,
-            identifier: true
+            # true means this is a unique value in and can be used to find a valid 
+            # primary identifier.
+            identifier: true 
           },
-
+          
           # @!attribute enabled
           #   @return [Boolean] Is this title enabled, and available to be subscribed to?
           enabled: {
@@ -61,7 +66,8 @@ module Xolo
           },
 
           # @!attribute name
-          #   @return [String] The name of this title in the Title Editor
+          #   @return [String] The name of this title in the Title Editor. NOT UNIQUE, 
+          #     and not an identfier. See 'id'. 
           name: {
             class: :String
           },
@@ -82,16 +88,16 @@ module Xolo
           #   @return [String] the version number of the most recent patch
           currentVersion: {
             class: :String
-          },
-
-          # @!attribute extensionAttributes
-          #   @return [Xolo::BaseClasses::ExtensionAttribute] The Extension Attributes used by this title
-          extensionAttributes: {
-            class: :ExtensionAttribute,
-            multi: true
           }
 
           # DEFINE THESE  IN THE SUBCLASSES OF Xolo::Core::BaseClasses::SoftwareTitle
+
+          # _!attribute extensionAttributes
+          #   _return [Xolo::Core::BaseClasses::ExtensionAttribute] The Extension Attributes used by this title
+          # extensionAttributes: {
+          #   class: Xolo::Core::BaseClasses::ExtensionAttribute,
+          #   multi: true
+          # }
 
           # _!attribute requirements
           #   _return [Array<Xolo::Core::BaseClasses::Requirement>] The requirements - criteria that 
@@ -104,7 +110,7 @@ module Xolo
           # _!attribute patches
           #   _return [Array<Xolo::Core::BaseClasses::Patch>] The patches available for this title
           # patches: {
-          #   class: Xolo::Core::BaseClasses::Requirement,
+          #   class: Xolo::Core::BaseClasses::Patch,
           #   multi: true
           # }
         }.freeze
@@ -116,9 +122,12 @@ module Xolo
           super
           @lastModified &&= Time.parse(lastModified)
 
-          # Do this in the subclasses to convert the
-          # requirements to the appropriate class
-          # @requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
+          # Do something like this in the subclasses to convert the
+          # data to the appropriate classes
+
+          # @requirements = requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
+          # @patches = patches.map { |data| Xolo::Server::TitleEditor::Patch.new data }
+          # @extensionAttributes = extensionAttributes.map { |data| Xolo::Server::TitleEditor::ExtensionAttribute.new data }
         end
 
       end # class SoftwareTitle

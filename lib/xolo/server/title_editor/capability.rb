@@ -31,6 +31,24 @@ module Xolo
 
       class Capability < Xolo::Core::BaseClasses::Capability
 
+        # Mixins
+        ######################
+
+        include Xolo::Core::Mixins::APICollection
+
+        # Constants
+        ######################
+
+        RSRC_PATH = 'capabilities'
+
+        # Public Class Methods
+        ######################
+
+        ####
+        def self.fetch(*_args)
+          raise Xolo::UnsupportedError, 'Capabilities are fetched as part of the Patch that contains them'
+        end
+
       end # class Requirement
 
     end # Module TitleEditor

@@ -30,22 +30,23 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with the criteria of Patch Components
-      # 
+      #
       class ComponentCriterion < Xolo::Core::BaseClasses::Criterion
 
         # Attributes
         ######################
-          
+
         JSON_ATTRIBUTES = {
 
           # @!attribute criteriaId
           # @return [Integer] The id number of this criterion
           criteriaId: {
-            class: :Integer
+            class: :Integer,
+            identifier: :primary
           },
 
           # @!attribute componentId
-          # @return [Integer] The id number of the component which uses this criterion 
+          # @return [Integer] The id number of the component which uses this criterion
           componentId: {
             class: :Integer
           }

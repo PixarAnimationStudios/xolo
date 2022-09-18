@@ -30,26 +30,27 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with the Patches of a Software Title
-      # 
+      #
       class Patch < Xolo::Core::BaseClasses::JSONObject
 
         # Attributes
         ######################
-        
+
         JSON_ATTRIBUTES = {
 
           # @!attribute patchId
           # @return [Integer] The id number of this patch
           patchId: {
-            class: :Integer
+            class: :Integer,
+            identifier: :primary
           },
-  
+
           # @!attribute softwareTitleId
-          # @return [Integer] The id number of the title which uses this patch 
+          # @return [Integer] The id number of the title which uses this patch
           softwareTitleId: {
             class: :Integer
           },
-  
+
           # @!attribute absoluteOrderId
           # @return [Integer] The zero-based position of this patch among
           #   all those used by the title. Should be identical to the Array index
@@ -58,49 +59,49 @@ module Xolo
           absoluteOrderId: {
             class: :Integer
           },
-  
+
           # @!attribute enabled
           # @return [Boolean] Is this patch enabled?
           enabled: {
             class: :Boolean
           },
-  
+
           # @!attribute version
           # @return [String] The version on the title installed by this patch
           version: {
             class: :String
           },
-  
+
           # @!attribute releaseDate
           # @return [Time] When this patch was released
           releaseDate: {
             class: :Time
           },
-  
+
           # @!attribute standalone
           # @return [Boolean] Can this patch be installed as an initial installation?
           #   If not, it must be applied to an already-installed version of this title.
           standalone: {
             class: :Boolean
           },
-  
+
           # @return [String] The lowest version of the OS that can run this patch
-          #   NOTE: This is for reporting only. You'll still need to specify it in the 
+          #   NOTE: This is for reporting only. You'll still need to specify it in the
           #   capabilities for this patch.
           minimumOperatingSystem: {
             class: :String
           },
-  
+
           # @!attribute reboot
           # @return [Boolean] Does the patch require a reboot after installation?
           reboot: {
             class: :Boolean
           }
-          
+
           # DEFINE THESE  IN THE SUBCLASSES OF Xolo::Core::BaseClasses::Patch
 
           # _!attribute killApps
-          # _return [Array<Xolo::Core::BaseClasses::KillApp>] The apps that must be quit before 
+          # _return [Array<Xolo::Core::BaseClasses::KillApp>] The apps that must be quit before
           #   installing this patch
           # killApps: {
           #   class: Xolo::Core::BaseClasses::KillApp,
@@ -114,7 +115,7 @@ module Xolo
           #   class: Xolo::Core::BaseClasses::Component,
           #   multi: true
           # }
-          
+
           # _!attribute capabilities
           # _return [Array<Xolo::Core::BaseClasses::Capability>] The criteria which identify
           #   computers capable of running, and thus installing, this patch.
@@ -122,7 +123,7 @@ module Xolo
           #   class: Xolo::Core::BaseClasses::Capability,
           #   multi: true
           # }
-          
+
           # _!attribute dependencies
           # _return [Array<Xolo::Core::BaseClasses::Dependency>] NOT CURRENTLY IMPLEMENTED
           #   The JSON data from the Title Editor is always an empty array, and

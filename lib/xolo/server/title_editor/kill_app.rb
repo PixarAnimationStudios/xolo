@@ -31,6 +31,16 @@ module Xolo
 
       class KillApp < Xolo::Core::BaseClasses::KillApp
 
+        # Mixins
+        ######################
+
+        include Xolo::Core::Mixins::APICollection
+
+        # Constants
+        ######################
+
+        RSRC_PATH = 'killapps'
+
       end # class KillApp
 
     end # Module TitleEditor

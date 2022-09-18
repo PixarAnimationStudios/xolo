@@ -29,7 +29,17 @@ module Xolo
     module TitleEditor
 
       class ExtensionAttribute < Xolo::Core::BaseClasses::ExtensionAttribute
-      
+
+        # Mixins
+        ######################
+
+        include Xolo::Core::Mixins::APICollection
+
+        # Constants
+        ######################
+
+        RSRC_PATH = 'extensionattributes'
+
       end
 
     end # class Requirement

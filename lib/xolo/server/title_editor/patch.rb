@@ -30,13 +30,23 @@ module Xolo
 
       class Patch < Xolo::Core::BaseClasses::Patch
 
+        # Mixins
+        ######################
+
+        include Xolo::Core::Mixins::APICollection
+
+        # Constants
+        ######################
+
+        RSRC_PATH = 'patches'
+
         # Attributes
         ######################
-        
+
         JSON_ATTRIBUTES = {
 
           # @!attribute killApps
-          # @return [Array<Xolo::Server::TitleEditor::KillApp>] The apps that must be quit before 
+          # @return [Array<Xolo::Server::TitleEditor::KillApp>] The apps that must be quit before
           #   installing this patch
           killApps: {
             class: Xolo::Server::TitleEditor::KillApp,
@@ -50,7 +60,7 @@ module Xolo
             class: Xolo::Server::TitleEditor::Component,
             multi: true
           },
-          
+
           # @!attribute capabilities
           # @return [Array<Xolo::Server::TitleEditor::Capability>] The criteria which identify
           #   computers capable of running, and thus installing, this patch.
@@ -73,7 +83,7 @@ module Xolo
 
       end # class Patch
 
-    end # module 
+    end # module
 
   end
 

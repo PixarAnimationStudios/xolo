@@ -30,14 +30,24 @@ module Xolo
 
       class Component < Xolo::Core::BaseClasses::Component
 
+        # Mixins
+        ######################
+
+        include Xolo::Core::Mixins::APICollection
+
+        # Constants
+        ######################
+
+        RSRC_PATH = 'components'
+
         # Attributes
         ######################
-          
+
         JSON_ATTRIBUTES = {
-          
+
           # @!attribute criteria
           # @return [Array<Xolo::Server::TitleEditor::ComponentCriterion>] The criteria used by
-          # this component. 
+          # this component.
           criteria: {
             class: Xolo::Server::TitleEditor::ComponentCriterion,
             multi: true
