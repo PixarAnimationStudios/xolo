@@ -28,10 +28,26 @@ module Xolo
 
     module TitleEditor
 
-      class Component < Xolo::BaseClasses::Component
+      class Component < Xolo::Core::BaseClasses::Component
+
+        # Attributes
+        ######################
+          
+        JSON_ATTRIBUTES = {
+          
+          # @!attribute criteria
+          # @return [Array<Xolo::Server::TitleEditor::ComponentCriterion>] The criteria used by
+          # this component. 
+          criteria: {
+            class: Xolo::Server::TitleEditor::ComponentCriterion,
+            multi: true
+          }
+
+        }.freeze
 
         # Constructor
         ######################
+
         def initialize(json_data)
           super
           @criteria = criteria.map { |data| Xolo::Server::TitleEditor::ComponentCriterion.new data }

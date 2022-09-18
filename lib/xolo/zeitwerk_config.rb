@@ -127,6 +127,27 @@ module XoloZeitwerkConfig
     #####################################
     loader.on_load do |const_path, value, abspath|
       load_msg "Zeitwerk just loaded #{value.class} '#{const_path}' from:\n  #{abspath}"
+
+      # Parse JSON_ATTRIBUTES into getters and setters for subclasses of
+      # JSONObject
+      #
+      # The class we just loaded must have this method and constant
+      # and the method must not have run already for the class or any superclass.
+      # This prevents running parse_oapi_properties again in subclasses that
+      # don't need to do that
+      if defined?(value::JSON_ATTRIBUTES) 
+        parsed = value.parse_json_attributes
+        load_msg "Parsed JSON_ATTRIBUTES for #{value}" if parsed
+      end
+
+      # Generate the identifier list methods (.all_*) for subclasses of APIObject
+      # in the Classic API
+      # if value.is_a?(Class) && value.superclass == Jamf::APIObject
+
+      #   done = value.define_identifier_list_methods
+      #   load_msg "Defined identifier list methods for #{value}" if done
+      # end
+     
     end
 
     # actually do the setup that was defined above

@@ -25,26 +25,37 @@
 # main module
 module Xolo
 
-  module BaseClasses
+  module Core
 
-    # The base class for dealing with Software Title Requirements in the 
-    # TitleEditor and the Admin modules.
-    # 
-    # A requirement is one criterion, a group of which define which computers
-    # have the title installed, regardless of version.
-    class Requirement < Xolo::BaseClasses::Criterion
+    module BaseClasses
 
-      # Attributes
-      ######################
-        
-      # @return [Integer] The id number of this requirement in the Title Editor
-      attr_reader :requirementId
+      # The base class for dealing with the criteria of Patch Components
+      # 
+      class ComponentCriterion < Xolo::Core::BaseClasses::Criterion
 
-      # @return [Integer] The id number of the title which uses this requirement 
-      attr_reader :softwareTitleId
+        # Attributes
+        ######################
+          
+        JSON_ATTRIBUTES = {
 
-    end # class Requirement
+          # @!attribute criteriaId
+          # @return [Integer] The id number of this criterion
+          criteriaId: {
+            class: :Integer
+          },
 
-  end # module Code
+          # @!attribute componentId
+          # @return [Integer] The id number of the component which uses this criterion 
+          componentId: {
+            class: :Integer
+          }
 
-end # module
+        }.freeze
+
+      end # class ComponentCriterion
+
+    end # module BaseClasses
+
+  end # module Core
+
+end # module Xolo

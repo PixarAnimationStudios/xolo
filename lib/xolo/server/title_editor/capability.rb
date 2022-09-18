@@ -29,7 +29,7 @@ module Xolo
 
     module TitleEditor
 
-      class Capability < Xolo::BaseClasses::Capability
+      class Capability < Xolo::Core::BaseClasses::Capability
 
       end # class Requirement
 

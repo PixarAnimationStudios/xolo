@@ -25,23 +25,40 @@
 # main module
 module Xolo
 
-  module BaseClasses
+  module Core
 
-    # The base class for dealing with the criteria of Patch Components
-    # 
-    class ComponentCriterion < Xolo::BaseClasses::Criterion
+    module BaseClasses
 
-      # Attributes
-      ######################
-        
-      # @return [Integer] The id number of this criterion
-      attr_reader :criteriaId
+      # The base class for dealing with the capabilities of Patches in the 
+      # TitleEditor and the Admin modules.
+      # 
+      # A capability is one criterion, a group of which define which computers
+      # are capable of running, and this alloed to install, a Patch. 
+      class Capability < Xolo::Core::BaseClasses::Criterion
 
-      # @return [Integer] The id number of the component which uses this criterion 
-      attr_reader :componentId
+        # Attributes
+        ######################
+          
+        JSON_ATTRIBUTES = {
 
-    end # class Requirement
+          # @!attribute capabilityId
+          # @return [Integer] The id number of this capability
+          capabilityId: {
+            class: :Integer
+          },
 
-  end # module Code
+          # @!attribute patchId
+          # @return [Integer] The id number of the Patch which uses this capability 
+          patchId: {
+            class: :Integer
+          }
 
-end # module
+        }.freeze
+
+      end # class Capability
+
+    end # module BaseClasses
+
+  end # module Core
+
+end # module Xolo

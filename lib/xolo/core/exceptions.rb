@@ -48,6 +48,8 @@ module Xolo
 
       class NoSuchItemError < RuntimeError; end
 
+      class UnsupportedError < RuntimeError; end
+
       # Installing
 
       class InstallError < RuntimeError; end

@@ -25,44 +25,40 @@
 # main module
 module Xolo
 
-  module BaseClasses
+  module Core
 
-    # The base class for dealing with Kill Apps
-    # TitleEditor and the Admin modules.
-    # 
-    # A kill app is used by a patch to indicate which running applications
-    # must be quit before the patch can be installed.
-    class KillApp < Xolo::BaseClasses::JSONObject
+    module BaseClasses
 
-      # Constants
-      #####################
+      # The base class for dealing with Software Title Requirements in the 
+      # TitleEditor and the Admin modules.
+      # 
+      # A requirement is one criterion, a group of which define which computers
+      # have the title installed, regardless of version.
+      class Requirement < Xolo::Core::BaseClasses::Criterion
 
-      # Attributes
-      ######################
+        # Attributes
+        ######################
+        
+        JSON_ATTRIBUTES = {
 
-      # @return [Integer] The id number of this kill app
-      attr_reader :killAppId
-            
-      # @return [Integer] The id number of the patch which uses this
-      #   kill app
-      attr_reader :patchId
+          # @!attribute requirementId
+          # @return [Integer] The id number of this requirement in the Title Editor
+          requirementId: {
+            class: :Integer
+          },
 
-      # @return [String] The bundle id of the app that must be quit
-      #   e.g. com.apple.Safari
-      attr_reader :bundleId
-      
-      # @return [String] The name of the app that must be quit
-      #   e.g. Safari.app
-      attr_reader :appName
+          # @!attribute softwareTitleId
+          # @return [Integer] The id number of the title which uses this requirement 
+          softwareTitleId: {
+            class: :Integer
+          }
 
-      # Constructor
-      ######################
-      def initialize(json_data)
-        super
-      end
+        }.freeze
 
-    end # class RequirementBase
+      end # class Requirement
 
-  end # module Code
+    end # module BaseClasses
 
-end # module
+  end # module Core
+
+end # module Xolo

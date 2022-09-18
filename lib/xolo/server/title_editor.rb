@@ -29,7 +29,7 @@ module Xolo
   module Server
 
     # This module encapsulates all interaction with a Jamf Title Editor, 
-    # the External Patch Source used by Xolo to maintain packages
+    # the External Patch Source used by Xolo to maintain self-published packages
     module TitleEditor
 
       extend Xolo::Server::TitleEditor::DefaultConnection

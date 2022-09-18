@@ -29,10 +29,7 @@ module Xolo
 
     module TitleEditor
 
-      class Requirement < Xolo::BaseClasses::Requirement
-
-        # Attributes
-        ######################
+      class Requirement < Xolo::Core::BaseClasses::Requirement
 
       end # class Requirement
 

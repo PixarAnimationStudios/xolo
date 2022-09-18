@@ -25,46 +25,26 @@
 # main module
 module Xolo
 
-  module BaseClasses
+  module Mixins
 
-    # The base class for objects that are instantiated from 
-    # a JSON Hash
-    class JSONObject
+    # by default, instances of JSONObject subclasses are mutable
+    #
+    # To make them immutable, they should extend this module
+    #    Xolo::Mixins::Immutable, 
+    # which overrides the mutable? method
+    module Immutable
 
-      # Constants
-      ######################
-
-      # When using prettyprint, don't spit out these instance variables.
-      PP_OMITTED_INST_VARS = %i[@init_data].freeze
-
-      # Attributes
-      ######################
-      
-      # @return [Hash] The raw JSON data this object was instantiated with
-      attr_reader :init_data
-
-      # Constructor
-      ######################
-      def initialize(json_data)
-        @init_data = json_data
-        @init_data.each do |key, val|
-          next unless respond_to? key
-
-          instance_variable_set "@#{key}", val.dup
-        end
+      def self.extended(extender)
+        Xolo.verbose_extend extender, self 
       end
 
-      # Only selected items are displayed with prettyprint
-      # otherwise its too much data in irb.
-      #
-      # @return [Array] the desired instance_variables
-      #
-      def pretty_print_instance_variables
-        @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
+      # this class is immutable
+      def mutable?
+        false
       end
 
-    end # class RequirementBase
+    end # class Immutable
 
-  end # module Code
+  end # module BaseClasses
 
 end # module

@@ -28,10 +28,42 @@ module Xolo
 
     module TitleEditor
 
-      class Patch < Xolo::BaseClasses::Patch
+      class Patch < Xolo::Core::BaseClasses::Patch
+
+        # Attributes
+        ######################
+        
+        JSON_ATTRIBUTES = {
+
+          # @!attribute killApps
+          # @return [Array<Xolo::Server::TitleEditor::KillApp>] The apps that must be quit before 
+          #   installing this patch
+          killApps: {
+            class: Xolo::Server::TitleEditor::KillApp,
+            multi: true
+          },
+
+          # @!attribute components
+          # @return [Array<Xolo::Server::TitleEditor::Component>] The components of this patch.
+          #   NOTE: there can be only one!
+          components: {
+            class: Xolo::Server::TitleEditor::Component,
+            multi: true
+          },
+          
+          # @!attribute capabilities
+          # @return [Array<Xolo::Server::TitleEditor::Capability>] The criteria which identify
+          #   computers capable of running, and thus installing, this patch.
+          capabilities: {
+            class: Xolo::Server::TitleEditor::Capability,
+            multi: true
+          }
+
+        }.freeze
 
         # Constructor
         ######################
+
         def initialize(json_data)
           super
           @killApps = killApps.map { |data| Xolo::Server::TitleEditor::KillApp.new data }

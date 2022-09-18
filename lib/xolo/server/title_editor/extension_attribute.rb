@@ -28,7 +28,7 @@ module Xolo
 
     module TitleEditor
 
-      class ExtensionAttribute < Xolo::BaseClasses::ExtensionAttribute
+      class ExtensionAttribute < Xolo::Core::BaseClasses::ExtensionAttribute
       
       end
 

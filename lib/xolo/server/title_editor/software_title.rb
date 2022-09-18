@@ -29,7 +29,7 @@ module Xolo
 
     module TitleEditor
 
-      class SoftwareTitle < Xolo::BaseClasses::SoftwareTitle
+      class SoftwareTitle < Xolo::Core::BaseClasses::SoftwareTitle
 
         # Constants
         ######################
@@ -40,15 +40,41 @@ module Xolo
         # Attributes
         ######################
 
-        # @return [String] The name of the Patch Source that hosts ultimately
-        #   hosts this title definition. If hosted by our TitleEditor 
-        #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_NAME
-        attr_reader :source
+        # Attributes not defined in the superclasses
+        
+        JSON_ATTRIBUTES = {
 
-        # @return [Integer] The id of the Patch Source that hosts ultimately
-        #   hosts this title definition. If hosted by our TitleEditor 
-        #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_ID
-        attr_reader :sourceId
+          # @!attribute source
+          # @return [String] The name of the Patch Source that hosts ultimately
+          #   hosts this title definition. If hosted by our TitleEditor 
+          #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_NAME
+          source: {
+            class: :String
+          },
+
+          # @!attribute sourceId
+          # @return [Integer] The id of the Patch Source that hosts ultimately
+          #   hosts this title definition. If hosted by our TitleEditor 
+          #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_ID          
+          sourceId: {
+            class: :Integer
+          },
+
+          # @!attribute requirements
+          #   @return [Array<Xolo::Core::BaseClasses::Requirement>] The requirements - criteria that 
+          #     define which computers have the software installed.
+          requirements: {
+            class: Xolo::Server::TitleEditor::Requirement,
+            multi: true
+          },
+
+          # @!attribute patches
+          #   @return [Array<Xolo::Core::BaseClasses::Patch>] The patches available for this title
+          patches: {
+            class: Xolo::Server::TitleEditor::Requirement,
+            multi: true
+          }
+        }.freeze
 
         # Construcor
         ######################

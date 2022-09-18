@@ -29,10 +29,7 @@ module Xolo
 
     module TitleEditor
 
-      class KillApp < Xolo::BaseClasses::KillApp
-
-        # Attributes
-        ######################
+      class KillApp < Xolo::Core::BaseClasses::KillApp
 
       end # class KillApp
 

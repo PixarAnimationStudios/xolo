@@ -29,7 +29,7 @@ module Xolo
 
     module TitleEditor
 
-      class ComponentCriterion < Xolo::BaseClasses::ComponentCriterion
+      class ComponentCriterion < Xolo::Core::BaseClasses::ComponentCriterion
 
       end # class Requirement
 
