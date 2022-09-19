@@ -60,6 +60,9 @@ module Xolo
         # The merged JSON_ATTRIBUTES Hashes of
         # any subclass of JSONObject including
         # all ancestors up to JSONObject itself
+        #
+        # @return [Hash{Symbol => Hash}]
+        ####
         def self.json_attributes
           return {} if self == Xolo::Core::BaseClasses::JSONObject
           return @json_attributes if @json_attributes
@@ -67,6 +70,16 @@ module Xolo
           @json_attributes = defined?(self::JSON_ATTRIBUTES) ? self::JSON_ATTRIBUTES.dup : {}
           @json_attributes.merge! superclass.json_attributes if superclass.respond_to?(:json_attributes)
           @json_attributes
+        end
+
+        # The attributes that are required to have values.
+        # These must be passed in when calling .create, and must
+        # exist in the instance when calling #save
+        #
+        # @return [Array<Symbol>]
+        ####
+        def self.required_attributes
+          @required_attributes ||= json_attributes.select { |_key, deets| deets[:required] }.keys
         end
 
         # @return [Array<Symbol>] the available identifier keys for objects that have them
@@ -391,6 +404,13 @@ module Xolo
           @init_data.each do |key, val|
             next unless respond_to?(key) || respond_to?("#{key}=")
 
+            ruby_val =
+              if self.class.json_attributes[key][:to_ruby]
+                self.class.json_attributes[key][:class].send self.class.json_attributes[key][:to_ruby], val
+              else
+                val.dup
+              end
+
             instance_variable_set "@#{key}", val.dup
           end
         end
@@ -403,9 +423,22 @@ module Xolo
         #
         def to_api
           api_data = {}
-          self.class::JSON_ATTRIBUTES.each do |attr_name, attr_def|
+          attrs_for_save =
+            if defined?(self.class::ATTRIBUTES_FOR_SAVE)
+              self.class::ATTRIBUTES_FOR_SAVE
+            else
+              self.class.json_attributes.keys
+            end
+
+          attrs_for_save.each do |attr_name|
+            attr_def = self.class.json_attributes[attr_name]
             raw_value = instance_variable_get "@#{attr_name}"
-            api_data[attr_name] = attr_def[:multi] ? multi_to_api(raw_value, attr_def) : single_to_api(raw_value, attr_def)
+            api_data[attr_name] =
+              if attr_def[:multi]
+                multi_to_api(raw_value, attr_def)
+              else
+                single_to_api(raw_value, attr_def)
+              end
           end
           api_data
         end
@@ -414,7 +447,7 @@ module Xolo
         #   object
         #
         def to_json(*_args)
-          to_api.to_json
+          JSON.pretty_generate to_api
         end
 
         # Only selected items are displayed with prettyprint
@@ -457,8 +490,14 @@ module Xolo
 
         # call to_api on a single value if it knows that method
         #
-        def single_to_api(raw_value, _attr_def)
-          raw_value.respond_to?(:to_api) ? raw_value.to_api : raw_value
+        def single_to_api(raw_value, attr_def)
+          if attr_def[:to_api]
+            raw_value.send attr_def[:to_api]
+          elsif raw_value.respond_to?(:to_api)
+            raw_value.to_api
+          else
+            raw_value
+          end
         end
 
         # Call to_api on an array value

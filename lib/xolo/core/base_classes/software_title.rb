@@ -22,6 +22,8 @@
 #
 #
 
+# frozen_string_literal: true
+
 # main module
 module Xolo
 
@@ -29,7 +31,7 @@ module Xolo
 
     module BaseClasses
 
-      # The base class for dealing with Software Titles in the 
+      # The base class for dealing with Software Titles in the
       # TitleEditor and the Admin modules.
       class SoftwareTitle < Xolo::Core::BaseClasses::JSONObject
 
@@ -43,7 +45,7 @@ module Xolo
           softwareTitleId: {
             class: :Integer,
             # primary means this is the one used to fetch via API calls
-            identifier: :primary 
+            identifier: :primary
           },
 
           # @!attribute id
@@ -51,14 +53,17 @@ module Xolo
           #   the TitleEditor), that identifies this Software Title.
           #   Can be thought of as the unique name on the Title Editor.
           #   Not to be confused with the 'name' attribute, which is more
-          #   of a Display Name, and is not unique   
+          #   of a Display Name, and is not unique
           id: {
             class: :String,
-            # true means this is a unique value in and can be used to find a valid 
+            # true means this is a unique value in and can be used to find a valid
             # primary identifier.
-            identifier: true 
+            identifier: true,
+            # required means this value is required to create or update this
+            # object on the server(s)
+            required: true
           },
-          
+
           # @!attribute enabled
           #   @return [Boolean] Is this title enabled, and available to be subscribed to?
           enabled: {
@@ -66,28 +71,44 @@ module Xolo
           },
 
           # @!attribute name
-          #   @return [String] The name of this title in the Title Editor. NOT UNIQUE, 
-          #     and not an identfier. See 'id'. 
+          #   @return [String] The name of this title in the Title Editor. NOT UNIQUE,
+          #     and not an identfier. See 'id'.
           name: {
-            class: :String
+            class: :String,
+            required: true
           },
 
           # @!attribute publisher
           #   @return [String] The publisher of this software
           publisher: {
-            class: :String
+            class: :String,
+            required: true
           },
 
           # @!attribute lastModified
           #   @return [Time]  When was the title last modified?
           lastModified: {
-            class: :Time
+            class: Time,
+
+            # for classes (like Time) that are not Symbols (like :String)
+            # This is the Class method to call on them to convert the
+            # raw API data into the ruby value we want. The API data
+            # will be passed as the sole param to this method.
+            # For most, it will be :new, but for, e.g., Time, it is
+            # :parse
+            to_ruby: :parse,
+
+            # The method to call on the value when converting to
+            # data to be sent to the API.
+            # e.g. on Time values, convert to iso8601
+            to_api: :iso8601
           },
 
           # @!attribute currentVersion
           #   @return [String] the version number of the most recent patch
           currentVersion: {
-            class: :String
+            class: :String,
+            required: true
           }
 
           # DEFINE THESE  IN THE SUBCLASSES OF Xolo::Core::BaseClasses::SoftwareTitle
@@ -100,7 +121,7 @@ module Xolo
           # }
 
           # _!attribute requirements
-          #   _return [Array<Xolo::Core::BaseClasses::Requirement>] The requirements - criteria that 
+          #   _return [Array<Xolo::Core::BaseClasses::Requirement>] The requirements - criteria that
           #     define which computers have the software installed.
           # requirements: {
           #   class: Xolo::Core::BaseClasses::Requirement,
@@ -115,11 +136,11 @@ module Xolo
           # }
         }.freeze
 
-        
         # Constructor
         ######################
         def initialize(json_data)
           super
+
           @lastModified &&= Time.parse(lastModified)
 
           # Do something like this in the subclasses to convert the

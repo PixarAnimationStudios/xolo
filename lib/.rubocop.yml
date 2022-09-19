@@ -1,0 +1,45 @@
+# rubocop.yml for xolo
+
+#### Metrics
+
+Metrics/ClassLength:
+  Max: 300 # default 100
+
+Metrics/ModuleLength:
+  Max: 300 # default 100
+
+Metrics/MethodLength:
+  Max: 50 # default 10
+
+#### Naming
+
+# allow both snake_case and camelCase variable names,
+# for both ruby_standard and apiAttributeNames
+Naming/VariableName:
+  Enabled: false
+Naming/MethodName:
+  Enabled: false
+
+#### Style
+
+# Sorry, I like:  end # thing that is ended
+Style/CommentedKeyword:
+  Enabled: false
+
+# foo = bar + 'string' is not a problem when bar is a Pathname
+# but rubocopy things that's  string concateation, and it isn't.
+Style/StringConcatenation:
+  Enabled: false
+
+#### Layout
+
+Layout/TrailingWhitespace:
+  Enabled: false # set your editor to strip trailing whitespace on save
+
+Layout/EmptyLinesAroundClassBody:
+  Enabled: true
+  EnforcedStyle: empty_lines
+
+Layout/EmptyLinesAroundModuleBody:
+  Enabled: true
+  EnforcedStyle: empty_lines

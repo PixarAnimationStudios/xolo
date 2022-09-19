@@ -58,6 +58,17 @@ module Xolo
             new Xolo::Server::TitleEditor.cnx.get("#{self::RSRC_PATH}/#{primary_ident}")
           end
 
+          # @return [API Collection Member]
+          ####
+          def fetch(primary_ident)
+            new Xolo::Server::TitleEditor.cnx.get("#{self::RSRC_PATH}/#{primary_ident}")
+          end
+
+          ####
+          def delete(primary_ident)
+            Xolo::Server::TitleEditor.cnx.delete("#{self::RSRC_PATH}/#{primary_ident}")
+          end
+
         end # module ClassMethods
 
         # Public Instance Methods

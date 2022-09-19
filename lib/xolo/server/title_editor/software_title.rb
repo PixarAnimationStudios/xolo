@@ -29,6 +29,7 @@ module Xolo
 
     module TitleEditor
 
+      # A Software Title in the Title Editor
       class SoftwareTitle < Xolo::Core::BaseClasses::SoftwareTitle
 
         # Mixins
@@ -43,6 +44,22 @@ module Xolo
         LOCAL_TITLE_EDITOR_SOURCE_ID = 0
 
         RSRC_PATH = 'softwaretitles'
+
+        # when creating or updating this object itself, only these attributes are sent.
+        # Sub-objects are saved or updated via #create_x methods (e.g. create_patch)
+        # or by calling save on existing objects inside this SoftwareTitle,
+        # (e.g. #patches[3].save)
+        # NOTE: the docs also mention that this data for create and update has
+        # keys 'appName' and 'bundleId'  but those keys don't show up in the
+        # web UI and are always nil in the API data.
+        ATTRIBUTES_FOR_SAVE = %i[
+          id
+          name
+          publisher
+          enabled
+          lastModified
+          currentVersion
+        ].freeze
 
         # Public Class Methods
         ######################
@@ -98,7 +115,9 @@ module Xolo
         end
 
         # @param ident [Integer, String] the identifier value to search for
+        #
         # @param key [Symbol] if given, Only look for the value in this key.
+        #
         # @return [Integer, nil] given any identifier, return the matching primary id
         #   or nil if no match
         ####
@@ -122,7 +141,6 @@ module Xolo
           all.each do |summary|
             ident_keys.each do |key|
               return summary if summary[key] == ident
-              end
             end
           end
           nil
@@ -158,7 +176,7 @@ module Xolo
           # full instance init_data.
           #
           # _!attribute source
-          # _return [String] The name of the Patch Source that hosts ultimately
+          # _return [String] The name of the Patch Source that ultimately
           #   hosts this title definition. If hosted by our TitleEditor
           #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_NAME
           # source: {
@@ -166,7 +184,7 @@ module Xolo
           # },
 
           # @!attribute sourceId
-          # @return [Integer] The id of the Patch Source that hosts ultimately
+          # @return [Integer] The id of the Patch Source that ultimately
           #   hosts this title definition. If hosted by our TitleEditor
           #   directly, this is LOCAL_TITLE_EDITOR_SOURCE_ID
           sourceId: {
@@ -202,7 +220,9 @@ module Xolo
           super
           @requirements = requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
           @patches = patches.map { |data| Xolo::Server::TitleEditor::Patch.new data }
-          @extensionAttributes = extensionAttributes.map { |data| Xolo::Server::TitleEditor::ExtensionAttribute.new data }
+          @extensionAttributes = extensionAttributes.map do |data|
+            Xolo::Server::TitleEditor::ExtensionAttribute.new data
+          end
         end
 
         # Public Instance Methods
@@ -222,8 +242,6 @@ module Xolo
           self.class.autofill_requirements id
         end
 
-        def create_ea(ea_data); end
-
       end # class SoftwareTitle
 
     end # Module TitleEditor
@@ -231,3 +249,14 @@ module Xolo
   end # Module Server
 
 end # Module Xolo
+
+# {
+#   "enabled": true,
+#   R"name": "My Title",
+#   R"publisher": "Publisher",
+#   "appName": "My Application.app",
+#   "bundleId": "com.example.myapp",
+#   "lastModified": "2020-01-01T00:00:00.000Z",
+#   R"currentVersion": "1.0",
+#   R"id": "MyTitle"
+# }
