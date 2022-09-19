@@ -81,13 +81,15 @@ module Xolo
           # @!attribute standalone
           # @return [Boolean] Can this patch be installed as an initial installation?
           #   If not, it must be applied to an already-installed version of this title.
+          #   NOTE: This is for reporting only, it is not used in patch policies
           standalone: {
             class: :Boolean
           },
 
+          # @!attribute minimumOperatingSystem
           # @return [String] The lowest version of the OS that can run this patch
-          #   NOTE: This is for reporting only. You'll still need to specify it in the
-          #   capabilities for this patch.
+          #   NOTE: This is for reporting only. If there is a minimumOperatingSystem
+          #   You'll still need to specify it in the capabilities for this patch.
           minimumOperatingSystem: {
             class: :String
           },

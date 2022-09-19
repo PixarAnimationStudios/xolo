@@ -84,17 +84,15 @@ module Xolo
         def self.fetch(ident = nil, **key_and_ident)
           id =
             if ident
-              valid_id ident
+              valid_id ident, raise_if_not_found: true
             else
               key, ident = key_and_ident.first
 
               # Dont call valid_id if we are fetching based on the primary_ident_key
               # just used the value provided. The API will complain if it
               # doesn't exist
-              key == primary_ident_key ? ident : valid_id(ident, key: key)
+              key == primary_ident_key ? ident : valid_id(ident, key: key, raise_if_not_found: true)
             end
-
-          raise Xolo::NoSuchItemError, "No #{self} found for identifier '#{ident}'" unless id
 
           new Xolo::Server::TitleEditor.cnx.get("#{self::RSRC_PATH}/#{id}")
         end
@@ -104,20 +102,49 @@ module Xolo
         # @return [Integer, nil] given any identifier, return the matching primary id
         #   or nil if no match
         ####
-        def self.valid_id(ident, key: nil)
-          if key
-            matched_summary = all.select { |summary| summary[key] == ident }.first
-          else
-            all.each do |summary|
-              ident_keys.each do |key|
-                if summary[key] == ident
-                  matched_summary = summary
-                  break 2
-                end
+        def self.valid_id(ident, key: nil, raise_if_not_found: false)
+          matched_summary =
+            if key
+              all.select { |summary| summary[key] == ident }.first
+            else
+              find_summary_for_ident(ident)
+            end
+
+          value = matched_summary ? matched_summary[primary_ident_key] : nil
+
+          raise Xolo::NoSuchItemError, "No #{self} found for identifier '#{ident}'" if raise_if_not_found && value.nil?
+
+          value
+        end
+
+        ####
+        def self.find_summary_for_ident(ident)
+          all.each do |summary|
+            ident_keys.each do |key|
+              return summary if summary[key] == ident
               end
             end
           end
-          matched_summary ? matched_summary[primary_ident_key] : nil
+          nil
+        end
+        private_class_method :find_summary_for_ident
+
+        # Get the 'autofill patches' for a given software title
+        # @param ident [String, Integer] An identifier for a software title
+        # @return [Array<Hash>] the autofill patch data
+        def self.autofill_patches(ident)
+          id = valid_id ident, raise_if_not_found: true
+
+          Xolo::Server::TitleEditor.cnx.get("#{self::RSRC_PATH}/#{id}/patches/autofill")
+        end
+
+        # Get the 'autofill requirements' for a given software title
+        # @param ident [String, Integer] An identifier for a software title
+        # @return [Array<Hash>] the autofill requirement data
+        def self.autofill_requirements(ident)
+          id = valid_id ident, raise_if_not_found: true
+
+          Xolo::Server::TitleEditor.cnx.get("#{self::RSRC_PATH}/#{id}/requirements/autofill")
         end
 
         # Attributes
@@ -177,6 +204,25 @@ module Xolo
           @patches = patches.map { |data| Xolo::Server::TitleEditor::Patch.new data }
           @extensionAttributes = extensionAttributes.map { |data| Xolo::Server::TitleEditor::ExtensionAttribute.new data }
         end
+
+        # Public Instance Methods
+        ###################################
+
+        # Get the 'autofill patches' for this software title
+        # @return [Array<Hash>] the autofill patch data
+        def autofill_patches
+          id = send self.class.primary_ident_key
+          self.class.autofill_patches id
+        end
+
+        # Get the 'autofill requirements' for this software title
+        # @return [Array<Hash>] the autofill requirement data
+        def autofill_requirements
+          id = send self.class.primary_ident_key
+          self.class.autofill_requirements id
+        end
+
+        def create_ea(ea_data); end
 
       end # class SoftwareTitle
 
