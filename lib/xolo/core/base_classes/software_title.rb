@@ -146,9 +146,12 @@ module Xolo
           # Do something like this in the subclasses to convert the
           # data to the appropriate classes
 
-          # @requirements = requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
-          # @patches = patches.map { |data| Xolo::Server::TitleEditor::Patch.new data }
-          # @extensionAttributes = extensionAttributes.map { |data| Xolo::Server::TitleEditor::ExtensionAttribute.new data }
+          # @requirements =
+          #   requirements.map { |data| Xolo::Server::TitleEditor::Requirement.new data }
+          # @patches =
+          #   patches.map { |data| Xolo::Server::TitleEditor::Patch.new data }
+          # @extensionAttributes =
+          #   extensionAttributes.map { |data| Xolo::Server::TitleEditor::ExtensionAttribute.new data }
         end
 
       end # class SoftwareTitle

@@ -20,7 +20,8 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
+
+# frozen_string_literal: true
 
 module Xolo
 
@@ -35,6 +36,11 @@ module Xolo
     # (e.g. a number, even if given a String)
     #
     module Validate
+
+      # Thes methods all raise this error
+      def self.raise_invalid_data_error(msg)
+        raise Xolo::InvalidDataError, msg
+      end
 
       # Validate that a value is valid based on its
       # definition in an objects OAPI_PROPERTIES constant.
@@ -156,8 +162,12 @@ module Xolo
         # try to instantiate the class with the value. It should raise an error
         # if not good
         klass.new val
-      rescue => e
-        raise_invalid_data_error(msg || "#{attr_name} value must be a #{klass}, or #{klass}.new must accept it as the only parameter, but #{klass}.new raised: #{e.class}: #{e}")
+      rescue StandardError => e
+        unless msg
+          msg = +"#{attr_name} value must be a #{klass}, or #{klass}.new must accept it as the only parameter,"
+          msg << "but #{klass}.new raised: #{e.class}: #{e}"
+        end
+        raise_invalid_data_error(msg)
       end
 
       # Confirm that the given value is a boolean value, accepting
@@ -340,7 +350,10 @@ module Xolo
       # @return [String] the valid value
       #
       def self.multiple_of(val, multiplier:, attr_name: nil, msg: nil)
-        raise ArgumentError, 'multiplier must be a positive number' unless multiplier.is_a?(Numeric) && multiplier.positive?
+        unless multiplier.is_a?(Numeric) && multiplier.positive?
+          raise ArgumentError,
+                'multiplier must be a positive number'
+        end
         raise Xolo::InvalidDataError, 'Value must be a number' unless val.is_a?(Numeric)
 
         return val if (val % multiplier).zero?

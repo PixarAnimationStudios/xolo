@@ -20,7 +20,8 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
+
+# frozen_string_literal: true
 
 # main module
 module Xolo
@@ -411,7 +412,7 @@ module Xolo
                 val.dup
               end
 
-            instance_variable_set "@#{key}", val.dup
+            instance_variable_set "@#{key}", ruby_val
           end
         end
 
@@ -456,7 +457,7 @@ module Xolo
         # @return [Array] the desired instance_variables
         #
         def pretty_print_instance_variables
-          @pp_inst_vars ||= instance_variables - PP_OMITTED_INST_VARS
+          @pretty_print_instance_variables ||= instance_variables - PP_OMITTED_INST_VARS
         end
 
         # Private Instance Methods
