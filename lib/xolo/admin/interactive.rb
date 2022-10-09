@@ -29,6 +29,7 @@ module Xolo
 
   module Admin
 
+    # Module for gathering and validating xadm options from an interactive terminal session
     module Interactive
 
       def cli

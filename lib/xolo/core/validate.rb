@@ -37,9 +37,178 @@ module Xolo
     #
     module Validate
 
+      COMMA_SEP_RE = /\s*,\s*/.freeze
+
       # Thes methods all raise this error
       def self.raise_invalid_data_error(msg)
         raise Xolo::InvalidDataError, msg
+      end
+
+      # validate a title-id. Must be 2+ chars long, only lowercase
+      # alpha-numerics & dashes
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.title_id(val, raise: true)
+        valid = val =~ /\A[a-z0-9-][a-z0-9-]+\z/ ? true : false
+
+        # TODO: validate that it doesn't already exist in xolo
+        # remember that the admin app will not talk to Jamf, only to the
+        # xolo server.
+
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:title_id][:invalid_msg]
+      end
+
+      # validate a title-id. Must be 2+ chars long, only lowercase
+      # alpha-numerics & dashes
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.title_id(val, raise: true)
+        valid = val =~ /\A[a-z0-9-][a-z0-9-]+\z/ ? true : false
+
+        # TODO: validate that these exist in Jamf.
+        # remember that the admin app will not talk to Jamf, only to the
+        # xolo server.
+
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:title_id][:invalid_msg]
+      end
+
+      # validate a title display-name. Must be 3+ chars long, starting and ending with
+      # a non-whitespace char.
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.title_display_name(val, raise: true)
+        valid = val =~ /\A\S.+\S\z/ ? true : false
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:display_name][:invalid_msg]
+      end
+
+      # validate a title description Must be 3+ chars long, starting and ending with
+      # a non-whitespace char.
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.title_desc(val, raise: true)
+        valid = val.length > 20
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:description][:invalid_msg]
+      end
+
+      # validate a title publisher Must be 3+ chars long, starting and ending with
+      # a non-whitespace char.
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.publisher(val, raise: true)
+        valid = val =~ /\A\S.+\S\z/ ? true : false
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:publisher][:invalid_msg]
+      end
+
+      # validate a title app_bundle_id Must include at least one dot
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.app_bundle_id(val, raise: true)
+        valid = val.include? '.'
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:app_bundle_id][:invalid_msg]
+      end
+
+      # validate a title app_name Must end with .app
+      #
+      # @param val [Object] The value to validate
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.app_name(val, raise: true)
+        valid = val.end_with? '.app'
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:app_bundle_id][:invalid_msg]
+      end
+
+      # validate an array  of jamf ggroups to use as targets.
+      # 'none' is also acceptabe
+      #
+      # NOTE: we will not compare targets to exclusions - we'll just verify
+      # that the jamf groups exist. If a group (or an individual mac) is both a
+      # target and an exclusion, the exclusion wins.
+      #
+      # @param val [Array<String>] The value to validate names of jamf comp. groups
+      #
+      # @param raise [Boolean] If true, raise an error when validation fails.
+      #   otherwise just return false when on failure and true on success.
+      #
+      # @return [String] the valid title_id
+      def self.targets(val, raise: true)
+        valid =
+          if val == Xolo::Admin::Options::NONE
+            true
+
+          elsif val.is_a?(Array)
+            bad_jamf_groups(val).empty?
+
+          else
+            false
+          end
+
+        return valid unless raise
+        return val if valid
+
+        raise_invalid_data_error Xolo::Admin::Options::TITLE_OPTIONS[:targets][:invalid_msg]
+      end
+
+      # TODO: Implement this for xadm via the xolo server
+      # @param grp_ary [Array<String>] Jamf groups to validate
+      # @return [Array<String>] Jamf groups that do not exist.
+      def self.bad_jamf_groups(group_ary)
+        bad_groups = []
+        group_ary.each { |g| bad_groups << g unless g } # is a jamf group
+        bad_groups
       end
 
       # Validate that a value is valid based on its
@@ -53,7 +222,7 @@ module Xolo
       #
       # @return [Boolean] the valid boolean
       #
-      def self.json_attr(val, attr_def:, attr_name: nil)
+      def self.option_type(val, _type)
         # check that the new val is not nil unless nil is OK
         val = not_nil(val, attr_name: attr_name) unless attr_def[:nil_ok]
 

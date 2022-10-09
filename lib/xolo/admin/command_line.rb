@@ -29,7 +29,7 @@ module Xolo
 
   module Admin
 
-    # Module for parsing and validating the xadm commandline
+    # Module for parsing and validating the xadm options from the commandline
     module CommandLine
 
       def self.parse_cli

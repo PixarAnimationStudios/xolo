@@ -34,6 +34,8 @@ module Xolo
 
   module Admin
 
+    # module for defining and parsing the CLI and Interactive options
+    # for xadm
     module Options
 
       #### Constants
@@ -109,9 +111,9 @@ module Xolo
           type: :string,
           immutable: true,
           walkthru: false,
-          validate: :validate_title_id,
+          validate: true,
           sub_commands: [], # no subcommants take the title id - its always the arg of a subcommand
-          invalid_msg: 'Not a valid title id! Must be lowercase alphanumeric and dashes only, cannot already exist in xolo.',
+          invalid_msg: 'Not a valid title id! Must be lowercase alphanumeric and dashes only, cannot already exist in Xolo.',
           desc: <<~ENDDESC
             A unique string identifying this Software Title, e.g. 'folio'.
             The same as a 'basename' in d3.
@@ -124,8 +126,8 @@ module Xolo
           required: true,
           cli: :n,
           type: :string,
-          validate: /\w\w\w+/,
-          invalid_msg: '"Not a valid display name, must be at least three characters.',
+          validate: :title_display_name,
+          invalid_msg: '"Not a valid display name, must be at least three characters, starting and ending with non-whitespace.',
           sub_commands: [ADD_TITLE_CMD, EDIT_TITLE_CMD],
           desc: <<~ENDDESC
             A human-friendly name for the Software Title, e.g. 'Google Chrome', or
@@ -138,8 +140,8 @@ module Xolo
           required: true,
           cli: :d,
           type: :string,
-          validate: :validate_title_description,
-          invalid_msg: "Not a valid description name, must be at least 20 characters. Include a useful dscription of what the software does: URLs, developer names, etc. Do NOT use, e.g. 'Installs Google Chrome' for the title 'GoogleChrome', that just wastes everyone's time.",
+          validate: :title_desc,
+          invalid_msg: "Not a valid description name, must be at least 20 characters. Include a useful dscription of what the software does,  URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
           sub_commands: [ADD_TITLE_CMD, EDIT_TITLE_CMD],
           desc: <<~ENDDESC
             A useful dscription of what the software installed by this title does,
@@ -154,11 +156,11 @@ module Xolo
           required: true,
           cli: :p,
           type: :string,
-          validate: /\w\w\w+/,
+          validate: true,
           invalid_msg: '"Not a valid Publisher, must be at least three characters.',
           sub_commands: [ADD_TITLE_CMD, EDIT_TITLE_CMD],
           desc: <<~ENDDESC
-            The company or entity that publishes this title, e.g. 'Apple Inc.'
+            The company or entity that publishes this title, e.g. 'Apple, Inc.'
             or 'Pixar Animation Studios'.
           ENDDESC
         },
@@ -166,9 +168,9 @@ module Xolo
         app_bundle_id: {
           label: 'The bundle ID of the .app',
           required: true,
-          validate: /\w\w\w+/,
+          validate: true,
           type: :string,
-          invalid_msg: '"Not a valid Publisher, must be at least three characters.',
+          invalid_msg: '"Not a valid bundle ID, must include at least one dot.',
           sub_commands: [ADD_TITLE_CMD, EDIT_TITLE_CMD],
           desc: <<~ENDDESC
             If this title installs a .app bundle, the app's bundle-id must be provided.
@@ -181,9 +183,9 @@ module Xolo
         app_name: {
           label: 'The name of the .app',
           required: true,
-          validate: /\w\w\w+/,
+          validate: true,
           type: :string,
-          invalid_msg: '"Not a valid Publisher, must be at least three characters.',
+          invalid_msg: "Not a valid App name, must end with '.app'",
           sub_commands: [ADD_TITLE_CMD, EDIT_TITLE_CMD],
           desc: <<~ENDDESC
             If this title installs a .app bundle, the app's name must be provided.
@@ -293,10 +295,11 @@ module Xolo
           walkthru: false,
           cli: :w,
           desc: <<~ENDDESC
-            Run xadm in interactive mode.
+            Run xadm in interactive mode
             This causes xadm to present an interactive, prompt-and-
-            menu-driven interface. All other commandline options
-            are ignored, and will be gathered interactively.
+            menu-driven interface. All command-options given on the
+            command line are ignored, and will be gathered
+            interactively
           ENDDESC
         },
 
@@ -305,9 +308,9 @@ module Xolo
           cli: :none,
           walkthru: false,
           desc: <<~ENDDESC
-            Run xadm in debug mode.
+            Run xadm in debug mode
             This causes more verbose output and full backtraces
-            to be printed on errors.
+            to be printed on errors
           ENDDESC
         }
       }.freeze
