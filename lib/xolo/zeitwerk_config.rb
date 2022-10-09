@@ -51,10 +51,10 @@ module XoloZeitwerkConfig
 
   # rubocop: disable Style/StderrPuts
   def self.load_msg(msg)
-    $stderr.puts msg if verbose_loading?    
+    $stderr.puts msg if verbose_loading?
   end
   # rubocop: enable Style/StderrPuts
-      
+
   # The loader object for Xolo
   def self.loader
     @loader
@@ -90,8 +90,7 @@ module XoloZeitwerkConfig
     # defines 'OAPIObject'
     ###############################################
 
-    loader.inflector.inflect 'json_object' => 'JSONObject'  
-    loader.inflector.inflect 'api_collection' => 'APICollection'  
+    # loader.inflector.inflect 'json_object' => 'JSONObject'
 
     ##### Ingored Paths
     #
@@ -105,15 +104,13 @@ module XoloZeitwerkConfig
     loader.ignore "#{top}/xolo-client.rb"
 
     # ignore things that are manually loaded by our code
-    loader.ignore "#{__dir__}/ruby_extensions.rb"
-    loader.ignore "#{__dir__}/ruby_extensions"
-    loader.ignore "#{__dir__}/optimist.rb"
+    loader.ignore "#{top}/optimist.rb"
 
     ##### Callbacks
-   
+
     # callback for when a specific file/constant loads
-    # duplicate and uncomment this if desired to react to 
-    # specific things loading 
+    # duplicate and uncomment this if desired to react to
+    # specific things loading
     #####################################
     # loader.on_load('Xolo::SomeClass') do |klass, abspath|
     #   load_msg "I just loaded #{klass} from #{abspath}"
@@ -136,7 +133,7 @@ module XoloZeitwerkConfig
       # and the method must not have run already for the class or any superclass.
       # This prevents running parse_oapi_properties again in subclasses that
       # don't need to do that
-      if defined?(value::JSON_ATTRIBUTES) 
+      if defined?(value::JSON_ATTRIBUTES)
         parsed = value.parse_json_attributes
         load_msg "Parsed JSON_ATTRIBUTES for #{value}" if parsed
       end
@@ -148,7 +145,6 @@ module XoloZeitwerkConfig
       #   done = value.define_identifier_list_methods
       #   load_msg "Defined identifier list methods for #{value}" if done
       # end
-     
     end
 
     # actually do the setup that was defined above

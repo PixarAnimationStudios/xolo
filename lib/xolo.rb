@@ -24,7 +24,7 @@
 # frozen_string_literal: true
 
 # This file sets up zeitwerk and loads the core module
-#    require 'xolo' 
+#    require 'xolo'
 #
 # After requiring, do one of these
 #    require 'xolo/server'
@@ -44,7 +44,7 @@ require 'English'
 
 # Configure the Zeitwerk loader, See https://github.com/fxn/zeitwerk
 # This also defines other Xolo module methods related to loading
-# 
+#
 require 'xolo/zeitwerk_config'
 
 # the `Zeitwerk::Loader.for_gem` creates the loader object, and must
@@ -60,6 +60,8 @@ module Xolo
   include Xolo::Core::Exceptions
   extend Xolo::Core::Utility
 
+  VERSION = Xolo::Core::Version::VERSION
+
   # the single instance of our configuration object
   def self.config
     Xolo::Core::Configuration.instance
@@ -69,7 +71,7 @@ end # module Xolo
 
 # Manual Xolo loading
 ######
-require 'xolo/ruby_extensions'
+# put things here that aren't loaded by zeitwerk
 
 # testing zeitwerk loading, if the correct file is present
-XoloZeitwerkConfig.eager_load_for_testing 
+XoloZeitwerkConfig.eager_load_for_testing

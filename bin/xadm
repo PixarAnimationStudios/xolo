@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 # Copyright 2022 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -21,34 +23,48 @@
 #    language governing permissions and limitations under the Apache License.
 #
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+# frozen_string_literal: true
 
-require "./lib/#{lib_dir}/core/version"
+require 'xolo-admin'
+require 'optimist'
+require 'highline'
 
-Gem::Specification.new do |s|
-  # General
+# The App
+#####################
+class XoloAdmin
 
-  s.name        = proj_name
-  s.version     = Xolo::Core::Version::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
-  s.required_ruby_version = '>= 2.6.3'
+  def initialize
+    Xolo::Admin.executable = __FILE__
+    Xolo::Admin::CommandLine.parse_cli
+  end
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+  def run
+    puts
+    puts 'GLOBAL OPTS'
+    puts Xolo::Admin::Options.global_opts
 
-  # executables
-  s.executables << 'xadm'
+    puts
+    puts 'COMMAND OPTS'
+    puts Xolo::Admin::Options.cmd_opts
 
-  # Dependencies
+    puts
+    puts :title_id
+    puts Xolo::Admin::Options.cmd_opts.title_id
 
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
+    puts
+    puts :version
+    puts Xolo::Admin::Options.cmd_opts.version
+  end # run
+
+end # class XoloAdmin
+
+# MAIN
+#####################
+begin
+  debug = ARGV.include? '--debug'
+  app = XoloAdmin.new
+  app.run
+rescue => e
+  warn "ERROR: #{e}"
+  e.backtrace.each { |l| warn "..#{l}" } if debug
 end

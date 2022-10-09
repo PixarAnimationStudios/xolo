@@ -20,36 +20,30 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
 
-# main module
+# frozen_string_literal: true
+
+# Yes we're using a OpenStruct for our @opts, even though it's very slow.
+# It isn't so slow that it's a problem for processing a CLI tool.
+# The benefit is being able to use either Hash-style references
+# e.g. opts[key] or method-style when you know the key e.g. opts.title_id
+
 module Xolo
 
-  module Core 
+  module Admin
 
-    module Mixins
+    def self.executable=(path)
+      @executable = Pathname.new path
+    end
 
-      # by default, instances of JSONObject subclasses are mutable
-      # as a whole, even if some of their attributes are not.
-      #
-      # To make them immutable, they should extend this module
-      #    Xolo::Core::Mixins::Immutable, 
-      # which overrides the mutable? method
-      module Immutable
+    def self.executable
+      @executable
+    end
 
-        def self.extended(extender)
-          Xolo.verbose_extend extender, self 
-        end
+    def self.usage
+      @usage ||= "#{executable.basename} [global-options] command title-id [version] command-options"
+    end
 
-        # this class is immutable
-        def mutable?
-          false
-        end
+  end
 
-      end # module Immutable
-
-    end # module Mixins
-
-  end # module Core
-
-end # module Xolo
+end

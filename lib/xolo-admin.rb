@@ -21,34 +21,7 @@
 #    language governing permissions and limitations under the Apache License.
 #
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+# Shortcut for the two steps below
 
-require "./lib/#{lib_dir}/core/version"
-
-Gem::Specification.new do |s|
-  # General
-
-  s.name        = proj_name
-  s.version     = Xolo::Core::Version::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
-  s.required_ruby_version = '>= 2.6.3'
-
-  # files
-  s.files = Dir['lib/**/*.rb']
-
-  # executables
-  s.executables << 'xadm'
-
-  # Dependencies
-
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-end
+require 'xolo'
+require 'xolo/admin'

@@ -21,34 +21,21 @@
 #    language governing permissions and limitations under the Apache License.
 #
 
-proj_name = 'xolo'
-lib_dir = 'xolo'
+# frozen_string_literal: true
 
-require "./lib/#{lib_dir}/core/version"
+# NOTE:  This may not be used - the xolo client tool might be
+# a stand alone script, perhaps even a shell script.
+# This is because the current plan is for it to merely
+# run a bunch of Jamf policies, so all it does it run
+# the jamf binary.
+#
+# But that may change as Xolo develops and we figure out what it should
+# do and how.
 
-Gem::Specification.new do |s|
-  # General
+module Xolo
 
-  s.name        = proj_name
-  s.version     = Xolo::Core::Version::VERSION
-  s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
-  s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
-  s.description = <<~EODDESC
-    Xolo is a kind of dog.
-  EODDESC
-  s.required_ruby_version = '>= 2.6.3'
+  module Client
 
-  # files
-  s.files = Dir['lib/**/*.rb']
+  end
 
-  # executables
-  s.executables << 'xadm'
-
-  # Dependencies
-
-  # s.add_runtime_dependency 'ruby-jss', '~>2.0'
 end
