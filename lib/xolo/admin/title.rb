@@ -27,41 +27,16 @@
 # main module
 module Xolo
 
-  module Core
+  module Admin
 
-    module BaseClasses
+      # A title used by xadm
+      class Title < Xolo::Core::BaseClasses::Title
 
-      # The base class for dealing with the capabilities of Patches in the
-      # TitleEditor and the Admin modules.
-      #
-      # A capability is one criterion, a group of which define which computers
-      # are capable of running, and this alloed to install, a Patch.
-      class Capability < Xolo::Core::BaseClasses::Criterion
 
-        # Attributes
-        ######################
 
-        JSON_ATTRIBUTES = {
+      end # class Title
 
-          # @!attribute capabilityId
-          # @return [Integer] The id number of this capability
-          capabilityId: {
-            class: :Integer,
-            identifier: :primary
-          },
 
-          # @!attribute patchId
-          # @return [Integer] The id number of the Patch which uses this capability
-          patchId: {
-            class: :Integer
-          }
-
-        }.freeze
-
-      end # class Capability
-
-    end # module BaseClasses
-
-  end # module Core
+  end # module Admin
 
 end # module Xolo

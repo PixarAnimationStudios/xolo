@@ -35,6 +35,9 @@
 ######
 require 'English'
 
+# Other Gems to include at this level
+require 'pixar-ruby-extensions'
+
 # Zeitwerk
 ######
 

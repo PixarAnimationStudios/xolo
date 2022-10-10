@@ -49,6 +49,9 @@ Gem::Specification.new do |s|
   s.executables << 'xadm'
 
   # Dependencies
+  s.add_runtime_dependency 'pixar-ruby-extensions', '~>1.0'
 
+  # Only for the server
   # s.add_runtime_dependency 'ruby-jss', '~>2.0'
+  # s.add_runtime_dependency 'windu', '~>1.0'
 end
