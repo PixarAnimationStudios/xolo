@@ -41,23 +41,7 @@ module Xolo
       #### Constants
       #########################
 
-      # The value to use when unsetting an option
-      NONE = 'none'
-
-      # The value to use when all computers are the targets
-      TARGET_ALL = 'all'
-
-      # The xadm commands
-
-      ADD_TITLE_CMD = 'add-title'
-      EDIT_TITLE_CMD = 'edit-title'
-      DELETE_TITLE_CMD = 'delete-title'
-      ADD_VERSION_CMD = 'add-version'
-      EDIT_VERSION_CMD = 'edit-version'
-      DELETE_VERSION_CMD = 'delete-version'
-      HELP_CMD = 'help'
-
-      # See the definition for TITLE_OPTIONS
+      # See the definition for Xolo::Core::BaseClasses::Title::ATTRIBUTES
       # NOTE: Optimist automatically provides --version -v and --help -h
       GLOBAL_OPTIONS = {
         walkthru: {
@@ -73,6 +57,20 @@ module Xolo
           ENDDESC
         },
 
+        auto_confirm: {
+          label: 'Auto Approve',
+          cli: :a,
+          walkthru: false,
+          desc: <<~ENDDESC
+            Do not ask for confirmation before commands that require it:
+            add-title, edit-title, delete-title, add-version, edit-version,
+            release-version, delete-version.
+            This is mostly used for automating xolo.
+            Ignored if using --walkthru.
+            WARNING: Be careful that all values are correct.
+          ENDDESC
+        },
+
         debug: {
           label: 'Debug',
           cli: :none,
@@ -85,41 +83,78 @@ module Xolo
         }
       }.freeze
 
-      SUB_COMMANDS = {
+      # The xadm commands
+
+      ADD_TITLE_CMD = 'add-title'
+      EDIT_TITLE_CMD = 'edit-title'
+      DELETE_TITLE_CMD = 'delete-title'
+      ADD_VERSION_CMD = 'add-version'
+      EDIT_VERSION_CMD = 'edit-version'
+      DELETE_VERSION_CMD = 'delete-version'
+      RELEASE_VERSION_CMD = 'release-version'
+      SEARCH_CMD = 'search'
+      REPORT_CMD = 'report'
+      HELP_CMD = 'help'
+
+      # These commands get their opts from the Title Attributes
+      TITLE_OPT_COMMANDS = [ADD_TITLE_CMD, EDIT_TITLE_CMD]
+
+      # These commands get their opts from the Version Attributes
+      VERSION_OPT_COMMANDS = [ADD_VERSION_CMD, EDIT_VERSION_CMD]
+
+      COMMANDS = {
         ADD_TITLE_CMD => {
           desc: 'Add a new software title',
           display: "#{ADD_TITLE_CMD} title-id",
-          opts: TITLE_OPTIONS
+          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES
         },
 
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
           display: "#{EDIT_TITLE_CMD} title-id",
-          opts: TITLE_OPTIONS
+          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES
         },
 
         DELETE_TITLE_CMD => {
           desc: 'Delete a software title, and all of its versions',
           display: "#{DELETE_TITLE_CMD} title-id",
-          opts: TITLE_OPTIONS
+          opts: {}
         },
 
         ADD_VERSION_CMD => {
           desc: 'Add a new version to a title',
           display: "#{ADD_VERSION_CMD} title-id version",
-          opts: VERSION_OPTIONS
+          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES
         },
 
         EDIT_VERSION_CMD => {
           desc: 'Edit a version of a title',
           display: "#{EDIT_VERSION_CMD} title-id version",
-          opts: VERSION_OPTIONS
+          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES
+        },
+
+        RELEASE_VERSION_CMD => {
+          desc: 'Release a version to all targets.',
+          display: "#{DELETE_VERSION_CMD} title-id version",
+          opts: {}
         },
 
         DELETE_VERSION_CMD => {
           desc: 'Delete a version from a title.',
           display: "#{DELETE_VERSION_CMD} title-id version",
-          opts: VERSION_OPTIONS
+          opts: {}
+        },
+
+        SEARCH_CMD => {
+          desc: 'Search for titles in Xolo.',
+          display: "#{SEARCH_CMD} title-id",
+          opts: {}
+        },
+
+        REPORT_CMD => {
+          desc: 'Report installation data.',
+          display: "#{REPORT_CMD} title-id [version]",
+          opts: {}
         },
 
         HELP_CMD => {
@@ -148,9 +183,13 @@ module Xolo
         @cmd_opts = OpenStruct.new hash
       end
 
+      def self.cmd_args
+        @cmd_args ||= OpenStruct.new
+      end
+
       #####
       def self.required_title_values
-        @required_title_values ||= TITLE_VALUES.select { |_k, v| v[:required] }
+        @required_title_values ||= Xolo::Core::BaseClasses::Title::ATTRIBUTES.select { |_k, v| v[:required] }
       end
 
     end # module Options

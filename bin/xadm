@@ -25,9 +25,7 @@
 
 # frozen_string_literal: true
 
-require 'xolo-admin'
-require 'optimist'
-require 'highline'
+require 'xolo'
 
 # The App
 #####################

@@ -33,7 +33,7 @@ module Xolo
     # This add cli and walkthru UI, as well as
     # an interface to the Xolo Server for Title
     # objects.
-    class Title < Xolo::Core::BaseClasses::Title
+    class Version < Xolo::Core::BaseClasses::Version
 
     end # class Title
 

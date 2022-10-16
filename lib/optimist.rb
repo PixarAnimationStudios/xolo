@@ -206,6 +206,10 @@ class Parser
     @constraints << [:either, syms]
   end
 
+  ## Put a blank line between the help output for each option
+  def insert_blanks
+    @insert_blanks = true
+  end
   ## Defines a set of words which cause parsing to terminate when
   ## encountered, such that any options to the left of the word are
   ## parsed as usual, and options to the right of the word are left
@@ -395,6 +399,8 @@ class Parser
       desc = spec.description_with_default
 
       stream.puts wrap(desc, :width => width - rightcol_start - 1, :prefix => rightcol_start)
+      # HACK by chrisl - put a  blank line between each option in the help, if desired
+      stream.puts if @insert_blanks
     end
   end
 

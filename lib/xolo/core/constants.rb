@@ -24,29 +24,20 @@
 
 module Xolo
 
-  # When using included modules to define constants, 
-  # the constants have to be defined at the level where they will be
-  # referenced, or else they
-  # aren't available to other broken-out-and-included sub modules 
-  # 
-  # See https://cultivatehq.com/posts/ruby-constant-resolution/ for 
-  # an explanation
-
-  # The minimum Ruby version needed for ruby-jss
-  MINIMUM_RUBY_VERSION = '2.6.3'
-
-  # These are handy for testing values without making new arrays, strings, etc every time.
-  TRUE_FALSE = [true, false].freeze
-  
-  # Empty strings are used in various places
-  BLANK = ''
-
   module Core
 
     # Constants useful throughout Xolo
-    # This should be included into the Jamf module
     #####################################
     module Constants
+
+      # Empty strings are used in various places
+      BLANK = ''
+
+      # The value to use when unsetting an option
+      NONE = 'none'
+
+      # These are handy for testing values without making new arrays, strings, etc every time.
+      TRUE_FALSE = [true, false].freeze
 
       # when this module is included, also extend our Class Methods
       def self.included(includer)
@@ -57,4 +48,4 @@ module Xolo
 
   end # module core
 
-end # module Jamf
+end # module Xolo

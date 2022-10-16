@@ -40,8 +40,8 @@ module Xolo
       COMMA_SEP_RE = /\s*,\s*/.freeze
 
       # Thes methods all raise this error
-      def self.raise_invalid_data_error(_val, msg)
-        raise Xolo::InvalidDataError, "'#{validate_numeric_constraints}' #{msg}"
+      def self.raise_invalid_data_error(val, msg)
+        raise Xolo::InvalidDataError, "'#{val}' #{msg}"
       end
 
       # validate a title-id. Must be 2+ chars long, only lowercase
@@ -164,9 +164,9 @@ module Xolo
         val = [val] unless val.is_a? Array
         valid =
           case val
-          when [Xolo::Admin::Options::NONE]
+          when [Xolo::NONE]
             true
-          when [Xolo::Admin::Options::TARGET_ALL]
+          when [Xolo::Core::BaseClasses::Title::TARGET_ALL]
             true
           else val.is_a?(Array)
                bad_grps = bad_jamf_groups(val)
@@ -197,7 +197,7 @@ module Xolo
 
         valid =
           case val
-          when [Xolo::Admin::Options::NONE]
+          when [Xolo::NONE]
             true
           else val.is_a?(Array)
                bad_grps = bad_jamf_groups(val)

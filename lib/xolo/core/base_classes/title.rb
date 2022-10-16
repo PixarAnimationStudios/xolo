@@ -42,17 +42,15 @@ module Xolo
         # Constants
         #############################
 
-        # These are the `xadm <command>` commands that deal with titles and their attributes/options.
-        # The `delete-title` command only takes a title_id, and deletes it, no need
-        # for any cli opts or walkthru.
-        CLI_COMMANDS = [Xolo::Admin::Options::ADD_TITLE_CMD, Xolo::Admin::Options::EDIT_TITLE_CMD]
+        # The value to use when all computers are the targets
+        TARGET_ALL = 'all'
 
         # Attributes
         ######################
 
-        # Attributes use of title titles.
+        # Attributes of Titles.
         #
-        # option settings
+        # Title attributes have these attributes:
         #
         # - label: [String] to be displayed in admin interaction, walkthru, err msgs
         #    e.g. 'Title ID'
@@ -60,11 +58,19 @@ module Xolo
         # - required: [Boolean] Must be provided when making a new title, cannot be
         #   deleted from existing titles.
         #
-        # - cli: [false, Symbol] If false, this option is never taken as a cli
+        # - immutable: [Boolean] This value can only be set when created a new title.
+        #   When editing an existing title, it cannot be changed.
+        #
+        # - cli: [false, Symbol] If this attr. is taken as a CLI option or
+        #   walkthru item, what is its 'short' option flag?
+        #
+        #   If falsey, this option is never taken as a cli
         #   option or walkthru menu choice, but may be used elsewhere,
-        #   e.g. in this command:
-        #      xadm edit-title my-title-id <options>
-        #   'edit-title' is the subcommand and 'my-title-id' is the argument.
+        #   e.g. in this cli command:
+        #      xadm add-title my-title-id <options>
+        #   'add-title' is the command and 'my-title-id', which populates th
+        #   title_id attribute, is the argument, but not a CLI option, so for
+        #   'title_id', cli: is false
         #
         #   If a one-letter Symbol, this is the 'short' cli option, e.g. the Symbol :d
         #   defines the cli option '-d' which is used as the short option for --description
@@ -72,42 +78,40 @@ module Xolo
         #   underscores converted to dashes, so :title_id becomes --title-id
         #
         #   If the symbol :none is used, there is no short variation of the CLI option.
+        #   but a long --option-flag will be used matching the attribute key, e.g.
+        #   for app_bundle_id it will be --app-bundle-id
         #
         # - type: [Symbol] the data type of the value. One of:
         #   :boolean, :integer, :string, :float, :io, :date.
         #   NOTE: Pluralizing those (except :boolean) means the value is an array of
         #   these objects
         #
-        # - default: [String, Numeric, Boolean] the default value if nothing is
-        #   provided. Note that titles never inherit values - only versions do.
+        # - default: [String, Numeric, Boolean, nil] the default value if nothing is
+        #   provided. Note that titles never inherit values, only versions do.
         #
-        # - validate: [Boolean, Symbol] how to validate values for this option.
-        #   - If true (not just truthy) call method Xolo::Admin::Validate.<value_key>  e.g. Xolo::Admin::Validate.title_id(val)
+        # - validate: [Boolean, Symbol] how to validate values for this attribute.
+        #   - If true (not just truthy) call method Xolo::Core::Validate.<value_key>
+        #     e.g. Xolo::Core::Validate.title_id(val)
         #   - If a Symbol, its a nonstandard method to call on the Xolo::Admin::Validate module
-        #     e.g. :non_empty_array will validate the value using  Xolo::Admin::Validate.non_empty_array(val)
+        #     e.g. :non_empty_array will validate the value using
+        #     Xolo::Core::Validate.non_empty_array(val)
         #   - Anything else: no validation
         #
         # - invalid_msg: [String] custom message to display when invalid
         #
-        # - immutable: [Boolean] This value can only be set when created a new title.
-        #   When editing an existing title, it cannot be changed.
+        # - desc: [String] helpful text explaining what the attribute is, and what its CLI option means.
+        #   Displayed during walkthru, in help messages, and in some err messages.
         #
-        # - desc: [String] helpful text explaining what the option means. Displayed
-        #   during walkthru, in help messages, and in some err messages.
-        #
-        # - sub_commands: [Array<String>] the subcommands that will take this option
         #
         ATTRIBUTES = {
 
           title_id: {
             label: 'Title ID',
             required: true,
+            immutable: true,
             cli: false,
             type: :string,
-            immutable: true,
-            walkthru: false,
             validate: true,
-            sub_commands: [], # no subcommants take the title id - its always the arg of a subcommand
             invalid_msg: 'Not a valid title id! Must be lowercase alphanumeric and dashes only, cannot already exist in Xolo.',
             desc: <<~ENDDESC
               A unique string identifying this Software Title, e.g. 'folio'.
@@ -123,7 +127,6 @@ module Xolo
             type: :string,
             validate: :title_display_name,
             invalid_msg: '"Not a valid display name, must be at least three characters, starting and ending with non-whitespace.',
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               A human-friendly name for the Software Title, e.g. 'Google Chrome', or
               'NFS Menubar'. Must be at least three characters long.
@@ -137,7 +140,6 @@ module Xolo
             type: :string,
             validate: :title_desc,
             invalid_msg: "Not a valid description name, must be at least 20 characters. Include a useful dscription of what the software does,  URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               A useful dscription of what the software installed by this title does,
               You can also include URLs, developer names, support info, etc.
@@ -153,7 +155,6 @@ module Xolo
             type: :string,
             validate: true,
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               The company or entity that publishes this title, e.g. 'Apple, Inc.'
               or 'Pixar Animation Studios'.
@@ -161,57 +162,97 @@ module Xolo
           },
 
           app_bundle_id: {
-            label: 'The bundle ID of the .app',
-            required: true,
+            label: 'App Bundle ID',
+            cli: :b,
             validate: true,
             type: :string,
             invalid_msg: '"Not a valid bundle ID, must include at least one dot.',
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               If this title installs a .app bundle, the app's bundle-id must be provided.
               This is found in the CFBundleIdentifier key of the app's Info.plist.
               e.g. 'com.google.chrome'
-              If the title does not install a .app bundle, leave this blank
+              If the title does not install a .app bundle, or if the .app doesn't
+              provide its version via the bundle id (e.g. Firefox) leave this blank, and
+              provide a --version-script.
+              REQUIRED if --app-name is used.
             ENDDESC
           },
 
           app_name: {
-            label: 'The name of the .app',
-            required: true,
+            label: 'App Name',
+            cli: :a,
             validate: true,
             type: :string,
             invalid_msg: "Not a valid App name, must end with '.app'",
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               If this title installs a .app bundle, the app's name must be provided.
               This the name of the bundle iteslf on disk, e.g. 'Google Chrome.app'.
-              If the title does not install a .app bundle, leave this blank
+              If the title does not install a .app bundle, leave this blank, and
+              provide a --version-script.
+              REQUIRED if --app-bundle-id is used.
+            ENDDESC
+          },
+
+          version_script: {
+            label: 'Version Script',
+            cli: :v,
+            validate: true,
+            type: :string,
+            invalid_msg: 'Invalid Script Path. No such file found locally.',
+            desc: <<~ENDDESC
+              If this title does NOT install a .app bundle, enter the path to a script
+              which will run on managed computers and output a <result> tag with the
+              currently installed version of this title.
+              E.g. if version 1.2.3 is installed, the script should output the text:
+                 <result>1.2.3</result>
+              and if no version of the title is installed, it should output:
+                 <result></result>
+              NOTE: This is ignored if --app-name and --app-bundle-id are used.
+            ENDDESC
+          },
+
+          pilots: {
+            label: 'Pilot Computer Groups',
+            default: Xolo::NONE,
+            cli: :P,
+            validate: :jamf_group,
+            type: :strings,
+            invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
+            desc: <<~ENDDESC
+              A comma-separated list of Jamf Computer Group names identifying computers
+              that will automatically have versions of this title installed before
+              they are released.
+              These computers will be used for testing not just the software, but the
+              installation process itself.
+              Computers that are also in an excluded group will not be used as pilots.
             ENDDESC
           },
 
           targets: {
             label: 'Target Computer Groups',
-            default: NONE,
+            default: Xolo::NONE,
+            cli: :t,
             validate: :jamf_group,
             type: :strings,
-            invalid_msg: "Invalid target. Targets must be existing Jamf Computer Groups, '#{TARGET_ALL}', or '#{NONE}'.",
-            sub_commands: CLI_COMMANDS,
+            invalid_msg: "Invalid target group. Must be an existing Jamf Computer Group, '#{TARGET_ALL}', or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
-              A comma-separated list of Jamf Computer Groups identifying computers
+              A comma-separated list of Jamf Computer Group names identifying computers
               that will automatically have this title installed. Use 'all' to auto-
-              install on all computers (except those that are excluded).
+              install on all computers.
+              Computers that are also in an excluded group will not automatically have the
+              title installed.
             ENDDESC
           },
 
           exclusions: {
             label: 'Excluded Computer Groups',
+            cli: :x,
             validate: :jamf_group,
-            default: NONE,
+            default: Xolo::NONE,
             type: :strings,
-            invalid_msg: "Invalid exclusion. All exclusions must be an existing Jamf Computer Group,  or '#{NONE}'.",
-            sub_commands: CLI_COMMANDS,
+            invalid_msg: "Invalid exclusion. All exclusions must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
-              A comma-separated list of Jamf Computer Groups identifying computers
+              A comma-separated list of Jamf Computer Group names identifying computers
               that will not be able to install this, unless forced. If a computer is
               in both the targets and the exclusions, the exclusion wins.
             ENDDESC
@@ -219,23 +260,24 @@ module Xolo
 
           expiration: {
             label: 'Expire After Days',
+            cli: :e,
             default: 0,
             validate: /\A\d+\z/,
             type: :integer,
             invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. 0 for no expiration.',
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               If the all of the executables listed in 'Expiration Paths' have not been
-              used in this number of days, the title is uninstalled from the computer.
+              brought to the foreground in this number of days, the title is uninstalled
+              from the computer.
             ENDDESC
           },
 
           expiration_paths: {
             label: 'Expiration Paths',
+            cli: :E,
             validate: true,
             type: :strings,
             invalid_msg: "Invalid expiration paths. Must at least one absolute path starting with a '/' and containing at least one more non-adjacent '/'.",
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               Paths to executables that must come to the foreground of a user's GUI session
               to be considered 'usage' of this title.
@@ -244,12 +286,11 @@ module Xolo
 
           self_service: {
             label: 'Show in Self Service',
-            validate: true,
+            cli: :s,
             type: :boolean,
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
-              Should this title be available in Self Service?
-              If so, and there are defined target groups, will only be
+              Make this title available in Self Service.
+              If so, and there are defined target groups, the title will only be
               available to non-excluded computers in those groups.
               Self Service is not available for titles with the target 'all'.
             ENDDESC
@@ -257,23 +298,25 @@ module Xolo
 
           self_service_category: {
             label: 'Self Service Category',
+            cli: :c,
             validate: true,
             type: :string,
-            sub_commands: CLI_COMMANDS,
             invalid_msg: 'Invalid category. Must exist in Jamf Pro.',
             desc: <<~ENDDESC
-              The Category in which to display this title in Self Service
+              The Category in which to display this title in Self Service.
+              Ignored if not in Self Service.
             ENDDESC
           },
 
           self_service_icon: {
             label: 'Self Service Icon',
+            cli: :i,
             validate: true,
             type: :string,
             invalid_msg: 'Invalid Icon Path. No such file found locally.',
-            sub_commands: CLI_COMMANDS,
             desc: <<~ENDDESC
               Path to a local image file to use as the icon for this title in Self Service.
+              Ignored if not in Self Service.
             ENDDESC
           },
 
@@ -281,7 +324,6 @@ module Xolo
             label: 'Created By',
             type: :string,
             cli: false,
-            walkthru: false,
             desc: <<~ENDDESC
               The login of the admin who created this title.
             ENDDESC
@@ -289,9 +331,8 @@ module Xolo
 
           creation_date: {
             label: 'Creation Date',
-            type: :date,
+            type: :time,
             cli: false,
-            walkthru: false,
             desc: <<~ENDDESC
               The date this title was created.
             ENDDESC
@@ -301,7 +342,6 @@ module Xolo
             label: 'Modified By',
             type: :string,
             cli: false,
-            walkthru: false,
             desc: <<~ENDDESC
               The login of the admin who last modified this title.
             ENDDESC
@@ -309,9 +349,8 @@ module Xolo
 
           modification_date: {
             label: 'Creation Date',
-            type: :date,
+            type: :time,
             cli: false,
-            walkthru: false,
             desc: <<~ENDDESC
               The date this title was last modified.
             ENDDESC

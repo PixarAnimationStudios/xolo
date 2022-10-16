@@ -41,22 +41,36 @@ module Xolo
 
         opts =
           Optimist.options do
-            version Xolo::VERSION
-            banner 'Usage:'
-            banner "  #{Xolo::Admin.usage}\n\n"
+            banner 'Name:'
+            banner "  #{Xolo::Admin.executable.basename}, A command-line tool for managing Software Titles and Versions in Xolo."
+
+            banner "\nUsage:"
+            banner "  #{Xolo::Admin.usage}"
+
             banner "\nGlobal Options:"
 
+            insert_blanks
+            version Xolo::VERSION
             opt :version, 'Print version and exit' ## add this here or it goes to bottom of help
             opt :help, 'Show this help and exit' ## add this here or it goes to bottom of help
             Xolo::Admin::Options::GLOBAL_OPTIONS.each do |opt_key, deets|
               opt opt_key, deets[:desc], short: deets[:cli]
             end
-            stop_on Xolo::Admin::Options::SUB_COMMANDS.keys
+            stop_on Xolo::Admin::Options::COMMANDS.keys
 
             banner "\nCommands:"
-            Xolo::Admin::Options::SUB_COMMANDS.each { |cmd, deets| banner format('  %-20s %s', cmd, deets[:desc]) }
+            Xolo::Admin::Options::COMMANDS.each do |cmd, deets|
+              banner format('  %-20s %s', cmd, deets[:desc])
+            end
 
-            banner "\nExamples"
+            banner "\nCommand Arguments:"
+            banner "  title-id:     The unique name of this title in Xolo, e.g. 'google-chrome'"
+            banner "  version:      The version you are working with, if applicable, e.g. '12.34.5'"
+
+            banner "\nCommand Options:"
+            banner "  Use '#{executable_file} help command'  or '#{executable_file} command --help' to see command-specific help."
+
+            banner "\nExamples:"
             banner "  #{executable_file} add-title google-chrome <options...>"
             banner "    Add a new title to Xolo with the title-id 'google-chrome',"
             banner '    specifying all options on the command line'
@@ -84,11 +98,21 @@ module Xolo
             banner "\n  #{executable_file} delete-version google-chrome 95.144.21194"
             banner "    Delete version 95.144.21194 from the title-id 'google-chrome'"
 
-            banner "\n\nUse '#{executable_file} help command'  or '#{executable_file} command --help' to see command-specific help."
+            banner "\n  #{executable_file} search chrome"
+            banner '    List all title-ids and available versions in Xolo for title-ids that'
+            banner "    contain the string 'chrome'"
+
+            banner "\n  #{executable_file} report google-chrome"
+            banner "    Report computers with any version of title-id 'google-chrome' installed"
+
+            banner "\n  #{executable_file} report google-chrome 95.144.21194"
+            banner "    Report computers with version 95.144.21194 of title-id 'google-chrome' installed"
           end # Optimist.options
 
         Xolo::Admin::Options.global_opts = opts
         Xolo::Admin::Options.global_opts.command = ARGV.shift
+        Xolo::Admin::Options.cmd_args.title_id = ARGV.shift
+        Xolo::Admin::Options.cmd_args.version = ARGV.shift unless ARGV.first.to_s.start_with? '-'
 
         validate_command
 
@@ -108,38 +132,51 @@ module Xolo
           ARGV.unshift '--help'
         end
 
-        cmd_opts = Xolo::Admin::Options::SUB_COMMANDS[cmd][:opts]
-        cmd_desc = Xolo::Admin::Options::SUB_COMMANDS[cmd][:desc]
-        cmd_display = Xolo::Admin::Options::SUB_COMMANDS[cmd][:display]
+        cmd_opts = Xolo::Admin::Options::COMMANDS[cmd][:opts]
+        cmd_desc = Xolo::Admin::Options::COMMANDS[cmd][:desc]
+        cmd_display = Xolo::Admin::Options::COMMANDS[cmd][:display]
         vers_cmd = version_command?
 
         opts =
           Optimist.options do
-            banner "Command: #{cmd}, #{cmd_desc}"
-            banner 'Usage: '
-            banner "  #{executable_file} #{cmd_display} options\n\n"
-            banner "\ntitle-id:     The unique name of this title in Xolo, e.g. 'google-chrome'"
-            banner "version:      The version you are working with. e.g. '12.34.5'" if vers_cmd
+            # NOTE: extra newlines are added to the front of strings, cuz
+            # optimist chomps the ends.
+            banner 'Command:'
+            banner "  #{cmd}, #{cmd_desc}"
+
+            banner "\nUsage:"
+            banner "  #{executable_file} #{cmd_display} options"
+
+            banner "\nArguments:"
+            banner "  title-id:     The unique name of this title in Xolo, e.g. 'google-chrome'"
+            banner "  version:      The version you are working with. e.g. '12.34.5'" if vers_cmd
 
             banner "\nOptions:"
+            insert_blanks
 
+            # create the optimist options
             cmd_opts.each do |opt_key, deets|
-              next unless deets[:sub_commands]&.include? cmd
+              next unless deets[:cli]
+
+              required = deets[:required] && [Xolo::Admin::Options::ADD_TITLE_CMD,
+                                              Xolo::Admin::Options::ADD_VERSION_CMD].include?(cmd)
 
               desc = deets[:desc]
-              opt opt_key, desc, short: deets[:cli], type: deets[:type]
+              desc = "#{desc}REQUIRED" if required
+
+              # here's the actual command
+              opt opt_key, desc, short: deets[:cli], type: deets[:type], required: required
             end # opts_to_use.each
           end # Optimist.options
 
         Xolo::Admin::Options.cmd_opts = opts
-        Xolo::Admin::Options.cmd_opts.title_id = ARGV.shift
-        Xolo::Admin::Options.cmd_opts.version = ARGV.shift if vers_cmd
       end # parse_command_cli
 
       # is the given command valid?
+      #########
       def self.validate_command
         cmd = Xolo::Admin::Options.global_opts.command
-        return if Xolo::Admin::Options::SUB_COMMANDS.key? cmd
+        return if Xolo::Admin::Options::COMMANDS.key? cmd
 
         msg =
           if cmd.to_s.empty?
@@ -150,10 +187,11 @@ module Xolo
         Optimist.die msg
       end # validate command
 
-      # does the command we're running deal with versions? if not, just deals with titles
+      # does the command we're running deal with versions?
+      # if not, it deals with titles
+      ##########
       def self.version_command?
-        cmd = Xolo::Admin::Options.global_opts.command
-        Xolo::Admin::Options::SUB_COMMANDS[cmd][:opts] == Xolo::Admin::Options::VERSION_OPTIONS
+        !Xolo::Admin::Options.cmd_args.version.nil?
       end
 
     end # module CommandLine
