@@ -42,6 +42,8 @@ module Xolo
         # Constants
         #############################
 
+        USE_TITLE_FOR_KILLAPP = 'use-title'
+
         # Attributes
         ######################
 
@@ -57,8 +59,7 @@ module Xolo
             validate: true,
             invalid_msg: 'Not a valid version! Cannot already exist in this title.',
             desc: <<~ENDDESC
-              A unique version string identifying this version in this title,
-              e.g. '12.34.5'.
+              A unique version string identifying this version in this title, e.g. '12.34.5'.
             ENDDESC
           },
 
@@ -84,7 +85,7 @@ module Xolo
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
               The lowest version of macOS able to run this version of this title.
-              Leave blank or set to 'none' if not applicable.
+              Leave blank or set to '#{Xolo::NONE}' if not applicable.
             ENDDESC
           },
 
@@ -97,7 +98,7 @@ module Xolo
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
               The highest version of macOS able to run this version of this title.
-              Leave blank or set to 'none' if not applicable.
+              Leave blank or set to '#{Xolo::NONE}' if not applicable.
             ENDDESC
           },
 
@@ -106,7 +107,7 @@ module Xolo
             cli: :r,
             type: :boolean,
             desc: <<~ENDDESC
-              The installation of this version requires the computer to reboot.
+              The installation of this version requires the computer to reboot. Users will be notified before installation.
             ENDDESC
           },
 
@@ -115,25 +116,48 @@ module Xolo
             cli: :s,
             type: :boolean,
             desc: <<~ENDDESC
-              The installer for this version is a full installer, not an incremental patch
-              that must be installed on top of an earlier version.
+              The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
             ENDDESC
           },
 
-          kill_apps: {
-            label: 'Kill Apps',
+          killapp: {
+            label: 'KillApp',
             cli: :k,
-            type: :strings,
+            type: :string,
+            multi: true,
             validate: true,
             default: Xolo::NONE,
-            invalid_msg: 'Not a valid OS version!',
+            invalid_msg: 'Not a valid killapp!',
             desc: <<~ENDDESC
-              A killapp is an application that cannot be running while this version is installed.
-              If running, installation is delayed, and users are notified to quit.
-              They are defined by an app name e.g. 'Google Chrome.app', and the app's Bundle ID
+              A killapp is an application that cannot be running while this version is installed. If running, installation is delayed, and users are notified to quit.
+              Killapps are defined by an app name e.g. 'Google Chrome.app', and the app's Bundle ID
               e.g. 'com.google.chrome'.
-              Specify them together separated by a semi-colon, e.g. 'Google Chrome.app;com.google.chrome'
-              To specify more than one killapp, separate them by commas, or use -k more than once.
+
+              Specify them together separated by a semi-colon, e.g.
+                 'Google Chrome.app;com.google.chrome'
+
+              If the title for this version has a defined --app-name and --app-bundle-id, you can use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}' (see '#{Xolo::Admin.executable.basename} help add-title')
+
+              To specify more than one killapp on the command line, use multiple --killapp options.
+              To specify more than one killapp during --walkthru, separate them with commas.
+            ENDDESC
+          },
+
+          pilot_group: {
+            label: 'Pilot Computer Group',
+            default: Xolo::NONE,
+            cli: :p,
+            validate: :jamf_group,
+            type: :string,
+            multi: true,
+            invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
+            desc: <<~ENDDESC
+              The name of a Jamf Computer Group identifying computers that will automatically have this version installed before it is released.
+              These computers will be used for testing not just the software, but the installation process itself.
+              Computers that are also in an excluded group for the title will not be used as pilots.
+
+              To specify more than one group on the command line, use multiple --pilot-group options.
+              To specify more than one group during --walkthru, separate them with commas.
             ENDDESC
           },
 

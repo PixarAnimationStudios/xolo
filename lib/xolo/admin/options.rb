@@ -26,7 +26,7 @@
 # Yes we're using a OpenStruct for our @opts, even though it's very slow.
 # It isn't so slow that it's a problem for processing a CLI tool.
 # The benefit is being able to use either Hash-style references
-# e.g. opts[key] or method-style when you know the key e.g. opts.title_id
+# e.g. opts[key] or method-style when you know the key e.g. opts.title
 require 'ostruct'
 require 'optimist'
 
@@ -96,64 +96,65 @@ module Xolo
       REPORT_CMD = 'report'
       HELP_CMD = 'help'
 
-      # These commands get their opts from the Title Attributes
-      TITLE_OPT_COMMANDS = [ADD_TITLE_CMD, EDIT_TITLE_CMD]
-
-      # These commands get their opts from the Version Attributes
-      VERSION_OPT_COMMANDS = [ADD_VERSION_CMD, EDIT_VERSION_CMD]
-
       COMMANDS = {
         ADD_TITLE_CMD => {
           desc: 'Add a new software title',
-          display: "#{ADD_TITLE_CMD} title-id",
-          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES
+          display: "#{ADD_TITLE_CMD} title",
+          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES,
+          target: :title
         },
 
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
-          display: "#{EDIT_TITLE_CMD} title-id",
-          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES
+          display: "#{EDIT_TITLE_CMD} title",
+          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES,
+          target: :title
         },
 
         DELETE_TITLE_CMD => {
           desc: 'Delete a software title, and all of its versions',
-          display: "#{DELETE_TITLE_CMD} title-id",
-          opts: {}
+          display: "#{DELETE_TITLE_CMD} title",
+          opts: {},
+          target: :title
         },
 
         ADD_VERSION_CMD => {
           desc: 'Add a new version to a title',
-          display: "#{ADD_VERSION_CMD} title-id version",
-          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES
+          display: "#{ADD_VERSION_CMD} title version",
+          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES,
+          target: :version
         },
 
         EDIT_VERSION_CMD => {
           desc: 'Edit a version of a title',
-          display: "#{EDIT_VERSION_CMD} title-id version",
-          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES
+          display: "#{EDIT_VERSION_CMD} title version",
+          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES,
+          target: :version
         },
 
         RELEASE_VERSION_CMD => {
           desc: 'Release a version to all targets.',
-          display: "#{DELETE_VERSION_CMD} title-id version",
-          opts: {}
+          display: "#{DELETE_VERSION_CMD} title version",
+          opts: {},
+          target: :version
         },
 
         DELETE_VERSION_CMD => {
           desc: 'Delete a version from a title.',
-          display: "#{DELETE_VERSION_CMD} title-id version",
-          opts: {}
+          display: "#{DELETE_VERSION_CMD} title version",
+          opts: {},
+          target: :version
         },
 
         SEARCH_CMD => {
           desc: 'Search for titles in Xolo.',
-          display: "#{SEARCH_CMD} title-id",
+          display: "#{SEARCH_CMD} title",
           opts: {}
         },
 
         REPORT_CMD => {
           desc: 'Report installation data.',
-          display: "#{REPORT_CMD} title-id [version]",
+          display: "#{REPORT_CMD} title [version]",
           opts: {}
         },
 
@@ -167,26 +168,49 @@ module Xolo
       #### Module Methods
       #############################
 
+      # Global Opts
+      ############################
       def self.global_opts
         @global_opts
       end
 
+      # Will be set by Optimist in command_line.rb
+      # or highlight in interactive.rb
       def self.global_opts=(hash)
         @global_opts = OpenStruct.new hash
       end
 
-      def self.cmd_opts
-        @cmd_opts
+      # The command
+      ############################
+      def self.command
+        @command
       end
 
-      def self.cmd_opts=(hash)
-        @cmd_opts = OpenStruct.new hash
+      # Will be set in command_line.rb
+      def self.command=(str)
+        @command = str
       end
 
+      # Command args, title and possibly version
+      # will be set in command_line.rb
+      ############################
       def self.cmd_args
         @cmd_args ||= OpenStruct.new
       end
 
+      # Command Opts
+      ############################
+      def self.cmd_opts
+        @cmd_opts
+      end
+
+      # Will be set by Optimist in command_line.rb
+      # or highlight in interactive.rb
+      def self.cmd_opts=(hash)
+        @cmd_opts = OpenStruct.new hash
+      end
+
+      #############
       #####
       def self.required_title_values
         @required_title_values ||= Xolo::Core::BaseClasses::Title::ATTRIBUTES.select { |_k, v| v[:required] }

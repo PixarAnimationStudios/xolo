@@ -105,8 +105,8 @@ module Xolo
         #
         ATTRIBUTES = {
 
-          title_id: {
-            label: 'Title ID',
+          title: {
+            label: 'Title',
             required: true,
             immutable: true,
             cli: false,
@@ -114,7 +114,7 @@ module Xolo
             validate: true,
             invalid_msg: 'Not a valid title id! Must be lowercase alphanumeric and dashes only, cannot already exist in Xolo.',
             desc: <<~ENDDESC
-              A unique string identifying this Software Title, e.g. 'folio'.
+              A unique string identifying this Title, e.g. 'folio' or 'google-chrome'.
               The same as a 'basename' in d3.
               Must contain only lowercase letters, numbers, and dashes.
             ENDDESC
@@ -128,8 +128,7 @@ module Xolo
             validate: :title_display_name,
             invalid_msg: '"Not a valid display name, must be at least three characters, starting and ending with non-whitespace.',
             desc: <<~ENDDESC
-              A human-friendly name for the Software Title, e.g. 'Google Chrome', or
-              'NFS Menubar'. Must be at least three characters long.
+              A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'. Must be at least three characters long.
             ENDDESC
           },
 
@@ -141,10 +140,10 @@ module Xolo
             validate: :title_desc,
             invalid_msg: "Not a valid description name, must be at least 20 characters. Include a useful dscription of what the software does,  URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
             desc: <<~ENDDESC
-              A useful dscription of what the software installed by this title does,
-              You can also include URLs, developer names, support info, etc.
-              DO NOT use, e.g. 'Installs Google Chrome' for the title 'GoogleChrome',
-              that just wastes everyone's time. Must be at least 20 Characters.
+              A useful dscription of what the software installed by this title does. You can also include URLs, developer names, support info, etc.
+
+              DO NOT use, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.
+              Must be at least 20 Characters.
             ENDDESC
           },
 
@@ -161,23 +160,6 @@ module Xolo
             ENDDESC
           },
 
-          app_bundle_id: {
-            label: 'App Bundle ID',
-            cli: :b,
-            validate: true,
-            type: :string,
-            invalid_msg: '"Not a valid bundle ID, must include at least one dot.',
-            desc: <<~ENDDESC
-              If this title installs a .app bundle, the app's bundle-id must be provided.
-              This is found in the CFBundleIdentifier key of the app's Info.plist.
-              e.g. 'com.google.chrome'
-              If the title does not install a .app bundle, or if the .app doesn't
-              provide its version via the bundle id (e.g. Firefox) leave this blank, and
-              provide a --version-script.
-              REQUIRED if --app-name is used.
-            ENDDESC
-          },
-
           app_name: {
             label: 'App Name',
             cli: :a,
@@ -186,10 +168,38 @@ module Xolo
             invalid_msg: "Not a valid App name, must end with '.app'",
             desc: <<~ENDDESC
               If this title installs a .app bundle, the app's name must be provided.
-              This the name of the bundle iteslf on disk, e.g. 'Google Chrome.app'.
+              This the name of the bundle itself on disk, e.g. 'Google Chrome.app'.
+
+              Jamf Patch Management uses this, plus the app's bundle id, to determine
+              if the title is installed on a computer, and if so, which version.
+
               If the title does not install a .app bundle, leave this blank, and
               provide a --version-script.
+
               REQUIRED if --app-bundle-id is used.
+            ENDDESC
+          },
+
+          app_bundle_id: {
+            label: 'App Bundle ID',
+            cli: :b,
+            validate: true,
+            type: :string,
+            depends: :app_name,
+            invalid_msg: '"Not a valid bundle ID, must include at least one dot.',
+            desc: <<~ENDDESC
+              If this title installs a .app bundle, the app's bundle-id must be provided.
+              This is found in the CFBundleIdentifier key of the app's Info.plist.
+              e.g. 'com.google.chrome'
+
+              Jamf Patch Management uses this, plus the app's name, to determine
+              if the title is installed on a computer, and if so, which version.
+
+              If the title does not install a .app bundle, or if the .app doesn't
+              provide its version via the bundle id (e.g. Firefox) leave this blank, and
+              provide a --version-script.
+
+              REQUIRED if --app-name is used.
             ENDDESC
           },
 
@@ -200,87 +210,83 @@ module Xolo
             type: :string,
             invalid_msg: 'Invalid Script Path. No such file found locally.',
             desc: <<~ENDDESC
-              If this title does NOT install a .app bundle, enter the path to a script
-              which will run on managed computers and output a <result> tag with the
-              currently installed version of this title.
+              If this title does NOT install a .app bundle, enter the local path to a script which will run on managed computers and output a <result> tag with the currently installed version of this title.
+
               E.g. if version 1.2.3 is installed, the script should output the text:
                  <result>1.2.3</result>
               and if no version of the title is installed, it should output:
                  <result></result>
+
               NOTE: This is ignored if --app-name and --app-bundle-id are used.
             ENDDESC
           },
 
-          pilots: {
-            label: 'Pilot Computer Groups',
-            default: Xolo::NONE,
-            cli: :P,
-            validate: :jamf_group,
-            type: :strings,
-            invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
-            desc: <<~ENDDESC
-              A comma-separated list of Jamf Computer Group names identifying computers
-              that will automatically have versions of this title installed before
-              they are released.
-              These computers will be used for testing not just the software, but the
-              installation process itself.
-              Computers that are also in an excluded group will not be used as pilots.
-            ENDDESC
-          },
-
-          targets: {
-            label: 'Target Computer Groups',
+          target_group: {
+            label: 'Target Computer Group',
             default: Xolo::NONE,
             cli: :t,
             validate: :jamf_group,
-            type: :strings,
+            type: :string,
+            multi: true,
             invalid_msg: "Invalid target group. Must be an existing Jamf Computer Group, '#{TARGET_ALL}', or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
-              A comma-separated list of Jamf Computer Group names identifying computers
-              that will automatically have this title installed. Use 'all' to auto-
-              install on all computers.
-              Computers that are also in an excluded group will not automatically have the
-              title installed.
+              The name of a Jamf Computer Group identifying computers that will automatically have this title installed.
+              Use '#{TARGET_ALL}' to auto-install on all computers that aren't excluded.
+              Use '#{Xolo::NONE}' to remove any current target groups.
+
+              To specify more than one group on the command line, use multiple --target-group options.
+              To specify more than one group during --walkthru, separate them with commas.
+
+              NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers.
             ENDDESC
           },
 
-          exclusions: {
-            label: 'Excluded Computer Groups',
+          excluded_group: {
+            label: 'Excluded Computer Group',
             cli: :x,
             validate: :jamf_group,
             default: Xolo::NONE,
-            type: :strings,
+            type: :string,
+            multi: true,
             invalid_msg: "Invalid exclusion. All exclusions must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
-              A comma-separated list of Jamf Computer Group names identifying computers
-              that will not be able to install this, unless forced. If a computer is
-              in both the targets and the exclusions, the exclusion wins.
+              The name of a Jamf Computer Group identifying computers that will not be able to install this title.
+              If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
+              Use '#{Xolo::NONE}' to remove any current excluded groups.
+
+              To specify more than one group on the command line, use multiple --excluded-group options.
+              To specify more than one group during --walkthru, separate them with commas.
             ENDDESC
           },
 
           expiration: {
-            label: 'Expire After Days',
+            label: 'Expire Days',
             cli: :e,
             default: 0,
             validate: /\A\d+\z/,
             type: :integer,
-            invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. 0 for no expiration.',
+            invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. or 0 for no expiration.',
             desc: <<~ENDDESC
-              If the all of the executables listed in 'Expiration Paths' have not been
-              brought to the foreground in this number of days, the title is uninstalled
-              from the computer.
+              If none of the executables listed as 'Expiration Paths' have been brought to the foreground in this number of days, the title is uninstalled from the computer.
+
+              Zero means 'do not expire'.
             ENDDESC
           },
 
-          expiration_paths: {
-            label: 'Expiration Paths',
+          expiration_path: {
+            label: 'Expiration Path',
             cli: :E,
             validate: true,
-            type: :strings,
-            invalid_msg: "Invalid expiration paths. Must at least one absolute path starting with a '/' and containing at least one more non-adjacent '/'.",
+            type: :string,
+            multi: true,
+            invalid_msg: "Invalid expiration path. Must at least one absolute path starting with a '/' and containing at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
-              Paths to executables that must come to the foreground of a user's GUI session
-              to be considered 'usage' of this title.
+              Path to an executable that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the executable does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
+
+              If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office.
+
+              To specify more than one path on the command line, use multiple --expiration-path options.
+              To specify more than one path during --walkthru, separate them with commas.
             ENDDESC
           },
 
@@ -290,8 +296,8 @@ module Xolo
             type: :boolean,
             desc: <<~ENDDESC
               Make this title available in Self Service.
-              If so, and there are defined target groups, the title will only be
-              available to non-excluded computers in those groups.
+              If there are any defined target groups, the title will only be available to computers in those groups.
+              It will never be available to excluded computers.
               Self Service is not available for titles with the target 'all'.
             ENDDESC
           },

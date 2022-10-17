@@ -36,6 +36,9 @@ module Xolo
       # The value to use when unsetting an option
       NONE = 'none'
 
+      # CLI options and other things use dashes
+      DASH = '-'
+
       # These are handy for testing values without making new arrays, strings, etc every time.
       TRUE_FALSE = [true, false].freeze
 

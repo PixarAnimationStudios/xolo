@@ -38,20 +38,25 @@ class XoloAdmin
 
   def run
     puts
-    puts 'GLOBAL OPTS'
-    puts Xolo::Admin::Options.global_opts
+    puts 'GLOBAL OPTS:'
+    Xolo::Admin::Options.global_opts.to_h.each do |k, v|
+      puts "..#{k} => #{v}"
+    end
 
     puts
-    puts 'COMMAND OPTS'
-    puts Xolo::Admin::Options.cmd_opts
+    puts "COMMAND: #{Xolo::Admin::Options.command}"
 
     puts
-    puts :title_id
-    puts Xolo::Admin::Options.cmd_opts.title_id
+    puts "TITLE: #{Xolo::Admin::Options.cmd_args.title}"
 
     puts
-    puts :version
-    puts Xolo::Admin::Options.cmd_opts.version
+    puts "VERSION: #{Xolo::Admin::Options.cmd_args.version}"
+
+    puts
+    puts 'COMMAND OPTS:'
+    Xolo::Admin::Options.cmd_opts.to_h.each do |k, v|
+      puts "..#{k} => #{v}"
+    end
   end # run
 
 end # class XoloAdmin
