@@ -44,6 +44,14 @@ module Xolo
 
         USE_TITLE_FOR_KILLAPP = 'use-title'
 
+        # Class Methods
+        #############################
+
+        # The ATTRIBUTES that are available as CLI & walkthru options
+        def self.cli_opts
+          @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
+        end
+
         # Attributes
         ######################
 

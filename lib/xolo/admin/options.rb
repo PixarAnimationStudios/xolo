@@ -100,14 +100,14 @@ module Xolo
         ADD_TITLE_CMD => {
           desc: 'Add a new software title',
           display: "#{ADD_TITLE_CMD} title",
-          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES,
+          opts: Xolo::Core::BaseClasses::Title.cli_opts,
           target: :title
         },
 
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
           display: "#{EDIT_TITLE_CMD} title",
-          opts: Xolo::Core::BaseClasses::Title::ATTRIBUTES,
+          opts: Xolo::Core::BaseClasses::Title.cli_opts,
           target: :title
         },
 
@@ -121,14 +121,14 @@ module Xolo
         ADD_VERSION_CMD => {
           desc: 'Add a new version to a title',
           display: "#{ADD_VERSION_CMD} title version",
-          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES,
+          opts: Xolo::Core::BaseClasses::Version.cli_opts,
           target: :version
         },
 
         EDIT_VERSION_CMD => {
           desc: 'Edit a version of a title',
           display: "#{EDIT_VERSION_CMD} title version",
-          opts: Xolo::Core::BaseClasses::Version::ATTRIBUTES,
+          opts: Xolo::Core::BaseClasses::Version.cli_opts,
           target: :version
         },
 
@@ -212,8 +212,8 @@ module Xolo
 
       #############
       #####
-      def self.required_title_values
-        @required_title_values ||= Xolo::Core::BaseClasses::Title::ATTRIBUTES.select { |_k, v| v[:required] }
+      def self.required_values
+        @required_values ||= COMMANDS[command][:opts].select { |_k, v| v[:required] }
       end
 
     end # module Options

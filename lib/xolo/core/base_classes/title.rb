@@ -45,6 +45,14 @@ module Xolo
         # The value to use when all computers are the targets
         TARGET_ALL = 'all'
 
+        # Class Methods
+        #############################
+
+        # The ATTRIBUTES that are available as CLI & walkthru options
+        def self.cli_opts
+          @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
+        end
+
         # Attributes
         ######################
 
@@ -80,6 +88,17 @@ module Xolo
         #   If the symbol :none is used, there is no short variation of the CLI option.
         #   but a long --option-flag will be used matching the attribute key, e.g.
         #   for app_bundle_id it will be --app-bundle-id
+        #
+        # - depends: [Symbol] Some other key of the ATTRIBTUES hash. When defined, both the
+        #   key named here and the key in which this is defined, must be present together
+        #   on the command-line. E.g. Setting  foo: { depends: :bar }, means that if either
+        #   --foo or --bar are given on the commandline, the other must also be given.
+        #
+        # - multi: [Boolean] If true, this option can be given multiple times on the commandline
+        #   and all the values will be in an array in the options hash.
+        #   E.g. if foo: { multi: true } and these options are given on the commandline
+        #       --foo val1 --foo val2  --foo val3
+        #   then the options hash will contain: :foo => ['val1', 'val2', 'val3']
         #
         # - type: [Symbol] the data type of the value. One of:
         #   :boolean, :integer, :string, :float, :io, :date.
@@ -294,6 +313,7 @@ module Xolo
             label: 'Show in Self Service',
             cli: :s,
             type: :boolean,
+            default: false,
             desc: <<~ENDDESC
               Make this title available in Self Service.
               If there are any defined target groups, the title will only be available to computers in those groups.

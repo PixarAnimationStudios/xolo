@@ -37,7 +37,10 @@ class XoloAdmin
   end
 
   def run
+    Xolo::Admin::Interactive.walkthru if Xolo::Admin::Options.global_opts.walkthru
+
     puts
+    puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
     puts 'GLOBAL OPTS:'
     Xolo::Admin::Options.global_opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"

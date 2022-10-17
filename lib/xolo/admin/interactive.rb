@@ -33,7 +33,97 @@ module Xolo
     module Interactive
 
       def self.cli
-        @cli ||= Highline.new
+        @cli ||= HighLine.new
+      end
+
+      # Use an interactive walkthru session to populate
+      # Xolo::Admin::Options.cmd_opts
+      #
+      def self.walkthru
+        cmd = Xolo::Admin::Options.command
+
+        return unless Xolo::Admin::Options.global_opts.walkthru
+        # if the command doesn't take any options, there's nothing to walk through
+        return if Xolo::Admin::Options::COMMANDS[cmd][:opts].empty?
+
+        display_menu cmd
+      end
+
+      # @param title [Xolo::Admin::Title]
+      ####
+      def self.display_menu(cmd)
+        done_with_menu = false
+
+        until done_with_menu
+          # clearn the screen and show the menu header
+          display_walkthru_header
+
+          # Generate the menu items
+          cli.choose do |menu|
+            menu.responses[:ambiguous_completion] = nil
+            menu.responses[:no_completion] = 'Unknown Choice'
+
+            # The menu items for setting values
+            Xolo::Admin::Options::COMMANDS[cmd][:opts].each do |key, deets|
+              curr_val = current_values[key]
+              new_val = Xolo::Admin::Options.cmd_opts[key]
+              menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val)
+
+              menu.choice(menu_item) { prompt_for_value key, deets, curr_val }
+            end
+
+            # only show 'done' when none are still needed,
+            # and adjust the main menu prompt appropriately
+            still_needed = missing_values
+            if still_needed.empty?
+              prompt = 'Your Choice: '
+              menu.choice('Done') { done_with_menu = true }
+            else
+              prompt = "Missing Required Values: #{still_needed.join ', '}\nYour Choice: "
+            end
+
+            # always show 'Cancel' at the end
+            menu.choice('Cancel') do
+              done_with_menu = true
+              @cancelled = true
+            end
+
+            # and show the prompt we calculated above.
+            menu.prompt = prompt
+          end
+        end # until
+      end # def self.display_title_menu(_title)
+
+      # The menu header
+      def self.display_walkthru_header
+        system 'clear'
+
+        header_action = Xolo::Admin::CommandLine.add_command? ? 'Adding' : 'Editing'
+        header_target = "Xolo title '#{Xolo::Admin::Options.cmd_args.title}'"
+        if Xolo::Admin::CommandLine.version_command?
+          header_target = "Version #{Xolo::Admin::Options.cmd_args.version} of #{header_target}"
+        end
+        header_text = "#{header_action} #{header_target}"
+        header_sep_line = '-' * header_text.length
+
+        puts <<~ENDPUTS
+          #{header_sep_line}
+          #{header_action} #{header_target}
+          #{header_sep_line}
+          Current Settings => New Settings
+        ENDPUTS
+      end
+
+      # The current/default values of the thing we are adding or editing
+      def self.current_values
+        return @current_values if @current_values
+
+        @current_values = OpenStruct.new
+        Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.command][:opts].each do |opt, deets|
+          @current_values[opt] = deets[:default]
+        end
+
+        @current_values
       end
 
       ####
@@ -45,7 +135,7 @@ module Xolo
       end
 
       #### prompt for and return a value
-      def self.prompt_for_value(_opts, key, deets)
+      def self.prompt_for_value(key, deets, curr_val)
         question = +<<~ENDQ
           #{deets[:label]}
           #{deets[:desc]}
@@ -55,89 +145,34 @@ module Xolo
 
         # default is the current value, or the
         # defined value if no current.
-        default = instance_variable_get("@#{key}")
-        default ||= deets[:default]
+        default = curr_val || deets[:default]
 
-        validate =
-          case deets[:validate]
-          when TrueClass
-            ->(ans) { Xolo::Admin::Validate.send key, ans }
-          when Symbol
-            ->(ans) { Xolo::Admin::Validate.send deets[:validate], ans }
-          end
+        # validate =
+        #   case deets[:validate]
+        #   when TrueClass
+        #     ->(ans) { Xolo::Admin::Validate.send key, ans }
+        #   when Symbol
+        #     ->(ans) { Xolo::Admin::Validate.send deets[:validate], ans }
+        #   end
 
-        cli.ask(question) do |q|
+        ans = cli.ask(question) do |q|
           q.default = default if default
-          if validate
-            q.validate = validate
-            q.responses[:not_valid] = "ERROR: #{deets[:invalid_msg]}\n\n"
-          end
+          # if validate
+          #   q.validate = validate
+          #   q.responses[:not_valid] = "ERROR: #{deets[:invalid_msg]}\n\n"
+          # end
           q.responses[:ask_on_error] = :question
         end
+
+        Xolo::Admin::Options.cmd_opts[key] = ans
       end
 
-      # @param title [Xolo::Admin::Title]
-      ######
-      def self.display_title_menu_header(_title)
-        system 'clear' or system 'cls'
-        puts <<~ENDPUTS
-          ------------------------------------
-          Editing xolo title '#{title.title_id}'
-          ------------------------------------
-          Current Settings => New Settings
-        ENDPUTS
-      end
-
-      # @param title [Xolo::Admin::Title]
-      ####
-      def self.display_title_menu(_title)
-        done_with_title_menu = false
-
-        until done_with_title_menu
-          # clearn the screen and show the menu header
-          display_title_menu_header
-
-          # Generate the menu items
-          cli.choose do |menu|
-            # The menu items for setting values
-            Xolo::Admin::Options::TITLE_OPTIONS.each do |key, deets|
-              next if deets[:walkthru] == false
-
-              oldv, newv = title.old_and_new(key)
-              menu_item = menu_item_text(deets[:label], old: oldv, new: newv)
-
-              menu.choice(menu_item) { prompt_for_value key, deets }
-            end
-
-            # only show 'done' when none are still needed,
-            # and adjust the main menu prompt appropriately
-            still_needed = missing_title_values(title)
-            if still_needed.empty?
-              prompt = 'Your Choice: '
-              menu.choice('Done') { @done_with_title_menu = true }
-            else
-              prompt = "Missing Required Values: #{still_needed.join ', '}\nYour Choice: "
-            end
-
-            # always show 'Cancel' at the end
-            menu.choice('Cancel') do
-              @done_with_title_menu = true
-              @cancelled = true
-            end
-
-            # and show the prompt we calculated above.
-            menu.prompt = prompt
-          end
-        end # until
-      end # def self.display_title_menu(_title)
-
-      # @param title [Xolo::Admin::Title]
       ####
       ######
-      def self.missing_title_values(title)
+      def self.missing_values
         missing_values = []
-        Xolo::Admin::Options.required_title_values.each do |key, deets|
-          next if title.send("@#{key}") || title.send("@new_#{key}")
+        Xolo::Admin::Options.required_values.each do |key, deets|
+          next if Xolo::Admin::Options.cmd_opts[key]
 
           missing_values << deets[:label]
         end

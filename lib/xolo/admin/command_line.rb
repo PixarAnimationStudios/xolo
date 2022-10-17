@@ -223,6 +223,10 @@ module Xolo
         Xolo::Admin::Options.cmd_opts = opts
       end # parse_command_cli
 
+      # CLI VALIDATION
+      # TODO: Move this to Xolo::Core::Validate ?
+      #######################################
+
       # is the given command valid?
       #########
       def self.validate_command
@@ -241,6 +245,12 @@ module Xolo
       # were we given a title?
       #########
       def self.validate_cli_title
+        # TODO:
+        #   If this is an 'add-' command, ensure the title
+        #   doesn't already exist.
+        #   Otherwise, make sure it does already exist, except for
+        #   'search' which uses the CLI title as a search pattern.
+        #
         tid = Xolo::Admin::Options.cmd_args.title
         return if tid && !tid.start_with?(Xolo::DASH)
 
@@ -250,10 +260,16 @@ module Xolo
       # were we given a version?
       #########
       def self.validate_version
+        # TODO:
+        #   If this is an 'add-' command, ensure the version
+        #   doesn't already exist.
+        #   Otherwise, make sure it does already exist
+        #
+
         vers = Xolo::Admin::Options.cmd_args.version
         return if vers && !vers.start_with?(Xolo::DASH)
 
-        Optimist.die "No version provided with '#{Xolo::Admin::Options.global_opts.command}' command!\nUsage: #{Xolo::Admin.usage}"
+        Optimist.die "No version provided with '#{Xolo::Admin::Options.command}' command!\nUsage: #{Xolo::Admin.usage}"
       end
 
       # does the command we're running deal with versions?
@@ -261,6 +277,12 @@ module Xolo
       ##########
       def self.version_command?
         Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.command][:target] == :version
+      end
+
+      # does the command we're running add something (a title or version) to xolo?
+      ##########
+      def self.add_command?
+        Xolo::Admin::Options.command.to_s.start_with? 'add-'
       end
 
     end # module CommandLine
