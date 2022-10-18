@@ -241,6 +241,9 @@ module Xolo
             ENDDESC
           },
 
+          # TODO: make it so that when a xoloadmin says target_group = all, an optional policy
+          # is run that requests approval for that.  That policy can run a script to do ... anything
+          # but until the approval is granted, the target_group is an empty array
           target_group: {
             label: 'Target Computer Group',
             default: Xolo::NONE,
