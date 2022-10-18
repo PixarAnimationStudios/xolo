@@ -100,21 +100,22 @@ module Xolo
         #       --foo val1 --foo val2  --foo val3
         #   then the options hash will contain: :foo => ['val1', 'val2', 'val3']
         #
-        # - type: [Symbol] the data type of the value. One of:
-        #   :boolean, :integer, :string, :float, :io, :date.
-        #   NOTE: Pluralizing those (except :boolean) means the value is an array of
-        #   these objects
-        #
         # - default: [String, Numeric, Boolean, nil] the default value if nothing is
-        #   provided. Note that titles never inherit values, only versions do.
+        #   provided or inherited. Note that titles never inherit values, only versions do.
         #
-        # - validate: [Boolean, Symbol] how to validate values for this attribute.
-        #   - If true (not just truthy) call method Xolo::Core::Validate.<value_key>
-        #     e.g. Xolo::Core::Validate.title_id(val)
+        # - validate: [Boolean, Symbol] how to validate & convert values for this attribute.
+        #   - If true (not just truthy) call method Xolo::Admin::Validate.<value_key>
+        #     e.g. Xolo::Admin::Validate.title_id(val)
         #   - If a Symbol, its a nonstandard method to call on the Xolo::Admin::Validate module
         #     e.g. :non_empty_array will validate the value using
         #     Xolo::Core::Validate.non_empty_array(val)
-        #   - Anything else: no validation
+        #   - Anything else: no validation, and the value will be a String
+        #
+        # - type: [Symbol] the data type of the value. One of: :boolean, :string.
+        #
+        #   NOTE: We are not using Optimists auto-conversion of these types, they all
+        #   come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
+        #   is used to validate and convert the values.
         #
         # - invalid_msg: [String] custom message to display when invalid
         #
@@ -205,7 +206,7 @@ module Xolo
             validate: true,
             type: :string,
             depends: :app_name,
-            invalid_msg: '"Not a valid bundle ID, must include at least one dot.',
+            invalid_msg: '"Not a valid bundle-id, must include at least one dot.',
             desc: <<~ENDDESC
               If this title installs a .app bundle, the app's bundle-id must be provided.
               This is found in the CFBundleIdentifier key of the app's Info.plist.
@@ -227,7 +228,7 @@ module Xolo
             cli: :v,
             validate: true,
             type: :string,
-            invalid_msg: 'Invalid Script Path. No such file found locally.',
+            invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
             desc: <<~ENDDESC
               If this title does NOT install a .app bundle, enter the local path to a script which will run on managed computers and output a <result> tag with the currently installed version of this title.
 
@@ -244,10 +245,10 @@ module Xolo
             label: 'Target Computer Group',
             default: Xolo::NONE,
             cli: :t,
-            validate: :jamf_group,
+            validate: :target_groups,
             type: :string,
             multi: true,
-            invalid_msg: "Invalid target group. Must be an existing Jamf Computer Group, '#{TARGET_ALL}', or '#{Xolo::NONE}'.",
+            invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
               The name of a Jamf Computer Group identifying computers that will automatically have this title installed.
               Use '#{TARGET_ALL}' to auto-install on all computers that aren't excluded.
@@ -263,11 +264,11 @@ module Xolo
           excluded_group: {
             label: 'Excluded Computer Group',
             cli: :x,
-            validate: :jamf_group,
+            validate: :excluded_groups,
             default: Xolo::NONE,
             type: :string,
             multi: true,
-            invalid_msg: "Invalid exclusion. All exclusions must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
+            invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
               The name of a Jamf Computer Group identifying computers that will not be able to install this title.
               If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
@@ -295,10 +296,10 @@ module Xolo
           expiration_path: {
             label: 'Expiration Path',
             cli: :E,
-            validate: true,
-            type: :string,
+            validate: :expiration_paths,
+            type: :path,
             multi: true,
-            invalid_msg: "Invalid expiration path. Must at least one absolute path starting with a '/' and containing at least one more non-adjacent '/'.",
+            invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
               Path to an executable that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the executable does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
 
@@ -313,6 +314,7 @@ module Xolo
             label: 'Show in Self Service',
             cli: :s,
             type: :boolean,
+            validate: true,
             default: false,
             desc: <<~ENDDESC
               Make this title available in Self Service.
@@ -339,7 +341,7 @@ module Xolo
             cli: :i,
             validate: true,
             type: :string,
-            invalid_msg: 'Invalid Icon Path. No such file found locally.',
+            invalid_msg: 'Invalid Icon Path. No such local file found, or not readable.',
             desc: <<~ENDDESC
               Path to a local image file to use as the icon for this title in Self Service.
               Ignored if not in Self Service.

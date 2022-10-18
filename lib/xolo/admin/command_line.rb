@@ -207,8 +207,12 @@ module Xolo
               desc = "#{desc}REQUIRED" if required
               dependants << [opt_key, deets[:depends]] if deets[:depends]
 
+              # booleans are CLI flags defaulting to false
+              # everything else is a string that we will convert as we validate later
+              type = deets[:type] == :boolean ? :boolean : :string
+
               # here we actually set the optimist opt.
-              opt opt_key, desc, short: deets[:cli], type: deets[:type], required: required, multi: deets[:multi]
+              opt opt_key, desc, short: deets[:cli], type: type, required: required, multi: deets[:multi]
             end # opts_to_use.each
 
             # set any option dependencies
@@ -221,10 +225,17 @@ module Xolo
 
         # save the opts hash from optimist into our OpenStruct
         Xolo::Admin::Options.cmd_opts = opts
+
+        # validate them
+        begin
+          Xolo::Core::Validate.validate_cli_cmd_opts
+        rescue Xolo::InvalidDataError => e
+          Optimist.die e.to_s
+        end
       end # parse_command_cli
 
       # CLI VALIDATION
-      # TODO: Move this to Xolo::Core::Validate ?
+      # TODO: Move these to Xolo::Core::Validate ?
       #######################################
 
       # is the given command valid?

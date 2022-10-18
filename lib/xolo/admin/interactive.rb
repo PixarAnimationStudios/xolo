@@ -46,12 +46,12 @@ module Xolo
         # if the command doesn't take any options, there's nothing to walk through
         return if Xolo::Admin::Options::COMMANDS[cmd][:opts].empty?
 
-        display_menu cmd
+        display_walkthru_menu cmd
       end
 
       # @param title [Xolo::Admin::Title]
       ####
-      def self.display_menu(cmd)
+      def self.display_walkthru_menu(cmd)
         done_with_menu = false
 
         until done_with_menu
@@ -64,12 +64,21 @@ module Xolo
             menu.responses[:no_completion] = 'Unknown Choice'
 
             # The menu items for setting values
+            ####
             Xolo::Admin::Options::COMMANDS[cmd][:opts].each do |key, deets|
               curr_val = current_values[key]
               new_val = Xolo::Admin::Options.cmd_opts[key]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val)
 
-              menu.choice(menu_item) { prompt_for_value key, deets, curr_val }
+              # first arg is the 'name' which is used for text-based menu choosing,
+              # and we want number-based, so set it to nil.
+              # Second arg is 'help' which is not used unless the menu is a 'shell'
+              # menu
+              # third arg is 'text' which is the text of the menu item, and if left
+              # out, the 'name' is used.
+              # HighLine should really use keyword args for these, and prob will
+              # eventially.
+              menu.choice(nil, nil, menu_item) { prompt_for_value key, deets, curr_val }
             end
 
             # only show 'done' when none are still needed,
@@ -77,13 +86,13 @@ module Xolo
             still_needed = missing_values
             if still_needed.empty?
               prompt = 'Your Choice: '
-              menu.choice('Done') { done_with_menu = true }
+              menu.choice(nil, nil, 'Done') { done_with_menu = true }
             else
               prompt = "Missing Required Values: #{still_needed.join ', '}\nYour Choice: "
             end
 
             # always show 'Cancel' at the end
-            menu.choice('Cancel') do
+            menu.choice(nil, nil, "Cancel\n") do
               done_with_menu = true
               @cancelled = true
             end
@@ -96,8 +105,6 @@ module Xolo
 
       # The menu header
       def self.display_walkthru_header
-        system 'clear'
-
         header_action = Xolo::Admin::CommandLine.add_command? ? 'Adding' : 'Editing'
         header_target = "Xolo title '#{Xolo::Admin::Options.cmd_args.title}'"
         if Xolo::Admin::CommandLine.version_command?
@@ -106,11 +113,13 @@ module Xolo
         header_text = "#{header_action} #{header_target}"
         header_sep_line = '-' * header_text.length
 
+        system 'clear'
         puts <<~ENDPUTS
           #{header_sep_line}
           #{header_action} #{header_target}
           #{header_sep_line}
           Current Settings => New Settings
+
         ENDPUTS
       end
 
@@ -150,22 +159,41 @@ module Xolo
         # validate =
         #   case deets[:validate]
         #   when TrueClass
-        #     ->(ans) { Xolo::Admin::Validate.send key, ans }
+        #     ->(ans) { Xolo::Core::Validate.send key, ans }
         #   when Symbol
-        #     ->(ans) { Xolo::Admin::Validate.send deets[:validate], ans }
+        #     ->(ans) { Xolo::Core::Validate.send deets[:validate], ans }
         #   end
 
         ans = cli.ask(question) do |q|
           q.default = default if default
+          q.gather if deets[:multi]
+
           # if validate
           #   q.validate = validate
           #   q.responses[:not_valid] = "ERROR: #{deets[:invalid_msg]}\n\n"
           # end
+
           q.responses[:ask_on_error] = :question
         end
 
         Xolo::Admin::Options.cmd_opts[key] = ans
       end
+
+      # @param deets [Hash] The details of this option/attribute
+      # @return [Lambda] converts the given answer from a string to the desired type
+      # def self.answer_converter(deets)
+      #   ->(ans) do |q|
+      #     case deets[:type]
+      #     when :boolean
+      #       Xolo::Admin::Converters.boolean ans
+      #     when :integer
+      #     when :float
+      #     when :date
+
+      #     end
+      #     q.gather if deets[:multi]
+      #   end
+      # end
 
       ####
       ######
