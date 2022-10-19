@@ -190,11 +190,16 @@ module Xolo
             banner "\nOptions:"
 
             # add a blank line between each of the cli options
+            # NOTE: chrisl added this to the optimist.rb included in this project.
             insert_blanks
 
             # for each cmd opt that has deets[:depends]
             # we'll create a line 'depends: opt_key, deets[:depends]'
             dependants = []
+
+            # for each cmd opt that has deets[:conflicts] (an array of conflicting
+            # cli opt keys)  we'll create a line 'conflicts: opt_key, opt_key'
+            conflicts = []
 
             # create the optimist options for the command
             cmd_opts.each do |opt_key, deets|
@@ -205,7 +210,11 @@ module Xolo
 
               desc = deets[:desc]
               desc = "#{desc}REQUIRED" if required
+
               dependants << [opt_key, deets[:depends]] if deets[:depends]
+              conflicts << [opt_key, deets[:conflicts]] if deets[:conflicts]
+
+              # deets[:conflicts].each { |c| conflicts << [opt_key, c] } if deets[:conflicts]
 
               # booleans are CLI flags defaulting to false
               # everything else is a string that we will convert as we validate later
@@ -214,6 +223,13 @@ module Xolo
               # here we actually set the optimist opt.
               opt opt_key, desc, short: deets[:cli], type: type, required: required, multi: deets[:multi]
             end # opts_to_use.each
+
+            # set any option conflicts
+            unless conflicts.empty?
+              conflicts.each do |pair|
+                conflicts pair.first, pair.last
+              end
+            end
 
             # set any option dependencies
             unless dependants.empty?
@@ -228,14 +244,16 @@ module Xolo
 
         # validate them
         begin
-          Xolo::Core::Validate.validate_cli_cmd_opts
+          Xolo::Admin::Validate.cli_cmd_opts
         rescue Xolo::InvalidDataError => e
           Optimist.die e.to_s
         end
       end # parse_command_cli
 
       # CLI VALIDATION
-      # TODO: Move these to Xolo::Core::Validate ?
+      # TODO: Move these to Xolo::Admin::Validate? or leave them here.
+      # They are validating the commandline itself, not the values being used
+      # for the opts.
       #######################################
 
       # is the given command valid?

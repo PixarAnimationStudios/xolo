@@ -46,14 +46,28 @@ module Xolo
         raise Xolo::InvalidDataError, "'#{val}' #{msg}"
       end
 
-      # Validate the command options acquired from the command line
+      # Validate the command options acquired from the command line.
       # Walkthru will validate them individually as they are entered.
-      def self.validate_cli_cmd_opts
-        opts_defs = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.command][:opts]
+      #
+      # TODO: for both this and walkthru: combine Xolo::Admin::Options.cmd_opts
+      # with default/inherited/existsing values, and then do
+      # validation for the object as a whole.
+      #
+      def self.cli_cmd_opts
+        cmd = Xolo::Admin::Options.command
+        opts_defs = Xolo::Admin::Options::COMMANDS[cmd][:opts]
         return if opts_defs.empty?
 
-        Xolo::Admin::Options.cmd_opts.to_h.keys.each do |opt_key|
+        opts_defs.each do |key, deets|
+          # skip things not given on the command line
+          next unless Xolo::Admin::Options.cmd_opts["#{key}_given"]
 
+          # skip things that shouldn't be validated
+          next unless deets[:validate]
+
+          meth = deets[:validate].is_a?(Symbol) ? deets[:validate] : key
+
+          send meth, Xolo::Admin::Options.cmd_opts[key]
         end
       end
 

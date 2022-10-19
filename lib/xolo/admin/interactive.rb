@@ -159,9 +159,9 @@ module Xolo
         # validate =
         #   case deets[:validate]
         #   when TrueClass
-        #     ->(ans) { Xolo::Core::Validate.send key, ans }
+        #     ->(ans) { Xolo::Admin::Validate.send key, ans }
         #   when Symbol
-        #     ->(ans) { Xolo::Core::Validate.send deets[:validate], ans }
+        #     ->(ans) { Xolo::Admin::Validate.send deets[:validate], ans }
         #   end
 
         ans = cli.ask(question) do |q|

@@ -169,48 +169,84 @@ module Xolo
       #############################
 
       # Global Opts
+      #
+      # The CLI options from xadm that come before the
+      # xadm command
+      #
+      # These are always set by Optimist.
+      #
+      # See Xolo::Admin::Options.cmd_opts below for
+      # a short discussion about the optimist hash.
       ############################
       def self.global_opts
         @global_opts
       end
 
-      # Will be set by Optimist in command_line.rb
-      # or highlight in interactive.rb
+      # Setter used by the command_line process
+      # to store the global opts.
       def self.global_opts=(hash)
         @global_opts = OpenStruct.new hash
       end
 
-      # The command
+      # The xadm command we are processing
       ############################
       def self.command
         @command
       end
 
-      # Will be set in command_line.rb
+      # Setter used  in command_line.rb to store the xadm command
       def self.command=(str)
         @command = str
       end
 
-      # Command args, title and possibly version
+      # Command args the arguments to the
+      # current xadm command.
+      #
+      # will always contain a .title,
+      # and for commands that need a version,
+      # will contain .version
+      #
       # will be set in command_line.rb
+      #
       ############################
       def self.cmd_args
         @cmd_args ||= OpenStruct.new
       end
 
-      # Command Opts
+      # Command Opts - the options given for processing
+      # an xadm command.
+      #
+      # Will be set by Optimist in command_line.rb
+      # or HighLine in interactive.rb
+      #
+      # The optimist data will contain, a key matching every
+      # key from the option definitions hash, even if the key
+      # wasn't given on the commandline.
+      # So if there's a ':foo_bar' option defined, but --foo-bar
+      # wasn't given on the commandline,
+      # Xolo::Admin::Options.cmd_opts[:foo_bar] will be set, but will
+      # be nil.
+      # More importantly, for each option that IS given on the commandline
+      # the optimist hash will contain a ':opt_name_given' key set to true.
+      # so for validation, we can only care about the values for which there
+      # is a *_given key, e.g. :foo_bar_given in the example above.
+      # See also Xolo::Admin::Validate.cli_cmd_opts.
+      #
+      # The hash used here when using --walkthru will contain values for
+      # all the options that exist, but they will already have been validated
+      # by the walkthru process.
+      #
       ############################
       def self.cmd_opts
         @cmd_opts
       end
 
-      # Will be set by Optimist in command_line.rb
-      # or highlight in interactive.rb
+      # Setter use by the command_line or interactive processes to
+      # store the options provided.
       def self.cmd_opts=(hash)
         @cmd_opts = OpenStruct.new hash
       end
 
-      #############
       #####
       def self.required_values
         @required_values ||= COMMANDS[command][:opts].select { |_k, v| v[:required] }

@@ -64,26 +64,26 @@ module Xolo
         #    e.g. 'Title ID'
         #
         # - required: [Boolean] Must be provided when making a new title, cannot be
-        #   deleted from existing titles.
+        #   deleted from existing titles. (but can be changed if not immutable)
         #
-        # - immutable: [Boolean] This value can only be set when created a new title.
+        # - immutable: [Boolean] This value can only be set when creatimg a new title.
         #   When editing an existing title, it cannot be changed.
         #
-        # - cli: [false, Symbol] If this attr. is taken as a CLI option or
-        #   walkthru item, what is its 'short' option flag?
+        # - cli: [false, Symbol] Is this attr. is taken as a CLI option or
+        #   walkthru item? If so, what is its 'short' option flag?
         #
         #   If falsey, this option is never taken as a cli
         #   option or walkthru menu choice, but may be used elsewhere,
         #   e.g. in this cli command:
         #      xadm add-title my-title-id <options>
-        #   'add-title' is the command and 'my-title-id', which populates th
-        #   title_id attribute, is the argument, but not a CLI option, so for
-        #   'title_id', cli: is false
+        #   'add-title' is the command and 'my-title', which populates th
+        #   title attribute, is the command's argument, but not a CLI option, so for
+        #   'title', cli: is false
         #
         #   If a one-letter Symbol, this is the 'short' cli option, e.g. the Symbol :d
         #   defines the cli option '-d' which is used as the short option for --description
-        #   NOTE: the long cli options are just the attrib keys preceded with -- and
-        #   underscores converted to dashes, so :title_id becomes --title-id
+        #   NOTE: the long cli options are just the attrib keys preceded with -- and with
+        #   underscores converted to dashes, so :app_bundle_id becomes --app-bundle-id
         #
         #   If the symbol :none is used, there is no short variation of the CLI option.
         #   but a long --option-flag will be used matching the attribute key, e.g.
@@ -93,6 +93,11 @@ module Xolo
         #   key named here and the key in which this is defined, must be present together
         #   on the command-line. E.g. Setting  foo: { depends: :bar }, means that if either
         #   --foo or --bar are given on the commandline, the other must also be given.
+        #
+        # - conflicts: [Symbol] Some other key of the ATTRIBTUES hash. When defined, the
+        #   key named here and the key in which this is defined, may not be present together
+        #   on the command-line. E.g. Setting  foo: { conflicts: :bar }, means that if either
+        #   --foo or --bar are given on the commandline, the other may not also be given.
         #
         # - multi: [Boolean] If true, this option can be given multiple times on the commandline
         #   and all the values will be in an array in the options hash.
@@ -108,7 +113,7 @@ module Xolo
         #     e.g. Xolo::Admin::Validate.title_id(val)
         #   - If a Symbol, its a nonstandard method to call on the Xolo::Admin::Validate module
         #     e.g. :non_empty_array will validate the value using
-        #     Xolo::Core::Validate.non_empty_array(val)
+        #     Xolo::Admin::Validate.non_empty_array(val)
         #   - Anything else: no validation, and the value will be a String
         #
         # - type: [Symbol] the data type of the value. One of: :boolean, :string.
@@ -116,6 +121,8 @@ module Xolo
         #   NOTE: We are not using Optimists auto-conversion of these types, they all
         #   come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
         #   is used to validate and convert the values.
+        #   The YARD docs for each attribute indicates the Class of the value in the
+        #   Title object after CLI processing.
         #
         # - invalid_msg: [String] custom message to display when invalid
         #
@@ -125,6 +132,8 @@ module Xolo
         #
         ATTRIBUTES = {
 
+          # @!attribute title
+          #   @return [String]
           title: {
             label: 'Title',
             required: true,
@@ -140,6 +149,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute display_name The uniq name of this title in xolo
+          #   @return [String]
           display_name: {
             label: 'Display Name',
             required: true,
@@ -185,6 +196,7 @@ module Xolo
             cli: :a,
             validate: true,
             type: :string,
+            conflicts: :version_script,
             invalid_msg: "Not a valid App name, must end with '.app'",
             desc: <<~ENDDESC
               If this title installs a .app bundle, the app's name must be provided.
@@ -206,6 +218,7 @@ module Xolo
             validate: true,
             type: :string,
             depends: :app_name,
+            conflicts: :version_script,
             invalid_msg: '"Not a valid bundle-id, must include at least one dot.',
             desc: <<~ENDDESC
               If this title installs a .app bundle, the app's bundle-id must be provided.
@@ -286,8 +299,8 @@ module Xolo
             label: 'Expire Days',
             cli: :e,
             default: 0,
-            validate: /\A\d+\z/,
-            type: :integer,
+            validate: true,
+            type: :string,
             invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. or 0 for no expiration.',
             desc: <<~ENDDESC
               If none of the executables listed as 'Expiration Paths' have been brought to the foreground in this number of days, the title is uninstalled from the computer.
@@ -299,8 +312,9 @@ module Xolo
           expiration_path: {
             label: 'Expiration Path',
             cli: :E,
+            default: Xolo::NONE,
             validate: :expiration_paths,
-            type: :path,
+            type: :string,
             multi: true,
             invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
@@ -336,6 +350,8 @@ module Xolo
             desc: <<~ENDDESC
               The Category in which to display this title in Self Service.
               Ignored if not in Self Service.
+
+              REQUIRED if self_service is true.
             ENDDESC
           },
 
