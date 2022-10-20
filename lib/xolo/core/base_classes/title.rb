@@ -96,8 +96,8 @@ module Xolo
         #
         # - conflicts: [Symbol] Some other key of the ATTRIBTUES hash. When defined, the
         #   key named here and the key in which this is defined, may not be present together
-        #   on the command-line. E.g. Setting  foo: { conflicts: :bar }, means that if either
-        #   --foo or --bar are given on the commandline, the other may not also be given.
+        #   on the command-line. E.g. Setting  foo: { conflicts: :bar }, means that --foo
+        #   and --bar cannot both be given on the same commandline.
         #
         # - multi: [Boolean] If true, this option can be given multiple times on the commandline
         #   and all the values will be in an array in the options hash.
@@ -118,8 +118,8 @@ module Xolo
         #
         # - type: [Symbol] the data type of the value. One of: :boolean, :string.
         #
-        #   NOTE: We are not using Optimists auto-conversion of these types, they all
-        #   come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
+        #   NOTE: We are not using Optimist's validation & auto-conversion of these types, they
+        #   all come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
         #   is used to validate and convert the values.
         #   The YARD docs for each attribute indicates the Class of the value in the
         #   Title object after CLI processing.
@@ -141,7 +141,7 @@ module Xolo
             cli: false,
             type: :string,
             validate: true,
-            invalid_msg: 'Not a valid title id! Must be lowercase alphanumeric and dashes only, cannot already exist in Xolo.',
+            invalid_msg: 'Not a valid title! Must be lowercase alphanumeric and dashes only, cannot already exist in Xolo.',
             desc: <<~ENDDESC
               A unique string identifying this Title, e.g. 'folio' or 'google-chrome'.
               The same as a 'basename' in d3.

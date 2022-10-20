@@ -281,6 +281,9 @@ module Xolo
         #   'search' which uses the CLI title as a search pattern.
         #
         tid = Xolo::Admin::Options.cmd_args.title
+
+        Xolo::Admin::Validate.title tid
+
         return if tid && !tid.start_with?(Xolo::DASH)
 
         Optimist.die  "No title provided!\nUsage: #{Xolo::Admin.usage}"

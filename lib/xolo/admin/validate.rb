@@ -53,6 +53,13 @@ module Xolo
       # with default/inherited/existsing values, and then do
       # validation for the object as a whole.
       #
+      # e.g. When running add-title, either --app-name and --app-bundle-id OR
+      # --version-script must be given. Optimist can't easily check
+      # for that.
+      #
+      # Also, even the :depends and :conflicts checking that optimist
+      # does must be done after all values are collected when using --walkthru.
+      #
       def self.cli_cmd_opts
         cmd = Xolo::Admin::Options.command
         opts_defs = Xolo::Admin::Options::COMMANDS[cmd][:opts]
