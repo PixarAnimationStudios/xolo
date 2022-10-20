@@ -165,6 +165,10 @@ module Xolo
         }
       }.freeze
 
+      # The commands that add something to xolo - how their options are processed and validated
+      # differs from those commands that just edit or report things.
+      ADD_COMMANDS = [ADD_TITLE_CMD, ADD_VERSION_CMD].freeze
+
       #### Module Methods
       #############################
 
@@ -175,17 +179,11 @@ module Xolo
       #
       # These are always set by Optimist.
       #
-      # See Xolo::Admin::Options.cmd_opts below for
+      # See Xolo::Admin::Options.cli_cmd_opts below for
       # a short discussion about the optimist hash.
       ############################
       def self.global_opts
-        @global_opts
-      end
-
-      # Setter used by the command_line process
-      # to store the global opts.
-      def self.global_opts=(hash)
-        @global_opts = OpenStruct.new hash
+        @global_opts ||= OpenStruct.new
       end
 
       # The xadm command we are processing
@@ -213,41 +211,146 @@ module Xolo
         @cmd_args ||= OpenStruct.new
       end
 
-      # Command Opts - the options given for processing
-      # an xadm command.
+      # CLI Command Opts - the options given on the command line
+      # for processing an xadm command.
       #
       # Will be set by Optimist in command_line.rb
-      # or HighLine in interactive.rb
       #
-      # The optimist data will contain, a key matching every
+      # The options gathered by a walkthru are available in
+      # Xolo::Admin::Options.walkthru_cmd_opts
+      #
+      # The optimist data will contain a key matching every
       # key from the option definitions hash, even if the key
       # wasn't given on the commandline.
+      #
       # So if there's a ':foo_bar' option defined, but --foo-bar
       # wasn't given on the commandline,
-      # Xolo::Admin::Options.cmd_opts[:foo_bar] will be set, but will
+      # Xolo::Admin::Options.cli_cmd_opts[:foo_bar] will be set, but will
       # be nil.
+      #
       # More importantly, for each option that IS given on the commandline
       # the optimist hash will contain a ':opt_name_given' key set to true.
       # so for validation, we can only care about the values for which there
       # is a *_given key, e.g. :foo_bar_given in the example above.
       # See also Xolo::Admin::Validate.cli_cmd_opts.
       #
-      # The hash used here when using --walkthru will contain values for
-      # all the options that exist, but they will already have been validated
-      # by the walkthru process.
-      #
+      # After validating the individual options provided, the values from
+      # current_values will be added to cli_cmd_opts for any options not
+      # given on the command-line. After that, the whole will be validated
+      # for internal consistency.
       ############################
-      def self.cmd_opts
-        @cmd_opts
+      def self.cli_cmd_opts
+        @cli_cmd_opts ||= OpenStruct.new
       end
 
-      # Setter use by the command_line or interactive processes to
-      # store the options provided.
-      def self.cmd_opts=(hash)
-        @cmd_opts = OpenStruct.new hash
+      # Walkthru Command Opts - the options given via walkthrough
+      # for processing an xadm command.
+      #
+      # This is intially set with the default, inherited, or existing
+      # values for the object being created or edited.
+      #
+      # Before the walk through starts, it duped and the dup
+      # used as the current_opt_values (see below)
+      #
+      # In walkthru, the current_opt_values are used to generate the menu
+      # items showing the changes being made.
+      #
+      # e.g. if option :foo (label: 'Foo') starts with value 'bar'
+      # at first the menu item will look like:
+      #
+      #     12) Foo: bar
+      #
+      # but if the walkthru user changes the value to 'baz', it'll look like this
+      #
+      #     12) Foo: bar => baz
+      #
+      # The changes themselves are reflected here in walkthru_cmd_opts, and it will be
+      # used for validation of individual options, as well as overall internal
+      # consistency, before being applied to the object at hand.
+      ############################
+      def self.walkthru_cmd_opts
+        @walkthru_cmd_opts ||= OpenStruct.new
       end
 
-      #####
+      # the 'current' values for the cli opts of the object being manipulated by xadm
+      # (either a title or a version)
+      #
+      # when xadm takes all options from the commandline,
+      # those options are merged with these to get the set that must be validated for
+      # internal consistency.
+      #
+      # When getting all options via walkthru, these are used as the starting point
+      # and as values are changed, they are validated individually, and for internal consistency
+      # each time the menu is re-drawn.
+      #
+      # When adding a new one, there is no current one, so the current values are
+      # either nil, or any default defined in the options for the command, or if we are
+      # making a new version, 'current' values are inherited from the prev. version.
+      #
+      # When editing an existing object, the current values come from that existing one.
+      # via the server.
+      #
+      # These are then used for the walkthru menus, or if not walkthru, the values
+      # given on the commandline are merged with these to create the set of values
+      # to be validated together before being applied.
+      #
+      def self.current_opt_values
+        return @current_opt_values if @current_opt_values
+
+        @current_opt_values = OpenStruct.new
+
+        # adding a new object
+        if Xolo::Admin::CommandLine.add_command?
+
+          # set any that are defined as default
+          opts_defs = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.command][:opts]
+          opts_defs.each { |key, deets| @current_opt_values[key] = deets[:default] if deets[:default] }
+
+          # new titles never inherit, they just start with defaults, so  we are done
+          return @current_opt_values unless Xolo::Admin::CommandLine.version_command?
+
+          # if we are here, its a version, so we'll grab the previous one and use
+          # it to inherit its values.
+          # This is where we'll fetch it from the xolo server as a JSON hash, some day
+          prev_version_data = nil
+          prev_version_data.each { |key, val| @current_opt_values[key] = val } if prev_version_data
+
+          return @current_opt_values
+        end
+
+        # editing an existing object
+
+        # TODO: When the server is functional, this is where we
+        # reach out to grab the existing object, and we'll get back a JSON hash of its
+        # data.
+        # Until there, here's a hard-coded hash for a title
+        existing_obj_data = {
+          title: 'foo',
+          display_name: 'Foo',
+          description: 'Installs Foo',
+          publisher: 'Foo Industries',
+          app_name: 'Foo.app',
+          app_bundle_id: 'com.foo.foo',
+          version_script: nil,
+          target_group: %w[target-group-one target-group-two],
+          excluded_group: %w[exclude-group-one exclude-group-two],
+          expiration: 45,
+          expiration_path: ['/tmp/foochrisl', '/tmp/foochrisl2'],
+          self_service: true,
+          self_service_category: 'All The Foos',
+          self_service_icon: nil,
+          created_by: 'chrisl',
+          creation_date: (Time.now - 2_535_876),
+          modified_by: 'chrisltest',
+          modification_date: Time.now
+        }
+
+        existing_obj_data.each { |key, val| @current_values[key] = val }
+
+        @current_values
+      end
+
+      # The options for the running command that are marked as :required
       def self.required_values
         @required_values ||= COMMANDS[command][:opts].select { |_k, v| v[:required] }
       end

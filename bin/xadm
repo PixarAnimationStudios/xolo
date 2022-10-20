@@ -57,7 +57,13 @@ class XoloAdmin
 
     puts
     puts 'COMMAND OPTS:'
-    Xolo::Admin::Options.cmd_opts.to_h.each do |k, v|
+    Xolo::Admin::Options.cli_cmd_opts.to_h.each do |k, v|
+      puts "..#{k} => #{v}"
+    end
+
+    puts
+    puts 'CURRENT OPT VALUES:'
+    Xolo::Admin::Options.current_opt_values.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
   end # run
@@ -67,7 +73,11 @@ end # class XoloAdmin
 # MAIN
 #####################
 begin
-  debug = ARGV.include? '--debug'
+  # if --debug is given anywhere, move it to the front of ARGV
+  # which is where Optimist expects it
+  debug = ARGV.delete '--debug'
+  ARGV.unshift debug if debug
+
   app = XoloAdmin.new
   app.run
 rescue => e

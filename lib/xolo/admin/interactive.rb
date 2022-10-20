@@ -37,7 +37,7 @@ module Xolo
       end
 
       # Use an interactive walkthru session to populate
-      # Xolo::Admin::Options.cmd_opts
+      # Xolo::Admin::Options.cli_cmd_opts
       #
       def self.walkthru
         cmd = Xolo::Admin::Options.command
@@ -67,7 +67,7 @@ module Xolo
             ####
             Xolo::Admin::Options::COMMANDS[cmd][:opts].each do |key, deets|
               curr_val = current_values[key]
-              new_val = Xolo::Admin::Options.cmd_opts[key]
+              new_val = Xolo::Admin::Options.cli_cmd_opts[key]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val)
 
               # first arg is the 'name' which is used for text-based menu choosing,
@@ -176,7 +176,7 @@ module Xolo
           q.responses[:ask_on_error] = :question
         end
 
-        Xolo::Admin::Options.cmd_opts[key] = ans
+        Xolo::Admin::Options.cli_cmd_opts[key] = ans
       end
 
       # @param deets [Hash] The details of this option/attribute
@@ -200,7 +200,7 @@ module Xolo
       def self.missing_values
         missing_values = []
         Xolo::Admin::Options.required_values.each do |key, deets|
-          next if Xolo::Admin::Options.cmd_opts[key]
+          next if Xolo::Admin::Options.cli_cmd_opts[key]
 
           missing_values << deets[:label]
         end

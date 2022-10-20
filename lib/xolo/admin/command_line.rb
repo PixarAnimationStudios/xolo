@@ -115,13 +115,14 @@ module Xolo
           end # Optimist.options
 
         # save the global opts hash from optimist into our OpenStruct
-        Xolo::Admin::Options.global_opts = opts
+        # save the opts hash from optimist into our OpenStruct
+        opts.each { |k, v| Xolo::Admin::Options.global_opts[k] = v }
 
         # next item will be the command we are executing
         Xolo::Admin::Options.command = ARGV.shift
         validate_command
 
-        # Now parse the
+        # Now parse the rest of the command line
         parse_command_cli
       end
 
@@ -129,7 +130,7 @@ module Xolo
       # to be executed.
       # This gets the title, and if needed the version, storing them in
       # Xolo::Admin::Options.cmd_args
-      # then it gets the command options, populating Xolo::Admin::Options.cmd_opts
+      # then it gets the command options, populating Xolo::Admin::Options.cli_cmd_opts
       #######
       def self.parse_command_cli
         # if the command is 'help'
@@ -156,14 +157,10 @@ module Xolo
           end
         end
 
-        # if we are using --walkthru, all command options are ignored, so
-        # set the Xolo::Admin::Options.cmd_opts to an empty hash and return.
-        # The Xolo::Admin::Options.cmd_opts will be populated by the interactive
+        # if we are using --walkthru, all command options are ignored, so just return.
+        # The Xolo::Admin::Options.walkthru_cmd_opts will be populated by the interactive
         # process
-        if Xolo::Admin::Options.global_opts.walkthru
-          Xolo::Admin::Options.cmd_opts = {}
-          return
-        end
+        return if Xolo::Admin::Options.global_opts.walkthru
 
         # set these for use inside the optimist options block
         cmd = Xolo::Admin::Options.command
@@ -205,12 +202,15 @@ module Xolo
             cmd_opts.each do |opt_key, deets|
               next unless deets[:cli]
 
-              required = deets[:required] && [Xolo::Admin::Options::ADD_TITLE_CMD,
-                                              Xolo::Admin::Options::ADD_VERSION_CMD].include?(cmd)
+              required = deets[:required] && Xolo::Admin::CommandLine.add_command?
 
               desc = deets[:desc]
               desc = "#{desc}REQUIRED" if required
 
+              # TODO: should these only be used for add_commands?
+              # or checked later when validating all the opts together?
+              # Prob the latter, so the same issues can be checked via walkthru
+              # and while editing.
               dependants << [opt_key, deets[:depends]] if deets[:depends]
               conflicts << [opt_key, deets[:conflicts]] if deets[:conflicts]
 
@@ -225,26 +225,40 @@ module Xolo
             end # opts_to_use.each
 
             # set any option conflicts
-            unless conflicts.empty?
-              conflicts.each do |pair|
-                conflicts pair.first, pair.last
-              end
-            end
+            # unless conflicts.empty?
+            #   conflicts.each do |pair|
+            #     conflicts pair.first, pair.last
+            #   end
+            # end
 
             # set any option dependencies
-            unless dependants.empty?
-              dependants.each do |pair|
-                depends pair.first, pair.last
-              end
-            end
+            # unless dependants.empty?
+            #   dependants.each do |pair|
+            #     depends pair.first, pair.last
+            #   end
+            # end
           end # Optimist.options
 
         # save the opts hash from optimist into our OpenStruct
-        Xolo::Admin::Options.cmd_opts = opts
+        opts.each { |k, v| Xolo::Admin::Options.cli_cmd_opts[k] = v }
 
-        # validate them
+        # validate them individually
         begin
           Xolo::Admin::Validate.cli_cmd_opts
+        rescue Xolo::InvalidDataError => e
+          Optimist.die e.to_s
+        end
+
+        # add in current_opt_values for anything not given on the cli
+        Xolo::Admin::Options.current_opt_values.each do |k, v|
+          next if Xolo::Admin::Options.cli_cmd_opts["#{k}_given"]
+
+          Xolo::Admin::Options.cli_cmd_opts[k] = v if v
+        end
+
+        # and then do the internal consistency check
+        begin
+          Xolo::Admin::Validate.internal_consistency Xolo::Admin::Options.cli_cmd_opts
         rescue Xolo::InvalidDataError => e
           Optimist.die e.to_s
         end
@@ -314,7 +328,7 @@ module Xolo
       # does the command we're running add something (a title or version) to xolo?
       ##########
       def self.add_command?
-        Xolo::Admin::Options.command.to_s.start_with? 'add-'
+        Xolo::Admin::Options::ADD_COMMANDS.include? Xolo::Admin::Options.command
       end
 
     end # module CommandLine
