@@ -58,7 +58,7 @@ module Xolo
       # done for walkthru.
       #
       def self.cli_cmd_opts
-        cmd = Xolo::Admin::Options.command
+        cmd = Xolo::Admin::Options.cli_cmd.command
         opts_defs = Xolo::Admin::Options::COMMANDS[cmd][:opts]
         return if opts_defs.empty?
 
@@ -278,6 +278,7 @@ module Xolo
       # @return [Boolean, String] The validity, or the valid value
       def self.self_service_category(val)
         val = val.to_s
+
         # TODO: implement the check via the xolo server
         return val # if category exists
 
@@ -297,6 +298,8 @@ module Xolo
       end
 
       # Internal Consistency Checks!
+      #
+      ##################################################
 
       # Thes methods all raise this error
       def self.raise_consistency_error(msg)
@@ -306,7 +309,7 @@ module Xolo
       # Given an ostruct of options that have been individually validated, and combined
       # with any current_opt_values as needed, check the data for internal consistency.
       # The unset values in the ostruct should be nil. 'none' is used for unsetting values,
-      # in the CLI and walkthry, and is converted to nil during validation if appropriate.
+      # in the CLI and walkthru, and is converted to nil during validation if appropriate.
       #
       def self.internal_consistency(opts)
         if Xolo::Admin::CommandLine.version_command?
@@ -320,26 +323,58 @@ module Xolo
       def self.title_consistency(opts)
         # if app_name or app_bundle_id is given, can't use --version-script
         if opts[:version_script] && (opts[:app_bundle_id] || opts[:app_name])
-          raise_consistency_error '--version-script cannot be used with --app-name or --app-bundle-id'
+          msg =
+            if Xolo::Admin::Options.walkthru?
+              'Version Script cannot be used with App Name or App Bundle ID'
+            else
+              '--version-script cannot be used with --app-name or --app-bundle-id'
+            end
+
+          raise_consistency_error msg
         end
 
         # if app_name or app_bundle_id are given, so must the other
-        raise_consistency_error '--app-name requires --app-bundle-id' if opts[:app_name] && opts[:app_bundle_id].nil?
-        raise_consistency_error '--app-bundle-id requires --app-name ' if opts[:app_bundle_id] && opts[:app_name].nil?
+        if (opts[:app_name] && !opts[:app_bundle_id]) || (opts[:app_bundle_id] && !opts[:app_name])
+          msg =
+            if Xolo::Admin::Options.walkthru?
+              'App Name & App Bundle ID must both be given if either is.'
+            else
+              '--app-name & --app-bundle-id must both be given if either is.'
+            end
+          raise_consistency_error msg
+        end
 
         # But either version_script OR app name and bundle id must be given
         if !opts[:version_script] && !opts[:app_bundle_id]
-          raise_consistency_error 'Must provide either -app-name & --app-bundle-id OR --version-script'
+          msg =
+            if Xolo::Admin::Options.walkthru?
+              'Either App Name & App Bundle ID. or Version Script must be given.'
+            else
+              'Must provide either -app-name & --app-bundle-id OR --version-script'
+            end
+          raise_consistency_error msg
         end
 
         # if expiration is > 0, there must be at least one expiration path
         if opts[:expiration].positive? && opts[:expiration_path].empty?
-          raise_consistency_error 'At least one --expiration-path must be provided if --expiration is > 0'
+          msg =
+            if Xolo::Admin::Options.walkthru?
+              'At least one Expiration Path must be given if Expiration is > 0.'
+            else
+              'At least one --expiration-path must be provided if --expiration is > 0'
+            end
+          raise_consistency_error msg
         end
 
         # if in self service, a category must be assigned
         if opts[:self_service] && !opts[:self_service_category]
-          raise_consistency_error 'A --self-service-category must be provided when using --self-service'
+          msg =
+            if Xolo::Admin::Options.walkthru?
+              'A Self Service Category must be given if Self Service is true.'
+            else
+              'A --self-service-category must be provided when using --self-service'
+            end
+          raise_consistency_error msg
         end
       end
 

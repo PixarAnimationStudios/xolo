@@ -169,7 +169,7 @@ module Xolo
             cli: :d,
             type: :string,
             validate: :title_desc,
-            invalid_msg: "Not a valid description name, must be at least 20 characters. Include a useful dscription of what the software does,  URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
+            invalid_msg: "Not a valid description name, must be at least 20 characters. Provide a useful dscription of what the software does, URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
             desc: <<~ENDDESC
               A useful dscription of what the software installed by this title does. You can also include URLs, developer names, support info, etc.
 
@@ -250,7 +250,7 @@ module Xolo
               and if no version of the title is installed, it should output:
                  <result></result>
 
-              NOTE: This is ignored if --app-name and --app-bundle-id are used.
+              NOTE: This is cannot be used if --app-name & --app-bundle-id are used, but must be used if they are not
             ENDDESC
           },
 
@@ -355,6 +355,9 @@ module Xolo
             ENDDESC
           },
 
+          # NOTE: This isn't stored anywhere after its used. If it is provided via
+          # xadm add-title or edit-title, it will be uploaded and applied at that
+          # time, but then if you fetch the title again, this value will be nil.
           self_service_icon: {
             label: 'Self Service Icon',
             cli: :i,

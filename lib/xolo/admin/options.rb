@@ -172,6 +172,11 @@ module Xolo
       #### Module Methods
       #############################
 
+      # Are we running in interactive mode?
+      def self.walkthru?
+        Xolo::Admin::Options.global_opts.walkthru
+      end
+
       # Global Opts
       #
       # The CLI options from xadm that come before the
@@ -186,29 +191,23 @@ module Xolo
         @global_opts ||= OpenStruct.new
       end
 
-      # The xadm command we are processing
+      # This will hold 2 or 3 items:
+      # :command - the xadm command we are processing
+      # :title - the title arg for the xadm command
+      # :version - the version arg, if the command processes a version
+      #
+      # e.g. running `xadm edit-title foobar`
+      # - Xolo::Admin::Options.cli_cmd.command => 'edit-title'
+      # - Xolo::Admin::Options.cli_cmd.title => 'foobar'
+      # - Xolo::Admin::Options.cli_cmd.version => nil
+      #
+      # e.g. running `xadm edit-version foobar 1.2.34`
+      # - Xolo::Admin::Options.cli_cmd.command => 'edit-version'
+      # - Xolo::Admin::Options.cli_cmd.title => 'foobar'
+      # - Xolo::Admin::Options.cli_cmd.version => '1.2.34'
       ############################
-      def self.command
-        @command
-      end
-
-      # Setter used  in command_line.rb to store the xadm command
-      def self.command=(str)
-        @command = str
-      end
-
-      # Command args the arguments to the
-      # current xadm command.
-      #
-      # will always contain a .title,
-      # and for commands that need a version,
-      # will contain .version
-      #
-      # will be set in command_line.rb
-      #
-      ############################
-      def self.cmd_args
-        @cmd_args ||= OpenStruct.new
+      def self.cli_cmd
+        @cli_cmd ||= OpenStruct.new
       end
 
       # CLI Command Opts - the options given on the command line
@@ -303,7 +302,7 @@ module Xolo
         if Xolo::Admin::CommandLine.add_command?
 
           # set any that are defined as default
-          opts_defs = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.command][:opts]
+          opts_defs = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:opts]
           opts_defs.each { |key, deets| @current_opt_values[key] = deets[:default] if deets[:default] }
 
           # new titles never inherit, they just start with defaults, so  we are done
@@ -352,7 +351,7 @@ module Xolo
 
       # The options for the running command that are marked as :required
       def self.required_values
-        @required_values ||= COMMANDS[command][:opts].select { |_k, v| v[:required] }
+        @required_values ||= COMMANDS[cli_cmd.command][:opts].select { |_k, v| v[:required] }
       end
 
     end # module Options

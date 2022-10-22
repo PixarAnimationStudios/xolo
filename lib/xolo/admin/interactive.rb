@@ -40,7 +40,7 @@ module Xolo
       # Xolo::Admin::Options.cli_cmd_opts
       #
       def self.walkthru
-        cmd = Xolo::Admin::Options.command
+        cmd = Xolo::Admin::Options.cli_cmd.command
 
         return unless Xolo::Admin::Options.global_opts.walkthru
         # if the command doesn't take any options, there's nothing to walk through
@@ -49,13 +49,17 @@ module Xolo
         display_walkthru_menu cmd
       end
 
-      # @param title [Xolo::Admin::Title]
       ####
       def self.display_walkthru_menu(cmd)
         done_with_menu = false
 
+        # we start off with our Xolo::Admin::Options.walkthru_cmd_opts being the same
+        # the same as Xolo::Admin::Options.current_opt_values
+        Xolo::Admin::Options.current_opt_values.to_h.each { |k, v| Xolo::Admin::Options.walkthru_cmd_opts[k] = v }
+
+        # as the current_values
         until done_with_menu
-          # clearn the screen and show the menu header
+          # clear the screen and show the menu header
           display_walkthru_header
 
           # Generate the menu items
@@ -66,8 +70,8 @@ module Xolo
             # The menu items for setting values
             ####
             Xolo::Admin::Options::COMMANDS[cmd][:opts].each do |key, deets|
-              curr_val = current_values[key]
-              new_val = Xolo::Admin::Options.cli_cmd_opts[key]
+              curr_val = Xolo::Admin::Options.current_opt_values[key]
+              new_val = Xolo::Admin::Options.walkthru_cmd_opts[key]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val)
 
               # first arg is the 'name' which is used for text-based menu choosing,
@@ -84,12 +88,14 @@ module Xolo
             # only show 'done' when none are still needed,
             # and adjust the main menu prompt appropriately
             still_needed = missing_values
-            if still_needed.empty?
-              prompt = 'Your Choice: '
-              menu.choice(nil, nil, 'Done') { done_with_menu = true }
-            else
-              prompt = "Missing Required Values: #{still_needed.join ', '}\nYour Choice: "
-            end
+            consistency_error = internal_consistency_error
+
+            prompt = 'Your Choice: '
+
+            menu.choice(nil, nil, 'Done') { done_with_menu = true } if still_needed.empty? && consistency_error.nil?
+
+            prompt = "Missing Required Values: #{still_needed.join ', '}\n#{prompt}" unless still_needed.empty?
+            prompt = "#{consistency_error}\n#{prompt}" if consistency_error
 
             # always show 'Cancel' at the end
             menu.choice(nil, nil, "Cancel\n") do
@@ -100,15 +106,24 @@ module Xolo
             # and show the prompt we calculated above.
             menu.prompt = prompt
           end
-        end # until
+
+        end # until done with menu
       end # def self.display_title_menu(_title)
+
+      # @return [String, nil] any current internal consistency error. will be nil when none remain
+      def self.internal_consistency_error
+        Xolo::Admin::Validate.internal_consistency Xolo::Admin::Options.walkthru_cmd_opts
+        nil
+      rescue Xolo::InvalidDataError => e
+        e.to_s
+      end
 
       # The menu header
       def self.display_walkthru_header
         header_action = Xolo::Admin::CommandLine.add_command? ? 'Adding' : 'Editing'
-        header_target = "Xolo title '#{Xolo::Admin::Options.cmd_args.title}'"
+        header_target = "Xolo title '#{Xolo::Admin::Options.cli_cmd.title}'"
         if Xolo::Admin::CommandLine.version_command?
-          header_target = "Version #{Xolo::Admin::Options.cmd_args.version} of #{header_target}"
+          header_target = "Version #{Xolo::Admin::Options.cli_cmd.version} of #{header_target}"
         end
         header_text = "#{header_action} #{header_target}"
         header_sep_line = '-' * header_text.length
@@ -123,22 +138,10 @@ module Xolo
         ENDPUTS
       end
 
-      # The current/default values of the thing we are adding or editing
-      def self.current_values
-        return @current_values if @current_values
-
-        @current_values = OpenStruct.new
-        Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.command][:opts].each do |opt, deets|
-          @current_values[opt] = deets[:default]
-        end
-
-        @current_values
-      end
-
       ####
       def self.menu_item_text(lbl, old: nil, new: nil)
         txt = +"#{lbl}: #{old}".strip
-        return txt unless new
+        return txt if old == new
 
         txt << " => #{new}"
       end
@@ -176,7 +179,7 @@ module Xolo
           q.responses[:ask_on_error] = :question
         end
 
-        Xolo::Admin::Options.cli_cmd_opts[key] = ans
+        Xolo::Admin::Options.walkthru_cmd_opts[key] = ans
       end
 
       # @param deets [Hash] The details of this option/attribute

@@ -47,17 +47,18 @@ class XoloAdmin
     end
 
     puts
-    puts "COMMAND: #{Xolo::Admin::Options.command}"
+    puts "COMMAND: #{Xolo::Admin::Options.cli_cmd.command}"
 
     puts
-    puts "TITLE: #{Xolo::Admin::Options.cmd_args.title}"
+    puts "TITLE: #{Xolo::Admin::Options.cli_cmd.title}"
 
     puts
-    puts "VERSION: #{Xolo::Admin::Options.cmd_args.version}"
+    puts "VERSION: #{Xolo::Admin::Options.cli_cmd.version}"
 
     puts
     puts 'COMMAND OPTS:'
-    Xolo::Admin::Options.cli_cmd_opts.to_h.each do |k, v|
+    opts = Xolo::Admin::Options.walkthru? ? Xolo::Admin::Options.walkthru_cmd_opts : Xolo::Admin::Options.cli_cmd_opts
+    opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
 
