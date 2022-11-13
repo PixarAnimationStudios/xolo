@@ -186,6 +186,8 @@ module Xolo
       #
       # See Xolo::Admin::Options.cli_cmd_opts below for
       # a short discussion about the optimist hash.
+      #
+      # @return [OpenStruct]
       ############################
       def self.global_opts
         @global_opts ||= OpenStruct.new
@@ -205,6 +207,8 @@ module Xolo
       # - Xolo::Admin::Options.cli_cmd.command => 'edit-version'
       # - Xolo::Admin::Options.cli_cmd.title => 'foobar'
       # - Xolo::Admin::Options.cli_cmd.version => '1.2.34'
+      #
+      # @return [OpenStruct]
       ############################
       def self.cli_cmd
         @cli_cmd ||= OpenStruct.new
@@ -237,6 +241,8 @@ module Xolo
       # current_values will be added to cli_cmd_opts for any options not
       # given on the command-line. After that, the whole will be validated
       # for internal consistency.
+      #
+      # @return [OpenStruct]
       ############################
       def self.cli_cmd_opts
         @cli_cmd_opts ||= OpenStruct.new
@@ -266,6 +272,8 @@ module Xolo
       # The changes themselves are reflected here in walkthru_cmd_opts, and it will be
       # used for validation of individual options, as well as overall internal
       # consistency, before being applied to the object at hand.
+      #
+      # @return [OpenStruct]
       ############################
       def self.walkthru_cmd_opts
         @walkthru_cmd_opts ||= OpenStruct.new
@@ -293,6 +301,8 @@ module Xolo
       # given on the commandline are merged with these to create the set of values
       # to be validated together before being applied.
       #
+      #
+      # @return [OpenStruct]
       def self.current_opt_values
         return @current_opt_values if @current_opt_values
 
@@ -344,9 +354,9 @@ module Xolo
           modification_date: Time.now
         }
 
-        existing_obj_data.each { |key, val| @current_values[key] = val }
+        existing_obj_data.each { |key, val| @current_opt_values[key] = val }
 
-        @current_values
+        @current_opt_values
       end
 
       # The options for the running command that are marked as :required

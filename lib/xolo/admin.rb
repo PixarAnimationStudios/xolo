@@ -28,6 +28,8 @@
 # The benefit is being able to use either Hash-style references
 # e.g. opts[key] or method-style when you know the key e.g. opts.title_id
 
+require 'io/console'
+
 module Xolo
 
   module Admin

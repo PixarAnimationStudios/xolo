@@ -39,7 +39,7 @@ module Xolo
     module Validate
 
       COMMA_SEP_RE = /\s*,\s*/.freeze
-      TRUE_RE = /\Atrue\z|\Ay(es)?\z/i.freeze
+      TRUE_RE = /(\Atrue\z)|(\Ay(es)?\z)/i.freeze
 
       # Thes methods all raise this error
       def self.raise_invalid_data_error(val, msg)
@@ -49,13 +49,6 @@ module Xolo
       # Validate the command options acquired from the command line.
       # Walkthru will validate them individually as they are entered.
       #
-      # TODO: for both this and walkthru, implement final interntal
-      # consistency validation after we have the merged set of values
-      # gathered from the user and the 'current_values'
-      # Also, we should probably use that internal consistency validation
-      # to do the checks currently done by the :depends and :conflicts
-      # options to Optimist - since those same checks must also be
-      # done for walkthru.
       #
       def self.cli_cmd_opts
         cmd = Xolo::Admin::Options.cli_cmd.command
@@ -65,8 +58,16 @@ module Xolo
         opts_defs.each do |key, deets|
           # skip things not given on the command line
           next unless Xolo::Admin::Options.cli_cmd_opts["#{key}_given"]
+
           # skip things that shouldn't be validated
           next unless deets[:validate]
+
+          # if the item is not required, and 'none' is given, set the
+          # value to nil and we're done
+          if Xolo::Admin::Options.cli_cmd_opts[key] == Xolo::NONE && !deets[:required]
+            Xolo::Admin::Options.cli_cmd_opts[key] = nil
+            next
+          end
 
           meth = deets[:validate].is_a?(Symbol) ? deets[:validate] : key
 
@@ -191,7 +192,7 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(', '), Xolo::Admin::Title::ATTRIBUTES[:target_group][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(', '), Xolo::Admin::Title::ATTRIBUTES[:target_groups][:invalid_msg]
       end
 
       # validate an array  of jamf groups to use as exclusions.
@@ -212,7 +213,7 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(', '), Xolo::Admin::Title::ATTRIBUTES[:excluded_group][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(', '), Xolo::Admin::Title::ATTRIBUTES[:excluded_groups][:invalid_msg]
       end
 
       # TODO: Implement this for xadm via the xolo server
@@ -256,7 +257,7 @@ module Xolo
         end
         return val if bad_paths.empty?
 
-        raise_invalid_data_error bad_paths.join(', '), Xolo::Admin::Title::ATTRIBUTES[:expiration_path][:invalid_msg]
+        raise_invalid_data_error bad_paths.join(', '), Xolo::Admin::Title::ATTRIBUTES[:expiration_paths][:invalid_msg]
       end
 
       # validate self service boolean
@@ -264,7 +265,6 @@ module Xolo
       # Never raises an error, just returns true of false based on the string value
       #
       # @param val [Object] The value to validate
-      #
       #
       # @return [Boolean] The  valid value
       def self.self_service(val)
@@ -356,12 +356,23 @@ module Xolo
         end
 
         # if expiration is > 0, there must be at least one expiration path
-        if opts[:expiration].positive? && opts[:expiration_path].empty?
+        if opts[:expiration].to_i.positive? && (!opts[:expiration_paths] || opts[:expiration_paths].empty?)
           msg =
             if Xolo::Admin::Options.walkthru?
               'At least one Expiration Path must be given if Expiration is > 0.'
             else
               'At least one --expiration-path must be provided if --expiration is > 0'
+            end
+          raise_consistency_error msg
+        end
+
+        # if target_group is all, can't be in self service
+        if opts[:target_groups] && opts[:target_groups].include?(Xolo::Admin::Title::TARGET_ALL) && opts[:self_service]
+          msg =
+            if Xolo::Admin::Options.walkthru?
+              "Cannot be in Self Service when Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'"
+            else
+              "--self-service cannot be used when --target-groups contains '#{Xolo::Admin::Title::TARGET_ALL}'"
             end
           raise_consistency_error msg
         end
@@ -376,7 +387,7 @@ module Xolo
             end
           raise_consistency_error msg
         end
-      end
+      end # title_consistency(opts)
 
     end # module validate
 

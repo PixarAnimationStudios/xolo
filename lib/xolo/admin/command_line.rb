@@ -64,15 +64,17 @@ module Xolo
 
           banner "\nGlobal Options:"
 
-          # add a blank line between each of the cli options
+          # add a blank line between each of the cli options in the help output
           # NOTE: chrisl added this to the optimist.rb included in this project.
           insert_blanks
 
           version Xolo::VERSION
 
           # The global opts
-          opt :version, 'Print version and exit' ## add this here or it goes to bottom of help
-          opt :help, 'Show this help and exit' ## add this here or it goes to bottom of help
+          ## manually set :version and :help here, or they appear at the bottom of the help
+          opt :version, 'Print version and exit'
+          opt :help, 'Show this help and exit'
+
           Xolo::Admin::Options::GLOBAL_OPTIONS.each do |opt_key, deets|
             opt opt_key, deets[:desc], short: deets[:cli]
           end
@@ -134,7 +136,7 @@ module Xolo
       # Parse the remaining command line, now that we know the xadm command
       # to be executed.
       # This gets the title, and if needed the version, storing them in
-      # Xolo::Admin::Options.cli_cmds
+      # Xolo::Admin::Options.cli_cmd
       # then it gets the command options, populating Xolo::Admin::Options.cli_cmd_opts
       #######
       def self.parse_command_cli
@@ -240,34 +242,16 @@ module Xolo
           # NOTE: chrisl added this to the optimist.rb included in this project.
           insert_blanks
 
-          # for each cmd opt that has deets[:depends]
-          # we'll create a line 'depends: opt_key, deets[:depends]'
-          dependants = []
-
-          # for each cmd opt that has deets[:conflicts] (an array of conflicting
-          # cli opt keys)  we'll create a line 'conflicts: opt_key, opt_key'
-          conflicts = []
-
           # create the optimist options for the command
           cmd_opts.each do |opt_key, deets|
             next unless deets[:cli]
 
-            # TODO: stop using optimist for required cli opts
-            # and use the internal-consistencey validation, which
-            # applies to both CLI and walk thru.
+            # Required opts are only required when adding.
+            # when editing, they should already exist
             required = deets[:required] && Xolo::Admin::CommandLine.add_command?
 
             desc = deets[:desc]
             desc = "#{desc}REQUIRED" if required
-
-            # TODO: should these only be used for add_commands?
-            # or checked later when validating all the opts together?
-            # Prob the latter, so the same issues can be checked via walkthru
-            # and while editing.
-            # dependants << [opt_key, deets[:depends]] if deets[:depends]
-            # conflicts << [opt_key, deets[:conflicts]] if deets[:conflicts]
-
-            # deets[:conflicts].each { |c| conflicts << [opt_key, c] } if deets[:conflicts]
 
             # booleans are CLI flags defaulting to false
             # everything else is a string that we will convert as we validate later
@@ -276,20 +260,6 @@ module Xolo
             # here we actually set the optimist opt.
             opt opt_key, desc, short: deets[:cli], type: type, required: required, multi: deets[:multi]
           end # opts_to_use.each
-
-          # set any option conflicts
-          # unless conflicts.empty?
-          #   conflicts.each do |pair|
-          #     conflicts pair.first, pair.last
-          #   end
-          # end
-
-          # set any option dependencies
-          # unless dependants.empty?
-          #   dependants.each do |pair|
-          #     depends pair.first, pair.last
-          #   end
-          # end
         end # Optimist.options
       end
 
