@@ -69,13 +69,13 @@ module Xolo
         # - immutable: [Boolean] This value can only be set when creatimg a new title.
         #   When editing an existing title, it cannot be changed.
         #
-        # - cli: [false, Symbol] Is this attr. is taken as a CLI option or
-        #   walkthru item? If so, what is its 'short' option flag?
+        # - cli: [false, Symbol] Is this attr. taken as a CLI option &
+        #   walkthru menu item? If so, what is its 'short' option flag?
         #
         #   If falsey, this option is never taken as a cli
         #   option or walkthru menu choice, but may be used elsewhere,
         #   e.g. in this cli command:
-        #      xadm add-title my-title-id <options>
+        #      xadm add-title my-title <options>
         #   'add-title' is the command and 'my-title', which populates th
         #   title attribute, is the command's argument, but not a CLI option, so for
         #   'title', cli: is false
@@ -89,33 +89,26 @@ module Xolo
         #   but a long --option-flag will be used matching the attribute key, e.g.
         #   for app_bundle_id it will be --app-bundle-id
         #
-        # - depends: [Symbol] Some other key of the ATTRIBTUES hash. When defined, both the
-        #   key named here and the key in which this is defined, must be present together
-        #   on the command-line. E.g. Setting  foo: { depends: :bar }, means that if either
-        #   --foo or --bar are given on the commandline, the other must also be given.
-        #
-        # - conflicts: [Symbol] Some other key of the ATTRIBTUES hash. When defined, the
-        #   key named here and the key in which this is defined, may not be present together
-        #   on the command-line. E.g. Setting  foo: { conflicts: :bar }, means that --foo
-        #   and --bar cannot both be given on the same commandline.
-        #
-        # - multi: [Boolean] If true, this option can be given multiple times on the commandline
-        #   and all the values will be in an array in the options hash.
+        # - multi: [Boolean] If true, this option takes multiple values and is stored as
+        #   an Array. On the commandline, it can be given multiple times and all the values
+        #   will be in an array in the options hash.
         #   E.g. if foo: { multi: true } and these options are given on the commandline
         #       --foo val1 --foo val2  --foo val3
         #   then the options hash will contain: :foo => ['val1', 'val2', 'val3']
+        #
         #   In --walkthru, separate the values with commas to get the same result, e.g.:
         #       val1, val2, val3
+        #   and the options hash will contain  ['val1', 'val2', 'val3']
         #
         # - default: [String, Numeric, Boolean, nil] the default value if nothing is
         #   provided or inherited. Note that titles never inherit values, only versions do.
         #
         # - validate: [Boolean, Symbol] how to validate & convert values for this attribute.
         #   - If true (not just truthy) call method Xolo::Admin::Validate.<value_key>(value)
-        #     e.g. Xolo::Admin::Validate.title_id(val)
-        #   - If a Symbol, its a nonstandard method to call on the Xolo::Admin::Validate module
+        #     e.g. Xolo::Admin::Validate.display_name(new_display_name)
+        #   - If a Symbol, it's an arbitrary method to call on the Xolo::Admin::Validate module
         #     e.g. :non_empty_array will validate the value using
-        #     Xolo::Admin::Validate.non_empty_array(val)
+        #     Xolo::Admin::Validate.non_empty_array(some_array_value)
         #   - Anything else: no validation, and the value will be a String
         #
         # - type: [Symbol] the data type of the value. One of: :boolean, :string.
@@ -123,12 +116,12 @@ module Xolo
         #   NOTE: We are not using Optimist's validation & auto-conversion of these types, they
         #   all come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
         #   is used to validate and convert the values.
-        #   The YARD docs for each attribute indicates the Class of the value in the
+        #   The YARD docs for each attribute indicate the Class of the value in the
         #   Title object after CLI processing.
         #
         # - invalid_msg: [String] custom message to display when the value is invalid
         #
-        # - desc: [String] helpful text explaining what the attribute is, and what its CLI option means.
+        # - desc: [String] Helpful text explaining what the attribute is, and what its CLI option means.
         #   Displayed during walkthru, in help messages, and in some err messages.
         #
         # - readline: [Boolean] Set to true for values that accept file paths, so that tab-completion
@@ -137,7 +130,7 @@ module Xolo
         # - walkthru_na: [Symbol] The name of a method to call on Xolo::Admin::Interactive when
         #   building this menu item. If it returns a string, it is an explanation of wny this option
         #   is not available at the moment, and the item is not selectable. If it returns nil, the
-        #   item is deplayed as normal.
+        #   item is displayed and handled as normal.
         #
         ATTRIBUTES = {
 
@@ -150,7 +143,7 @@ module Xolo
             cli: false,
             type: :string,
             validate: true,
-            invalid_msg: 'Not a valid title! Must be lowercase alphanumeric and dashes only, cannot already exist in Xolo.',
+            invalid_msg: 'Not a valid title! Must be lowercase alphanumeric and dashes only',
             desc: <<~ENDDESC
               A unique string identifying this Title, e.g. 'folio' or 'google-chrome'.
               The same as a 'basename' in d3.
@@ -204,7 +197,7 @@ module Xolo
             cli: :a,
             validate: true,
             type: :string,
-            conflicts: :version_script,
+            # conflicts: :version_script,
             walkthru_na: :app_name_bundleid_na,
             invalid_msg: "Not a valid App name, must end with '.app'",
             desc: <<~ENDDESC
@@ -223,8 +216,8 @@ module Xolo
             cli: :b,
             validate: true,
             type: :string,
-            depends: :app_name,
-            conflicts: :version_script,
+            # depends: :app_name,
+            # conflicts: :version_script,
             walkthru_na: :app_name_bundleid_na,
             invalid_msg: '"Not a valid bundle-id, must include at least one dot.',
             desc: <<~ENDDESC
@@ -243,7 +236,7 @@ module Xolo
             cli: :v,
             validate: true,
             type: :string,
-            conflicts: :app_name,
+            # conflicts: :app_name,
             readline: true,
             walkthru_na: :version_script_na,
             invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
@@ -265,6 +258,7 @@ module Xolo
           target_groups: {
             label: 'Target Computer Groups',
             cli: :t,
+            cli_alias: :target_group,
             validate: true,
             type: :string,
             multi: true,
@@ -275,8 +269,7 @@ module Xolo
 
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no target groups.
 
-              To specify more than one group on the command line, use multiple --target-group options.
-              To specify more than one group during --walkthru, separate them with commas.
+              To specify more than one group, separate them with commas.
             ENDDESC
           },
 
@@ -291,8 +284,7 @@ module Xolo
               One or more Jamf Computer Groups containing computers that are not allowed to install this title.
               If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
 
-              To specify more than one group on the command line, use multiple --excluded-group options.
-              To specify more than one group during --walkthru, separate them with commas.
+              To specify more than one group, separate them with commas.
             ENDDESC
           },
 
@@ -321,8 +313,7 @@ module Xolo
 
               If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office.
 
-              To specify more than one path on the command line, use multiple --expiration-path options.
-              To specify more than one path during --walkthru, separate them with commas.
+              To specify more than one path, separate them with commas.
             ENDDESC
           },
 

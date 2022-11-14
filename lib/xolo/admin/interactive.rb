@@ -167,7 +167,7 @@ module Xolo
           header_target = "Version #{Xolo::Admin::Options.cli_cmd.version} of #{header_target}"
         end
         header_text = "#{header_action} #{header_target}"
-        header_sep_line = '-' * header_text.length
+        header_sep_line = Xolo::DASH * header_text.length
 
         system 'clear'
         puts <<~ENDPUTS
@@ -277,7 +277,7 @@ module Xolo
           ans_to_validate = ans == Xolo::NONE ? nil : ans
 
           # split comma-sep. multi values
-          ans_to_validate = ans_to_validate.split(/,\s*/) if deets[:multi]
+          ans_to_validate = ans_to_validate.split(Xolo::COMMA_SEP_RE) if deets[:multi]
 
           # save the validated/converted value for use in the
           # convert method. so we don't have to call the validate method

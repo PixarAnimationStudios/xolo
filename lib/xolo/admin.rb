@@ -43,7 +43,7 @@ module Xolo
     end
 
     def self.usage
-      @usage ||= "#{executable.basename} [global-options] command title-id [version] command-options"
+      @usage ||= "#{executable.basename} [global-options] command title [version] command-options"
     end
 
   end

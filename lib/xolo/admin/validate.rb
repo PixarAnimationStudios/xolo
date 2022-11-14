@@ -38,7 +38,8 @@ module Xolo
     #
     module Validate
 
-      COMMA_SEP_RE = /\s*,\s*/.freeze
+      # True can be specified as 'true' or 'y' or 'yes'
+      # case insensitively. Anything else is false.
       TRUE_RE = /(\Atrue\z)|(\Ay(es)?\z)/i.freeze
 
       # Thes methods all raise this error
@@ -46,9 +47,11 @@ module Xolo
         raise Xolo::InvalidDataError, "'#{val}' #{msg}"
       end
 
+      # TODO: Move all CLI-validation here? or move this to the
+      # CommandLine module?
+      #
       # Validate the command options acquired from the command line.
       # Walkthru will validate them individually as they are entered.
-      #
       #
       def self.cli_cmd_opts
         cmd = Xolo::Admin::Options.cli_cmd.command
@@ -69,6 +72,12 @@ module Xolo
             next
           end
 
+          # if an item is :multi - split it on commas
+          if deets[:multi]
+            Xolo::Admin::Options.cli_cmd_opts[key] =
+              Xolo::Admin::Options.cli_cmd_opts[key].split(Xolo::COMMA_SEP_RE)
+          end
+
           meth = deets[:validate].is_a?(Symbol) ? deets[:validate] : key
 
           # run the validation, which raises an error if invalid, or returns
@@ -83,6 +92,10 @@ module Xolo
         # which will then be passed for internal consistency validation.
       end
 
+      # Title Attributes
+      #
+      ##################################################
+
       # validate a Xolo title. Must be 2+ chars long, only lowercase
       # alpha-numerics & dashes
       #
@@ -91,6 +104,7 @@ module Xolo
       # @return [String] The valid value
       def self.title(val)
         val = val.to_s.strip
+
         # TODO: Validate that it doesn't already exist in xolo if we are adding
         return val if val =~ /\A[a-z0-9-][a-z0-9-]+\z/
 
@@ -141,7 +155,7 @@ module Xolo
       # @return [String] The valid value
       def self.app_name(val)
         val = val.to_s.strip
-        return val if val.end_with? '.app'
+        return val if val.end_with? Xolo::DOTAPP
 
         raise_invalid_data_error val, Xolo::Admin::Title::ATTRIBUTES[:app_bundle_id][:invalid_msg]
       end
@@ -153,7 +167,7 @@ module Xolo
       # @return [String] The valid value
       def self.app_bundle_id(val)
         val = val.to_s.strip
-        return val if val.include? '.'
+        return val if val.include? Xolo::DOT
 
         raise_invalid_data_error val, Xolo::Admin::Title::ATTRIBUTES[:app_bundle_id][:invalid_msg]
       end
@@ -260,14 +274,14 @@ module Xolo
         raise_invalid_data_error bad_paths.join(', '), Xolo::Admin::Title::ATTRIBUTES[:expiration_paths][:invalid_msg]
       end
 
-      # validate self service boolean
+      # validate boolean options
       #
       # Never raises an error, just returns true of false based on the string value
       #
       # @param val [Object] The value to validate
       #
       # @return [Boolean] The  valid value
-      def self.self_service(val)
+      def self.boolean(val)
         val.to_s =~ TRUE_RE ? true : false
       end
 
@@ -289,12 +303,112 @@ module Xolo
       #
       # @param val [Object] The value to validate
       #
-      # @return [Boolean, String] The validity, or the valid value
+      # @return [Pathname] The valid value
       def self.self_service_icon(val)
         val = Pathname.new val.to_s.strip
         return val if val.file? && val.readable?
 
         raise_invalid_data_error val, Xolo::Admin::Title::ATTRIBUTES[:self_service_icon][:invalid_msg]
+      end
+
+      # Version Attributes
+      #
+      ##################################################
+
+      # @param val [Object] The value to validate
+      #
+      # @return [Date] The valid value
+      def self.publish_date(val)
+        val = Date.parse val.to_s
+        # TODO: ? Ensure this date is >= the prev. version and <= the next
+        return val if true
+
+        raise_invalid_data_error val, Xolo::Admin::Version::ATTRIBUTES[:publish_date][:invalid_msg]
+      rescue StandardError => e
+        raise_invalid_data_error val, e.to_s
+      end
+
+      # @param val [Object] The value to validate
+      #
+      # @return [Gem::Version] The valid value
+      def self.min_os(val)
+        val = Gem::Version.new val.to_s
+        # TODO: internal consistency - make sure this is <= max_os
+        return val if true
+
+        raise_invalid_data_error val, Xolo::Admin::Version::ATTRIBUTES[:min_os][:invalid_msg]
+      rescue StandardError => e
+        raise_invalid_data_error val, e.to_s
+      end
+
+      # @param val [Object] The value to validate
+      #
+      # @return [Gem::Version] The valid value
+      def self.max_os(val)
+        val = Gem::Version.new val.to_s
+        # TODO: internal consistency - make sure this is >= max_os
+        return val if true
+
+        raise_invalid_data_error val, Xolo::Admin::Version::ATTRIBUTES[:max_os][:invalid_msg]
+      rescue StandardError => e
+        raise_invalid_data_error val, e.to_s
+      end
+
+      # @param val [Object] The value to validate
+      #
+      # @return [Array<Array<String>>] The valid value
+      def self.killapps(val)
+        val = [val] unless val.is_a? Array
+
+        return [] if val.include? Xolo::NONE
+
+        # Split every item on semicolons
+        val.map! { |ka| ka.split(/\s*;\s*/) }
+
+        val.each do |ka|
+          # If it is 'use-title' then just use a one-item subarray:
+          # ['use-title'] and the server will deal with it
+          next if ka.first == Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP
+
+          # app name must end with .app
+          unless ka[0].end_with?(Xolo::DOTAPP)
+            raise_invalid_data_error(
+              app,
+              Xolo::Admin::Title::ATTRIBUTES[:app_name][:invalid_msg]
+            )
+          end
+
+          # bundle id must contain a dot
+          next if ka[1].include?(Xolo::DOT)
+
+          raise_invalid_data_error(
+            id,
+            Xolo::Admin::Title::ATTRIBUTES[:app_bundle_id][:invalid_msg]
+          )
+        end
+        val
+      end
+
+      # validate an array  of jamf groups to use as pilots for testing a version
+      # before releasing it.
+      # 'none' is also acceptable
+      #
+      # NOTE: we will not compare targets to exclusions - we'll just verify
+      # that the jamf groups exist. If a group (or an individual mac) is both a
+      # pilot and an exclusion, the exclusion wins.
+      #
+      # @param val [Array<String>] The value to validate:  names of jamf comp.
+      #   groups, or 'none'
+      #
+      # @return [Array<String>] The valid value
+      def self.pilot_groups(val)
+        val = [val] unless val.is_a? Array
+        return [] if val.include? Xolo::NONE
+
+        bad_grps = bad_jamf_groups(val)
+        return val if bad_grps.empty?
+
+        raise_invalid_data_error bad_grps.join(', '), Xolo::Admin::Version::ATTRIBUTES[:pilot_groups][:invalid_msg]
       end
 
       # Internal Consistency Checks!
@@ -317,6 +431,11 @@ module Xolo
         else
           title_consistency opts
         end
+      end
+
+      #######
+      def self.version_consistency(_opts)
+        true
       end
 
       #######

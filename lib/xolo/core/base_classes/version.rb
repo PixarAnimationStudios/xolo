@@ -73,7 +73,8 @@ module Xolo
 
           publish_date: {
             label: 'Publish Date',
-            type: :date,
+            type: :string,
+            required: true,
             cli: :d,
             validate: true,
             default: Date.today.to_s,
@@ -114,6 +115,7 @@ module Xolo
             label: 'Reboot',
             cli: :r,
             type: :boolean,
+            validate: :boolean,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
             ENDDESC
@@ -123,12 +125,13 @@ module Xolo
             label: 'Standalone',
             cli: :s,
             type: :boolean,
+            validate: :boolean,
             desc: <<~ENDDESC
               The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
             ENDDESC
           },
 
-          killapp: {
+          killapps: {
             label: 'KillApp',
             cli: :k,
             type: :string,
@@ -146,26 +149,24 @@ module Xolo
 
               If the title for this version has a defined --app-name and --app-bundle-id, you can use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}' (see '#{Xolo::Admin.executable.basename} help add-title')
 
-              To specify more than one killapp on the command line, use multiple --killapp options.
-              To specify more than one killapp during --walkthru, separate them with commas.
+              To specify more than one killapp, separate them with commas.
             ENDDESC
           },
 
-          pilot_group: {
-            label: 'Pilot Computer Group',
+          pilot_groups: {
+            label: 'Pilot Computer Groups',
             default: Xolo::NONE,
             cli: :p,
-            validate: :jamf_group,
+            validate: true,
             type: :string,
             multi: true,
             invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
-              The name of a Jamf Computer Group identifying computers that will automatically have this version installed before it is released.
-              These computers will be used for testing not just the software, but the installation process itself.
-              Computers that are also in an excluded group for the title will not be used as pilots.
+              One or more Jamf Computer Groups containing computers that will automatically have this title installed before it is released.
 
-              To specify more than one group on the command line, use multiple --pilot-group options.
-              To specify more than one group during --walkthru, separate them with commas.
+              These computers will be used for testing not just the software, but the installation process itself. Computers that are also in an excluded group for the title will not be used as pilots.
+
+              To specify more than one group, separate them with commas.
             ENDDESC
           },
 

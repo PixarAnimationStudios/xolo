@@ -37,9 +37,11 @@ module Xolo
       # populating Xolo::Admin::Options.global_opts, and Xolo::Admin::Options.cli_cmd
       ################################################
       def self.parse_cli
-        # deal with 'help', 'help help', 'help --help' and 'help -h'
-        ARGV.unshift '--help' if ARGV[0] == Xolo::Admin::Options::HELP_CMD && [nil, '', 'help', '--help',
-                                                                               '-h'].include?(ARGV[1])
+        # # accept --debug anywhere
+        # if ARGV.delete '--debug'
+        #   Xolo::Admin::Options.global_opts[:debug] = true
+        #   Xolo::Admin::Options.global_opts[:debug_given] = true
+        # end
 
         global_opts = parse_global_cli
 
@@ -153,12 +155,7 @@ module Xolo
         # save the opts hash from optimist into our OpenStruct
         cmd_opts.each { |k, v| Xolo::Admin::Options.cli_cmd_opts[k] = v }
 
-        # validate them individually
-        begin
-          Xolo::Admin::Validate.cli_cmd_opts
-        rescue Xolo::InvalidDataError => e
-          Optimist.die e.to_s
-        end
+        Xolo::Admin::Validate.cli_cmd_opts
 
         # add in current_opt_values for anything not given on the cli
         Xolo::Admin::Options.current_opt_values.each do |k, v|
@@ -169,11 +166,7 @@ module Xolo
 
         # now Xolo::Admin::Options.cli_cmd_opts contains all the data for
         # processing whatever we're processing, so do the internal consistency check
-        begin
-          Xolo::Admin::Validate.internal_consistency Xolo::Admin::Options.cli_cmd_opts
-        rescue Xolo::InvalidDataError => e
-          Optimist.die e.to_s
-        end
+        Xolo::Admin::Validate.internal_consistency Xolo::Admin::Options.cli_cmd_opts
 
         # If we got here, everything in Xolo::Admin::Options.cli_cmd_opts is good to go
         # and can be sent to the server for processing.
@@ -189,28 +182,40 @@ module Xolo
 
         # if the command is 'help'
         # then
-        #   'xadm help command'
-        # becomes
-        #   'xadm command --help'
+        #   'xadm [globalOpts] help [cmd opts]' becomes 'xadm --help'
+        # and
+        #   'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
         #
         if Xolo::Admin::Options.cli_cmd.command == Xolo::Admin::Options::HELP_CMD
-          Xolo::Admin::Options.cli_cmd, command = ARGV.shift
+          next_cli_item = ARGV.shift
+
+          # if there is no command, treat it like `xadm --help`
+          if next_cli_item.to_s.empty? || next_cli_item.start_with?(Xolo::DASH)
+            ARGV.unshift '--help'
+            parse_global_cli
+            return
+          end
+
+          Xolo::Admin::Options.cli_cmd.command = next_cli_item
           validate_cli_command
-          ARGV.unshift '--help'
+          ARGV << '--help'
 
         # Otherwise, the command is not 'help', so the next item
         # on the command line is the title we are working with
         else
-          Xolo::Admin::Options.cli_cmd.title = ARGV.shift
-          validate_cli_title
+          # but if the command opt is --help, there is no title or version
+          unless ARGV.include?('--help')
+            Xolo::Admin::Options.cli_cmd.title = ARGV.shift
+            validate_cli_title
 
-          # and if the command we are running is a 'version' command,
-          # the next item is the version we are working with
-          if version_command?
-            Xolo::Admin::Options.cli_cmd.version = ARGV.shift
-            validate_cli_version
-          end
-        end
+            # and if the command we are running is a 'version' command,
+            # the next item is the version we are working with
+            if version_command?
+              Xolo::Admin::Options.cli_cmd.version = ARGV.shift
+              validate_cli_version unless ARGV.include?('--help')
+            end
+          end # unless ARGV.include?('--help')
+        end # if
       end
 
       # parse the options for the command, if we aren't doing walkthru
@@ -218,10 +223,11 @@ module Xolo
         # set these for use inside the optimist options block
         cmd = Xolo::Admin::Options.cli_cmd.command
         executable_file = Xolo::Admin.executable.basename
-        cmd_opts = Xolo::Admin::Options::COMMANDS[cmd][:opts]
         cmd_desc = Xolo::Admin::Options::COMMANDS[cmd][:desc]
         cmd_display = Xolo::Admin::Options::COMMANDS[cmd][:display]
+        cmd_opts = Xolo::Admin::Options::COMMANDS[cmd][:opts]
         vers_cmd = version_command?
+        title_or_vers_command = title_or_version_command?
 
         Optimist.options do
           # NOTE: extra newlines are added to the front of strings, cuz
@@ -234,32 +240,34 @@ module Xolo
 
           banner "\nArguments:"
           banner "  title:     The unique name of this title in Xolo, e.g. 'google-chrome'"
-          banner "  version:      The version you are working with. e.g. '12.34.5'" if vers_cmd
+          banner "  version:      The version you are working with. e.g. '12.34.5'" if vers_cmd || title_or_vers_command
 
-          banner "\nOptions:"
+          if cmd_opts
+            banner "\nOptions:"
 
-          # add a blank line between each of the cli options
-          # NOTE: chrisl added this to the optimist.rb included in this project.
-          insert_blanks
+            # add a blank line between each of the cli options
+            # NOTE: chrisl added this to the optimist.rb included in this project.
+            insert_blanks
 
-          # create the optimist options for the command
-          cmd_opts.each do |opt_key, deets|
-            next unless deets[:cli]
+            # create the optimist options for the command
+            cmd_opts.each do |opt_key, deets|
+              next unless deets[:cli]
 
-            # Required opts are only required when adding.
-            # when editing, they should already exist
-            required = deets[:required] && Xolo::Admin::CommandLine.add_command?
+              # Required opts are only required when adding.
+              # when editing, they should already exist
+              required = deets[:required] && Xolo::Admin::CommandLine.add_command?
 
-            desc = deets[:desc]
-            desc = "#{desc}REQUIRED" if required
+              desc = deets[:desc]
+              desc = "#{desc}REQUIRED" if required
 
-            # booleans are CLI flags defaulting to false
-            # everything else is a string that we will convert as we validate later
-            type = deets[:type] == :boolean ? :boolean : :string
+              # booleans are CLI flags defaulting to false
+              # everything else is a string that we will convert as we validate later
+              type = deets[:type] == :boolean ? :boolean : :string
 
-            # here we actually set the optimist opt.
-            opt opt_key, desc, short: deets[:cli], type: type, required: required, multi: deets[:multi]
-          end # opts_to_use.each
+              # here we actually set the optimist opt.
+              opt opt_key, desc, short: deets[:cli], type: type, required: required # , multi: deets[:multi]
+            end # opts_to_use.each
+          end # if cmd_opts
         end # Optimist.options
       end
 
@@ -283,25 +291,28 @@ module Xolo
           else
             "Unknonwn command: #{cmd}"
           end
-        Optimist.die msg
+        raise ArgumentError, msg
       end # validate command
 
       # were we given a title?
       #########
       def self.validate_cli_title
+        # return if Xolo::Admin::Options.cli_cmd.command == Xolo::Admin::Options::HELP_CMD
+
         # TODO:
         #   If this is an 'add-' command, ensure the title
         #   doesn't already exist.
         #   Otherwise, make sure it does already exist, except for
         #   'search' which uses the CLI title as a search pattern.
         #
-        tid = Xolo::Admin::Options.cli_cmd.title
+        title = Xolo::Admin::Options.cli_cmd.title
+        raise ArgumentError, "No title provided!\nUsage: #{Xolo::Admin.usage}" unless title
 
-        Xolo::Admin::Validate.title tid
+        Xolo::Admin::Validate.title title # unless title.to_s.start_with?(Xolo::DASH)
 
-        return if tid && !tid.start_with?(Xolo::DASH)
+        # return if title && !title.start_with?(Xolo::DASH)
 
-        Optimist.die  "No title provided!\nUsage: #{Xolo::Admin.usage}"
+        #  raise ArgumentError, "No title provided!\nUsage: #{Xolo::Admin.usage}"
       end
 
       # were we given a version?
@@ -316,14 +327,26 @@ module Xolo
         vers = Xolo::Admin::Options.cli_cmd.version
         return if vers && !vers.start_with?(Xolo::DASH)
 
-        Optimist.die "No version provided with '#{Xolo::Admin::Options.cli_cmd.command}' command!\nUsage: #{Xolo::Admin.usage}"
+        raise ArgumentError,
+              "No version provided with '#{Xolo::Admin::Options.cli_cmd.command}' command!\nUsage: #{Xolo::Admin.usage}"
+      end
+
+      # does the command we're running deal with titles?
+      ##########
+      def self.title_command?
+        Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :title
       end
 
       # does the command we're running deal with versions?
-      # if not, it deals with titles
       ##########
       def self.version_command?
         Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :version
+      end
+
+      # does the command we're running deal with either titles or versions?
+      ##########
+      def self.title_or_version_command?
+        Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :title_or_version
       end
 
       # does the command we're running add something (a title or version) to xolo?

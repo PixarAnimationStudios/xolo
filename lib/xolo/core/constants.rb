@@ -39,8 +39,20 @@ module Xolo
       # CLI options and other things use dashes
       DASH = '-'
 
+      # Several things use dots
+      DOT = '.'
+
+      # and we check for things ending with .app
+      DOTAPP = '.app'
+
       # These are handy for testing values without making new arrays, strings, etc every time.
       TRUE_FALSE = [true, false].freeze
+
+      # lots of things get split on commmas
+      COMMA_SEP_RE = /\s*,\s*/.freeze
+
+      # lots of things get joined with commas
+      COMMA_JOIN = ', '
 
       # when this module is included, also extend our Class Methods
       def self.included(includer)

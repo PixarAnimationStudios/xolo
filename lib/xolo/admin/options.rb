@@ -50,8 +50,8 @@ module Xolo
           cli: :w,
           desc: <<~ENDDESC
             Run xadm in interactive mode
-            This causes xadm to present an interactive, prompt-and-
-            menu-driven interface. All command-options given on the
+            This causes xadm to present an interactive, menu-and-
+            prompt-driven interface. All command-options given on the
             command line are ignored, and will be gathered
             interactively
           ENDDESC
@@ -92,6 +92,7 @@ module Xolo
       EDIT_VERSION_CMD = 'edit-version'
       DELETE_VERSION_CMD = 'delete-version'
       RELEASE_VERSION_CMD = 'release-version'
+      INFO_CMD = 'info'
       SEARCH_CMD = 'search'
       REPORT_CMD = 'report'
       HELP_CMD = 'help'
@@ -134,7 +135,7 @@ module Xolo
 
         RELEASE_VERSION_CMD => {
           desc: 'Release a version to all targets.',
-          display: "#{DELETE_VERSION_CMD} title version",
+          display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version
         },
@@ -149,13 +150,22 @@ module Xolo
         SEARCH_CMD => {
           desc: 'Search for titles in Xolo.',
           display: "#{SEARCH_CMD} title",
-          opts: {}
+          opts: {},
+          target: :title
+        },
+
+        INFO_CMD => {
+          desc: 'Show details about a title, or a version of a title',
+          display: "#{INFO_CMD} title [version]",
+          opts: {},
+          target: :title_or_version
         },
 
         REPORT_CMD => {
           desc: 'Report installation data.',
           display: "#{REPORT_CMD} title [version]",
-          opts: {}
+          opts: {},
+          target: :title_or_version
         },
 
         HELP_CMD => {

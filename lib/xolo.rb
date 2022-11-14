@@ -34,6 +34,7 @@
 # Core Standard Libraries
 ######
 require 'English'
+require 'date'
 
 # Other Gems to include at this level
 require 'pixar-ruby-extensions'
