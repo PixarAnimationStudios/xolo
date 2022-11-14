@@ -321,7 +321,7 @@ module Xolo
             label: 'Show in Self Service',
             cli: :s,
             type: :boolean,
-            validate: true,
+            validate: :boolean,
             default: false,
             walkthru_na: :ssvc_na,
             desc: <<~ENDDESC
