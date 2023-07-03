@@ -19,29 +19,20 @@
 #    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
+#
+#
 
 # frozen_string_literal: true
 
+# main module
 module Xolo
 
-  module Core
+  module Server
 
-    # This should be extended into the Xolo module
-    module Utility  
+    class Version < Xolo::Core::BaseClasses::Version
 
-      def self.extended(extender)
-        Xolo.verbose_extend extender, self 
-      end
+    end # class Title
 
-      # not needed, done via gemspec
-      def validate_ruby_version
-        return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(Xolo::Core::Constants::MINIMUM_RUBY_VERSION)
+  end # module Admin
 
-        raise "Can't use xolo #{Jamf::VERSION}, ruby itself must be version #{MINIMUM_RUBY_VERSION} or greater, this is ruby #{RUBY_VERSION}."
-      end
-
-    end # Utility
-
-  end # Core
-
-end # Xolo
+end # module Xolo

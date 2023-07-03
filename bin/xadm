@@ -42,6 +42,7 @@ class XoloAdmin
     puts
     puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
     puts 'GLOBAL OPTS:'
+    puts '----'
     Xolo::Admin::Options.global_opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
@@ -56,15 +57,21 @@ class XoloAdmin
     puts "VERSION: #{Xolo::Admin::Options.cli_cmd.version}"
 
     puts
-    puts 'COMMAND OPTS:'
-    opts = Xolo::Admin::Options.walkthru? ? Xolo::Admin::Options.walkthru_cmd_opts : Xolo::Admin::Options.cli_cmd_opts
-    opts.to_h.each do |k, v|
+    puts 'CURRENT OPT VALUES:'
+    puts 'The values the object had before xadm started working on it.'
+    puts 'If the object is being added, these are the default or inherited values'
+    puts '----'
+    Xolo::Admin::Options.current_opt_values.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
 
     puts
-    puts 'CURRENT OPT VALUES:'
-    Xolo::Admin::Options.current_opt_values.to_h.each do |k, v|
+    puts 'COMMAND OPT VALUES:'
+    puts 'The command options collected by xadm, merged with the'
+    puts 'current values, to be applied to the object'
+    puts '----'
+    opts = Xolo::Admin::Options.walkthru? ? Xolo::Admin::Options.walkthru_cmd_opts : Xolo::Admin::Options.cli_cmd_opts
+    opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
   end # run

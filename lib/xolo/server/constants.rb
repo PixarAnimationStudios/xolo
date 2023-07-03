@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # Copyright 2022 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -25,32 +23,32 @@
 
 # frozen_string_literal: true
 
-require 'xolo'
+require 'singleton'
 
-# The App
-#####################
-class XoloServer
+module Xolo
 
-  def initialize
-    Xolo::Server.executable = __FILE__
-    Xolo::Server::CommandLine.parse_cli
-  end
+  module Server
 
-  def run; end # run
+    module Constants
 
-end # class XoloAdmin
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
 
-# MAIN
-#####################
-begin
-  # if --debug is given anywhere, move it to the front of ARGV
-  # which is where Optimist expects it
-  debug = ARGV.delete '--debug'
-  ARGV.unshift debug if debug
+      # Constants
+      #####################################
 
-  app = XoloAdmin.new
-  app.run
-rescue => e
-  warn "ERROR: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" } if debug
-end
+      # Default Values
+      DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
+
+      # The name of the server config file inside the servers's data directory.
+      # To use a different path, start the server with the --config option
+      #    /usr/local/bin/xolo-server --config /path/to/my/configfile.yaml
+      CONF_FILE = DATA_DIR + 'config.yaml'
+
+    end # module Constants
+
+  end # module Core
+
+end # module

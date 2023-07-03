@@ -35,6 +35,9 @@
 ######
 require 'English'
 require 'date'
+require 'json'
+require 'yaml'
+require 'pathname'
 
 # Other Gems to include at this level
 require 'pixar-ruby-extensions'
@@ -62,14 +65,9 @@ module Xolo
   extend Xolo::Core::Loading
   include Xolo::Core::Constants
   include Xolo::Core::Exceptions
-  extend Xolo::Core::Utility
+  extend Xolo::Core::YAML
 
   VERSION = Xolo::Core::Version::VERSION
-
-  # the single instance of our configuration object
-  def self.config
-    Xolo::Core::Configuration.instance
-  end
 
 end # module Xolo
 

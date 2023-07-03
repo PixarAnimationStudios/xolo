@@ -54,9 +54,9 @@ module Xolo
       # lots of things get joined with commas
       COMMA_JOIN = ', '
 
-      # when this module is included, also extend our Class Methods
+      # when this module is included
       def self.included(includer)
-        Xolo.load_msg "--> #{includer} is including Xolo::Core::Constants"
+        Xolo.verbose_include includer, self
       end
 
     end # module constants

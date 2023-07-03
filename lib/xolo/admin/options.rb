@@ -134,7 +134,7 @@ module Xolo
         },
 
         RELEASE_VERSION_CMD => {
-          desc: 'Release a version to all targets.',
+          desc: 'Make the version available for installation.',
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version
@@ -344,17 +344,17 @@ module Xolo
         # data.
         # Until there, here's a hard-coded hash for a title
         existing_obj_data = {
-          title: 'foo',
-          display_name: 'Foo',
-          description: 'Installs Foo',
-          publisher: 'Foo Industries',
-          app_name: 'Foo.app',
-          app_bundle_id: 'com.foo.foo',
+          title: 'foobar',
+          display_name: 'Foo Bar',
+          description: "Installs Foo Bar in a way that just wastes everyone's time",
+          publisher: 'Acme Anvils Inc.',
+          app_name: 'Foo Bar.app',
+          app_bundle_id: 'com.acme-anvils.foobar',
           version_script: nil,
-          target_group: %w[target-group-one target-group-two],
-          excluded_group: %w[exclude-group-one exclude-group-two],
+          target_groups: %w[target-group-one target-group-two],
+          excluded_groups: %w[exclude-group-one exclude-group-two],
           expiration: 45,
-          expiration_path: ['/tmp/foochrisl', '/tmp/foochrisl2'],
+          expiration_paths: ['/tmp/foobartest-1', '/tmp/foobartest-2'],
           self_service: true,
           self_service_category: 'All The Foos',
           self_service_icon: nil,

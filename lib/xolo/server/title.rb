@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # Copyright 2022 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -22,35 +20,19 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
 # frozen_string_literal: true
 
-require 'xolo'
+# main module
+module Xolo
 
-# The App
-#####################
-class XoloServer
+  module Server
 
-  def initialize
-    Xolo::Server.executable = __FILE__
-    Xolo::Server::CommandLine.parse_cli
-  end
+    class Title < Xolo::Core::BaseClasses::Title
 
-  def run; end # run
+    end # class Title
 
-end # class XoloAdmin
+  end # module Admin
 
-# MAIN
-#####################
-begin
-  # if --debug is given anywhere, move it to the front of ARGV
-  # which is where Optimist expects it
-  debug = ARGV.delete '--debug'
-  ARGV.unshift debug if debug
-
-  app = XoloAdmin.new
-  app.run
-rescue => e
-  warn "ERROR: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" } if debug
-end
+end # module Xolo

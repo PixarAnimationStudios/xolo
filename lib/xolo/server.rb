@@ -28,7 +28,7 @@
 # Do not require this file directly unless you've already done:
 #
 #    require 'xolo'
-# 
+#
 # because the top-level xolo.rb file must set up autoloading and
 # load the Core module first.
 #
@@ -41,9 +41,6 @@
 ######
 
 # Gems
-######
-
-# Manual Xolo loading
 ######
 
 # Define the module for Zeitwerk
@@ -67,12 +64,33 @@ module Xolo
   #   - Handles initial installation and patching of software on the
   #     managed client Macs via Policies and Patch Policies.
   #
-  # It also implements a webhook handling server that specifically handles 
+  # It also implements a webhook handling server that specifically handles
   # PatchSoftwareTitleUpdated events from the Jamf Pro server. This allows
-  # for the automatic packaging, piloting, and maintenance of titles using 
+  # for the automatic packaging, piloting, and maintenance of titles using
   # tools such as AutoPkg.
-  # 
   #
-  module Server; end
+  #
+  module Server
 
-end
+    include Xolo::Server::Constants
+
+    def self.executable=(path)
+      @executable = Pathname.new path
+    end
+
+    def self.executable
+      @executable
+    end
+
+    def self.usage
+      @usage ||= "#{executable.basename} [run | config] --config-file /path/to/alt/configfile.yaml"
+    end
+
+    # the single instance of our configuration object
+    def self.config
+      Xolo::Server::Configuration.instance
+    end
+
+  end # Server
+
+end # Xolo

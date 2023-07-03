@@ -1,3 +1,28 @@
+# Copyright 2022 Pixar
+#
+#    Licensed under the Apache License, Version 2.0 (the "Apache License")
+#    with the following modification; you may not use this file except in
+#    compliance with the Apache License and the following modification to it:
+#    Section 6. Trademarks. is deleted and replaced with:
+#
+#    6. Trademarks. This License does not grant permission to use the trade
+#       names, trademarks, service marks, or product names of the Licensor
+#       and its affiliates, except as required to comply with Section 4(c) of
+#       the License and to reproduce the content of the NOTICE file.
+#
+#    You may obtain a copy of the Apache License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the Apache License with the above modification is
+#    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#    KIND, either express or implied. See the Apache License for the specific
+#    language governing permissions and limitations under the Apache License.
+#
+
+# frozen_string_literal: true
+
 module Xolo
 
   # the server app
@@ -16,7 +41,7 @@ module Xolo
       SKIP_LINE_RE = /^\s*(#|$)/
       VALID_LINE_RE = /^(\w+?):\s*(\S.*)$/
 
-      DFT_DATA_DIR = '/Library/Server/d3'.freeze
+      DFT_DATA_DIR = '/Library/Server/d3'
       DFT_PORT = 443
       DFT_SSL_VERIFY = true
       DFT_SESSION_EXPIRTION = 3600 # 1 hr
@@ -51,7 +76,7 @@ module Xolo
         # logging
         log_file: [:to_s, DFT_LOG_FILE],
         log_level: [:to_sym, DFT_LOG_LEVEL],
-        log_max_megs:  [:to_i, DFT_LOG_MAX_MEGS],
+        log_max_megs: [:to_i, DFT_LOG_MAX_MEGS],
         logs_to_keep: [:to_i, DFT_LOGS_TO_KEEP],
 
         # packages
@@ -120,7 +145,6 @@ module Xolo
         @log_max_megs ||= DFT_LOG_MAX_MEGS
         @log_to_keep ||= DFT_LOGS_TO_KEEP
       end
-
 
     end # class Config
 

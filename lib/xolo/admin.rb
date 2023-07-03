@@ -23,11 +23,6 @@
 
 # frozen_string_literal: true
 
-# Yes we're using a OpenStruct for our @opts, even though it's very slow.
-# It isn't so slow that it's a problem for processing a CLI tool.
-# The benefit is being able to use either Hash-style references
-# e.g. opts[key] or method-style when you know the key e.g. opts.title_id
-
 require 'io/console'
 
 module Xolo
@@ -43,7 +38,7 @@ module Xolo
     end
 
     def self.usage
-      @usage ||= "#{executable.basename} [global-options] command title [version] command-options"
+      @usage ||= "#{executable.basename} [global-options] command title [version] [command-options]"
     end
 
   end

@@ -27,7 +27,7 @@ require 'optimist'
 
 module Xolo
 
-  module Admin
+  module Server
 
     # Module for parsing and validating the xadm options from the commandline
     module CommandLine

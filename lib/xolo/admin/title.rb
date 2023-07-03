@@ -30,9 +30,13 @@ module Xolo
   module Admin
 
     # A title used by xadm.
-    # This add cli and walkthru UI, as well as
-    # an interface to the Xolo Server for Title
-    # objects.
+    #
+    # These are instantiated with data from the server
+    # (for existing Titles) or from the xadm CLI opts
+    # or walkthru process.
+    #
+    # This class also defines how xadm communicates
+    # title data to and from the server.
     class Title < Xolo::Core::BaseClasses::Title
 
     end # class Title

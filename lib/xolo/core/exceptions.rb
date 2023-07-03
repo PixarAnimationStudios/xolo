@@ -28,18 +28,6 @@ module Xolo
 
     module Exceptions
 
-      # Connections & Access
-
-      class ConnectionError < RuntimeError; end
-      
-      class NotConnectedError < RuntimeError; end
-
-      class AuthenticationError < RuntimeError; end
-      
-      class PermissionError < RuntimeError; end
-
-      class InvalidTokenError < RuntimeError; end
-
       # General errors
 
       class MissingDataError < RuntimeError; end
@@ -50,23 +38,24 @@ module Xolo
 
       class UnsupportedError < RuntimeError; end
 
-      # Installing
+      # Connections & Access
 
-      class InstallError < RuntimeError; end
+      class ConnectionError < RuntimeError; end
 
-      class ScriptError < RuntimeError; end
+      class NotConnectedError < RuntimeError; end
 
-      class PreInstallError < ScriptError; end
+      class AuthenticationError < RuntimeError; end
 
-      class PostInstallError < ScriptError; end
+      class PermissionError < RuntimeError; end
 
-      class PreRemoveError < ScriptError; end
+      class InvalidTokenError < RuntimeError; end
 
-      class PostRemoveError < ScriptError; end
-      
+      # Parsing errors
+
+      class DisallowedYAMLDumpClass; end
 
     end # module Exceptions
 
-  end # module Core 
+  end # module Core
 
 end # module Xolo
