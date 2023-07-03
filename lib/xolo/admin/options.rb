@@ -1,4 +1,4 @@
-# Copyright 2022 Pixar
+# Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -28,6 +28,9 @@
 # The benefit is being able to use either Hash-style references
 # e.g. opts[key] or method-style when you know the key e.g. opts.title
 require 'ostruct'
+
+# Use optimist for CLI option processing
+# https://rubygems.org/gems/optimist
 require 'optimist'
 
 module Xolo

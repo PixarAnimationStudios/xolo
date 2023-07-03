@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Copyright 2022 Pixar
+# Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -38,7 +38,7 @@ class XoloServer
 
   def run; end # run
 
-end # class XoloAdmin
+end # class XoloServer
 
 # MAIN
 #####################
@@ -48,9 +48,9 @@ begin
   debug = ARGV.delete '--debug'
   ARGV.unshift debug if debug
 
-  app = XoloAdmin.new
+  app = XoloServer.new
   app.run
 rescue => e
-  warn "ERROR: #{e}"
+  warn "ERROR #{e.class}: #{e}"
   e.backtrace.each { |l| warn "..#{l}" } if debug
 end

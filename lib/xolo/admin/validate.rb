@@ -1,4 +1,4 @@
-# Copyright 2022 Pixar
+# Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -497,15 +497,15 @@ module Xolo
         end
 
         # if in self service, a category must be assigned
-        if opts[:self_service] && !opts[:self_service_category]
-          msg =
-            if Xolo::Admin::Options.walkthru?
-              'A Self Service Category must be given if Self Service is true.'
-            else
-              'A --self-service-category must be provided when using --self-service'
-            end
-          raise_consistency_error msg
-        end
+        return unless opts[:self_service] && !opts[:self_service_category]
+
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            'A Self Service Category must be given if Self Service is true.'
+          else
+            'A --self-service-category must be provided when using --self-service'
+          end
+        raise_consistency_error msg
       end # title_consistency(opts)
 
     end # module validate

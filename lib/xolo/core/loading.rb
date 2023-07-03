@@ -1,4 +1,4 @@
-# Copyright 2022 Pixar
+# Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -30,7 +30,7 @@ module Xolo
     module Loading
 
       def self.extended(extender)
-        Xolo.verbose_extend extender, self 
+        Xolo.verbose_extend extender, self
       end
 
       # Use the load_msg method defined for Zeitwerk
@@ -50,6 +50,6 @@ module Xolo
 
     end # module
 
-  end # module  
+  end # module
 
 end # module Xolo

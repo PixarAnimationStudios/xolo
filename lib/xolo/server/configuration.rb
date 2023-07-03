@@ -1,4 +1,4 @@
-# Copyright 2022 Pixar
+# Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -101,7 +101,7 @@ module Xolo
       DFT_LOG_LEVEL = Logger::INFO
       DFT_LOG_DAYS_TO_KEEP = 14
 
-      DFT_PKG_SIGNING_KEYCHAIN_FILEN AME = 'pkg-signing.keychain-db'
+      DFT_PKG_SIGNING_KEYCHAIN_FILENAME = 'pkg-signing.keychain-db'
 
       # Attributes
       #####################################
@@ -341,7 +341,7 @@ module Xolo
             to all fileshare distribution points, and another to upload to a Cloud dist. point.
             or it can do all the things itself.
 
-            We use an external tool here because every Jamf Pro customer has different needs for this,
+            An external tool is used here because every Jamf Pro customer has different needs for this,
             e.g. various cloud and file-server distribution points, and Jamf has not provided a
             supported way to upload packages via the APIs. There are some unsupported methods, and
             you are welcome to use them in the external tool you provide here.
