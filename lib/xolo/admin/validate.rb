@@ -72,10 +72,12 @@ module Xolo
             next
           end
 
-          # if an item is :multi - split it on commas
-          if deets[:multi]
+          # if an item is :multi, it is an array. If it has only one item, split it on commas
+          # This handles multi items being given multiple times as CLI opts, or
+          # as comma-sep values in CLI opts or walkthru.
+          if deets[:multi] && Xolo::Admin::Options.cli_cmd_opts[key].size == 1
             Xolo::Admin::Options.cli_cmd_opts[key] =
-              Xolo::Admin::Options.cli_cmd_opts[key].split(Xolo::COMMA_SEP_RE)
+              Xolo::Admin::Options.cli_cmd_opts[key].first.split(Xolo::COMMA_SEP_RE)
           end
 
           meth = deets[:validate].is_a?(Symbol) ? deets[:validate] : key
@@ -358,7 +360,6 @@ module Xolo
       #
       # @return [Array<Array<String>>] The valid value
       def self.killapps(val)
-        val = [val] unless val.is_a? Array
 
         return [] if val.include? Xolo::NONE
 
@@ -368,21 +369,22 @@ module Xolo
         val.each do |ka|
           # If it is 'use-title' then just use a one-item subarray:
           # ['use-title'] and the server will deal with it
+          # TODO: Make the server validate use-title, and report error if needed
           next if ka.first == Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP
 
           # app name must end with .app
-          unless ka[0].end_with?(Xolo::DOTAPP)
+          unless ka.first.end_with?(Xolo::DOTAPP)
             raise_invalid_data_error(
-              app,
+              ka.first,
               Xolo::Admin::Title::ATTRIBUTES[:app_name][:invalid_msg]
             )
           end
 
           # bundle id must contain a dot
-          next if ka[1].include?(Xolo::DOT)
+          next if ka[1]&.include?(Xolo::DOT)
 
           raise_invalid_data_error(
-            id,
+            ka[1],
             Xolo::Admin::Title::ATTRIBUTES[:app_bundle_id][:invalid_msg]
           )
         end

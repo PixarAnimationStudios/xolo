@@ -38,7 +38,7 @@ module Xolo
       end
 
       # Use an interactive walkthru session to populate
-      # Xolo::Admin::Options.cli_cmd_opts
+      # Xolo::Admin::Options.walkthru_cmd_opts
       #
       def self.walkthru
         cmd = Xolo::Admin::Options.cli_cmd.command
@@ -76,7 +76,6 @@ module Xolo
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val, not_avail: not_avail)
 
-              # no processing if item not available
 
               # with menu.choice, the first arg is the 'name' which is used for text-based
               # menu choosing, and we want number-based, so set it to nil.
@@ -194,6 +193,7 @@ module Xolo
       def self.prompt_for_value(key, deets, curr_val)
         default = default_for_value(key, deets, curr_val)
         question = question_for_value(deets)
+        q_desc = question_desc(deets, default)
 
         # Highline wants a separate proc for conversion
         # so we'll just return the converted_value we got
@@ -205,7 +205,7 @@ module Xolo
 
         answer = cli.ask(question, convert) do |q|
           q.default = default
-          q.readline = deets[:readline]
+          q.readline = true # allows tab-completion of filenames, and using arrow keys
 
           if validate
             q.validate = validate
@@ -217,6 +217,8 @@ module Xolo
             not_valid_re_ask << "|#{default}| " if default
             q.responses[:ask_on_error] = not_valid_re_ask
           end
+          # display a description of the value being asked for
+          cli.say q_desc
         end
 
         return if answer.to_s.empty?
@@ -235,12 +237,18 @@ module Xolo
         default
       end
 
-      # The text displayed when prompting for a value.
+      # The multi-lines of text describing the value above the prompt
+      def self.question_desc(deets, default)
+        q_desc = +"============= #{deets[:label]} ======FOOOO=======\n"
+        q_desc << deets[:desc]
+        q_desc << "\nType a return for default value '#{default}'" if default
+        q_desc << "\n"
+        q_desc
+      end
+
+      # The line of text prompting for a value.
       def self.question_for_value(deets)
-        question = +"============= #{deets[:label]} =============\n"
-        question << deets[:desc]
-        question << "\n"
-        question << "Enter #{deets[:label]}"
+        question = +"Enter #{deets[:label]}"
 
         if deets[:type] == :boolean
           question << ', (y/n)'
@@ -249,7 +257,7 @@ module Xolo
         end
         question << ':'
         question = question.pix_word_wrap
-        question.chomp + ' '
+        question.chomp # + ' '
       end
 
       # The lambda that highline will use to validate

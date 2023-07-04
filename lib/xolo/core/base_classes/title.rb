@@ -124,9 +124,6 @@ module Xolo
         # - desc: [String] Helpful text explaining what the attribute is, and what its CLI option means.
         #   Displayed during walkthru, in help messages, and in some err messages.
         #
-        # - readline: [Boolean] Set to true for values that accept file paths, so that tab-completion
-        #   works during walkthru.
-        #
         # - walkthru_na: [Symbol] The name of a method to call on Xolo::Admin::Interactive when
         #   building this menu item. If it returns a string, it is an explanation of wny this option
         #   is not available at the moment, and the item is not selectable. If it returns nil, the
@@ -237,7 +234,6 @@ module Xolo
             validate: true,
             type: :string,
             # conflicts: :app_name,
-            readline: true,
             walkthru_na: :version_script_na,
             invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
             desc: <<~ENDDESC
@@ -269,7 +265,8 @@ module Xolo
 
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no target groups.
 
-              To specify more than one group, separate them with commas.
+              To specify more than one group separate them with commas. If not using --walkthru you can
+              also use the CLI option multiple times.
             ENDDESC
           },
 
@@ -284,7 +281,8 @@ module Xolo
               One or more Jamf Computer Groups containing computers that are not allowed to install this title.
               If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
 
-              To specify more than one group, separate them with commas.
+              To specify more than one group separate them with commas. If not using --walkthru you can
+              also use the CLI option multiple times.
             ENDDESC
           },
 
@@ -313,7 +311,8 @@ module Xolo
 
               If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office.
 
-              To specify more than one path, separate them with commas.
+              To specify more than one path separate them with commas. If not using --walkthru you can
+              also use the CLI option multiple times.
             ENDDESC
           },
 
@@ -355,7 +354,6 @@ module Xolo
             cli: :i,
             validate: true,
             type: :string,
-            readline: true,
             walkthru_na: :ssvc_na,
             invalid_msg: 'Invalid Icon Path. No such local file found, or not readable.',
             desc: <<~ENDDESC

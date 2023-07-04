@@ -140,16 +140,20 @@ module Xolo
             default: Xolo::NONE,
             invalid_msg: 'Not a valid killapp!',
             desc: <<~ENDDESC
-              A killapp is an application that cannot be running while this version is installed. If running, installation is delayed, and users are notified to quit.
+              A killapp is an application that cannot be running while this version is installed.
+              If running, installation is delayed, and users are notified to quit.
               Killapps are defined by an app name e.g. 'Google Chrome.app', and the app's Bundle ID
               e.g. 'com.google.chrome'.
 
               Specify them together separated by a semi-colon, e.g.
                  'Google Chrome.app;com.google.chrome'
 
-              If the title for this version has a defined --app-name and --app-bundle-id, you can use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}' (see '#{Xolo::Admin.executable.basename} help add-title')
+              If the title for this version has a defined --app-name and --app-bundle-id, you can
+              use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}'
+              (see '#{Xolo::Admin.executable.basename} help add-title')
 
-              To specify more than one killapp, separate them with commas.
+              To specify more than one killapp separate them with commas. If not using --walkthru you can
+              also use the CLI option multiple times.
             ENDDESC
           },
 
@@ -166,7 +170,8 @@ module Xolo
 
               These computers will be used for testing not just the software, but the installation process itself. Computers that are also in an excluded group for the title will not be used as pilots.
 
-              To specify more than one group, separate them with commas.
+              To specify more than one group separate them with commas. If not using --walkthru you can
+              also use the CLI option multiple times.
             ENDDESC
           },
 

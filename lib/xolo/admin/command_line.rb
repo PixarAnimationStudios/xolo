@@ -265,7 +265,7 @@ module Xolo
               type = deets[:type] == :boolean ? :boolean : :string
 
               # here we actually set the optimist opt.
-              opt opt_key, desc, short: deets[:cli], type: type, required: required # , multi: deets[:multi]
+              opt opt_key, desc, short: deets[:cli], type: type, required: required, multi: deets[:multi]
             end # opts_to_use.each
           end # if cmd_opts
         end # Optimist.options
