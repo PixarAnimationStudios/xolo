@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -22,7 +20,20 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
 # frozen_string_literal: true
 
-puts 'Welcome to Xolo!'
+# main module
+module Xolo
+
+  module Server
+
+    # The actual server application - a Sinatra/Thin HTTPS server
+    class App
+
+    end # class App
+
+  end # module
+
+end # module Xolo

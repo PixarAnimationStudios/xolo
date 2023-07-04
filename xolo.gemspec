@@ -32,11 +32,11 @@ Gem::Specification.new do |s|
   s.name        = proj_name
   s.version     = Xolo::Core::Version::VERSION
   s.authors     = ['Chris Lasell']
-  s.email       = 'd3@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/depot3/'
+  s.email       = 'xolo@pixar.com'
+  s.homepage    = 'http://pixaranimationstudios.github.io/xolo/'
   s.license     = 'Nonstandard'
-  s.date        = Time.now.utc.strftime('%Y-%m-%d')
-  s.summary     = 'A package/patch management system for OS X which extends the capabilites of Jamf Pro.'
+  s.date        = Time.now..strftime('%Y-%m-%d')
+  s.summary     = 'A package/patch management system for macOS which extends the capabilites of Jamf Pro Patch Management'
   s.description = <<~EODDESC
     Xolo is a kind of dog.
   EODDESC
@@ -47,6 +47,8 @@ Gem::Specification.new do |s|
 
   # executables
   s.executables << 'xadm'
+  s.executables << 'xoloserver'
+  s.executables << 'xolo'
 
   # Dependencies
   s.add_runtime_dependency 'pixar-ruby-extensions', '~>1.0'

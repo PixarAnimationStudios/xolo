@@ -33,13 +33,13 @@ module Xolo
     #
     # This is a singleton class, only one instance can exist at a time.
     #
-    # When the module loads, that instance is created, and is used to provide default
+    # When the module loads, that instance is created, and is used to provide configuration
     # values throughout Xolo. It can be accessed via Xolo.config in applications.
     #
     # @note Many values in Xolo will also have a hard-coded default, if not defined
     # in the configuration.
     #
-    # When the Xolo::Configuration instance is created, the {GLOBAL_CONF} file (/etc/xolo.conf)
+    # When the Xolo::Server::Configuration instance is created, the {GLOBAL_CONF} file (/etc/xolo.conf)
     # is examined if it exists, and the items in it are loaded into the attributes.
     #
     # Then the user-specific {USER_CONF} file (~/.xolo.conf) is examined if it exists, and
@@ -54,7 +54,7 @@ module Xolo
     # See {CONF_KEYS} for the available attributes, and how they are converted to the appropriate
     # Ruby class when loaded.
     #
-    # At any point, the attributes can read or changed using standard Ruby getter/setter methods
+    # At any point, the attributes can read or ne changed using standard Ruby getter/setter methods
     # matching the name of the attribute,
     # e.g.
     #
@@ -65,7 +65,7 @@ module Xolo
     #   Xolo.config.title_editor_server_name = 'baz.appcatalog.jamfcloud.com'
     #
     #
-    # The current settings may be saved to the GLOBAL_CONF file, the USER_CONF file, or an arbitrary
+    # The current settings may be saved to the CONF_FILEe, or an arbitrary
     # file using {#save}.  The argument to {#save} should be either :user, :global, or a String or
     # Pathname file path.
     # NOTE: This overwrites any existing file with the current values of the Configuration object.

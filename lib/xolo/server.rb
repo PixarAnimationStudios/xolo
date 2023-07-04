@@ -43,6 +43,8 @@
 # Gems
 ######
 
+require 'windu'
+
 # Define the module for Zeitwerk
 module Xolo
 
@@ -64,8 +66,8 @@ module Xolo
   #   - Handles initial installation and patching of software on the
   #     managed client Macs via Policies and Patch Policies.
   #
-  # It also implements a webhook handling server that specifically handles
-  # PatchSoftwareTitleUpdated events from the Jamf Pro server. This allows
+  # The Xolo server also implements a webhook handling server that specifically
+  # handles PatchSoftwareTitleUpdated events from the Jamf Pro server. This allows
   # for the automatic packaging, piloting, and maintenance of titles using
   # tools such as AutoPkg.
   #
@@ -73,6 +75,10 @@ module Xolo
   module Server
 
     include Xolo::Server::Constants
+    extend Xolo::Server::CommandLine
+    include Xolo::Server::Logging
+    include Xolo::Server::JamfPro
+    include Xolo::Server::TitleEditor
 
     def self.executable=(path)
       @executable = Pathname.new path
@@ -80,10 +86,6 @@ module Xolo
 
     def self.executable
       @executable
-    end
-
-    def self.usage
-      @usage ||= "#{executable.basename} [run | config] --config-file /path/to/alt/configfile.yaml"
     end
 
     # the single instance of our configuration object

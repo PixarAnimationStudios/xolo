@@ -25,7 +25,7 @@
 
 # frozen_string_literal: true
 
-require 'xolo'
+require 'xolo-server'
 
 # The App
 #####################
@@ -33,10 +33,13 @@ class XoloServer
 
   def initialize
     Xolo::Server.executable = __FILE__
-    Xolo::Server::CommandLine.parse_cli
+    Xolo::Server.parse_cli
   end
 
-  def run; end # run
+  def run
+    Process.setproctitle Xolo::Server.executable.basename
+    Xolo::Server.run
+  end # run
 
 end # class XoloServer
 
