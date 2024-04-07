@@ -10,7 +10,9 @@
 # This can improve readability with long, complex help output, preventing the
 # 'wall of text' problem, at the cost of longer output.
 #
+###########
 # Example: without insert_blanks
+###########
 #
 # Global Options:
 #   -v, --version         Print version and exit
@@ -21,7 +23,9 @@
 #                         command line are ignored, and will be gathered
 #                         interactively
 #
+###########
 # With insert_blanks
+###########
 #
 # Global Options:
 #   -v, --version         Print version and exit

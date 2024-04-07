@@ -88,8 +88,8 @@ module Xolo
           end
 
           banner "\nCommand Arguments:"
-          banner "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
-          banner "  version:   The version you are working with, if applicable, e.g. '12.34.5'"
+          banner Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
+          banner Xolo::Admin::Options::DFT_CMD_VERSION_ARG_BANNER
 
           banner "\nCommand Options:"
           banner "  Use '#{executable_file} help command'  or '#{executable_file} command --help' to see command-specific help."
@@ -228,6 +228,7 @@ module Xolo
         cmd_opts = Xolo::Admin::Options::COMMANDS[cmd][:opts]
         vers_cmd = version_command?
         title_or_vers_command = title_or_version_command?
+        arg_banner = Xolo::Admin::Options::COMMANDS[cmd][:arg_banner] || Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
 
         Optimist.options do
           # NOTE: extra newlines are added to the front of strings, cuz
@@ -238,9 +239,11 @@ module Xolo
           banner "\nUsage:"
           banner "  #{executable_file} #{cmd_display} options"
 
-          banner "\nArguments:"
-          banner "  title:     The unique name of this title in Xolo, e.g. 'google-chrome'"
-          banner "  version:   The version you are working with. e.g. '12.34.5'" if vers_cmd || title_or_vers_command
+          unless arg_banner == :none
+            banner "\nArguments:"
+            banner arg_banner
+            banner Xolo::Admin::Options :DFT_CMD_VERSION_ARG_BANNER if vers_cmd || title_or_vers_command
+          end
 
           if cmd_opts
             banner "\nOptions:"

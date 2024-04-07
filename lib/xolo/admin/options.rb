@@ -91,16 +91,31 @@ module Xolo
       ADD_TITLE_CMD = 'add-title'
       EDIT_TITLE_CMD = 'edit-title'
       DELETE_TITLE_CMD = 'delete-title'
+      LIST_TITLES_CMD = 'list-titles'
+
       ADD_VERSION_CMD = 'add-version'
       EDIT_VERSION_CMD = 'edit-version'
       DELETE_VERSION_CMD = 'delete-version'
       RELEASE_VERSION_CMD = 'release-version'
+      LIST_VERSIONS_CMD = 'list-versions'
+
       INFO_CMD = 'info'
       SEARCH_CMD = 'search'
       REPORT_CMD = 'report'
       HELP_CMD = 'help'
 
+      DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
+      DFT_CMD_VERSION_ARG_BANNER = "  version:   The version you are working with. e.g. '12.34.5'"
+
       COMMANDS = {
+
+        LIST_TITLES_CMD => {
+          desc: 'List titles known to Xolo.',
+          display: "#{LIST_TITLES_CMD}",
+          opts: {},
+          arg_banner: :none
+        },
+
         ADD_TITLE_CMD => {
           desc: 'Add a new software title',
           display: "#{ADD_TITLE_CMD} title",
@@ -120,6 +135,12 @@ module Xolo
           display: "#{DELETE_TITLE_CMD} title",
           opts: {},
           target: :title
+        },
+
+        LIST_VERSIONS_CMD => {
+          desc: 'List known versions of a title.',
+          display: "#{LIST_VERSIONS_CMD} title",
+          opts: {}
         },
 
         ADD_VERSION_CMD => {
