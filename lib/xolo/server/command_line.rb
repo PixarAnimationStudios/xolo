@@ -24,7 +24,7 @@
 # frozen_string_literal: true
 
 require 'ostruct'
-require 'optimist'
+require 'optimist_with_insert_blanks'
 
 module Xolo
 
