@@ -9,6 +9,30 @@
 #
 # This can improve readability with long, complex help output, preventing the
 # 'wall of text' problem, at the cost of longer output.
+#
+# Example: without insert_blanks
+#
+# Global Options:
+#   -v, --version         Print version and exit
+#   -h, --help            Show this help and exit
+#   -w, --walkthru        Run xadm in interactive mode
+#                         This causes xadm to present an interactive, menu-and-
+#                         prompt-driven interface. All command-options given on the
+#                         command line are ignored, and will be gathered
+#                         interactively
+#
+# With insert_blanks
+#
+# Global Options:
+#   -v, --version         Print version and exit
+#
+#   -h, --help            Show this help and exit
+#
+#   -w, --walkthru        Run xadm in interactive mode
+#                         This causes xadm to present an interactive, menu-and-
+#                         prompt-driven interface. All command-options given on the
+#                         command line are ignored, and will be gathered
+#                         interactively
 
 require 'date'
 
