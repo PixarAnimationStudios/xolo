@@ -105,7 +105,7 @@ module XoloZeitwerkConfig
     loader.ignore "#{top}/xolo-client.rb"
 
     # ignore things that are manually loaded by our code
-    loader.ignore "#{top}/optimist.rb"
+    loader.ignore "#{top}/optimist_with_insert_blanks.rb.rb"
 
     ##### Callbacks
 

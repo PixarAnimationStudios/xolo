@@ -31,7 +31,7 @@ require 'ostruct'
 
 # Use optimist for CLI option processing
 # https://rubygems.org/gems/optimist
-require 'optimist'
+require 'optimist_with_insert_blanks'
 
 module Xolo
 

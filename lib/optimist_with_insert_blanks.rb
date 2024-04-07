@@ -3,25 +3,29 @@
 # Copyright (c) 2014 Red Hat, Inc.
 # optimist is licensed under the MIT license.
 
+# Added by chrisl@pixar.com:
+# If you'd like to insert blank lines between sections of the
+# help output, call 'insert_blanks'  within the  Optimist.options {} block
+#
+# This can improve readability with long, complex help output, preventing the
+# 'wall of text' problem, at the cost of longer output.
+
 require 'date'
 
 module Optimist
 
-  
   VERSION = '3.1.0'
 
   ## Thrown by Parser in the event of a commandline error. Not needed if
   ## you're using the Optimist::options entry.
   class CommandlineError < StandardError
 
-  
     attr_reader :error_code
 
     def initialize(msg, error_code = nil)
       super(msg)
       @error_code = error_code
     end
-  
 
   end
 
@@ -72,7 +76,7 @@ module Optimist
         lookup = type.to_sym
       end
       unless @registry.has_key?(lookup)
-        raise ArgumentError, 
+        raise ArgumentError,
               "Unsupported argument type '#{type}', registry lookup '#{lookup}'"
       end
 
@@ -161,11 +165,11 @@ module Optimist
       raise ArgumentError, "you already have an argument named '#{name}'" if @specs.member? o.name
 
       if @long[o.long]
-        raise ArgumentError, 
+        raise ArgumentError,
               "long option name #{o.long.inspect} is already taken; please specify a (different) :long"
       end
       if @short[o.short]
-        raise ArgumentError, 
+        raise ArgumentError,
               "short option name #{o.short.inspect} is already taken; please specify a (different) :short"
       end
 
@@ -335,7 +339,7 @@ module Optimist
 
           syms.each do |sym|
             unless given_args.include? sym
-              raise CommandlineError, 
+              raise CommandlineError,
                     "--#{@specs[constraint_sym].long} requires --#{@specs[sym].long}"
             end
           end
@@ -344,7 +348,7 @@ module Optimist
 
           syms.each do |sym|
             if given_args.include?(sym) && (sym != constraint_sym)
-              raise CommandlineError, 
+              raise CommandlineError,
                     "--#{@specs[constraint_sym].long} conflicts with --#{@specs[sym].long}"
             end
           end
@@ -398,11 +402,9 @@ module Optimist
       ## allow openstruct-style accessors
       class << vals
 
-  
         def method_missing(m, *_args)
           self[m] || self[m.to_s]
         end
-  
 
       end
       vals
@@ -563,11 +565,10 @@ module Optimist
           i += 1
         else
           return remains += args[i..-1] if @stop_on_unknown
-            
-          
+
           remains << args[i]
           i += 1
-          
+
         end
       end
 
@@ -627,7 +628,6 @@ module Optimist
         meth
       end
     end
-  
 
   end
 
@@ -655,43 +655,43 @@ module Optimist
     end
 
     ## Indicates a flag option, which is an option without an argument
-    def flag? 
-      false 
+    def flag?
+      false
     end
 
     def single_arg?
       !multi_arg? && !flag?
     end
 
-    def multi 
-      @multi_given 
+    def multi
+      @multi_given
     end
     alias multi? multi
 
     ## Indicates that this is a multivalued (Array type) argument
-    def multi_arg? 
-      false 
+    def multi_arg?
+      false
     end
     ## note: Option-Types with both multi_arg? and flag? false are single-parameter (normal) options.
 
-    def array_default? 
-      default.is_a?(Array) 
+    def array_default?
+      default.is_a?(Array)
     end
 
-    def short? 
-      short && short != :none 
+    def short?
+      short && short != :none
     end
 
-    def callback 
-      opts(:callback) 
+    def callback
+      opts(:callback)
     end
 
-    def desc 
-      opts(:desc) 
+    def desc
+      opts(:desc)
     end
 
-    def required? 
-      opts(:required) 
+    def required?
+      opts(:required)
     end
 
     def parse(_paramlist, _neg_given)
@@ -699,8 +699,8 @@ module Optimist
     end
 
     # provide type-format string.  default to empty, but user should probably override it
-    def type_format 
-      '' 
+    def type_format
+      ''
     end
 
     def educate
@@ -743,7 +743,7 @@ module Optimist
       opttype_from_default = get_klass_from_default(opts, opttype)
 
       if opttype && opttype_from_default && (opttype.class != opttype_from_default.class)
-        raise ArgumentError, 
+        raise ArgumentError,
               ":type specification and default type don't match (default type is #{opttype_from_default.class})"
       end
 
@@ -769,7 +769,7 @@ module Optimist
       opt_inst.opts = opts
       opt_inst
     end
-  
+
     def self.get_type_from_disdef(optdef, opttype, disambiguated_default)
       if disambiguated_default.is_a? Array
         return(optdef.first.class.name.downcase + 's') unless optdef.empty?
@@ -778,9 +778,7 @@ module Optimist
         raise ArgumentError, 'multiple argument type must be plural' unless opttype.multi_arg?
 
         return nil
-        
-          
-        
+
       end
       disambiguated_default.class.name.downcase
     end
@@ -821,7 +819,7 @@ module Optimist
              end
 
       if sopt && (sopt =~ ::Optimist::Parser::INVALID_SHORT_ARG_REGEX)
-        raise ArgumentError, 
+        raise ArgumentError,
               "a short option name can't be a number or a dash"
       end
       sopt
@@ -832,38 +830,35 @@ module Optimist
   # Flag option.  Has no arguments. Can be negated with "no-".
   class BooleanOption < Option
 
-  
     register_alias :flag, :bool, :boolean, :trueclass, :falseclass
     def initialize
       super()
       @default = false
     end
 
-    def flag? 
-      true 
+    def flag?
+      true
     end
 
     def parse(_paramlist, neg_given)
       (name.to_s =~ /^no_/ ? neg_given : !neg_given)
     end
-  
 
   end
 
   # Floating point number option class.
   class FloatOption < Option
 
-  
     register_alias :float, :double
-    def type_format 
-      '=<f>' 
+    def type_format
+      '=<f>'
     end
 
     def parse(paramlist, _neg_given)
       paramlist.map do |pg|
         pg.map do |param|
           unless param.is_a?(Numeric) || param =~ FLOAT_RE
-            raise CommandlineError, 
+            raise CommandlineError,
                   "option '#{name}' needs a floating-point number"
           end
 
@@ -871,24 +866,22 @@ module Optimist
         end
       end
     end
-  
 
   end
 
   # Integer number option class.
   class IntegerOption < Option
 
-  
     register_alias :int, :integer, :fixnum
-    def type_format 
-      '=<i>' 
+    def type_format
+      '=<i>'
     end
 
     def parse(paramlist, _neg_given)
       paramlist.map do |pg|
         pg.map do |param|
           unless param.is_a?(Numeric) || param =~ /^-?[\d_]+$/
-            raise CommandlineError, 
+            raise CommandlineError,
                   "option '#{name}' needs an integer"
           end
 
@@ -896,7 +889,6 @@ module Optimist
         end
       end
     end
-  
 
   end
 
@@ -905,10 +897,9 @@ module Optimist
   # in the case of file-paths given to it.
   class IOOption < Option
 
-  
     register_alias :io
-    def type_format 
-      '=<filename/uri>' 
+    def type_format
+      '=<filename/uri>'
     end
 
     def parse(paramlist, _neg_given)
@@ -927,33 +918,29 @@ module Optimist
         end
       end
     end
-  
 
   end
 
   # Option class for handling Strings.
   class StringOption < Option
 
-  
     register_alias :string
-    def type_format 
-      '=<s>' 
+    def type_format
+      '=<s>'
     end
 
     def parse(paramlist, _neg_given)
       paramlist.map { |pg| pg.map(&:to_s) }
     end
-  
 
   end
 
   # Option for dates.  Uses Chronic if it exists.
   class DateOption < Option
 
-  
     register_alias :date
-    def type_format 
-      '=<date>' 
+    def type_format
+      '=<date>'
     end
 
     def parse(paramlist, _neg_given)
@@ -975,7 +962,6 @@ module Optimist
         end
       end
     end
-  
 
   end
 
@@ -987,80 +973,70 @@ module Optimist
   # Option class for handling multiple Integers
   class IntegerArrayOption < IntegerOption
 
-  
     register_alias :fixnums, :ints, :integers
-    def type_format 
-      '=<i+>' 
+    def type_format
+      '=<i+>'
     end
 
-    def multi_arg? 
-      true 
+    def multi_arg?
+      true
     end
-  
 
   end
 
   # Option class for handling multiple Floats
   class FloatArrayOption < FloatOption
 
-  
     register_alias :doubles, :floats
-    def type_format 
-      '=<f+>' 
+    def type_format
+      '=<f+>'
     end
 
-    def multi_arg? 
-      true 
+    def multi_arg?
+      true
     end
-  
 
   end
 
   # Option class for handling multiple Strings
   class StringArrayOption < StringOption
 
-  
     register_alias :strings
-    def type_format 
-      '=<s+>' 
+    def type_format
+      '=<s+>'
     end
 
-    def multi_arg? 
-      true 
+    def multi_arg?
+      true
     end
-  
 
   end
 
   # Option class for handling multiple dates
   class DateArrayOption < DateOption
 
-  
     register_alias :dates
-    def type_format 
-      '=<date+>' 
+    def type_format
+      '=<date+>'
     end
 
-    def multi_arg? 
-      true 
+    def multi_arg?
+      true
     end
-  
 
   end
 
   # Option class for handling Files/URLs via 'open'
   class IOArrayOption < IOOption
 
-  
     register_alias :ios
-    def type_format 
-      '=<filename/uri+>' 
+    def type_format
+      '=<filename/uri+>'
     end
 
-    def multi_arg? 
-      true 
+    def multi_arg?
+      true
     end
-  
 
   end
 
@@ -1163,9 +1139,6 @@ module Optimist
     raise ArgumentError, 'Optimist::die can only be called after Optimist::options' unless @last_parser
 
     @last_parser.die arg, msg, error_code
-    
-      
-    
   end
 
   ## Displays the help message and dies. Example:
@@ -1185,9 +1158,6 @@ module Optimist
 
     @last_parser.educate
     exit
-    
-      
-    
   end
 
   module_function :options, :die, :educate, :with_standard_exception_handling
