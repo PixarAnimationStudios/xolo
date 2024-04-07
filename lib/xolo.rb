@@ -31,7 +31,7 @@
 #    require 'xolo/client'
 #    require 'xolo/admin'
 
-# Core Standard Libraries
+# Ruby Standard Libraries
 ######
 require 'English'
 require 'date'

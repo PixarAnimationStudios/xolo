@@ -43,7 +43,7 @@
 # Gems
 ######
 
-require 'windu'
+require 'windoo'
 
 # Define the module for Zeitwerk
 module Xolo

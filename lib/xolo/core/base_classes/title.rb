@@ -34,7 +34,7 @@ module Xolo
       # The base class for dealing with Titles in the
       # Xolo Server and the Admin modules.
       #
-      # These are simpler objects than Windu::SoftwareTitle instances.
+      # These are simpler objects than Windoo::SoftwareTitle instances.
       # The Xolo server will translate between the two.
       #
       class Title

@@ -267,7 +267,7 @@ module Xolo
       # This is intially set with the default, inherited, or existing
       # values for the object being created or edited.
       #
-      # Before the walk through starts, it duped and the dup
+      # Before the walk through starts, its duped and the dup
       # used as the current_opt_values (see below)
       #
       # In walkthru, the current_opt_values are used to generate the menu
@@ -313,7 +313,6 @@ module Xolo
       # These are then used for the walkthru menus, or if not walkthru, the values
       # given on the commandline are merged with these to create the set of values
       # to be validated together before being applied.
-      #
       #
       # @return [OpenStruct]
       def self.current_opt_values

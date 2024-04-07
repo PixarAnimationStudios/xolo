@@ -85,6 +85,8 @@ module Xolo
       #####################################
 
       # Default Values
+      ##########
+
       DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
 
       # The name of the server config file inside the servers's data directory.
@@ -364,25 +366,25 @@ module Xolo
         # @!attribute title_editor_open_timeout
         #   @return [Integer]
         title_editor_open_timeout: {
-          default: Windu::Connection::DFT_OPEN_TIMEOUT,
+          default: Windoo::Connection::DFT_OPEN_TIMEOUT,
           desc: <<~ENDDESC
             The timeout, in seconds, for establishing a connection to the Title Editor server.
-            The default is #{Windu::Connection::DFT_OPEN_TIMEOUT}.
+            The default is #{Windoo::Connection::DFT_OPEN_TIMEOUT}.
           ENDDESC
         },
 
         # @!attribute title_editor_timeout
         #   @return [Integer]
         title_editor_timeout: {
-          default: Windu::Connection::DFT_TIMEOUT,
+          default: Windoo::Connection::DFT_TIMEOUT,
           desc: <<~ENDDESC
             The timeout, in seconds, for getting a response to a request made to the Title Editor server.
-            The default is #{Windu::Connection::DFT_TIMEOUT}.
+            The default is #{Windoo::Connection::DFT_TIMEOUT}.
           ENDDESC
         },
 
         # @!attribute title_editor_api_user
-        #   @return [Integer]
+        #   @return [String]
         title_editor_api_user: {
           default: nil,
           required: true,
@@ -393,7 +395,7 @@ module Xolo
         },
 
         # @!attribute title_editor_api_pw
-        #   @return [Integer]
+        #   @return [String]
         title_editor_api_pw: {
           default: nil,
           required: true,

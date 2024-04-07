@@ -35,7 +35,7 @@ Gem::Specification.new do |s|
   s.email       = 'xolo@pixar.com'
   s.homepage    = 'http://pixaranimationstudios.github.io/xolo/'
   s.license     = 'Nonstandard'
-  s.date        = Time.now..strftime('%Y-%m-%d')
+  s.date        = Time.now.strftime('%Y-%m-%d')
   s.summary     = 'A package/patch management system for macOS which extends the capabilites of Jamf Pro Patch Management'
   s.description = <<~EODDESC
     Xolo is a kind of dog.
@@ -55,5 +55,5 @@ Gem::Specification.new do |s|
 
   # Only for the server
   # s.add_runtime_dependency 'ruby-jss', '~>2.0'
-  # s.add_runtime_dependency 'windu', '~>1.0'
+  # s.add_runtime_dependency 'windoo', '~>1.0'
 end
