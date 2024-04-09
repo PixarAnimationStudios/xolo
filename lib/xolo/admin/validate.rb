@@ -360,7 +360,6 @@ module Xolo
       #
       # @return [Array<Array<String>>] The valid value
       def self.killapps(val)
-
         return [] if val.include? Xolo::NONE
 
         # Split every item on semicolons
@@ -417,7 +416,12 @@ module Xolo
       #
       ##################################################
 
-      # Thes methods all raise this error
+      # These methods all raise this error
+      #
+      # @param msg [String] an error message
+      #
+      # @return [void]
+      ########
       def self.raise_consistency_error(msg)
         raise Xolo::InvalidDataError, msg
       end
@@ -427,79 +431,162 @@ module Xolo
       # The unset values in the ostruct should be nil. 'none' is used for unsetting values,
       # in the CLI and walkthru, and is converted to nil during validation if appropriate.
       #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
       def self.internal_consistency(opts)
         if Xolo::Admin::CommandLine.version_command?
           version_consistency opts
-        else
+        elsif Xolo::Admin::CommandLine.title_command?
           title_consistency opts
         end
       end
 
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
       #######
       def self.version_consistency(_opts)
         true
       end
 
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
       #######
       def self.title_consistency(opts)
-        # if app_name or app_bundle_id is given, can't use --version-script
-        if opts[:version_script] && (opts[:app_bundle_id] || opts[:app_name])
-          msg =
-            if Xolo::Admin::Options.walkthru?
-              'Version Script cannot be used with App Name or App Bundle ID'
-            else
-              '--version-script cannot be used with --app-name or --app-bundle-id'
-            end
+        # if we are just listing the versions, nothing to do
+        return if Xolo::Admin::Options.cli_cmd.command == Xolo::Admin::Options::LIST_VERSIONS_CMD
 
-          raise_consistency_error msg
-        end
+        # order of these matters
+        title_consistency_app_and_script(opts)
+        title_consistency_app_or_script(opts)
+        title_consistency_app_name_and_id(opts)
+        title_consistency_expire_paths(opts)
+        title_consistency_no_all_in_ssvc(opts)
+        title_consistency_ssvc_needs_category(opts)
+      end # title_consistency(opts)
 
-        # if app_name or app_bundle_id are given, so must the other
-        if (opts[:app_name] && !opts[:app_bundle_id]) || (opts[:app_bundle_id] && !opts[:app_name])
-          msg =
-            if Xolo::Admin::Options.walkthru?
-              'App Name & App Bundle ID must both be given if either is.'
-            else
-              '--app-name & --app-bundle-id must both be given if either is.'
-            end
-          raise_consistency_error msg
-        end
+      # if app_name or app_bundle_id is given, can't use --version-script
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_app_and_script(opts)
+        return unless opts[:version_script] && (opts[:app_bundle_id] || opts[:app_name])
 
-        # But either version_script OR app name and bundle id must be given
-        if !opts[:version_script] && !opts[:app_bundle_id]
-          msg =
-            if Xolo::Admin::Options.walkthru?
-              'Either App Name & App Bundle ID. or Version Script must be given.'
-            else
-              'Must provide either -app-name & --app-bundle-id OR --version-script'
-            end
-          raise_consistency_error msg
-        end
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            'Version Script cannot be used with App Name & App Bundle ID'
+          else
+            '--version-script cannot be used with --app-name & --app-bundle-id'
+          end
 
-        # if expiration is > 0, there must be at least one expiration path
-        if opts[:expiration].to_i.positive? && (!opts[:expiration_paths] || opts[:expiration_paths].empty?)
-          msg =
-            if Xolo::Admin::Options.walkthru?
-              'At least one Expiration Path must be given if Expiration is > 0.'
-            else
-              'At least one --expiration-path must be provided if --expiration is > 0'
-            end
-          raise_consistency_error msg
-        end
+        raise_consistency_error msg
+      end
 
-        # if target_group is all, can't be in self service
-        if opts[:target_groups] && opts[:target_groups].include?(Xolo::Admin::Title::TARGET_ALL) && opts[:self_service]
-          msg =
-            if Xolo::Admin::Options.walkthru?
-              "Cannot be in Self Service when Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'"
-            else
-              "--self-service cannot be used when --target-groups contains '#{Xolo::Admin::Title::TARGET_ALL}'"
-            end
-          raise_consistency_error msg
-        end
+      # but either version_script or appname and bundle id must be given
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_app_or_script(opts)
+        return if opts[:version_script]
+        return if opts[:app_name] || opts[:app_bundle_id]
 
-        # if in self service, a category must be assigned
-        return unless opts[:self_service] && !opts[:self_service_category]
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            'Either App Name & App Bundle ID. or Version Script must be given.'
+          else
+            'Must provide either --app-name & --app-bundle-id OR --version-script'
+          end
+        raise_consistency_error msg
+      end
+
+      # If using app_name and bundle id, both must be given
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_app_name_and_id(opts)
+        return if opts[:version_script]
+        return if opts[:app_name] && opts[:app_bundle_id]
+
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            'App Name & App Bundle ID must both be given if either is.'
+          else
+            '--app-name & --app-bundle-id must both be given if either is.'
+          end
+        raise_consistency_error msg
+      end
+
+      # if expiration is > 0, there must be at least one expiration path
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_expire_paths(opts)
+        return if opts[:expiration].to_i.positive? && !opts[:expiration_paths].to_s.empty?
+
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            'At least one Expiration Path must be given if Expiration is > 0.'
+          else
+            'At least one --expiration-path must be given if --expiration is > 0'
+          end
+        raise_consistency_error msg
+      end
+
+      # if target_group is all, can't be in self service
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_no_all_in_ssvc(opts)
+        return unless opts[:target_groups].to_a.include?(Xolo::Admin::Title::TARGET_ALL) && opts[:self_service]
+
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            "Cannot be in Self Service when Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'"
+          else
+            "--self-service cannot be used when --target-groups contains '#{Xolo::Admin::Title::TARGET_ALL}'"
+          end
+        raise_consistency_error msg
+      end
+
+      # if target_group is all, can't be in self service
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_no_all_in_ssvc(opts)
+        return unless opts[:target_groups].to_a.include?(Xolo::Admin::Title::TARGET_ALL) && opts[:self_service]
+
+        msg =
+          if Xolo::Admin::Options.walkthru?
+            "Cannot be in Self Service when Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'"
+          else
+            "--self-service cannot be used when --target-groups contains '#{Xolo::Admin::Title::TARGET_ALL}'"
+          end
+        raise_consistency_error msg
+      end
+
+      # if in self service, a category must be assigned
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def self.title_consistency_ssvc_needs_category(opts)
+        return if opts[:self_service] && opts[:self_service_category]
 
         msg =
           if Xolo::Admin::Options.walkthru?
@@ -508,7 +595,7 @@ module Xolo
             'A --self-service-category must be provided when using --self-service'
           end
         raise_consistency_error msg
-      end # title_consistency(opts)
+      end
 
     end # module validate
 

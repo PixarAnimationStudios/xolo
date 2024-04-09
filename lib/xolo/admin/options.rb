@@ -88,16 +88,16 @@ module Xolo
 
       # The xadm commands
 
+      LIST_TITLES_CMD = 'list-titles'
       ADD_TITLE_CMD = 'add-title'
       EDIT_TITLE_CMD = 'edit-title'
       DELETE_TITLE_CMD = 'delete-title'
-      LIST_TITLES_CMD = 'list-titles'
 
+      LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
       EDIT_VERSION_CMD = 'edit-version'
       DELETE_VERSION_CMD = 'delete-version'
       RELEASE_VERSION_CMD = 'release-version'
-      LIST_VERSIONS_CMD = 'list-versions'
 
       INFO_CMD = 'info'
       SEARCH_CMD = 'search'
@@ -110,10 +110,11 @@ module Xolo
       COMMANDS = {
 
         LIST_TITLES_CMD => {
-          desc: 'List titles known to Xolo.',
-          display: "#{LIST_TITLES_CMD}",
+          desc: 'List known titles.',
+          display: LIST_TITLES_CMD,
           opts: {},
-          arg_banner: :none
+          arg_banner: :none,
+          target: :none
         },
 
         ADD_TITLE_CMD => {
@@ -140,7 +141,8 @@ module Xolo
         LIST_VERSIONS_CMD => {
           desc: 'List known versions of a title.',
           display: "#{LIST_VERSIONS_CMD} title",
-          opts: {}
+          opts: {},
+          target: :title
         },
 
         ADD_VERSION_CMD => {

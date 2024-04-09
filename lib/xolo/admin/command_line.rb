@@ -212,7 +212,7 @@ module Xolo
             # the next item is the version we are working with
             if version_command?
               Xolo::Admin::Options.cli_cmd.version = ARGV.shift
-              validate_cli_version unless ARGV.include?('--help')
+              validate_cli_version
             end
           end # unless ARGV.include?('--help')
         end # if
@@ -300,7 +300,8 @@ module Xolo
       # were we given a title?
       #########
       def self.validate_cli_title
-        # return if Xolo::Admin::Options.cli_cmd.command == Xolo::Admin::Options::HELP_CMD
+        # this command doesn't need a title arg
+        return if Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :none
 
         # TODO:
         #   If this is an 'add-' command, ensure the title
@@ -321,6 +322,9 @@ module Xolo
       # were we given a version?
       #########
       def self.validate_cli_version
+        # this command doesn't need a version arg
+        return if Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :none
+
         # TODO:
         #   If this is an 'add-' command, ensure the version
         #   doesn't already exist.
