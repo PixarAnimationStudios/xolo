@@ -37,8 +37,48 @@ module Xolo
         Xolo.verbose_include includer, self
       end
 
-    end # module
+      DATETIME_FORMAT = '%F %T'
 
-  end # module
+      BASE_FORMATTER = proc do |severity, datetime, _progname, msg|
+        "#{datetime.strftime DATETIME_FORMAT} #{severity}: #{msg}\n"
+      end
+
+      # top-level logger for the server as a whole
+      #############################################
+      def self.logger
+        @logger ||= Logger.new(
+          LOGFILE,
+          datetime_format: DATETIME_FORMAT,
+          formatter: BASE_FORMATTER
+        )
+      end
+
+      # change log level of the server logger, new requests should inherit it
+      #############################################
+      def self.set_level(level, user: :unknown)
+        lvl_const = level.to_s.upcase.to_sym
+        if Logger.constants.include? lvl_const
+          lvl = Logger.const_get lvl_const
+          logger.debug "changing log level to #{lvl_const} (#{lvl}) by #{user}"
+          logger.level = lvl
+          logger.info "log level changed to #{lvl_const} by #{user}"
+
+          { loglevel: lvl_const }
+        else
+          { error: "Unknown level '#{level}', use one of: debug, info, warn, error, fatal, unknown" }
+        end
+      end
+
+    end # module Log
+
+    # Wrapper for Xolo::Server::Log.logger,
+    # also available as Xolo::Server.logger from anywhere.
+    # Within Sinatra routes and views, its available via the #logger instance method.
+    #########################################
+    def self.logger
+      Log.logger
+    end
+
+  end # module Server
 
 end # module Xolo

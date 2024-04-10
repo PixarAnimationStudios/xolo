@@ -66,7 +66,7 @@ module XoloZeitwerkConfig
     @loader = zloader
 
     # Ignore this file (more ignores below)
-    loader.ignore __FILE__
+    @loader.ignore __FILE__
 
     ##### Collaped Paths
     #
@@ -91,7 +91,7 @@ module XoloZeitwerkConfig
     ###############################################
 
     # loader.inflector.inflect 'json_object' => 'JSONObject'
-    loader.inflector.inflect 'yaml' => 'YAML'
+    @loader.inflector.inflect 'yaml' => 'YAML'
 
     ##### Ingored Paths
     #
@@ -100,12 +100,12 @@ module XoloZeitwerkConfig
 
     # ignore the convenience files at the top level
     top = Pathname.new(__dir__).parent
-    loader.ignore "#{top}/xolo-server.rb"
-    loader.ignore "#{top}/xolo-admin.rb"
-    loader.ignore "#{top}/xolo-client.rb"
+    @loader.ignore "#{top}/xolo-server.rb"
+    @loader.ignore "#{top}/xolo-admin.rb"
+    @loader.ignore "#{top}/xolo-client.rb"
 
     # ignore things that are manually loaded by our code
-    loader.ignore "#{top}/optimist_with_insert_blanks.rb"
+    @loader.ignore "#{top}/optimist_with_insert_blanks.rb"
 
     ##### Callbacks
 
@@ -124,7 +124,7 @@ module XoloZeitwerkConfig
     #    an Array for the constant  "Xolo::SomeClass::SOME_CONST_ARRY"
     #  - abspath is the full path to the file where the constant was loaded from.
     #####################################
-    loader.on_load do |const_path, value, abspath|
+    @loader.on_load do |const_path, value, abspath|
       load_msg "Zeitwerk just loaded #{value.class} '#{const_path}' from:\n  #{abspath}"
 
       # Parse JSON_ATTRIBUTES into getters and setters for subclasses of
@@ -149,7 +149,7 @@ module XoloZeitwerkConfig
     end
 
     # actually do the setup that was defined above
-    loader.setup
+    @loader.setup
   end # setup_zeitwerk_loader
 
   # For testing the Zeitwrk Loader.

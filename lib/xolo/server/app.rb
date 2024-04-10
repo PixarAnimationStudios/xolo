@@ -30,7 +30,70 @@ module Xolo
   module Server
 
     # The actual server application - a Sinatra/Thin HTTPS server
-    class App
+    class App < Sinatra::Base
+
+      helpers Sinatra::CustomLogger
+
+      # Sinatra config
+      configure do
+        set :server, :thin
+        set :bind, '0.0.0.0'
+        set :port, 443
+        set :show_exceptions, false
+        logger = Xolo::Server.logger
+        logger.level = development? ? Logger::DEBUG : Logger::INFO
+        set :logger, logger
+      end
+
+      # Server class attributes
+      class << self
+
+        attr_reader :start_time
+
+      end
+
+      # Run !
+      ##########################
+      def self.run!(**options, &block)
+        setup
+
+        super do |server|
+          server.ssl = true
+          server.ssl_options = {
+            cert_chain_file: SSL_CERT_CHAIN_FILE.to_s,
+            private_key_file: SSL_KEY_FILE.to_s,
+            verify_peer: false
+          }
+        end # super do
+      end
+
+      # Do some setup as we start the server
+      ##########################
+      def self.setup
+        @start_time = Time.now
+        Xolo::Server.logger.info 'Starting Up'
+      end
+
+      # threads for reporting
+      ##########################
+      def self.thread_info
+        info = {}
+        Thread.list.each do |thr|
+          name =
+            if thr.name
+              thr.name
+            elsif Thread.main == thr
+              'Main'
+            elsif thr.to_s.include? 'eventmachine'
+              "eventmachine-#{thr.object_id}"
+            else
+              thr.to_s
+            end
+          info[name] = thr.status
+        end
+
+        info
+      end
 
     end # class App
 

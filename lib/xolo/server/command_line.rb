@@ -72,18 +72,18 @@ module Xolo
       }.freeze
 
       # CLI usage message
-      def self.usage
+      def usage
         @usage ||= "#{executable.basename} [--data-dir /path/to/nonstd/data/dir --config-file /path/to/alt/configfile.yaml --debug"
       end
 
       # An OStruct to hold the CLI options
-      def self.cli_opts
+      def cli_opts
         @cli_opts ||= OpenStruct.new
       end
 
       # Use optimist to parse ARGV.
       ################################################
-      def self.parse_cli
+      def parse_cli
         parsed_opts = Optimist.options do
           banner 'Name:'
           banner "  #{Xolo::Server.executable.basename}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
@@ -107,13 +107,11 @@ module Xolo
           Xolo::Server::CLI_OPTIONS.each do |opt_key, deets|
             opt opt_key, deets[:desc], short: deets[:cli]
           end
-
         end # Optimist.options
 
         # save the global opts hash from optimist into our OpenStruct
         parsed_opts.each { |k, v| cli_opts[k] = v }
       end
-
 
     end # module CommandLine
 

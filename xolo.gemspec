@@ -56,4 +56,6 @@ Gem::Specification.new do |s|
   # Only for the server
   # s.add_runtime_dependency 'ruby-jss', '~>2.0'
   # s.add_runtime_dependency 'windoo', '~>1.0'
+  # s.add_runtime_dependency 'sinatra', '~>1.0'
+  # s.add_runtime_dependency 'thin', '~>1.0'
 end

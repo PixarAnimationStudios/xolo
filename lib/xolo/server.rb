@@ -44,6 +44,10 @@
 ######
 
 require 'windoo'
+require 'sinatra/base'
+require 'sinatra/custom_logger'
+require 'logger'
+require 'openssl'
 
 # Define the module for Zeitwerk
 module Xolo
@@ -75,7 +79,7 @@ module Xolo
   module Server
 
     include Xolo::Server::Constants
-    extend Xolo::Server::CommandLine
+    include Xolo::Server::CommandLine
     include Xolo::Server::Logging
     include Xolo::Server::JamfPro
     include Xolo::Server::TitleEditor

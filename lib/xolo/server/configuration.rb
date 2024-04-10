@@ -92,18 +92,24 @@ module Xolo
       # The name of the server config file inside the servers's data directory.
       # To use a different path, start the server with the --config option
       #    /usr/local/bin/xolo-server --config /path/to/my/configfile.yaml
-      CONF_FILE = DATA_DIR + 'config.yaml'
+      CONFIG_FILE = DATA_DIR + 'config.yaml'
 
-      DFT_SSL_CERT_FILENAME = 'ssl-cert.pem'
-      DFT_SSL_KEY_FILENAME = 'ssl-key.pem'
-      DFT_SSL_VERIFY = true
-      DFT_SESSION_EXPIRTION = 3600
+      SSL_DIR = DATA_DIR + 'ssl'
+      SSL_CERT_FILENAME = 'cert.pem'
+      SSL_KEY_FILENAME = 'key.pem'
+      SSL_CERT_FILE = SSL_DIR + SSL_CERT_FILENAME
+      SSL_KEY_FILE = SSL_DIR + SSL_KEY_FILENAME
 
-      # Log file is: Xolo::Server.data_dir + 'logs/xoloserver.log'
-      DFT_LOG_LEVEL = Logger::INFO
+      # Log file is: Xolo::Server.config.data_dir + 'logs/server.log'
+      LOG_DIR = DATA_DIR + 'logs'
+      LOG_FILENAME = 'server.log'
+      LOG_FILE = LOG_DIR + LOG_FILENAME
+
       DFT_LOG_DAYS_TO_KEEP = 14
 
-      DFT_PKG_SIGNING_KEYCHAIN_FILENAME = 'pkg-signing.keychain-db'
+      DFT_PKG_SIGNING_KEYCHAIN_FILENAME = 'xolo-pkg-signing.keychain-db'
+
+      PIPE = '|'
 
       # Attributes
       #####################################
@@ -152,18 +158,6 @@ module Xolo
           desc: <<~ENDDESC
             Should the server verify the SSL certificates of machines it communicates with?
             Default is #{DFT_SSL_VERIFY}
-          ENDDESC
-        },
-
-        # @!attribute log_level
-        #   @return [Integer]
-        log_level: {
-          default: DFT_LOG_LEVEL,
-          desc: <<~ENDDESC
-            The log-level used by default, one of the levels supported by the Logger std libaray:
-            Logger::DEBUG, Logger::INFO, Logger::WARN, Logger::ERROR, Logger::FATAL.
-            The current log is located at 'logs/xoloserver.log' inside the server's data directory.
-            Default is Logger::INFO
           ENDDESC
         },
 
@@ -423,18 +417,105 @@ module Xolo
 
       # Initialize!
       #
-      def initialize(config_file: Xolo::Server::CONF_FILE, new_data: nil)
-        @config_file = config_file
-        if new_data
-          new_data.each { |k, v| send "#{k}=", v }
-          save
-        else
-          load
-        end
+      def initialize(config_file: Xolo::Server::CONFIG_FILE, new_data: {})
+        @config_file = Pathname.new config_file
+        load_from_file
+        merge_new_data new_data
       end
 
       # Public Instance Methods
       #####################################
+
+      ##################
+      def data_dir
+        DATA_DIR
+      end
+
+      ##################
+      def log_file
+        LOG_FILE
+      end
+
+      ##################
+      def ssl_cert_file
+        return @ssl_cert_file if @ssl_cert_file
+        raise 'ssl_cert must be set as a string in the config file' unless ssl_cert.is_a? String
+
+        SSL_CERT_FILE.pix_save data_from_command_or_file(ssl_cert)
+        @ssl_cert_file = SSL_CERT_FILE
+      end
+
+      ##################
+      def ssl_key_file
+        return @ssl_key_file if @ssl_key_file
+        raise 'ssl_key must be set as a string in the config file' unless ssl_key.is_a? String
+
+        SSL_CERT_FILE.pix_save data_from_command_or_file(ssl_key)
+        @ssl_key_file = SSL_CERT_FILE
+      end
+
+      # Private Instance Methods
+      #####################################
+      private
+
+      # Load in the values from the config file
+      # @return [void]
+      def load_from_file
+        data = YAML.load_file @config_file
+        data.each { |k, v| send "#{k}=", v }
+      end
+
+      # Reset any values given in the new_data hash
+      #
+      # @param new_data [Hash] Keys must be keys of ATTRIBUTES
+      #
+      # @return [void]
+      def merge_new_data(new_data)
+        new_data.each { |k, v| send "#{k}=", v }
+      end
+
+      # Save the current config values out to the config file
+      # @return [void]
+      def save_to_file
+        data = {}
+        ATTRIBUTES.keys.each { |k| data[k] = send(k) }
+        @config_file.pix_save data.to_yaml
+      end
+
+      # If the given string starts with a pipe (|) then
+      # remove the pipe and execute the remainder, returning
+      # its stdout.
+      #
+      # Otherwise, the string is a file path, then just
+      # return the content of the file.
+      #
+      # @param str [String] a file path, or command to be executed
+      # @return [String] The file contents or output of the command.
+      #
+      def data_from_command_or_file(str)
+        if str.start_with? PIPE
+          `#{str.delete_prefix(PIPE)}`.chomp
+        else
+          Pathname.new(str).read.chomp
+        end
+      end
+
+      # If the given string starts with a pipe (|) then
+      # remove the pipe and execute the remainder, returning
+      # its stdout.
+      #
+      # Otherwise, the string is the desired data, so just return it.
+      #
+      # @param str [String] a file path, or command to be executed
+      # @return [String] The file contents or output of the command.
+      #
+      def data_from_command_or_string(str)
+        if str.start_with? PIPE
+          `#{str.delete_prefix(PIPE)}`.chomp
+        else
+          str
+        end
+      end
 
     end # class Configuration
 
