@@ -8,7 +8,7 @@
 # help output, call 'insert_blanks'  within the  Optimist.options {} block
 #
 # This can improve readability with long, complex help output, preventing the
-# 'wall of text' problem, at the cost of longer output.
+# 'wall of text', at the cost of longer output.
 #
 ###########
 # Example: without insert_blanks

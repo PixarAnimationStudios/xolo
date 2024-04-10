@@ -30,6 +30,9 @@
 require 'ostruct'
 
 # Use optimist for CLI option processing
+# This version modified to allow 'insert_blanks' which
+# puts blank lines between each option in the help output.
+#
 # https://rubygems.org/gems/optimist
 require 'optimist_with_insert_blanks'
 

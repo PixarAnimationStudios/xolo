@@ -532,7 +532,8 @@ module Xolo
       # @return [void]
       #######
       def self.title_consistency_expire_paths(opts)
-        return if opts[:expiration].to_i.positive? && !opts[:expiration_paths].to_s.empty?
+        return unless opts[:expiration].to_i.positive?
+        return unless opts[:expiration_paths].empty?
 
         msg =
           if Xolo::Admin::Options.walkthru?

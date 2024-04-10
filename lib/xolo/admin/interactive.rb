@@ -76,7 +76,6 @@ module Xolo
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val, not_avail: not_avail)
 
-
               # with menu.choice, the first arg is the 'name' which is used for text-based
               # menu choosing, and we want number-based, so set it to nil.
               # Second arg is 'help' which is not used unless the menu is a 'shell'
@@ -147,7 +146,7 @@ module Xolo
         tgt_all = Xolo::Admin::Options.current_opt_values[:target_groups]&.include?(all) || \
                   Xolo::Admin::Options.walkthru_cmd_opts[:target_groups]&.include?(all)
 
-        return "N/A if Target Group is '#{all}'" if tgt_all
+        "N/A if Target Group is '#{all}'" if tgt_all
       end
 
       # @return [String, nil] any current internal consistency error. will be nil when none remain
@@ -239,7 +238,7 @@ module Xolo
 
       # The multi-lines of text describing the value above the prompt
       def self.question_desc(deets, default)
-        q_desc = +"============= #{deets[:label]} ======FOOOO=======\n"
+        q_desc = +"============= #{deets[:label]} =============\n"
         q_desc << deets[:desc]
         q_desc << "\nType a return for default value '#{default}'" if default
         q_desc << "\n"

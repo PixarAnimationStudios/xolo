@@ -89,6 +89,6 @@ begin
   app = XoloAdmin.new
   app.run
 rescue => e
-  warn "ERROR #{e.class}: #{e}"
+  warn "Error: #{e.class.name.split('::').last}: #{e}"
   e.backtrace.each { |l| warn "..#{l}" } if debug
 end
