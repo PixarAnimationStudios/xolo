@@ -30,10 +30,12 @@
 require 'ostruct'
 
 # Use optimist for CLI option processing
+# https://rubygems.org/gems/optimist
+#
 # This version modified to allow 'insert_blanks' which
 # puts blank lines between each option in the help output.
+# See comments in the required file for details.
 #
-# https://rubygems.org/gems/optimist
 require 'optimist_with_insert_blanks'
 
 module Xolo
