@@ -32,6 +32,8 @@ module Xolo
     # The actual server application - a Sinatra/Thin HTTPS server
     class App < Sinatra::Base
 
+      include Xolo::Server::Routes
+
       helpers Sinatra::CustomLogger
 
       # Sinatra config
@@ -70,6 +72,7 @@ module Xolo
       # Do some setup as we start the server
       ##########################
       def self.setup
+        Xolo::DATA_DIR.mkpath unless Xolo::DATA_DIR.directory?
         @start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
       end

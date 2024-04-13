@@ -80,19 +80,42 @@ module Xolo
 
     include Xolo::Server::Constants
     include Xolo::Server::CommandLine
-    include Xolo::Server::Logging
+    include Xolo::Server::Log
     include Xolo::Server::JamfPro
     include Xolo::Server::TitleEditor
 
+    ################
     def self.executable=(path)
       @executable = Pathname.new path
     end
 
+    ################
     def self.executable
       @executable
     end
 
+    ################
+    def self.run_mode=(sym)
+      @run_mode = sym
+    end
+
+    ################
+    def self.run_mode?
+      @run_mode
+    end
+
+    ################
+    def self.debug=(bool)
+      @debug = bool ? true : false
+    end
+
+    ################
+    def self.debug?
+      @debug
+    end
+
     # the single instance of our configuration object
+    ################
     def self.config
       Xolo::Server::Configuration.instance
     end

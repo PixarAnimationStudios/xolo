@@ -87,12 +87,8 @@ module Xolo
       # Default Values
       ##########
 
-      DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
-
-      # The name of the server config file inside the servers's data directory.
-      # To use a different path, start the server with the --config option
-      #    /usr/local/bin/xolo-server --config /path/to/my/configfile.yaml
-      CONFIG_FILE = DATA_DIR + 'config.yaml'
+      CONF_FILENAME = 'config.yaml'
+      CONF_FILE = Xolo::DATA_DIR + CONF_FILENAME
 
       SSL_DIR = DATA_DIR + 'ssl'
       SSL_CERT_FILENAME = 'cert.pem'
@@ -122,15 +118,22 @@ module Xolo
         ssl_cert: {
           default: nil,
           required: true,
+          load_method: :data_from_command_file_or_string,
           desc: <<~ENDDESC
-            If you provide a path to an existing file, it is copied to #{DFT_SSL_CERT_FILENAME}
-            in the server's data directory.
+            The SSL Certificate for the https server in .pem format.
+            When the server starts, it will be read from here, and stored in
+            #{SSL_CERT_FILE}
 
             If you start this value with a vertical bar '|', everything after the bar
             is a command to be executed by the server at start-time. The command must
-            return the certificate in .pem format to standard output.
-
+            return the certificate to standard output.
             This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used
+
+            Otherwise the value is used as the certificate.
+
+            Be careful of security concerns when certificates are stored in files.
           ENDDESC
         },
 
@@ -139,15 +142,22 @@ module Xolo
         ssl_key: {
           default: nil,
           required: true,
+          load_method: :data_from_command_file_or_string,
           desc: <<~ENDDESC
-            If you provide a path to an existing file, it is copied to #{DFT_SSL_KEY_FILENAME}
-            in the server's data directory.
+            The private key for the SSL Certificate in .pem format.
+            When the server starts, it will be read from here, and stored in
+            #{SSL_KEY_FILE}
 
             If you start this value with a vertical bar '|', everything after the bar
             is a command to be executed by the server at start-time. The command must
-            return the key in .pem format to standard output.
-
+            return the password to standard output.
             This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used
+
+            Otherwise the value is used as the key.
+
+            Be careful of security concerns when keys are stored in files.
           ENDDESC
         },
 
@@ -190,14 +200,20 @@ module Xolo
         pkg_signing_keychain_pw: {
           default: nil,
           required: true,
+          load_method: :data_from_command_file_or_string,
           desc: <<~ENDDESC
             The password to unlock the keychain used for package signing.
 
             If you start this value with a vertical bar '|', everything after the bar
             is a command to be executed by the server at start-time. The command must
             return the password to standard output.
-
             This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used
+
+            Otherwise the value is used as the password.
+
+            Be careful of security concerns when passwords are stored in files.
           ENDDESC
         },
 
@@ -294,14 +310,20 @@ module Xolo
         jamf_api_pw: {
           default: nil,
           required: true,
+          load_method: :data_from_command_file_or_string,
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
             If you start this value with a vertical bar '|', everything after the bar
             is a command to be executed by the server at start-time. The command must
             return the password to standard output.
-
             This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used
+
+            Otherwise the value is used as the password.
+
+            Be careful of security concerns when passwords are stored in files.
           ENDDESC
         },
 
@@ -393,18 +415,24 @@ module Xolo
         title_editor_api_pw: {
           default: nil,
           required: true,
+          load_method: :data_from_command_file_or_string,
           desc: <<~ENDDESC
             The password for the username that connects to the Title Editor API.
 
             If you start this value with a vertical bar '|', everything after the bar
             is a command to be executed by the server at start-time. The command must
             return the password to standard output.
-
             This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used
+
+            Otherwise the value is used as the password.
+
+            Be careful of security concerns when passwords are stored in files.
           ENDDESC
         }
 
-      }
+      }.freeze
 
       # Attributes
       #####################################
@@ -417,10 +445,8 @@ module Xolo
 
       # Initialize!
       #
-      def initialize(config_file: Xolo::Server::CONFIG_FILE, new_data: {})
-        @config_file = Pathname.new config_file
+      def initialize
         load_from_file
-        merge_new_data new_data
       end
 
       # Public Instance Methods
@@ -461,17 +487,13 @@ module Xolo
       # Load in the values from the config file
       # @return [void]
       def load_from_file
-        data = YAML.load_file @config_file
-        data.each { |k, v| send "#{k}=", v }
-      end
+        CONF_FILE.parent.mkpath unless CONF_FILE.parent.mkpath.directory?
 
-      # Reset any values given in the new_data hash
-      #
-      # @param new_data [Hash] Keys must be keys of ATTRIBUTES
-      #
-      # @return [void]
-      def merge_new_data(new_data)
-        new_data.each { |k, v| send "#{k}=", v }
+        data = YAML.load_file
+        data.each do |k, v|
+          v = send ATTRIBUTES[k][:load_method], v if ATTRIBUTES[k][:load_method]
+          send "#{k}=", v
+        end
       end
 
       # Save the current config values out to the config file
@@ -486,35 +508,21 @@ module Xolo
       # remove the pipe and execute the remainder, returning
       # its stdout.
       #
-      # Otherwise, the string is a file path, then just
-      # return the content of the file.
-      #
-      # @param str [String] a file path, or command to be executed
-      # @return [String] The file contents or output of the command.
-      #
-      def data_from_command_or_file(str)
-        if str.start_with? PIPE
-          `#{str.delete_prefix(PIPE)}`.chomp
-        else
-          Pathname.new(str).read.chomp
-        end
-      end
-
-      # If the given string starts with a pipe (|) then
-      # remove the pipe and execute the remainder, returning
-      # its stdout.
+      # If the given string is a readble file path, return
+      # its contents.
       #
       # Otherwise, the string is the desired data, so just return it.
       #
-      # @param str [String] a file path, or command to be executed
+      # @param str [String] a command, file path, or string
       # @return [String] The file contents or output of the command.
       #
-      def data_from_command_or_string(str)
-        if str.start_with? PIPE
-          `#{str.delete_prefix(PIPE)}`.chomp
-        else
-          str
-        end
+      def data_from_command_file_or_string(str)
+        return `#{str.delete_prefix(PIPE)}`.chomp if str.start_with? PIPE
+
+        path = Pathname.new(str)
+        return path.read.chomp
+
+        str
       end
 
     end # class Configuration

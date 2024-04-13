@@ -23,27 +23,25 @@
 
 # frozen_string_literal: true
 
-require 'singleton'
-
+# main module
 module Xolo
 
+  # Server Module
   module Server
 
-    module Constants
+    module Routes
 
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self
       end
 
-      # Constants
-      #####################################
+      get '/ping' do
+        'pong'
+      end
 
-      # Default Values
-      DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
+    end # module Routs
 
-    end # module Constants
+  end # module Server
 
-  end # module Core
-
-end # module
+end # module Xolo

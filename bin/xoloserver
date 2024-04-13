@@ -33,11 +33,18 @@ class XoloServer
 
   def initialize
     Xolo::Server.executable = __FILE__
+
+    # defaults
+    Xolo::Server.run_mode = :development
+    Xolo::Server.debug = true
+
+    # CLI
     Xolo::Server.parse_cli
   end
 
   def run
     Process.setproctitle Xolo::Server.executable.basename
+
     Xolo::Server.run
   end # run
 
@@ -46,14 +53,23 @@ end # class XoloServer
 # MAIN
 #####################
 begin
-  # if --debug is given anywhere, move it to the front of ARGV
-  # which is where Optimist expects it
-  debug = ARGV.delete '--debug'
-  ARGV.unshift debug if debug
+  # default to development mode
+  sinatra_env_mode = 'development'
 
+  # if --debug is given anywhere
+  debug = ARGV.delete '--debug'
+  if debug
+    # move it to the front of ARGV which is where Optimist expects it
+    ARGV.unshift debug
+    Xolo::Server.debug = true
+    # and set the env so sinatra knows we're in dev mode
+    sinatra_env_mode = ''
+  end
+
+  ENV['APP_ENV'] = sinatra_env_mode
   app = XoloServer.new
   app.run
 rescue => e
   warn "ERROR #{e.class}: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" } if debug
+  e.backtrace.each { |l| warn "..#{l}" }
 end

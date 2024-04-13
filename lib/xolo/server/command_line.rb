@@ -42,38 +42,33 @@ module Xolo
       #########################
 
       CLI_OPTIONS = {
-        data_dir: {
-          label: 'Data Directory',
-          cli: :d,
+        production: {
+          label: 'Production',
+          cli: :p,
+          walkthru: false,
           desc: <<~ENDDESC
-            The directory where xoloserver stores all its files.
-            Defaults to #{Xolo::Server::DATA_DIR}
-          ENDDESC
-        },
+            Run xoloserver in production mode.
+            This sets various server settings to production mode, including
+            setting the log-level to 'info' at start-time, unless  -d is also given.
 
-        config_file: {
-          label: 'Config File',
-          cli: :c,
-          desc: <<~ENDDESC
-            The path to the config file for xoloserver.
-            Detaults to #{Xolo::Server::CONF_FILE}
+            By default the server starts in development mode, and the log level is 'debug'
           ENDDESC
         },
 
         debug: {
           label: 'Debug',
-          cli: :D,
+          cli: :d,
           walkthru: false,
           desc: <<~ENDDESC
             Run xoloserver in debug mode
-            This sets the log-level to 'debug' at start-time.
+            This sets the log-level to 'debug' at start-time in production mode.
           ENDDESC
         }
       }.freeze
 
       # CLI usage message
       def usage
-        @usage ||= "#{executable.basename} [--data-dir /path/to/nonstd/data/dir --config-file /path/to/alt/configfile.yaml --debug"
+        @usage ||= "#{executable.basename} [--production --debug]"
       end
 
       # An OStruct to hold the CLI options
@@ -86,10 +81,10 @@ module Xolo
       def parse_cli
         parsed_opts = Optimist.options do
           banner 'Name:'
-          banner "  #{Xolo::Server.executable.basename}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
+          banner "  #{executable.basename}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
 
           banner "\nUsage:"
-          banner "  #{Xolo::Server.usage}"
+          banner "  #{usage}"
 
           banner "\nOptions:"
 
