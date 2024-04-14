@@ -32,11 +32,22 @@ module Xolo
     # The actual server application - a Sinatra/Thin HTTPS server
     class App < Sinatra::Base
 
-      include Xolo::Server::Routes
+      # Sinatra setup
+      ##############################
+      ##############################
+
+      ### Extensions & Helpers
+      ##############################
+      ##############################
+
+      register Xolo::Server::Routes
+      register Xolo::Server::Routes::Auth
 
       helpers Sinatra::CustomLogger
 
-      # Sinatra config
+      # helpers Xolo::Server::Helpers::JamfPro
+      # helpers Xolo::Server::Helpers::TitleEditor
+
       configure do
         set :server, :thin
         set :bind, '0.0.0.0'
@@ -47,23 +58,16 @@ module Xolo
         set :logger, logger
       end
 
-      # Server class attributes
-      class << self
-
-        attr_reader :start_time
-
-      end
-
       # Run !
-      ##########################
+      ################
       def self.run!(**options, &block)
         setup
 
         super do |server|
           server.ssl = true
           server.ssl_options = {
-            cert_chain_file: SSL_CERT_CHAIN_FILE.to_s,
-            private_key_file: SSL_KEY_FILE.to_s,
+            cert_chain_file: Xolo::Server::Configuration::SSL_CERT_FILE.to_s,
+            private_key_file: Xolo::Server::Configuration::SSL_KEY_FILE.to_s,
             verify_peer: false
           }
         end # super do
@@ -72,9 +76,20 @@ module Xolo
       # Do some setup as we start the server
       ##########################
       def self.setup
-        Xolo::DATA_DIR.mkpath unless Xolo::DATA_DIR.directory?
+        Xolo::Server::DATA_DIR.mkpath
+        setup_ssl
         @start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
+      end
+
+      ##########################
+      def self.setup_ssl
+        Xolo::Server::Configuration::SSL_DIR.mkpath
+        Xolo::Server::Configuration::SSL_DIR.chmod 0o700
+        Xolo::Server::Configuration::SSL_CERT_FILE.pix_save Xolo::Server.config.ssl_cert
+        Xolo::Server::Configuration::SSL_CERT_FILE.chmod 0o400
+        Xolo::Server::Configuration::SSL_KEY_FILE.pix_save Xolo::Server.config.ssl_key
+        Xolo::Server::Configuration::SSL_KEY_FILE.chmod 0o400
       end
 
       # threads for reporting
@@ -100,6 +115,6 @@ module Xolo
 
     end # class App
 
-  end # module
+  end # Server
 
-end # module Xolo
+end #  Xolo

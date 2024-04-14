@@ -39,11 +39,17 @@ module Xolo
       # Constants
       #####################################
 
+      # Sinatra App Environtments
+
+      APP_ENV_DEV = 'development'
+      APP_ENV_TEST = 'test'
+      APP_ENV_PROD = 'production'
+
       # Default Values
       DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
 
     end # module Constants
 
-  end # module Core
+  end #  Server
 
 end # module

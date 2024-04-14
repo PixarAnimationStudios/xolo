@@ -29,16 +29,20 @@ module Xolo
 
   module Server
 
-    # constants and methods for accessing the Jamf Pro server
-    module JamfPro
+    module Helpers
 
-      # when this module is included
-      def self.included(includer)
-        Xolo.verbose_include includer, self
-      end
+      # constants and methods for accessing the Title Editor server
+      module TitleEditor
 
-    end # module
+        # when this module is included
+        def self.included(includer)
+          Xolo.verbose_include includer, self
+        end
 
-  end # module
+      end # TitleEditor
+
+    end # Helpers
+
+  end # Server
 
 end # module Xolo

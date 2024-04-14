@@ -40,14 +40,19 @@
 # Server Standard Libraries
 ######
 
+require 'logger'
+require 'openssl'
+
 # Gems
 ######
 
+require 'ruby-jss'
 require 'windoo'
+
+require 'thin'
 require 'sinatra/base'
 require 'sinatra/custom_logger'
-require 'logger'
-require 'openssl'
+require 'sinatra/extension' # see https://sinatrarb.com/contrib/extension
 
 # Define the module for Zeitwerk
 module Xolo
@@ -78,11 +83,23 @@ module Xolo
   #
   module Server
 
+    ### Mixins & extensions
+    ##############################
+    ##############################
+
     include Xolo::Server::Constants
-    include Xolo::Server::CommandLine
+    extend Xolo::Server::CommandLine
     include Xolo::Server::Log
-    include Xolo::Server::JamfPro
-    include Xolo::Server::TitleEditor
+
+    ### Module methods
+    ##############################
+    ##############################
+
+    # @return [Pathname] Path to the executable that started the server
+    ################
+    def self.executable
+      @executable
+    end
 
     ################
     def self.executable=(path)
@@ -90,18 +107,24 @@ module Xolo
     end
 
     ################
-    def self.executable
-      @executable
+    def self.start_time
+      @start_time
     end
 
     ################
-    def self.run_mode=(sym)
-      @run_mode = sym
+    def self.start_time=(t)
+      @start_time = t
     end
 
     ################
-    def self.run_mode?
-      @run_mode
+    def self.app_env
+      @app_env
+    end
+
+    ################
+    def self.app_env=(e)
+      ENV['APP_ENV'] = e.to_s
+      @app_env = e
     end
 
     ################
@@ -114,7 +137,6 @@ module Xolo
       @debug
     end
 
-    # the single instance of our configuration object
     ################
     def self.config
       Xolo::Server::Configuration.instance

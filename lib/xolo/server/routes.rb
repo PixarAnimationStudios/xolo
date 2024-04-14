@@ -31,6 +31,16 @@ module Xolo
 
     module Routes
 
+      # This is how we 'mix in' modules to Sinatra servers:
+      # We make them extentions here with
+      #    extend Sinatra::Extension (from sinatra-contrib)
+      # and then 'register' them in the server with
+      #    register Xolo::Server::<Module>
+      # Doing it this way allows us to split the code into a logical
+      # file structure, without re-opening the Sinatra::Base server app,
+      # and let xeitwork do the requiring of those files
+      extend Sinatra::Extension
+
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self
@@ -40,8 +50,8 @@ module Xolo
         'pong'
       end
 
-    end # module Routs
+    end #  Routes
 
-  end # module Server
+  end #  Server
 
 end # module Xolo

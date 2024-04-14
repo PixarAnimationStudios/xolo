@@ -24,6 +24,7 @@
 # frozen_string_literal: true
 
 require 'singleton'
+require 'ostruct'
 
 module Xolo
 
@@ -88,18 +89,15 @@ module Xolo
       ##########
 
       CONF_FILENAME = 'config.yaml'
-      CONF_FILE = Xolo::DATA_DIR + CONF_FILENAME
+      CONF_FILE = Xolo::Server::DATA_DIR + CONF_FILENAME
 
-      SSL_DIR = DATA_DIR + 'ssl'
+      SSL_DIR = Xolo::Server::DATA_DIR + 'ssl'
       SSL_CERT_FILENAME = 'cert.pem'
       SSL_KEY_FILENAME = 'key.pem'
       SSL_CERT_FILE = SSL_DIR + SSL_CERT_FILENAME
       SSL_KEY_FILE = SSL_DIR + SSL_KEY_FILENAME
 
-      # Log file is: Xolo::Server.config.data_dir + 'logs/server.log'
-      LOG_DIR = DATA_DIR + 'logs'
-      LOG_FILENAME = 'server.log'
-      LOG_FILE = LOG_DIR + LOG_FILENAME
+      DFT_SSL_VERIFY = true
 
       DFT_LOG_DAYS_TO_KEEP = 14
 
@@ -454,12 +452,12 @@ module Xolo
 
       ##################
       def data_dir
-        DATA_DIR
+        Xolo::Server::DATA_DIR
       end
 
       ##################
       def log_file
-        LOG_FILE
+        Xolo::Server::Log::LOG_FILE
       end
 
       ##################
@@ -480,6 +478,13 @@ module Xolo
         @ssl_key_file = SSL_CERT_FILE
       end
 
+      ###############
+      def to_h
+        data = {}
+        ATTRIBUTES.keys.each { |k| data[k] = send(k) }
+        data
+      end
+
       # Private Instance Methods
       #####################################
       private
@@ -487,9 +492,9 @@ module Xolo
       # Load in the values from the config file
       # @return [void]
       def load_from_file
-        CONF_FILE.parent.mkpath unless CONF_FILE.parent.mkpath.directory?
+        CONF_FILE.parent.mkpath unless CONF_FILE.parent.directory?
 
-        data = YAML.load_file
+        data = YAML.load_file CONF_FILE
         data.each do |k, v|
           v = send ATTRIBUTES[k][:load_method], v if ATTRIBUTES[k][:load_method]
           send "#{k}=", v
@@ -499,9 +504,7 @@ module Xolo
       # Save the current config values out to the config file
       # @return [void]
       def save_to_file
-        data = {}
-        ATTRIBUTES.keys.each { |k| data[k] = send(k) }
-        @config_file.pix_save data.to_yaml
+        @config_file.pix_save to_h.to_yaml
       end
 
       # If the given string starts with a pipe (|) then
@@ -527,6 +530,6 @@ module Xolo
 
     end # class Configuration
 
-  end # module Core
+  end # Server
 
 end # module

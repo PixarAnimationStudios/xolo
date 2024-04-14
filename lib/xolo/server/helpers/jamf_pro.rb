@@ -1,9 +1,3 @@
-#!/usr/local/pixar/ruby/bin/ruby
-
-require 'pixenv'
-
-# !/usr/bin/env ruby
-
 # Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -26,44 +20,27 @@ require 'pixenv'
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
 # frozen_string_literal: true
 
-require 'xolo-server'
+# main module
+module Xolo
 
-# The Server Wrapper App
-#####################
-class XoloServer
+  module Server
+    module Helpers
 
-  def initialize
-    Xolo::Server.executable = __FILE__
 
-    # CLI
-    Xolo::Server.parse_cli
-    Xolo::Server.debug = Xolo::Server.cli_opts[:debug]
-    Xolo::Server.app_env = Xolo::Server.cli_opts[:production] ? Xolo::Server::APP_ENV_PROD : Xolo::Server::APP_ENV_DEV
-  end
+    # constants and methods for accessing the Jamf Pro server
+    module JamfPro
 
-  def run
-    Process.setproctitle Xolo::Server.executable.basename.to_s
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
 
-    # TESTING
-    # puts '##############################'
-    # puts Gem.ruby
-    # Xolo::Server.config.to_h.each { |k, v| puts "#{k} =>\n  #{v}" }
-    # puts '##############################'
+    end # JamfPro
+  end # Helpers
+  end # Server
 
-    Xolo::Server::App.run!
-  end # run
-
-end # class XoloServer
-
-# MAIN
-#####################
-begin
-  app = XoloServer.new
-  app.run
-rescue => e
-  warn "ERROR #{e.class}: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" }
-end
+end # module Xolo

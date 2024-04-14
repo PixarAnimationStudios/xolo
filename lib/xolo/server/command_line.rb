@@ -38,6 +38,11 @@ module Xolo
         Xolo.verbose_include includer, self
       end
 
+      # when this module is extended
+      def self.extended(extender)
+        Xolo.verbose_extend extender, self
+      end
+
       #### Constants
       #########################
 
@@ -81,7 +86,7 @@ module Xolo
       def parse_cli
         parsed_opts = Optimist.options do
           banner 'Name:'
-          banner "  #{executable.basename}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
+          banner "  #{Xolo::Server.executable.basename}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
 
           banner "\nUsage:"
           banner "  #{usage}"
@@ -99,7 +104,7 @@ module Xolo
           opt :version, 'Print version and exit'
           opt :help, 'Show this help and exit'
 
-          Xolo::Server::CLI_OPTIONS.each do |opt_key, deets|
+          CLI_OPTIONS.each do |opt_key, deets|
             opt opt_key, deets[:desc], short: deets[:cli]
           end
         end # Optimist.options
@@ -110,6 +115,6 @@ module Xolo
 
     end # module CommandLine
 
-  end # module Server
+  end #  Server
 
 end # module Xolo

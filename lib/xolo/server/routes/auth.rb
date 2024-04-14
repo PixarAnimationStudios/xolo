@@ -20,25 +20,42 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
 
 # frozen_string_literal: true
 
 # main module
 module Xolo
 
+  # Server Module
   module Server
 
-    # constants and methods for accessing the Title Editor server
-    module TitleEditor
+    module Routes
 
-      # when this module is included
-      def self.included(includer)
-        Xolo.verbose_include includer, self
+      module Auth
+
+        # This is how we 'mix in' modules to Sinatra servers:
+        # We make them extentions here with
+        #    extend Sinatra::Extension (from sinatra-contrib)
+        # and then 'register' them in the server with
+        #    register Xolo::Server::<Module>
+        # Doing it this way allows us to split the code into a logical
+        # file structure, without re-opening the Sinatra::Base server app,
+        # and let xeitwork do the requiring of those files
+        extend Sinatra::Extension
+
+        # when this module is included
+        def self.included(includer)
+          Xolo.verbose_include includer, self
+        end
+
+        get '/auth/ping' do
+          'auth-pong'
+        end
+
       end
 
-    end # module
+    end #  Routes
 
-  end # module
+  end #  Server
 
 end # module Xolo
