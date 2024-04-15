@@ -20,46 +20,70 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
 
 # frozen_string_literal: true
 
 # main module
 module Xolo
 
+  # Server Module
   module Server
 
     module Helpers
 
-      # constants and methods for accessing the Jamf Pro server
-      module JamfPro
+      module Auth
 
         # when this module is included
         def self.included(includer)
           Xolo.verbose_include includer, self
         end
 
-        # Our main connection to Jamf Pro
-        # TODO: allow using APIClients
-        # @return [void]
-        def self.connect_to_jamf
-          Jamf.cnx.connect(
+        # is the given username a member of the admin_jamf_group?
+        # If not, they are not allowed to talk to the xolo server.
+        #
+        # @param admin_name [String] The jamf acct name of the person seeking access
+        #
+        # @return [Boolean] Is the admin a member of the admin_jamf_group?
+        #
+        def member_of_admin_jamf_group?(admin_name)
+          groupname = Xolo::Server.config.admin_jamf_group
+          jgroup = Jamf.cnx.c_get("accounts/groupname/#{groupname}")[:group]
+
+          if jgroup[:ldap_server]
+            Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], admin_name, groupname
+          else
+            jgroup[:members].any? { |m| m[:name] == admin_name }
+          end
+        end
+
+        # Try to authenticate the jamf user trying to log in
+        #
+        # @param admin [String] The jamf acct name of the person seeking access
+        #
+        # @param pw [String] The password for the jamf acct
+        #
+        # @return [Boolean] Did the password work for the user?
+        #
+        def authenticated_via_jamf?(admin, pw)
+          Jamf::Connection.new(
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,
             verify_cert: Xolo::Server.config.jamf_verify_cert,
             ssl_version: Xolo::Server.config.jamf_ssl_version,
             open_timeout: Xolo::Server.config.jamf_open_timeout,
             timeout: Xolo::Server.config.jamf_timeout,
-            user: Xolo::Server.config.jamf_api_user,
-            pw: Xolo::Server.config.jamf_api_pw
+            user: admin,
+            pw: pw
           )
-          Xolo::Server.logger.info "Connected to Jamf Pro at #{Jamf.cnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'"
+          true
+        rescue Jamf::AuthenticationError
+          false
         end
 
-      end # JamfPro
+      end
 
-    end # Helpers
+    end #  Routes
 
-  end # Server
+  end #  Server
 
 end # module Xolo

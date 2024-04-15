@@ -105,6 +105,8 @@ module Xolo
 
       PIPE = '|'
 
+      PRIVATE = '<private>'
+
       # Attributes
       #####################################
 
@@ -117,6 +119,7 @@ module Xolo
           default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
+          private: true,
           desc: <<~ENDDESC
             The SSL Certificate for the https server in .pem format.
             When the server starts, it will be read from here, and stored in
@@ -141,6 +144,7 @@ module Xolo
           default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
+          private: true,
           desc: <<~ENDDESC
             The private key for the SSL Certificate in .pem format.
             When the server starts, it will be read from here, and stored in
@@ -199,6 +203,7 @@ module Xolo
           default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
+          private: true,
           desc: <<~ENDDESC
             The password to unlock the keychain used for package signing.
 
@@ -309,6 +314,7 @@ module Xolo
           default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
+          private: true,
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
@@ -414,6 +420,7 @@ module Xolo
           default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
+          private: true,
           desc: <<~ENDDESC
             The password for the username that connects to the Title Editor API.
 
@@ -437,6 +444,8 @@ module Xolo
 
       # automatically create accessors for all the CONF_KEYS
       ATTRIBUTES.keys.each { |attr| attr_accessor attr }
+
+      attr_reader :raw_data
 
       # Constructor
       #####################################
@@ -479,9 +488,16 @@ module Xolo
       end
 
       ###############
-      def to_h
+      def to_h(private: true)
         data = {}
-        ATTRIBUTES.keys.each { |k| data[k] = send(k) }
+        ATTRIBUTES.each do |key, deets|
+          data[key] =
+            if private && deets[:private]
+              PRIVATE
+            else
+              send(key)
+            end
+        end
         data
       end
 
@@ -494,17 +510,11 @@ module Xolo
       def load_from_file
         CONF_FILE.parent.mkpath unless CONF_FILE.parent.directory?
 
-        data = YAML.load_file CONF_FILE
-        data.each do |k, v|
-          v = send ATTRIBUTES[k][:load_method], v if ATTRIBUTES[k][:load_method]
+        @raw_data = YAML.load_file CONF_FILE
+        @raw_data.each do |k, v|
+          v = send(ATTRIBUTES[k][:load_method], v) if ATTRIBUTES[k][:load_method]
           send "#{k}=", v
         end
-      end
-
-      # Save the current config values out to the config file
-      # @return [void]
-      def save_to_file
-        @config_file.pix_save to_h.to_yaml
       end
 
       # If the given string starts with a pipe (|) then

@@ -44,6 +44,7 @@ module Xolo
       register Xolo::Server::Routes::Auth
 
       helpers Sinatra::CustomLogger
+      helpers Xolo::Server::Helpers::Auth
 
       # helpers Xolo::Server::Helpers::JamfPro
       # helpers Xolo::Server::Helpers::TitleEditor
@@ -78,8 +79,9 @@ module Xolo
       def self.setup
         Xolo::Server::DATA_DIR.mkpath
         setup_ssl
-        @start_time = Time.now
+        Xolo::Server.start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
+        Xolo::Server::Helpers::JamfPro.connect_to_jamf
       end
 
       ##########################
@@ -87,30 +89,14 @@ module Xolo
         Xolo::Server::Configuration::SSL_DIR.mkpath
         Xolo::Server::Configuration::SSL_DIR.chmod 0o700
         Xolo::Server::Configuration::SSL_CERT_FILE.pix_save Xolo::Server.config.ssl_cert
-        Xolo::Server::Configuration::SSL_CERT_FILE.chmod 0o400
+        Xolo::Server::Configuration::SSL_CERT_FILE.chmod 0o600
         Xolo::Server::Configuration::SSL_KEY_FILE.pix_save Xolo::Server.config.ssl_key
-        Xolo::Server::Configuration::SSL_KEY_FILE.chmod 0o400
+        Xolo::Server::Configuration::SSL_KEY_FILE.chmod 0o600
       end
 
-      # threads for reporting
-      ##########################
-      def self.thread_info
-        info = {}
-        Thread.list.each do |thr|
-          name =
-            if thr.name
-              thr.name
-            elsif Thread.main == thr
-              'Main'
-            elsif thr.to_s.include? 'eventmachine'
-              "eventmachine-#{thr.object_id}"
-            else
-              thr.to_s
-            end
-          info[name] = thr.status
-        end
-
-        info
+      ######################
+      def debug?
+        Xolo::Server.debug?
       end
 
     end # class App

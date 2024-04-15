@@ -41,13 +41,46 @@ module Xolo
       # and let xeitwork do the requiring of those files
       extend Sinatra::Extension
 
-      # when this module is included
-      def self.included(includer)
-        Xolo.verbose_include includer, self
+      # pre-process
+      ##############
+      before do
       end
 
+      # post-process
+      ##############
+      after do
+        content_type :json unless @no_json
+      end
+
+      # Ping
+      ##########
       get '/ping' do
-        'pong'
+        'pong'.to_json
+      end
+
+      # Threads
+      ##########
+      get '/threads' do
+        Xolo::Server.thread_info.to_json
+      end
+
+      # State
+      ##########
+      get '/state' do
+        conf = Xolo::Server.config.to_h(private: true)
+
+        state = {
+          executable: Xolo::Server.executable,
+          start_time: Xolo::Server.start_time,
+          app_env: Xolo::Server.app_env,
+          debug: Xolo::Server.debug?,
+          data_dir: Xolo::Server.config.data_dir,
+          log_file: Xolo::Server.config.log_file,
+          data_dir: Xolo::Server.config.data_dir,
+
+          config: conf
+        }
+        JSON.pretty_generate state
       end
 
     end #  Routes

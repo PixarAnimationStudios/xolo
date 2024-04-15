@@ -39,20 +39,18 @@
 
 # Server Standard Libraries
 ######
-
 require 'logger'
 require 'openssl'
 
 # Gems
 ######
 
-require 'ruby-jss'
-require 'windoo'
-
-require 'thin'
 require 'sinatra/base'
 require 'sinatra/custom_logger'
 require 'sinatra/extension' # see https://sinatrarb.com/contrib/extension
+require 'thin'
+require 'ruby-jss'
+require 'windoo'
 
 # Define the module for Zeitwerk
 module Xolo
@@ -140,6 +138,27 @@ module Xolo
     ################
     def self.config
       Xolo::Server::Configuration.instance
+    end
+
+    # threads for reporting
+    ##########################
+    def self.thread_info
+      info = {}
+      Thread.list.each do |thr|
+        name =
+          if thr.name
+            thr.name
+          elsif Thread.main == thr
+            'Main'
+          elsif thr.to_s.include? 'eventmachine'
+            "eventmachine-#{thr.object_id}"
+          else
+            thr.to_s
+          end
+        info[name] = thr.status
+      end
+
+      info
     end
 
   end # Server
