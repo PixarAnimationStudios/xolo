@@ -23,8 +23,6 @@
 
 # frozen_string_literal: true
 
-require 'optimist_with_insert_blanks'
-
 module Xolo
 
   module Admin

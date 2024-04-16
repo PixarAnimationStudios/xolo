@@ -41,6 +41,7 @@
 ######
 require 'logger'
 require 'openssl'
+require 'securerandom'
 
 # Gems
 ######

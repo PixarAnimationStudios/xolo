@@ -23,21 +23,6 @@
 
 # frozen_string_literal: true
 
-# Yes we're using a OpenStruct for our @opts, even though it's very slow.
-# It isn't so slow that it's a problem for processing a CLI tool.
-# The benefit is being able to use either Hash-style references
-# e.g. opts[key] or method-style when you know the key e.g. opts.title
-require 'ostruct'
-
-# Use optimist for CLI option processing
-# https://rubygems.org/gems/optimist
-#
-# This version modified to allow 'insert_blanks' which
-# puts blank lines between each option in the help output.
-# See comments in the required file for details.
-#
-require 'optimist_with_insert_blanks'
-
 module Xolo
 
   module Admin
@@ -53,7 +38,7 @@ module Xolo
       # NOTE: Optimist automatically provides --version -v and --help -h
       GLOBAL_OPTIONS = {
         walkthru: {
-          label: 'Run',
+          label: 'Run Interactively',
           walkthru: false,
           cli: :w,
           desc: <<~ENDDESC
@@ -107,6 +92,7 @@ module Xolo
       INFO_CMD = 'info'
       SEARCH_CMD = 'search'
       REPORT_CMD = 'report'
+      CONFIG_CMD = 'config'
       HELP_CMD = 'help'
 
       DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
@@ -197,6 +183,12 @@ module Xolo
           display: "#{REPORT_CMD} title [version]",
           opts: {},
           target: :title_or_version
+        },
+
+        CONFIG_CMD => {
+          desc: 'Report installation data.',
+          display: "#{REPORT_CMD} title [version]",
+          opts: {}
         },
 
         HELP_CMD => {

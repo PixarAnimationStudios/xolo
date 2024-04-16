@@ -34,6 +34,14 @@ module Xolo
       # constants and methods for accessing the Jamf Pro server
       module JamfPro
 
+        ### Module methods
+        ###
+        ### These are available as module methods but not as 'helper'
+        ### methods in sinatra routes & views.
+        ###
+        ##############################
+        ##############################
+
         # when this module is included
         def self.included(includer)
           Xolo.verbose_include includer, self
@@ -55,6 +63,13 @@ module Xolo
           )
           Xolo::Server.logger.info "Connected to Jamf Pro at #{Jamf.cnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'"
         end
+
+        ### Instance methods
+        ###
+        ### These are available directly in sinatra routes and views
+        ###
+        ##############################
+        ##############################
 
       end # JamfPro
 

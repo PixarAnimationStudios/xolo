@@ -20,47 +20,43 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
 # frozen_string_literal: true
 
-# TODO: Is this needed in newer rubies?
-require 'io/console'
-
-require 'faraday'
-require 'faraday/multipart'
-require 'highline'
-
-# Yes we're using a OpenStruct for our @opts, even though it's very slow.
-# It isn't so slow that it's a problem for processing a CLI tool.
-# The benefit is being able to use either Hash-style references
-# e.g. opts[key] or method-style when you know the key e.g. opts.title
-require 'ostruct'
-
-# Use optimist for CLI option processing
-# https://rubygems.org/gems/optimist
-#
-# This version modified to allow 'insert_blanks' which
-# puts blank lines between each option in the help output.
-# See comments in the required file for details.
-#
-require 'optimist_with_insert_blanks'
-
+# main module
 module Xolo
 
   module Admin
 
-    def self.executable=(path)
-      @executable = Pathname.new path
-    end
+    # Personal prefs for users of 'xadm'
+    class Configuration
 
-    def self.executable
-      @executable
-    end
+      include Singleton
 
-    def self.usage
-      @usage ||= "#{executable.basename} [global-options] command [title] [version] [command-options]"
-    end
+      # Save to yaml file in ~/Library/Preferences/com.pixar.xolo.admin.prefs.yaml
+      #
+      # - hostname of xolo server
+      #   - always port 443, for now
+      # Note - credentials for Xolo Server area stored in login keychain.
+      # code for that is in the Xolo::Admin::Credentials module.
 
-  end
+      ### Constants
+      ##############################
+      ##############################
 
-end
+      CONF_FILENAME = 'com.pixar.xolo.admin.prefs.yaml'
+
+      ### Class methods
+      ##############################
+      ##############################
+
+      def self.conf_file
+        @conf_file ||= Pathname.new("~/Library/Preferences/#{CONF_FILENAME}").expand_path
+      end
+
+    end # class Configuration
+
+  end # module Admin
+
+end # module Xolo

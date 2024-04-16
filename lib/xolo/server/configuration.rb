@@ -89,7 +89,6 @@ module Xolo
       ##########
 
       CONF_FILENAME = 'config.yaml'
-      CONF_FILE = Xolo::Server::DATA_DIR + CONF_FILENAME
 
       SSL_DIR = Xolo::Server::DATA_DIR + 'ssl'
       SSL_CERT_FILENAME = 'cert.pem'
@@ -111,7 +110,7 @@ module Xolo
       #####################################
 
       # The attribute keys we maintain, and their default values
-      ATTRIBUTES = {
+      KEYS = {
 
         # @!attribute ssl_cert
         #   @return [String]
@@ -439,7 +438,16 @@ module Xolo
 
       }.freeze
 
+      ### Class methods
+      ##############################
+      ##############################
+
+      def self.conf_file
+        @conf_file ||= Xolo::Server::DATA_DIR + CONF_FILENAME
+      end
+
       # Attributes
+      #####################################
       #####################################
 
       # automatically create accessors for all the CONF_KEYS
@@ -449,6 +457,7 @@ module Xolo
 
       # Constructor
       #####################################
+      #####################################
 
       # Initialize!
       #
@@ -457,6 +466,7 @@ module Xolo
       end
 
       # Public Instance Methods
+      #####################################
       #####################################
 
       ##################
@@ -503,6 +513,8 @@ module Xolo
 
       # Private Instance Methods
       #####################################
+      #####################################
+
       private
 
       # Load in the values from the config file

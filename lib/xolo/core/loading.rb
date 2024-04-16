@@ -48,6 +48,11 @@ module Xolo
         load_msg "--> #{extender} is extending #{extendee}"
       end
 
+      # Mention that a module is being extended into something
+      def verbose_inherit(child_class, parent_class)
+        load_msg "--> #{child_class} is a Subclass inheriting from #{parent_class}"
+      end
+
     end # module
 
   end # module

@@ -43,7 +43,7 @@ module Xolo
         Xolo.verbose_extend extender, self
       end
 
-      # The classes allowed by
+      # The classes allowed by Psych already
       SAFE_CLASSES = [
         TrueClass,
         FalseClass,
@@ -57,8 +57,6 @@ module Xolo
 
       # In addition to the default classes allowed by YAML.safe_load
       # these are also allowed.
-      # The classes allowed by default are: TrueClass, FalseClass, NilClass,
-      # Numeric, String, Array, and Hash.
       #
       # see https://www.rubydoc.info/stdlib/psych/Psych%2Esafe_load
       #

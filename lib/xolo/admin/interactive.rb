@@ -23,8 +23,6 @@
 
 # frozen_string_literal: true
 
-require 'highline'
-
 module Xolo
 
   module Admin

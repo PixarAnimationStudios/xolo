@@ -45,7 +45,6 @@ module Xolo
 
       helpers Sinatra::CustomLogger
       helpers Xolo::Server::Helpers::Auth
-
       # helpers Xolo::Server::Helpers::JamfPro
       # helpers Xolo::Server::Helpers::TitleEditor
 
@@ -53,10 +52,30 @@ module Xolo
         set :server, :thin
         set :bind, '0.0.0.0'
         set :port, 443
-        set :show_exceptions, false
+
+        set :dump_errors, true
+        # set :server_settings, timeout: 300
+
         logger = Xolo::Server.logger
         logger.level = development? ? Logger::DEBUG : Logger::INFO
         set :logger, logger
+
+        set :session_secret, SecureRandom.hex(64)
+        set :protection, session: true
+        use Rack::Session::Cookie,
+            key: '_rack_session',
+            path: '/',
+            expire_after: 2_592_000, # 30 days In seconds
+            secret: settings.session_secret
+      end
+
+      configure :development do
+        set :show_exceptions, :after_handler
+        require 'pp'
+      end
+
+      configure :production do
+        set :show_exceptions, false
       end
 
       # Run !
@@ -82,6 +101,7 @@ module Xolo
         Xolo::Server.start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
         Xolo::Server::Helpers::JamfPro.connect_to_jamf
+        # Xolo::Server::Helpers::TitleEditor.connect_to_title_editor
       end
 
       ##########################

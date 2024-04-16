@@ -65,7 +65,7 @@ module Xolo
         # @return [Boolean] Did the password work for the user?
         #
         def authenticated_via_jamf?(admin, pw)
-          Jamf::Connection.new(
+          login_cnx = Jamf::Connection.new(
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,
             verify_cert: Xolo::Server.config.jamf_verify_cert,
@@ -75,6 +75,7 @@ module Xolo
             user: admin,
             pw: pw
           )
+          login_cnx.disconnect
           true
         rescue Jamf::AuthenticationError
           false
