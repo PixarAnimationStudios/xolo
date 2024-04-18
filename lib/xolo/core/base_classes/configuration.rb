@@ -28,6 +28,10 @@ require 'ostruct'
 
 module Xolo
 
+  module Core
+
+    module BaseClasses
+
   # A class for working with pre-defined settings & preferences for Xolo
   #
   # This is the base class for Server::Configuration and Admin::Configuration
@@ -199,5 +203,7 @@ module Xolo
     end
 
   end # class Configuration
+end
+end
 
 end # module

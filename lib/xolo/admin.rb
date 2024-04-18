@@ -35,6 +35,7 @@ require 'highline'
 # The benefit is being able to use either Hash-style references
 # e.g. opts[key] or method-style when you know the key e.g. opts.title
 require 'ostruct'
+require 'open3'
 
 # Use optimist for CLI option processing
 # https://rubygems.org/gems/optimist

@@ -38,6 +38,7 @@ module Xolo
       #
       # - hostname of xolo server
       #   - always port 443, for now
+      #
       # Note - credentials for Xolo Server area stored in login keychain.
       # code for that is in the Xolo::Admin::Credentials module.
 
