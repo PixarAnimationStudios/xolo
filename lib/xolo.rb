@@ -38,6 +38,7 @@ require 'date'
 require 'json'
 require 'yaml'
 require 'pathname'
+require 'singleton'
 
 # Other Gems to include at this level
 require 'pixar-ruby-extensions'

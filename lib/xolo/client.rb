@@ -32,6 +32,8 @@
 # But that may change as Xolo develops and we figure out what it should
 # do and how.
 
+require 'xolo'
+
 module Xolo
 
   module Client

@@ -45,14 +45,6 @@ module Xolo
         # The value to use when all computers are the targets
         TARGET_ALL = 'all'
 
-        # Class Methods
-        #############################
-
-        # The ATTRIBUTES that are available as CLI & walkthru options
-        def self.cli_opts
-          @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
-        end
-
         # Attributes
         ######################
 
@@ -132,7 +124,7 @@ module Xolo
         ATTRIBUTES = {
 
           # @!attribute title
-          #   @return [String]
+          #   @return [String] The unique title-string for this title.
           title: {
             label: 'Title',
             required: true,
@@ -148,8 +140,8 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute display_name The uniq name of this title in xolo
-          #   @return [String]
+          # @!attribute display_name
+          #   @return [String] The display-name for this title
           display_name: {
             label: 'Display Name',
             required: true,
@@ -162,6 +154,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute description
+          #   @return [String] A description of what this title installs
           description: {
             label: 'Description',
             required: true,
@@ -177,6 +171,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute publisher
+          #   @return [String] The entity that publishes this title
           publisher: {
             label: 'Publisher',
             required: true,
@@ -189,6 +185,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute app_name
+          #   @return [String] The name of the .app installed by this title. Nil if no .app is installed
           app_name: {
             label: 'App Name',
             cli: :a,
@@ -208,6 +206,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute app_bundle_id
+          #   @return [String] The bundle ID of the .app installed by this title. Nil if no .app is installed
           app_bundle_id: {
             label: 'App Bundle ID',
             cli: :b,
@@ -228,6 +228,9 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute version_script
+          #   @return [String] A script that will return the currently installed version of this
+          #      title on a client mac
           version_script: {
             label: 'Version Script',
             cli: :v,
@@ -251,6 +254,9 @@ module Xolo
           # TODO: make it so that when a xoloadmin says target_group = all, an optional policy
           # is run that requests approval for that.  That policy can run a script to do ... anything
           # but until the approval is granted, the target_group is an empty array
+          #
+          # @!attribute target_groups
+          #   @return [Array<String>] Jamf groups that will automatically get this title installed when released
           target_groups: {
             label: 'Target Computer Groups',
             cli: :t,
@@ -270,6 +276,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute excluded_groups
+          #   @return [Array<String>] Jamf groups that are not allowed to install this title
           excluded_groups: {
             label: 'Excluded Computer Groups',
             cli: :x,
@@ -286,11 +294,13 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute expiration
+          #   @return [Integer] Number of days of disuse before the title is uninstalled.
           expiration: {
             label: 'Expire Days',
             cli: :e,
             validate: true,
-            type: :string,
+            type: :integer,
             invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. or 0 for no expiration.',
             desc: <<~ENDDESC
               If none of the executables listed as 'Expiration Paths' have been brought to the foreground in this number of days, the title is uninstalled from the computer.
@@ -299,6 +309,9 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute expiration_paths
+          #   @return [Array<String>] Paths to executables that, when in the foreground,
+          #      are considerd 'use' if this title, WRT expiration.
           expiration_paths: {
             label: 'Expiration Paths',
             cli: :E,
@@ -316,6 +329,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute self_service
+          #   @return [Boolean] Does this title appear in Self Service?
           self_service: {
             label: 'Show in Self Service',
             cli: :s,
@@ -331,6 +346,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute self_service_category
+          #   @return [String] The main Self Service category in which to show this title
           self_service_category: {
             label: 'Self Service Category',
             cli: :c,
@@ -349,6 +366,9 @@ module Xolo
           # NOTE: This isn't stored anywhere after its used. If it is provided via
           # xadm add-title or edit-title, it will be uploaded and applied at that
           # time, but then if you fetch the title again, this value will be nil.
+          #
+          # @!attribute self_service_icon
+          #   @return [String] Path to a local image file to use as the Self Service icon for this title.
           self_service_icon: {
             label: 'Self Service Icon',
             cli: :i,
@@ -363,6 +383,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute created_by
+          #   @return [String] The login of the admin who created this title
           created_by: {
             label: 'Created By',
             type: :string,
@@ -372,6 +394,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute creation_date
+          #   @return [Time] The date this title was created.
           creation_date: {
             label: 'Creation Date',
             type: :time,
@@ -381,6 +405,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute modified_by
+          #   @return [String] The login of the admin who last modified this title
           modified_by: {
             label: 'Modified By',
             type: :string,
@@ -390,8 +416,10 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute modification_date
+          #   @return [Time] The date this title was last modified.
           modification_date: {
-            label: 'Creation Date',
+            label: 'Modification Date',
             type: :time,
             cli: false,
             desc: <<~ENDDESC
@@ -401,7 +429,7 @@ module Xolo
 
         }.freeze
 
-        ATTRIBUTES.keys.each do |attr|
+        ATTRIBUTES.each_key do |attr|
           attr_accessor attr
           attr_accessor "new_#{attr}"
         end

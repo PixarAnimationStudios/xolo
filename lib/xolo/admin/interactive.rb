@@ -38,7 +38,7 @@ module Xolo
       # Use an interactive walkthru session to populate
       # Xolo::Admin::Options.walkthru_cmd_opts
       #
-      def self.walkthru
+      def self.do_walkthru
         cmd = Xolo::Admin::Options.cli_cmd.command
 
         return unless Xolo::Admin::Options.global_opts.walkthru
@@ -157,12 +157,14 @@ module Xolo
 
       # The menu header
       def self.display_walkthru_header
-        header_action = Xolo::Admin::CommandLine.add_command? ? 'Adding' : 'Editing'
-        header_target = "Xolo title '#{Xolo::Admin::Options.cli_cmd.title}'"
-        if Xolo::Admin::CommandLine.version_command?
-          header_target = "Version #{Xolo::Admin::Options.cli_cmd.version} of #{header_target}"
+        header_text = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.cmd][:walkthru_header]
+        return unless header_text
+
+        header_text.sub! TARGET_TITLE_PLACEHOLDER, Xolo::Admin::Options.cli_cmd.title
+        if Xolo::Admin::Options.cli_cmd.version
+          header_text.sub! TARGET_VERSION_PLACEHOLDER, Xolo::Admin::Options.cli_cmd.version
         end
-        header_text = "#{header_action} #{header_target}"
+
         header_sep_line = Xolo::DASH * header_text.length
 
         system 'clear'

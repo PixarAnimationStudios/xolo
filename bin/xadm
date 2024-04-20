@@ -1,4 +1,6 @@
-#!/usr/bin/env ruby
+#!/usr/local/pixar/bin/ruby
+#
+# !/usr/bin/env ruby
 
 # Copyright 2023 Pixar
 #
@@ -37,7 +39,7 @@ class XoloAdmin
   end
 
   def run
-    Xolo::Admin::Interactive.walkthru if Xolo::Admin::Options.global_opts.walkthru
+    Xolo::Admin::Interactive.do_walkthru if Xolo::Admin::Options.global_opts.walkthru
 
     puts
     puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
@@ -83,6 +85,10 @@ end # class XoloAdmin
 begin
   # if --debug is given anywhere, move it to the front of ARGV
   # which is where Optimist expects it
+  #
+  # -d must be given as a global opt (before the command)
+  # in order to mean --debug
+  #
   debug = ARGV.delete '--debug'
   ARGV.unshift debug if debug
 

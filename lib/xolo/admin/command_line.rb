@@ -85,7 +85,7 @@ module Xolo
             banner format('  %-20s %s', cmd, deets[:desc])
           end
 
-          banner "\nCommand Arguments:"
+          banner "\nCommand Targets:"
           banner Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
           banner Xolo::Admin::Options::DFT_CMD_VERSION_ARG_BANNER
 
@@ -135,8 +135,8 @@ module Xolo
 
       # Parse the remaining command line, now that we know the xadm command
       # to be executed.
-      # This gets the title, and if needed the version, storing them in
-      # Xolo::Admin::Options.cli_cmd
+      # This gets the title & version, if needed, storing them in
+      # Xolo::Admin::Options.cli_cmd.title and Xolo::Admin::Options.cli_cmd.version
       # then it gets the command options, populating Xolo::Admin::Options.cli_cmd_opts
       #######
       def self.parse_command_cli
@@ -176,57 +176,73 @@ module Xolo
       def self.parse_cmd_and_args
         # next item will be the command we are executing
         Xolo::Admin::Options.cli_cmd.command = ARGV.shift
+
+        # if there is no command, treat it like `xadm --help`
+        return if reparse_global_cli_for_help?
+
+        # we have a command, validate it
         validate_cli_command
 
         # if the command is 'help'
         # then
-        #   'xadm [globalOpts] help [cmd opts]' becomes 'xadm --help'
+        #   'xadm [globalOpts] help' becomes 'xadm --help'
         # and
         #   'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
         #
         if Xolo::Admin::Options.cli_cmd.command == Xolo::Admin::Options::HELP_CMD
-          next_cli_item = ARGV.shift
+          # 'xadm [globalOpts] help' becomes 'xadm --help' (via the reparse method)
+          Xolo::Admin::Options.cli_cmd.command = ARGV.shift
+          return if reparse_global_cli_for_help?
 
-          # if there is no command, treat it like `xadm --help`
-          if next_cli_item.to_s.empty? || next_cli_item.start_with?(Xolo::DASH)
-            ARGV.unshift '--help'
-            parse_global_cli
-            return
-          end
-
-          Xolo::Admin::Options.cli_cmd.command = next_cli_item
+          # we have a new command, for which we are getting help. Validate it
           validate_cli_command
-          ARGV << '--help'
+          # 'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
+          ARGV.unshift '--help'
+        end
+        return if ARGV.include?('--help')
 
-        # Otherwise, the command is not 'help', so the next item
-        # on the command line is the title we are working with
-        else
-          # but if the command opt is --help, there is no title or version
-          unless ARGV.include?('--help')
-            Xolo::Admin::Options.cli_cmd.title = ARGV.shift
-            validate_cli_title
+        # Otherwise, the command is not 'help', so figure out what the next item
+        # on the command line is
+        if title_command?
+          # the next item is the title
+          Xolo::Admin::Options.cli_cmd.title = ARGV.shift
+          validate_cli_title
 
-            # and if the command we are running is a 'version' command,
-            # the next item is the version we are working with
-            if version_command?
-              Xolo::Admin::Options.cli_cmd.version = ARGV.shift
-              validate_cli_version
-            end
-          end # unless ARGV.include?('--help')
+        elsif version_command? || title_or_version_command?
+          # the next item is the title and the one after that is a version
+          Xolo::Admin::Options.cli_cmd.title = ARGV.shift
+          validate_cli_title
+
+          Xolo::Admin::Options.cli_cmd.version = ARGV.shift
+          validate_cli_version if Xolo::Admin::Options.cli_cmd.version
+
         end # if
+      end
+
+      # Are we showing the full help? If so, re-parse the global opts
+      def self.reparse_global_cli_for_help?
+        cmdstr = Xolo::Admin::Options.cli_cmd.command.to_s
+        return false unless cmdstr.empty? || cmdstr.start_with?(Xolo::DASH)
+
+        ARGV.unshift '--help'
+        parse_global_cli
+        true
       end
 
       # parse the options for the command, if we aren't doing walkthru
       def self.parse_cmd_opts
         # set these for use inside the optimist options block
         cmd = Xolo::Admin::Options.cli_cmd.command
+        return if cmd == Xolo::Admin::Options::HELP_CMD || cmd.to_s.empty?
+
         executable_file = Xolo::Admin.executable.basename
-        cmd_desc = Xolo::Admin::Options::COMMANDS[cmd][:desc]
-        cmd_display = Xolo::Admin::Options::COMMANDS[cmd][:display]
-        cmd_opts = Xolo::Admin::Options::COMMANDS[cmd][:opts]
+        cmd_desc = Xolo::Admin::Options::COMMANDS.dig cmd, :desc
+        cmd_display = Xolo::Admin::Options::COMMANDS.dig cmd, :display
+        cmd_opts = Xolo::Admin::Options::COMMANDS.dig cmd, :opts
         vers_cmd = version_command?
         title_or_vers_command = title_or_version_command?
-        arg_banner = Xolo::Admin::Options::COMMANDS[cmd][:arg_banner] || Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
+        arg_banner = Xolo::Admin::Options::COMMANDS.dig(cmd, :arg_banner)
+        arg_banner ||= Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
 
         Optimist.options do
           # NOTE: extra newlines are added to the front of strings, cuz
@@ -235,12 +251,12 @@ module Xolo
           banner "  #{cmd}, #{cmd_desc}"
 
           banner "\nUsage:"
-          banner "  #{executable_file} #{cmd_display} options"
+          banner "  #{executable_file} #{cmd_display} [options]"
 
           unless arg_banner == :none
             banner "\nArguments:"
             banner arg_banner
-            banner Xolo::Admin::Options :DFT_CMD_VERSION_ARG_BANNER if vers_cmd || title_or_vers_command
+            banner Xolo::Admin::Options::DFT_CMD_VERSION_ARG_BANNER if vers_cmd || title_or_vers_command
           end
 
           if cmd_opts
@@ -336,25 +352,25 @@ module Xolo
               "No version provided with '#{Xolo::Admin::Options.cli_cmd.command}' command!\nUsage: #{Xolo::Admin.usage}"
       end
 
-      # does the command we're running deal with titles?
+      # @return [Boolean] does the command we're running deal with titles?
       ##########
       def self.title_command?
         Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :title
       end
 
-      # does the command we're running deal with versions?
+      # @return [Boolean] does the command we're running deal with versions?
       ##########
       def self.version_command?
         Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :version
       end
 
-      # does the command we're running deal with either titles or versions?
+      # @return [Boolean] does the command we're running deal with either titles or versions?
       ##########
       def self.title_or_version_command?
         Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:target] == :title_or_version
       end
 
-      # does the command we're running add something (a title or version) to xolo?
+      # @return [Boolean] does the command we're running add something (a title or version) to xolo?
       ##########
       def self.add_command?
         Xolo::Admin::Options::ADD_COMMANDS.include? Xolo::Admin::Options.cli_cmd.command

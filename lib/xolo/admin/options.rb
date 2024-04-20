@@ -66,7 +66,7 @@ module Xolo
 
         debug: {
           label: 'Debug',
-          cli: :none,
+          cli: :d,
           walkthru: false,
           desc: <<~ENDDESC
             Run xadm in debug mode
@@ -86,8 +86,9 @@ module Xolo
       LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
       EDIT_VERSION_CMD = 'edit-version'
-      DELETE_VERSION_CMD = 'delete-version'
+      PILOT_VERSION_CMD = 'pilot-version'
       RELEASE_VERSION_CMD = 'release-version'
+      DELETE_VERSION_CMD = 'delete-version'
 
       INFO_CMD = 'info'
       SEARCH_CMD = 'search'
@@ -96,7 +97,10 @@ module Xolo
       HELP_CMD = 'help'
 
       DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
-      DFT_CMD_VERSION_ARG_BANNER = "  version:   The version you are working with. e.g. '12.34.5'"
+      DFT_CMD_VERSION_ARG_BANNER = "  version:   The version of the title you are working with. e.g. '12.34.5'"
+
+      TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
+      TARGET_VERSION_PLACEHOLDER = 'TARGET_TITLE_PH'
 
       COMMANDS = {
 
@@ -111,14 +115,16 @@ module Xolo
         ADD_TITLE_CMD => {
           desc: 'Add a new software title',
           display: "#{ADD_TITLE_CMD} title",
-          opts: Xolo::Core::BaseClasses::Title.cli_opts,
+          opts: Xolo::Admin::Title.cli_opts,
+          walkthru_header: "Adding Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :title
         },
 
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
           display: "#{EDIT_TITLE_CMD} title",
-          opts: Xolo::Core::BaseClasses::Title.cli_opts,
+          opts: Xolo::Admin::Title.cli_opts,
+          walkthru_header: "Editing Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :title
         },
 
@@ -139,19 +145,28 @@ module Xolo
         ADD_VERSION_CMD => {
           desc: 'Add a new version to a title',
           display: "#{ADD_VERSION_CMD} title version",
-          opts: Xolo::Core::BaseClasses::Version.cli_opts,
+          opts: Xolo::Admin::Version.cli_opts,
+          walkthru_header: "Adding Version '#{TARGET_VERSION_PLACEHOLDER}' to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :version
         },
 
         EDIT_VERSION_CMD => {
           desc: 'Edit a version of a title',
           display: "#{EDIT_VERSION_CMD} title version",
-          opts: Xolo::Core::BaseClasses::Version.cli_opts,
+          opts: Xolo::Admin::Version.cli_opts,
+          walkthru_header: "Editing Version '#{TARGET_VERSION_PLACEHOLDER}' of Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
+          target: :version
+        },
+
+        PILOT_VERSION_CMD => {
+          desc: 'Make the version available for piloting',
+          display: "#{PILOT_VERSION_CMD} title version",
+          opts: {},
           target: :version
         },
 
         RELEASE_VERSION_CMD => {
-          desc: 'Make the version available for installation.',
+          desc: 'Make the version available for general installation.',
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version
@@ -186,9 +201,12 @@ module Xolo
         },
 
         CONFIG_CMD => {
-          desc: 'Report installation data.',
-          display: "#{REPORT_CMD} title [version]",
-          opts: {}
+          desc: 'Configure xadm.',
+          display: "#{CONFIG_CMD}",
+          opts: Xolo::Admin::Configuration.cli_opts,
+          walkthru_header: 'Editing xadm configuration',
+          arg_banner: :none,
+          target: :none
         },
 
         HELP_CMD => {

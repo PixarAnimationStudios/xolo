@@ -39,6 +39,14 @@ module Xolo
     # title data to and from the server.
     class Title < Xolo::Core::BaseClasses::Title
 
+      # Class Methods
+      #############################
+
+      # @return [Hash{Symbol: Hash}] The ATTRIBUTES that are available as CLI & walkthru options
+      def self.cli_opts
+        @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
+      end
+
     end # class Title
 
   end # module Admin

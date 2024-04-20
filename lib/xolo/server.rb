@@ -37,6 +37,8 @@
 #
 #    require 'xolo-server'
 
+require 'xolo'
+
 # Server Standard Libraries
 ######
 require 'logger'

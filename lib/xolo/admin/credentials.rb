@@ -93,7 +93,7 @@ module Xolo
         cmd <<  XOLO_CREDS_LBL
 
         run_security(cmd.map { |i| escape i }.join(' ')) =~ /"acct"<blob>="(.*)"/
-        user  = Regexp.last_match(1)
+        user = Regexp.last_match(1)
 
         cmd << '-w'
         pw = run_security(cmd.map { |i| escape i }.join(' '))
@@ -106,31 +106,10 @@ module Xolo
       # Requires a block taking takes 2 params, user and pw, and returning
       # true if they work and false if not.
       #
-      # The msg will be displayed, and then the user is prompted for a username
-      # and a password. The username and passwd are given to the block for
-      # processing. Loops forever if they are incorrect (block returns false)
-      #
-      # Once they are correct, they are saved in the keychain with the username
-      # and service
-      # and label, and returned in a 2-item array
-      #
-      # @param message: [String] The message to display before prompting.
-      #
-      # @param service: [String] the service name for the keychain item, required
-      #
-      # @param label: [String] the label (display name) for the keychain item.
-      #  This is what appears in dialog boxes asking for access to the item.
-      #
-      # @param attributes [Hash{Symbol=>String}] Other values to store with the
-      #   item, e.g. creator:, type:, kind:, generic:, or comment:
-      #
-      # @yield [user, pw] passes the user and pw to the block for validation. The
-      #   block must return true or false.
-      #
       # @return [Array<String>] The valid [account, password]
       #
       ##############################################
-      def self.prompt_to_store_credentials(message:, service:, label:, username_prompt: 'username/account:', **attributes)
+      def self.prompt_to_store_credentials
         validate_not_root
         username_prompt = "#{username_prompt.chomp} "
 
@@ -170,33 +149,33 @@ module Xolo
         cmd = ['add-generic-password']
         cmd <<  '-a'
         cmd <<  user
-          cmd << '-s'
-          cmd << XOLO_CREDS_SVC
-          cmd <<  '-w'
-          cmd <<  pw
-          cmd <<  '-l'
-          cmd <<  XOLO_CREDS_LBL
-          cmd <<  '-D'
-          cmd <<  XOLO_CREDS_KIND
+        cmd << '-s'
+        cmd << XOLO_CREDS_SVC
+        cmd <<  '-w'
+        cmd <<  pw
+        cmd <<  '-l'
+        cmd <<  XOLO_CREDS_LBL
+        cmd <<  '-D'
+        cmd <<  XOLO_CREDS_KIND
 
-          run_security(cmd.map { |i| escape i }.join(' '))
+        run_security(cmd.map { |i| escape i }.join(' '))
       end
 
       # delete the xolo admin creds from the login keychain
       ##############################################
       def self.delete_credentials
-          cmd = ['delete-generic-password']
-          cmd << '-s'
-          cmd << XOLO_CREDS_SVC
-          cmd <<  '-l'
-          cmd <<  XOLO_CREDS_LBL
+        cmd = ['delete-generic-password']
+        cmd << '-s'
+        cmd << XOLO_CREDS_SVC
+        cmd <<  '-l'
+        cmd <<  XOLO_CREDS_LBL
 
-          run_security(cmd.map { |i| escape i }.join(' '))
+        run_security(cmd.map { |i| escape i }.join(' '))
       rescue RuntimeError => e
         raise e unless e.to_s == 'No matching keychain item was found'
+
         nil
       end
-
 
       # Run the security command in interactive mode on a given keychain,
       # passing in a subcommand and its arguments. so that they don't appear in the
@@ -250,33 +229,28 @@ module Xolo
         return if desc.include?('unknown error')
 
         desc.chomp.split(num).last
-      rescue
+      rescue StandardError
         nil
       end
 
+      # given a string, wrap it in single quotes and escape internal single quotes
+      # and backslashes so it can be used in the interactive 'security' command
+      #
+      # @param str[String] the string to escape
+      #
+      # @return [String] the escaped string
+      #
+      def self.escape(str)
+        # first escape backslashes
+        str = str.to_s.gsub '\\', '\\\\\\'
 
+        # then single quotes
+        str.gsub! "'", "\\\\'"
 
+        # if other things need escaping, add them here
 
-
-        # given a string, wrap it in single quotes and escape internal single quotes
-  # and backslashes so it can be used in the interactive 'security' command
-  #
-  # @param str[String] the string to escape
-  #
-  # @return [String] the escaped string
-  #
-  def self.escape(str)
-    # first escape backslashes
-    str = str.to_s.gsub '\\', '\\\\\\'
-
-    # then single quotes
-    str.gsub! "'", "\\\\'"
-
-    # if other things need escaping, add them here
-
-    "'#{str}'"
-  end # escape
-
+        "'#{str}'"
+      end # escape
 
     end # module Prefs
 

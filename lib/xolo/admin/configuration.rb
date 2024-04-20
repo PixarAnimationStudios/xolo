@@ -30,7 +30,7 @@ module Xolo
   module Admin
 
     # Personal prefs for users of 'xadm'
-    class Configuration
+    class Configuration < Xolo::Core::BaseClasses::Configuration
 
       include Singleton
 
@@ -42,17 +42,79 @@ module Xolo
       # Note - credentials for Xolo Server area stored in login keychain.
       # code for that is in the Xolo::Admin::Credentials module.
 
-      ### Constants
+      # Constants
       ##############################
       ##############################
 
       CONF_FILENAME = 'com.pixar.xolo.admin.prefs.yaml'
 
-      ### Class methods
+      CREDENTIALS_NEEDED = '<credentials needed>'
+      CREDENTIALS_IN_KEYCHAIN = '<stored in keychain>'
+
+      # See Xolo::Core::BaseClasses::Configuration for required values
+      # when used to access the config file.
+      #
+      # Also adds values used for CLI and walktru, as with the
+      # ATTRIBUTES of Xolo::Core::BaseClasses::Title and Xolo::Core::BaseClasses::Version
+      #
+      KEYS = {
+
+        # @!attribute hostname
+        #   @return [String]
+        hostname: {
+          required: true,
+          label: 'Hostname',
+          cli: :h,
+          type: :string,
+          validate: false,
+          invalid_msg: "Invalid hostname, can't connect, or not a Xolo server.",
+          desc: <<~ENDDESC
+            The hostname of the Xolo Server to interact with,
+            e.g. 'xolo.myschool.edu'
+          ENDDESC
+        },
+
+        # @!attribute credentials
+        #   @return [String] Prompt for the username and password?
+        #      They are stored in the user's keychain.
+        #      The prefs file will only contain '<credentials needed>'
+        #      or '<stored in keychain>'
+        credentials: {
+          required: true,
+          label: 'User',
+          cli: :c,
+          type: :boolean,
+          validate: false,
+          invalid_msg: 'Invalid credentials.',
+          desc: <<~ENDDESC
+            You will be prompted for a username and password to connect to
+            the Xolo server.
+          ENDDESC
+        }
+
+      }.freeze
+
+      # Class methods
       ##############################
       ##############################
 
-      def self.conf_file
+      # The KEYS that are available as CLI & walkthru options
+      # with the 'xadm config' command.
+      #
+      # @return [Hash{Symbol: Hash}]
+      #
+      ####################
+      def self.cli_opts
+        @cli_opts ||= KEYS.select { |_k, v| v[:cli] }
+      end
+
+      # Public Instance methods
+      ##############################
+      ##############################
+
+      # @return [Pathname] The file that stores configuration values
+      #######################
+      def conf_file
         @conf_file ||= Pathname.new("~/Library/Preferences/#{CONF_FILENAME}").expand_path
       end
 

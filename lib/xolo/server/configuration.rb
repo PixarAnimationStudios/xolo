@@ -24,7 +24,6 @@
 # frozen_string_literal: true
 
 require 'singleton'
-require 'ostruct'
 
 module Xolo
 
@@ -84,6 +83,7 @@ module Xolo
 
       # Constants
       #####################################
+      #####################################
 
       # Default Values
       ##########
@@ -98,8 +98,6 @@ module Xolo
 
       DFT_SSL_VERIFY = true
 
-      DFT_LOG_DAYS_TO_KEEP = 14
-
       DFT_PKG_SIGNING_KEYCHAIN_FILENAME = 'xolo-pkg-signing.keychain-db'
 
       PIPE = '|'
@@ -113,7 +111,7 @@ module Xolo
       KEYS = {
 
         # @!attribute ssl_cert
-        #   @return [String]
+        #   @return [String] A command, path, or value for the SSL Cert.
         ssl_cert: {
           default: nil,
           required: true,
@@ -138,7 +136,7 @@ module Xolo
         },
 
         # @!attribute ssl_key
-        #   @return [String]
+        #   @return [String] A command, path, or value for the SSL Cert private key.
         ssl_key: {
           default: nil,
           required: true,
@@ -163,7 +161,7 @@ module Xolo
         },
 
         # @!attribute ssl_verify
-        #   @return [Boolean]
+        #   @return [Boolean] Should the server verify SSL certs of incoming clients?
         ssl_verify: {
           default: DFT_SSL_VERIFY,
           desc: <<~ENDDESC
@@ -173,9 +171,9 @@ module Xolo
         },
 
         # @!attribute log_days_to_keep
-        #   @return [Integer]
+        #   @return [Integer] How many days worth of logs to keep
         log_days_to_keep: {
-          default: DFT_LOG_DAYS_TO_KEEP,
+          default: Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP,
           desc: <<~ENDDESC
             The server log is rotated daily. How many days of log files should be kept?
             All logs are kept in the 'logs' directory inside the server's data directory.
@@ -184,7 +182,7 @@ module Xolo
         },
 
         # @!attribute pkg_signing_keychain
-        #   @return [String]
+        #   @return [Pathname] The path to a keychain holding the .pkg signing identity
         pkg_signing_keychain: {
           default: nil,
           required: true,
@@ -197,7 +195,7 @@ module Xolo
         },
 
         # @!attribute pkg_signing_keychain_pw
-        #   @return [String]
+        #   @return [String]  A command, path, or value for the password to unlock the pkg_signing_keychain
         pkg_signing_keychain_pw: {
           default: nil,
           required: true,
@@ -220,7 +218,7 @@ module Xolo
         },
 
         # @!attribute pkg_signing_identity
-        #   @return [String]
+        #   @return [String] The name of the package signing identity to use
         pkg_signing_identity: {
           default: nil,
           required: true,
@@ -236,7 +234,7 @@ module Xolo
         ####################
 
         # @!attribute jamf_hostname
-        #   @return [String]
+        #   @return [String] The hostname of the Jamf Pro server we are connecting to
         jamf_hostname: {
           default: nil,
           required: true,
@@ -246,7 +244,7 @@ module Xolo
         },
 
         # @!attribute jamf_port
-        #   @return [Integer]
+        #   @return [Integer] The port number of the Jamf Pro server we are connecting to
         jamf_port: {
           default: Jamf::Connection::HTTPS_SSL_PORT,
           desc: <<~ENDDESC
@@ -257,7 +255,7 @@ module Xolo
         },
 
         # @!attribute jamf_ssl_version
-        #   @return [Integer]
+        #   @return [String] The SSL version to use when connecting to the Jamd Pro API
         jamf_ssl_version: {
           default: Jamf::Connection::DFT_SSL_VERSION,
           desc: <<~ENDDESC
@@ -267,7 +265,7 @@ module Xolo
         },
 
         # @!attribute jamf_verify_cert
-        #   @return [Boolean]
+        #   @return [Boolean] Should we verify the SSL certificate of the Jamf Pro API?
         jamf_verify_cert: {
           default: true,
           desc: <<~ENDDESC
@@ -277,7 +275,7 @@ module Xolo
         },
 
         # @!attribute jamf_open_timeout
-        #   @return [Integer]
+        #   @return [Integer] The timeout, in seconds, for establishing http connections to the Jamf Pro API
         jamf_open_timeout: {
           default: Jamf::Connection::DFT_OPEN_TIMEOUT,
           desc: <<~ENDDESC
@@ -287,7 +285,7 @@ module Xolo
         },
 
         # @!attribute jamf_timeout
-        #   @return [Integer]
+        #   @return [Integer] The timeout, in seconds, for a response from the Jamf Pro API
         jamf_timeout: {
           default: Jamf::Connection::DFT_TIMEOUT,
           desc: <<~ENDDESC
@@ -297,7 +295,7 @@ module Xolo
         },
 
         # @!attribute jamf_api_user
-        #   @return [Integer]
+        #   @return [String] The username to use when connecting to the Jamf Pro API
         jamf_api_user: {
           default: nil,
           required: true,
@@ -308,7 +306,7 @@ module Xolo
         },
 
         # @!attribute jamf_api_pw
-        #   @return [Integer]
+        #   @return [String]  A command, path, or value for the password for the Jamf Pro API user
         jamf_api_pw: {
           default: nil,
           required: true,
@@ -331,19 +329,20 @@ module Xolo
         },
 
         # @!attribute admin_jamf_group
-        #   @return [String]
+        #   @return [String] The name of a Jamf account-group containing users of 'xadm'
         admin_jamf_group: {
           default: nil,
           required: true,
           desc: <<~ENDDESC
-            The name of a Jamf account-group that allows the use of 'xadm' to create
-            and maintain titles and versions.
+            The name of a Jamf account-group (not a User group) that allows the use of 'xadm'
+            to create and maintain titles and versions.
             Users of xadm must be in this group, and provide their valid Jamf credentials.
           ENDDESC
         },
 
         # @!attribute upload_tool
-        #   @return [String]
+        #   @return [Pathname] The path to an executable that can upload .pkg files for use by
+        #      the Jamf Pro server. The API doesn't provide this ability.
         upload_tool: {
           default: nil,
           required: true,
@@ -373,7 +372,7 @@ module Xolo
         ####################
 
         # @!attribute title_editor_hostname
-        #   @return [String]
+        #   @return [String] The hostname of the Jamf Title Editor server we are connecting to
         title_editor_hostname: {
           default: nil,
           required: true,
@@ -383,7 +382,8 @@ module Xolo
         },
 
         # @!attribute title_editor_open_timeout
-        #   @return [Integer]
+        #   @return [Integer] The timeout, in seconds, for establishing http connections to
+        #      the Jamf Title Editor API
         title_editor_open_timeout: {
           default: Windoo::Connection::DFT_OPEN_TIMEOUT,
           desc: <<~ENDDESC
@@ -393,7 +393,7 @@ module Xolo
         },
 
         # @!attribute title_editor_timeout
-        #   @return [Integer]
+        #   @return [Integer] The timeout, in seconds, for a response from the Jamf Title Editor API
         title_editor_timeout: {
           default: Windoo::Connection::DFT_TIMEOUT,
           desc: <<~ENDDESC
@@ -403,7 +403,7 @@ module Xolo
         },
 
         # @!attribute title_editor_api_user
-        #   @return [String]
+        #   @return [String]  The username to use when connecting to the Jamf Title Editor API
         title_editor_api_user: {
           default: nil,
           required: true,
@@ -414,7 +414,7 @@ module Xolo
         },
 
         # @!attribute title_editor_api_pw
-        #   @return [String]
+        #   @return [String] A command, path, or value for the password for the Jamf Title Editor API user
         title_editor_api_pw: {
           default: nil,
           required: true,
@@ -438,47 +438,33 @@ module Xolo
 
       }.freeze
 
-      ### Class methods
-      ##############################
-      ##############################
-
-      def self.conf_file
-        @conf_file ||= Xolo::Server::DATA_DIR + CONF_FILENAME
-      end
-
-      # Attributes
-      #####################################
-      #####################################
-
-      # automatically create accessors for all the CONF_KEYS
-      ATTRIBUTES.keys.each { |attr| attr_accessor attr }
-
-      attr_reader :raw_data
-
-      # Constructor
-      #####################################
-      #####################################
-
-      # Initialize!
-      #
-      def initialize
-        load_from_file
-      end
-
       # Public Instance Methods
       #####################################
       #####################################
 
+      # @return [Pathname] The file that stores configuration values
+      #######################
+      def conf_file
+        @conf_file ||= Xolo::Server::DATA_DIR + CONF_FILENAME
+      end
+
+      # @return [Pathname] The directory where the Xolo server stores data
       ##################
       def data_dir
         Xolo::Server::DATA_DIR
       end
 
+      # @return [Pathname] The file where Xolo server log entries are written
       ##################
       def log_file
         Xolo::Server::Log::LOG_FILE
       end
 
+      # This file will be created based on the config value the first
+      # time this method is called
+      #
+      # @return [Pathname] The file where the SSL certificate[-chain] is stored
+      #   for use by the server.
       ##################
       def ssl_cert_file
         return @ssl_cert_file if @ssl_cert_file
@@ -488,6 +474,11 @@ module Xolo
         @ssl_cert_file = SSL_CERT_FILE
       end
 
+      # This file will be created based on the config value the first
+      # time this method is called
+      #
+      # @return [Pathname] The file where the SSL certificate private key is stored
+      #   for use by the server.
       ##################
       def ssl_key_file
         return @ssl_key_file if @ssl_key_file
@@ -495,59 +486,6 @@ module Xolo
 
         SSL_CERT_FILE.pix_save data_from_command_or_file(ssl_key)
         @ssl_key_file = SSL_CERT_FILE
-      end
-
-      ###############
-      def to_h(private: true)
-        data = {}
-        ATTRIBUTES.each do |key, deets|
-          data[key] =
-            if private && deets[:private]
-              PRIVATE
-            else
-              send(key)
-            end
-        end
-        data
-      end
-
-      # Private Instance Methods
-      #####################################
-      #####################################
-
-      private
-
-      # Load in the values from the config file
-      # @return [void]
-      def load_from_file
-        CONF_FILE.parent.mkpath unless CONF_FILE.parent.directory?
-
-        @raw_data = YAML.load_file CONF_FILE
-        @raw_data.each do |k, v|
-          v = send(ATTRIBUTES[k][:load_method], v) if ATTRIBUTES[k][:load_method]
-          send "#{k}=", v
-        end
-      end
-
-      # If the given string starts with a pipe (|) then
-      # remove the pipe and execute the remainder, returning
-      # its stdout.
-      #
-      # If the given string is a readble file path, return
-      # its contents.
-      #
-      # Otherwise, the string is the desired data, so just return it.
-      #
-      # @param str [String] a command, file path, or string
-      # @return [String] The file contents or output of the command.
-      #
-      def data_from_command_file_or_string(str)
-        return `#{str.delete_prefix(PIPE)}`.chomp if str.start_with? PIPE
-
-        path = Pathname.new(str)
-        return path.read.chomp
-
-        str
       end
 
     end # class Configuration

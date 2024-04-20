@@ -44,20 +44,15 @@ module Xolo
 
         USE_TITLE_FOR_KILLAPP = 'use-title'
 
-        # Class Methods
-        #############################
-
-        # The ATTRIBUTES that are available as CLI & walkthru options
-        def self.cli_opts
-          @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
-        end
-
         # Attributes
         ######################
 
         # Attributes of Versions
         # See the definition for Xolo::Core::BaseClasses::Title::ATTRIBUTES
         ATTRIBUTES = {
+
+          # @!attribute version
+          #   @return [String] The version-string for this version.
           version: {
             label: 'Version',
             required: true,
@@ -71,13 +66,15 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute publish_date
+          #   @return [Time] When the publisher released this version
           publish_date: {
             label: 'Publish Date',
-            type: :string,
+            type: :time,
             required: true,
             cli: :d,
             validate: true,
-            default: Date.today.to_s,
+            default: Time.now,
             invalid_msg: 'Not a valid date!',
             desc: <<~ENDDESC
               The date this version was released by the publisher.
@@ -85,6 +82,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute min_os
+          #   @return [String] The minimum OS version that this version can be installed on.
           min_os: {
             label: 'Minimum OS',
             cli: :o,
@@ -98,6 +97,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute max_os
+          #   @return [String] The maximum OS version that this version can be installed on.
           max_os: {
             label: 'Maximum OS',
             cli: :O,
@@ -111,6 +112,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute reboot
+          #   @return [Boolean] Does this version need a reboot after installing?
           reboot: {
             label: 'Reboot',
             cli: :r,
@@ -121,6 +124,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute standalone
+          #   @return [Boolean] Is this version a full installer? (if not, its an incremental patch)
           standalone: {
             label: 'Standalone',
             cli: :s,
@@ -131,6 +136,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute killapps
+          #   @return [Array<String>] The apps that cannot be running when this version is installed
           killapps: {
             label: 'KillApp',
             cli: :k,
@@ -157,6 +164,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute pilot_groups
+          #   @return [Array<String>] Jamf groups that will automatically get this version for piloting
           pilot_groups: {
             label: 'Pilot Computer Groups',
             default: Xolo::NONE,
@@ -175,6 +184,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute status
+          #   @return [symbol] One of: :pilot, :released, :skipped, :deprecated
           status: {
             label: 'Status',
             type: :symbol,
@@ -184,6 +195,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute created_by
+          #   @return [String] The login of the admin who created this version.
           created_by: {
             label: 'Created By',
             type: :string,
@@ -193,6 +206,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute creation_date
+          #   @return [Time] The date this version was created.
           creation_date: {
             label: 'Creation Date',
             type: :time,
@@ -202,6 +217,8 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute modified_by
+          #   @return [String] The login of the admin who last modified this version.
           modified_by: {
             label: 'Modified By',
             type: :string,
@@ -211,8 +228,10 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute modification_date
+          #   @return [Time] The date this version was last modified.
           modification_date: {
-            label: 'Creation Date',
+            label: 'Modification Date',
             type: :time,
             cli: false,
             desc: <<~ENDDESC
@@ -220,24 +239,70 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute released_by
+          #   @return [String] The login of the admin who piloted this version in Xolo.
+          #     This is when the Title Editor, or other Patch Source, tells Jamf Pro that
+          #     this new version is available and can be piloted.
+          piloted_by: {
+            label: 'Piloted By',
+            type: :string,
+            cli: false,
+            desc: <<~ENDDESC
+              The login of the admin who piloted this version in Xolo.
+              This is when the Title Editor, or other Patch Source, tells Jamf Pro that
+              this new version is available. Versions should be piloted before they are
+              released.
+            ENDDESC
+          },
+
+          # @!attribute release_date
+          #   @return [Time] The timestamp this version was released in Xolo.
+          #     This is when the Title Editor, or other Patch Source, tells Jamf Pro that
+          #     this new version is available and can be piloted.
+          pilot_date: {
+            label: 'Release Date',
+            type: :time,
+            cli: false,
+            desc: <<~ENDDESC
+              The timestamp when this version was piloted in Xolo.
+              This is when the Title Editor, or other Patch Source, tells Jamf Pro that
+              this new version is available. Versions should be piloted before they are
+              released.
+            ENDDESC
+          },
+
+          # @!attribute deployed_by
+          #   @return [String] The login of the admin who released this version in Xolo.
+          #     This is when the Xolo sets the status of this version to 'released', making it
+          #     no longer 'in pilot' and the one to be installed or updated by default.
           released_by: {
-            label: 'Released By',
+            label: 'Deployed By',
             type: :string,
             cli: false,
             desc: <<~ENDDESC
               The login of the admin who released this version in Xolo.
+              This is when the Xolo sets the status of this version to 'released', making it
+              no longer 'in pilot' and the one to be installed or updated by default.
             ENDDESC
           },
 
+          # @!attribute deploy_date
+          #   @return [Time] The timestamp this version was released in Xolo.
+          #     This is when the Xolo sets the status of this version to 'released', making it
+          #     no longer 'in pilot' and the one to be installed or updated by default.
           release_date: {
-            label: 'Creation Date',
+            label: 'Deployt Date',
             type: :time,
             cli: false,
             desc: <<~ENDDESC
-              The date this version was last released in Xolo.
+              The timestamp when this version was released in Xolo.
+              This is when the Xolo sets the status of this version to 'released', making it
+              no longer 'in pilot' and the one to be installed or updated by default.
             ENDDESC
           },
 
+          # @!attribute jamf_pkg
+          #   @return [String] The display name of the Jamf::Package object that installs this version.
           jamf_pkg: {
             label: 'Jamf Package',
             type: :string,
@@ -249,7 +314,7 @@ module Xolo
 
         }.freeze
 
-        ATTRIBUTES.keys.each do |attr|
+        ATTRIBUTES.each_key do |attr|
           attr_accessor attr
           attr_accessor "new_#{attr}"
         end

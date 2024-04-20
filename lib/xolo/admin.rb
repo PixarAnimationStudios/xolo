@@ -23,6 +23,8 @@
 
 # frozen_string_literal: true
 
+require 'xolo'
+
 # TODO: Is this needed in newer rubies?
 require 'io/console'
 
@@ -59,7 +61,11 @@ module Xolo
     end
 
     def self.usage
-      @usage ||= "#{executable.basename} [global-options] command [title] [version] [command-options]"
+      @usage ||= "#{executable.basename} [global-options] command [target] [command-options]"
+    end
+
+    def self.config
+      Xolo::Admin::Configuration.instance
     end
 
   end
