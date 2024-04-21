@@ -118,7 +118,7 @@ module Xolo
             label: 'Reboot',
             cli: :r,
             type: :boolean,
-            validate: :boolean,
+            validate: :validate_boolean,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
             ENDDESC
@@ -130,7 +130,7 @@ module Xolo
             label: 'Standalone',
             cli: :s,
             type: :boolean,
-            validate: :boolean,
+            validate: :validate_boolean,
             desc: <<~ENDDESC
               The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
             ENDDESC
@@ -157,7 +157,6 @@ module Xolo
 
               If the title for this version has a defined --app-name and --app-bundle-id, you can
               use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}'
-              (see '#{Xolo::Admin.executable.basename} help add-title')
 
               To specify more than one killapp separate them with commas. If not using --walkthru you can
               also use the CLI option multiple times.

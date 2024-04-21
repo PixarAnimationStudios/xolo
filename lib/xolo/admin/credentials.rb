@@ -32,7 +32,7 @@ module Xolo
     # Personal credentials for users of 'xadm', stored in the login keychain
     module Credentials
 
-      ### Constants
+      # Constants
       ##############################
       ##############################
 
@@ -54,9 +54,18 @@ module Xolo
       # the Label for the generic 'Xolo::Admin::Credentialss' keychain entry
       XOLO_CREDS_LBL = '"Xolo Admin Login and Password"'
 
-      ### Module methods
+      # Module methods
       ##############################
       ##############################
+
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
+
+      # Instance Methods
+      ##########################
+      ##########################
 
       # Get an account and password from the login keychain
       #
@@ -85,18 +94,18 @@ module Xolo
       #   item, or an empty array if not found in the keychain
       #
       ##############################################
-      def self.credentials
+      def credentials
         cmd = ['find-generic-password']
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
-        cmd <<  '-l'
-        cmd <<  XOLO_CREDS_LBL
+        cmd << '-l'
+        cmd << XOLO_CREDS_LBL
 
-        run_security(cmd.map { |i| escape i }.join(' ')) =~ /"acct"<blob>="(.*)"/
+        run_security(cmd.map { |i| security_escape i }.join(' ')) =~ /"acct"<blob>="(.*)"/
         user = Regexp.last_match(1)
 
         cmd << '-w'
-        pw = run_security(cmd.map { |i| escape i }.join(' '))
+        pw = run_security(cmd.map { |i| security_escape i }.join(' '))
 
         { user: user, pw: pw }
       end
@@ -109,7 +118,7 @@ module Xolo
       # @return [Array<String>] The valid [account, password]
       #
       ##############################################
-      def self.prompt_to_store_credentials
+      def prompt_to_store_credentials
         validate_not_root
         username_prompt = "#{username_prompt.chomp} "
 
@@ -142,7 +151,7 @@ module Xolo
 
       # Store an item in the default keychain
       ##############################################
-      def self.store_credentials(user:, pw:)
+      def store_credentials(user:, pw:)
         # delete the item first if its there
         delete_credentials
 
@@ -158,19 +167,19 @@ module Xolo
         cmd <<  '-D'
         cmd <<  XOLO_CREDS_KIND
 
-        run_security(cmd.map { |i| escape i }.join(' '))
+        run_security(cmd.map { |i| security_escape i }.join(' '))
       end
 
       # delete the xolo admin creds from the login keychain
       ##############################################
-      def self.delete_credentials
+      def delete_credentials
         cmd = ['delete-generic-password']
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
         cmd <<  '-l'
         cmd <<  XOLO_CREDS_LBL
 
-        run_security(cmd.map { |i| escape i }.join(' '))
+        run_security(cmd.map { |i| security_escape i }.join(' '))
       rescue RuntimeError => e
         raise e unless e.to_s == 'No matching keychain item was found'
 
@@ -188,7 +197,7 @@ module Xolo
       # @return [String] the stdout of the 'security' command.
       #
       ######
-      def self.run_security(cmd)
+      def run_security(cmd)
         output = ''
         errs = ''
         exit_status = nil
@@ -224,7 +233,7 @@ module Xolo
       end # run_security
 
       # use `security error` to get a description of an error number
-      def self.security_error_desc(num)
+      def security_error_desc(num)
         desc = `#{SEC_COMMAND} error #{num}`
         return if desc.include?('unknown error')
 
@@ -240,7 +249,7 @@ module Xolo
       #
       # @return [String] the escaped string
       #
-      def self.escape(str)
+      def security_escape(str)
         # first escape backslashes
         str = str.to_s.gsub '\\', '\\\\\\'
 
@@ -250,7 +259,7 @@ module Xolo
         # if other things need escaping, add them here
 
         "'#{str}'"
-      end # escape
+      end # security_escape
 
     end # module Prefs
 

@@ -131,7 +131,7 @@ module Xolo
             immutable: true,
             cli: false,
             type: :string,
-            validate: true,
+            validate: true, # the validation method is called 'validate_title'
             invalid_msg: 'Not a valid title! Must be lowercase alphanumeric and dashes only',
             desc: <<~ENDDESC
               A unique string identifying this Title, e.g. 'folio' or 'google-chrome'.
@@ -147,7 +147,7 @@ module Xolo
             required: true,
             cli: :n,
             type: :string,
-            validate: :title_display_name,
+            validate: :validate_title_display_name,
             invalid_msg: 'Not a valid display name, must be at least three characters, starting and ending with non-whitespace.',
             desc: <<~ENDDESC
               A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'. Must be at least three characters long.
@@ -161,7 +161,7 @@ module Xolo
             required: true,
             cli: :d,
             type: :string,
-            validate: :title_desc,
+            validate: :validate_title_desc,
             invalid_msg: "Not a valid description name, must be at least 20 characters. Provide a useful dscription of what the software does, URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
             desc: <<~ENDDESC
               A useful dscription of what the software installed by this title does. You can also include URLs, developer names, support info, etc.
@@ -335,7 +335,7 @@ module Xolo
             label: 'Show in Self Service',
             cli: :s,
             type: :boolean,
-            validate: :boolean,
+            validate: :validate_boolean,
             default: false,
             walkthru_na: :ssvc_na,
             desc: <<~ENDDESC

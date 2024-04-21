@@ -27,43 +27,55 @@
 
 # frozen_string_literal: true
 
-require 'xolo'
+require 'xolo/admin'
 
 # The App
 #####################
 class XoloAdmin
 
+  include Xolo::Admin
+  include Xolo::Admin::CommandLine
+  include Xolo::Admin::Connection
+  include Xolo::Admin::Converters
+  include Xolo::Admin::Credentials
+  include Xolo::Admin::Interactive
+  include Xolo::Admin::Options
+  include Xolo::Admin::Validate
+
+  # Constructor
+  ###################
   def initialize
-    Xolo::Admin.executable = __FILE__
-    Xolo::Admin::CommandLine.parse_cli
+    parse_cli
   end
 
+  # Run
+  ########################
   def run
-    Xolo::Admin::Interactive.do_walkthru if Xolo::Admin::Options.global_opts.walkthru
+    do_walkthru if walkthru?
 
     puts
     puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
     puts 'GLOBAL OPTS:'
     puts '----'
-    Xolo::Admin::Options.global_opts.to_h.each do |k, v|
+    global_opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
 
     puts
-    puts "COMMAND: #{Xolo::Admin::Options.cli_cmd.command}"
+    puts "COMMAND: #{cli_cmd.command}"
 
     puts
-    puts "TITLE: #{Xolo::Admin::Options.cli_cmd.title}"
+    puts "TITLE: #{cli_cmd.title}"
 
     puts
-    puts "VERSION: #{Xolo::Admin::Options.cli_cmd.version}"
+    puts "VERSION: #{cli_cmd.version}"
 
     puts
     puts 'CURRENT OPT VALUES:'
     puts 'The values the object had before xadm started working on it.'
     puts 'If the object is being added, these are the default or inherited values'
     puts '----'
-    Xolo::Admin::Options.current_opt_values.to_h.each do |k, v|
+    current_opt_values.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
 
@@ -72,11 +84,16 @@ class XoloAdmin
     puts 'The command options collected by xadm, merged with the'
     puts 'current values, to be applied to the object'
     puts '----'
-    opts = Xolo::Admin::Options.walkthru? ? Xolo::Admin::Options.walkthru_cmd_opts : Xolo::Admin::Options.cli_cmd_opts
+    opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
     opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
   end # run
+
+  ################
+  def executable
+    @executable ||= Pathname.new(__FILE__)
+  end
 
 end # class XoloAdmin
 
@@ -89,12 +106,14 @@ begin
   # -d must be given as a global opt (before the command)
   # in order to mean --debug
   #
-  debug = ARGV.delete '--debug'
-  ARGV.unshift debug if debug
+  db = ARGV.delete '--debug'
+  ARGV.unshift db if db
 
   app = XoloAdmin.new
+  debug = app.global_opts.debug
+
   app.run
 rescue => e
   warn "Error: #{e.class.name.split('::').last}: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" } if debug
+  e.backtrace.each { |l| warn "..#{l}" }
 end

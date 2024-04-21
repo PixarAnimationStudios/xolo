@@ -30,31 +30,47 @@ module Xolo
     # Module for gathering and validating xadm options from an interactive terminal session
     module Interactive
 
+      # Module methods
+      ##############################
+      ##############################
+
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
+
+      # Instance Methods
+      ##########################
+      ##########################
+
       #  Our HighLine instance
-      def self.cli
-        @cli ||= HighLine.new
+      ##############################
+      def highline_cli
+        @highline_cli ||= HighLine.new
       end
 
       # Use an interactive walkthru session to populate
       # Xolo::Admin::Options.walkthru_cmd_opts
-      #
-      def self.do_walkthru
-        cmd = Xolo::Admin::Options.cli_cmd.command
+      ###############################
+      def do_walkthru
+        cmd = cli_cmd.command
 
-        return unless Xolo::Admin::Options.global_opts.walkthru
+        return unless global_opts.walkthru
+
         # if the command doesn't take any options, there's nothing to walk through
         return if Xolo::Admin::Options::COMMANDS[cmd][:opts].empty?
 
         display_walkthru_menu cmd
       end
 
-      ####
-      def self.display_walkthru_menu(cmd)
+      #
+      ##############################
+      def display_walkthru_menu(cmd)
         done_with_menu = false
 
         # we start off with our Xolo::Admin::Options.walkthru_cmd_opts being the same
         # the same as Xolo::Admin::Options.current_opt_values
-        Xolo::Admin::Options.current_opt_values.to_h.each { |k, v| Xolo::Admin::Options.walkthru_cmd_opts[k] = v }
+        current_opt_values.to_h.each { |k, v| walkthru_cmd_opts[k] = v }
 
         # as the current_values
         until done_with_menu
@@ -62,15 +78,15 @@ module Xolo
           display_walkthru_header
 
           # Generate the menu items
-          cli.choose do |menu|
+          highline_cli.choose do |menu|
             menu.responses[:ambiguous_completion] = nil
             menu.responses[:no_completion] = 'Unknown Choice'
 
             # The menu items for setting values
             ####
             Xolo::Admin::Options::COMMANDS[cmd][:opts].each do |key, deets|
-              curr_val = Xolo::Admin::Options.current_opt_values[key]
-              new_val = Xolo::Admin::Options.walkthru_cmd_opts[key]
+              curr_val = current_opt_values[key]
+              new_val = walkthru_cmd_opts[key]
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val, not_avail: not_avail)
 
@@ -87,7 +103,7 @@ module Xolo
               if not_avail
                 menu.choice(nil, nil, menu_item) {}
               else
-                menu.choice(nil, nil, menu_item) { prompt_for_value key, deets, curr_val }
+                menu.choice(nil, nil, menu_item) { prompt_for_walkthru_value key, deets, curr_val }
               end
             end
 
@@ -119,66 +135,69 @@ module Xolo
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
-      def self.version_script_na
-        return if !Xolo::Admin::Options.current_opt_values[:app_name] && \
-                  !Xolo::Admin::Options.current_opt_values[:app_bundle_id] && \
-                  !Xolo::Admin::Options.walkthru_cmd_opts[:app_name] && \
-                  !Xolo::Admin::Options.walkthru_cmd_opts[:app_bundle_id]
+      ##############################
+      def version_script_na
+        return if !current_opt_values[:app_name] && \
+                  !current_opt_values[:app_bundle_id] && \
+                  !walkthru_cmd_opts[:app_name] && \
+                  !walkthru_cmd_opts[:app_bundle_id]
 
         'N/A when using App Name/BundleID'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
-      def self.app_name_bundleid_na
-        return if !Xolo::Admin::Options.current_opt_values[:version_script] && \
-                  !Xolo::Admin::Options.walkthru_cmd_opts[:version_script]
+      ##############################
+      def app_name_bundleid_na
+        return if !current_opt_values[:version_script] && \
+                  !walkthru_cmd_opts[:version_script]
 
         'N/A when using Version Script'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
-      def self.ssvc_na
+      ##############################
+      def ssvc_na
         all = Xolo::Admin::Title::TARGET_ALL
-        tgt_all = Xolo::Admin::Options.current_opt_values[:target_groups]&.include?(all) || \
-                  Xolo::Admin::Options.walkthru_cmd_opts[:target_groups]&.include?(all)
+        tgt_all = current_opt_values[:target_groups]&.include?(all) || \
+                  walkthru_cmd_opts[:target_groups]&.include?(all)
 
         "N/A if Target Group is '#{all}'" if tgt_all
       end
 
       # @return [String, nil] any current internal consistency error. will be nil when none remain
-      def self.internal_consistency_error
-        Xolo::Admin::Validate.internal_consistency Xolo::Admin::Options.walkthru_cmd_opts
+      ##############################
+      def internal_consistency_error
+        validate_internal_consistency walkthru_cmd_opts
         nil
       rescue Xolo::InvalidDataError => e
         e.to_s
       end
 
       # The menu header
-      def self.display_walkthru_header
-        header_text = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.cmd][:walkthru_header]
+      ##############################
+      def display_walkthru_header
+        header_text = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:walkthru_header].dup
         return unless header_text
 
-        header_text.sub! TARGET_TITLE_PLACEHOLDER, Xolo::Admin::Options.cli_cmd.title
-        if Xolo::Admin::Options.cli_cmd.version
-          header_text.sub! TARGET_VERSION_PLACEHOLDER, Xolo::Admin::Options.cli_cmd.version
-        end
+        header_text.sub! Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER, cli_cmd.title
+        header_text.sub! Xolo::Admin::Options::TARGET_VERSION_PLACEHOLDER, cli_cmd.version if cli_cmd.version
 
         header_sep_line = Xolo::DASH * header_text.length
 
         system 'clear'
         puts <<~ENDPUTS
           #{header_sep_line}
-          #{header_action} #{header_target}
+          #{header_text}
           #{header_sep_line}
           Current Settings => New Settings
 
         ENDPUTS
       end
 
-      ####
-      def self.menu_item_text(lbl, old: nil, new: nil, not_avail: nil)
+      ##################################
+      def menu_item_text(lbl, old: nil, new: nil, not_avail: nil)
         txt = "#{lbl}:"
         return "#{txt} ** #{not_avail}" if not_avail
 
@@ -188,56 +207,68 @@ module Xolo
         "#{txt} => #{new}"
       end
 
-      #### prompt for and return a value
-      def self.prompt_for_value(key, deets, curr_val)
+      # prompt for and return a value
+      ##############################
+      def prompt_for_walkthru_value(key, deets, curr_val)
         default = default_for_value(key, deets, curr_val)
         question = question_for_value(deets)
         q_desc = question_desc(deets, default)
 
-        # Highline wants a separate proc for conversion
+        # Highline wants a separate lambda for conversion
+        # and validation, validation just returns boolean,
+        # but conversion returns the converted value.
+        # but our validation methods do the conversion.
+        #
         # so we'll just return the converted_value we got
         # when we validate, or nil if we don't validate
-        Xolo::Admin::Interactive.converted_value = nil
-        convert = ->(_ans) { Xolo::Admin::Interactive.converted_value }
-
+        #
         validate = valdation_lambda(key, deets)
+        convert = validate ? ->(_ans) { send :converted_value } : ->(ans) { ans }
 
-        answer = cli.ask(question, convert) do |q|
+        answer = highline_cli.ask(question, convert) do |q|
           q.default = default
           q.readline = true # allows tab-completion of filenames, and using arrow keys
 
           if validate
             q.validate = validate
+
             not_valid_response = +"\nERROR: #{deets[:invalid_msg]}"
             not_valid_response << " Cannot be unset with 'none'." if deets[:required]
             not_valid_response = not_valid_response.pix_word_wrap
             q.responses[:not_valid] = not_valid_response
+
             not_valid_re_ask = +"Enter #{deets[:label]}: "
             not_valid_re_ask << "|#{default}| " if default
             q.responses[:ask_on_error] = not_valid_re_ask
           end
+
           # display a description of the value being asked for
-          cli.say q_desc
+          highline_cli.say q_desc
         end
+
+        puts "Answer was: #{answer}"
 
         return if answer.to_s.empty?
 
         answer = nil if answer == Xolo::NONE
-        Xolo::Admin::Options.walkthru_cmd_opts[key] = answer
+
+        walkthru_cmd_opts[key] = answer
       end # prompt for value
 
       # The 'default' value for the highline question
       # when prompting for a value
-      def self.default_for_value(key, deets, curr_val)
+      ##############################
+      def default_for_value(key, deets, curr_val)
         # default is the current value, or the
         # defined value if no current.
-        default = Xolo::Admin::Options.walkthru_cmd_opts[key] || curr_val || deets[:default]
+        default = walkthru_cmd_opts[key] || curr_val || deets[:default]
         default = default.join(', ') if default.is_a? Array
         default
       end
 
       # The multi-lines of text describing the value above the prompt
-      def self.question_desc(deets, default)
+      ##############################
+      def question_desc(deets, default)
         q_desc = +"============= #{deets[:label]} =============\n"
         q_desc << deets[:desc]
         q_desc << "\nType a return for default value '#{default}'" if default
@@ -246,7 +277,8 @@ module Xolo
       end
 
       # The line of text prompting for a value.
-      def self.question_for_value(deets)
+      ##############################
+      def question_for_value(deets)
         question = +"Enter #{deets[:label]}"
 
         if deets[:type] == :boolean
@@ -259,24 +291,43 @@ module Xolo
         question.chomp # + ' '
       end
 
-      # The lambda that highline will use to validate
-      # (and convert) a value
-      def self.valdation_lambda(key, deets)
+      # Retun a lambda that calls one of our validation methods to validate
+      # a walkthru value.
+      #
+      # Highlight requires validation lambdas to return a boolean, and uses
+      # a separate lambda for type conversion.
+      # Since our validation methods do both, this lambda will put the converted
+      # result into the 'converted_value' accessor, or capture the error,
+      # and then return a boolean.
+      #
+      # Later the lambda we give to highline for conversion will just return
+      # the last converted value, as stored in the converted_value accessor.
+      #
+      # @return [Lambda, nil] The lambda that highline will use to validate
+      #    (and convert) a value, nil if we accept whatever was given.
+      #
+      ##############################
+      def valdation_lambda(key, deets)
         val_meth = valdation_method(key, deets)
         return unless val_meth
 
-        Xolo::Admin::Interactive.converted_value = nil
+        converted_value = nil
 
         # lambda to validate the value given.
         # must return boolean for Highline to deal with it.
         lambda do |ans|
+          # to start, the converted value is just the given value
+          # use send here, otherwise the lambda sees converted_value
+          # as a local variable
+          send :converted_value=, ans
+
           # if user just hit return, nothing to validate,
           # the current/default value will remain.
           return true if ans.to_s.empty?
 
           # If this value isn't required, accept 'none'
           if !deets[:required] && (ans == Xolo::NONE)
-            Xolo::Admin::Interactive.converted_value = Xolo::NONE
+            send :converted_value=, Xolo::NONE
             return true
           end
 
@@ -289,8 +340,7 @@ module Xolo
           # save the validated/converted value for use in the
           # convert method. so we don't have to call the validate method
           # twice
-          Xolo::Admin::Interactive.converted_value = Xolo::Admin::Validate.send val_meth, ans_to_validate
-
+          send :converted_value=, (send val_meth, ans_to_validate)
           true
         rescue Xolo::InvalidDataError
           false
@@ -300,29 +350,31 @@ module Xolo
       # getter/setter for the value converted by the last validation
       # method call - we do this so the same value is available in the
       #  convert and validate lambdas
+      ##############################
+      attr_accessor :converted_value
 
-      def self.converted_value=(val)
-        @converted_value = val
-      end
+      # def converted_value=(val)
+      #   @converted_value = val
+      # end
 
-      def self.converted_value
-        @converted_value
-      end
+      # def converted_value
+      #   @converted_value
+      # end
 
       # The method used to validate and convert a value
-      def self.valdation_method(key, deets)
+      ##############################
+      def valdation_method(key, deets)
         case deets[:validate]
-        when TrueClass then key
+        when TrueClass then "validate_#{key}"
         when Symbol then deets[:validate]
         end
       end
 
-      ####
-      def self.missing_values
+      ##################################
+      def missing_values
         missing_values = []
-        Xolo::Admin::Options.required_values.each do |key, deets|
-          # next if Xolo::Admin::Options.cli_cmd_opts[key]
-          next if Xolo::Admin::Options.walkthru_cmd_opts[key]
+        required_values.each do |key, deets|
+          next if walkthru_cmd_opts[key]
 
           missing_values << deets[:label]
         end

@@ -31,7 +31,8 @@ module Xolo
     # for xadm
     module Options
 
-      #### Constants
+      # Constants
+      #########################
       #########################
 
       # See the definition for Xolo::Core::BaseClasses::Title::ATTRIBUTES
@@ -205,8 +206,7 @@ module Xolo
           display: "#{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
           walkthru_header: 'Editing xadm configuration',
-          arg_banner: :none,
-          target: :none
+          arg_banner: :none
         },
 
         HELP_CMD => {
@@ -220,12 +220,24 @@ module Xolo
       # differs from those commands that just edit or report things.
       ADD_COMMANDS = [ADD_TITLE_CMD, ADD_VERSION_CMD].freeze
 
-      #### Module Methods
-      #############################
+      EDIT_COMMANDS = [EDIT_TITLE_CMD, EDIT_VERSION_CMD].freeze
+
+      # Module methods
+      ##############################
+      ##############################
+
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
+
+      # Instance Methods
+      ##########################
+      ##########################
 
       # Are we running in interactive mode?
-      def self.walkthru?
-        Xolo::Admin::Options.global_opts.walkthru
+      def walkthru?
+        global_opts.walkthru
       end
 
       # Global Opts
@@ -240,7 +252,7 @@ module Xolo
       #
       # @return [OpenStruct]
       ############################
-      def self.global_opts
+      def global_opts
         @global_opts ||= OpenStruct.new
       end
 
@@ -261,7 +273,7 @@ module Xolo
       #
       # @return [OpenStruct]
       ############################
-      def self.cli_cmd
+      def cli_cmd
         @cli_cmd ||= OpenStruct.new
       end
 
@@ -295,7 +307,7 @@ module Xolo
       #
       # @return [OpenStruct]
       ############################
-      def self.cli_cmd_opts
+      def cli_cmd_opts
         @cli_cmd_opts ||= OpenStruct.new
       end
 
@@ -326,92 +338,73 @@ module Xolo
       #
       # @return [OpenStruct]
       ############################
-      def self.walkthru_cmd_opts
+      def walkthru_cmd_opts
         @walkthru_cmd_opts ||= OpenStruct.new
       end
 
-      # the 'current' values for the cli opts of the object being manipulated by xadm
-      # (either a title or a version)
+      # If the command we are running manipulates a title or version (the target), then
+      # before we process the options given on the commandline or show the walkthru menu,
+      # we need to know the 'current' values.
       #
-      # when xadm takes all options from the commandline,
-      # those options are merged with these to get the set that must be validated for
-      # internal consistency.
+      # The current values are:
       #
-      # When getting all options via walkthru, these are used as the starting point
-      # and as values are changed, they are validated individually, and for internal consistency
-      # each time the menu is re-drawn.
+      # For titles:
+      # - the default values for new titles, if it doesn't exist and we are adding it.
+      # - the current values for the title, if it exists and we are editing it
       #
-      # When adding a new one, there is no current one, so the current values are
-      # either nil, or any default defined in the options for the command, or if we are
-      # making a new version, 'current' values are inherited from the prev. version.
+      # For versions:
+      # - The default values for new versions, if we are adding the first one in a title
+      # - The values of the most recent version, if we are adding a subsequent one for the title
+      # - The values of this version, if we are editing an existing one
       #
-      # When editing an existing object, the current values come from that existing one.
-      # via the server.
-      #
-      # These are then used for the walkthru menus, or if not walkthru, the values
-      # given on the commandline are merged with these to create the set of values
-      # to be validated together before being applied.
+      # For xadm configuration:
+      # - The values from the config file and/or credentials from the keychain
+      #   - keychain values are not displayed in walkthru, but are shown to be
+      #     already set, or needed.
       #
       # @return [OpenStruct]
-      def self.current_opt_values
+      #####################
+      def current_opt_values
         return @current_opt_values if @current_opt_values
 
         @current_opt_values = OpenStruct.new
 
-        # adding a new object
-        if Xolo::Admin::CommandLine.add_command?
+        # config?
+        if cli_cmd.command == CONFIG_CMD
+          KEYS.keys.each { |key| @current_opt_values[key] = config.send(key) }
 
-          # set any that are defined as default
-          opts_defs = Xolo::Admin::Options::COMMANDS[Xolo::Admin::Options.cli_cmd.command][:opts]
-          opts_defs.each { |key, deets| @current_opt_values[key] = deets[:default] if deets[:default] }
+        # titles
+        elsif title_command?
+          # adding a new one? just use defaults
+          if add_command?
+            opts_defs = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts]
+            opts_defs.each { |key, deets| @current_opt_values[key] = deets[:default] if deets[:default] }
 
-          # new titles never inherit, they just start with defaults, so  we are done
-          return @current_opt_values unless Xolo::Admin::CommandLine.version_command?
+          # editing? just use the current values
+          elsif edit_command?
+            # do stuff here to fetch current values from the server.
+          end
 
-          # if we are here, its a version, so we'll grab the previous one and use
-          # it to inherit its values.
-          # This is where we'll fetch it from the xolo server as a JSON hash, some day
-          prev_version_data = nil
-          prev_version_data.each { |key, val| @current_opt_values[key] = val } if prev_version_data
+        # versions
+        elsif version_command?
+          # adding a new one? get the values from the most recent, if there is one
+          if add_command?
 
-          return @current_opt_values
+          # do stuff here to fetch most recent values from the server.
+
+          # editing? just use the current values
+          elsif edit_command?
+            # do stuff here to fetch current values from the server.
+          end
         end
-
-        # editing an existing object
-
-        # TODO: When the server is functional, this is where we
-        # reach out to grab the existing object, and we'll get back a JSON hash of its
-        # data.
-        # Until there, here's a hard-coded hash for a title
-        existing_obj_data = {
-          title: 'foobar',
-          display_name: 'Foo Bar',
-          description: "Installs Foo Bar in a way that just wastes everyone's time",
-          publisher: 'Acme Anvils Inc.',
-          app_name: 'Foo Bar.app',
-          app_bundle_id: 'com.acme-anvils.foobar',
-          version_script: nil,
-          target_groups: %w[target-group-one target-group-two],
-          excluded_groups: %w[exclude-group-one exclude-group-two],
-          expiration: 45,
-          expiration_paths: ['/tmp/foobartest-1', '/tmp/foobartest-2'],
-          self_service: true,
-          self_service_category: 'All The Foos',
-          self_service_icon: nil,
-          created_by: 'chrisl',
-          creation_date: (Time.now - 2_535_876),
-          modified_by: 'chrisltest',
-          modification_date: Time.now
-        }
-
-        existing_obj_data.each { |key, val| @current_opt_values[key] = val }
 
         @current_opt_values
       end
 
       # The options for the running command that are marked as :required
-      def self.required_values
-        @required_values ||= COMMANDS[cli_cmd.command][:opts].select { |_k, v| v[:required] }
+      ###########################
+      def required_values
+        @required_values ||= Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts].select { |_k, v| v[:required] }
       end
 
     end # module Options

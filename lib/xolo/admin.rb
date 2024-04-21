@@ -52,19 +52,24 @@ module Xolo
 
   module Admin
 
-    def self.executable=(path)
-      @executable = Pathname.new path
+    # Module Methods
+    ##########################
+    ##########################
+
+    # when this module is included
+    def self.included(includer)
+      Xolo.verbose_include includer, self
     end
 
-    def self.executable
-      @executable
-    end
+    # Instance Methods
+    ##########################
+    ##########################
 
-    def self.usage
+    def usage
       @usage ||= "#{executable.basename} [global-options] command [target] [command-options]"
     end
 
-    def self.config
+    def config
       Xolo::Admin::Configuration.instance
     end
 

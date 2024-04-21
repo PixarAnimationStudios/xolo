@@ -30,12 +30,34 @@ module Xolo
   module Admin
 
     # Methods to convert CLI/Walkthru values from strings to
-    # something else
+    # something else, when there isn't an existing method
+    # like to_i
+    #
+    #
+    # TODO: Validation methods also convert - are we being WET here?
+    #
     module Converters
+
+      # Constants
+      ##########################
+      ##########################
 
       TRUE_STRINGS = %w[true, yes, y].freeze
 
-      def self.boolean(str)
+      # Module Methods
+      ##########################
+      ##########################
+
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
+
+      # Instance Methods
+      ##########################
+      ##########################
+
+      def to_boolean(str)
         TRUE_STRINGS.include?(str.downcase) ? true : false
       end
 

@@ -32,15 +32,20 @@ module Xolo
     # connection to the xolo server from xadm
     module Connection
 
-      ### Constants
+      # Constants
       ##############################
       ##############################
 
-      ### Module methods
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
+
+      # Module methods
       ##############################
       ##############################
 
-      ### Instance Methods
+      # Instance Methods
       ##############################
       ##############################
 
