@@ -219,11 +219,11 @@ module Xolo
         # but conversion returns the converted value.
         # but our validation methods do the conversion.
         #
-        # so we'll just return the converted_value we got
+        # so we'll just return the last_converted_value we got
         # when we validate, or nil if we don't validate
         #
         validate = valdation_lambda(key, deets)
-        convert = validate ? ->(_ans) { send :converted_value } : ->(ans) { ans }
+        convert = validate ? ->(_ans) { last_converted_value } : ->(ans) { ans }
 
         answer = highline_cli.ask(question, convert) do |q|
           q.default = default
@@ -297,11 +297,11 @@ module Xolo
       # Highlight requires validation lambdas to return a boolean, and uses
       # a separate lambda for type conversion.
       # Since our validation methods do both, this lambda will put the converted
-      # result into the 'converted_value' accessor, or capture the error,
+      # result into the 'last_converted_value' accessor, or capture the error,
       # and then return a boolean.
       #
       # Later the lambda we give to highline for conversion will just return
-      # the last converted value, as stored in the converted_value accessor.
+      # the last converted value, as stored in the last_converted_value accessor.
       #
       # @return [Lambda, nil] The lambda that highline will use to validate
       #    (and convert) a value, nil if we accept whatever was given.
@@ -311,15 +311,15 @@ module Xolo
         val_meth = valdation_method(key, deets)
         return unless val_meth
 
-        converted_value = nil
+        last_converted_value = nil
 
         # lambda to validate the value given.
         # must return boolean for Highline to deal with it.
         lambda do |ans|
           # to start, the converted value is just the given value
-          # use send here, otherwise the lambda sees converted_value
+          # use send here, otherwise the lambda sees last_converted_value
           # as a local variable
-          send :converted_value=, ans
+          send :last_converted_value=, ans
 
           # if user just hit return, nothing to validate,
           # the current/default value will remain.
@@ -327,7 +327,7 @@ module Xolo
 
           # If this value isn't required, accept 'none'
           if !deets[:required] && (ans == Xolo::NONE)
-            send :converted_value=, Xolo::NONE
+            send :last_converted_value=, Xolo::NONE
             return true
           end
 
@@ -340,7 +340,7 @@ module Xolo
           # save the validated/converted value for use in the
           # convert method. so we don't have to call the validate method
           # twice
-          send :converted_value=, (send val_meth, ans_to_validate)
+          send :last_converted_value=, (send val_meth, ans_to_validate)
           true
         rescue Xolo::InvalidDataError
           false
@@ -351,15 +351,7 @@ module Xolo
       # method call - we do this so the same value is available in the
       #  convert and validate lambdas
       ##############################
-      attr_accessor :converted_value
-
-      # def converted_value=(val)
-      #   @converted_value = val
-      # end
-
-      # def converted_value
-      #   @converted_value
-      # end
+      attr_accessor :last_converted_value
 
       # The method used to validate and convert a value
       ##############################
