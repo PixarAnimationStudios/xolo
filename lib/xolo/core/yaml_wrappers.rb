@@ -37,7 +37,7 @@ module Xolo
     # Also - YAML.safe_dump doesn't exist before Psych v 4.0.1, so
     # our save_yaml method will check the data for safety before
     # calling YAML.dump
-    module YAML
+    module YAMLWrappers
 
       def self.extended(extender)
         Xolo.verbose_extend extender, self
@@ -132,7 +132,7 @@ module Xolo
           return
         end
 
-        examine_object_for_dump data
+        examine_object_for_safe_dump data
 
         dest.pix_save YAML.dump(data)
       end

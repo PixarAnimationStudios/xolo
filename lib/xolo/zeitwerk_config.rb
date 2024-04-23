@@ -90,8 +90,8 @@ module XoloZeitwerkConfig
     # defines 'OAPIObject'
     ###############################################
 
-    # loader.inflector.inflect 'json_object' => 'JSONObject'
-    @loader.inflector.inflect 'yaml' => 'YAML'
+    @loader.inflector.inflect 'json_wrappers' => 'JSONWrappers'
+    @loader.inflector.inflect 'yaml_wrappers' => 'YAMLWrappers'
 
     ##### Ingored Paths
     #

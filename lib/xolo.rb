@@ -66,7 +66,7 @@ module Xolo
   extend Xolo::Core::Loading
   include Xolo::Core::Constants
   include Xolo::Core::Exceptions
-  extend Xolo::Core::YAML
+  extend Xolo::Core::YAMLWrappers
 
   VERSION = Xolo::Core::Version::VERSION
 

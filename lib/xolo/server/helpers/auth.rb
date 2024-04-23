@@ -33,10 +33,31 @@ module Xolo
 
       module Auth
 
+        # Constants
+        #####################
+        #####################
+
+        NO_AUTH_ROUTES = [
+          '/ping'
+        ].freeze
+
+        NO_AUTH_PREFIXES = [
+          '/ping/'
+        ].freeze
+
+        # Module methods
+        #####################
+        #####################
+
         # when this module is included
+        #####################
         def self.included(includer)
           Xolo.verbose_include includer, self
         end
+
+        # Instance methods
+        #####################
+        #####################
 
         # is the given username a member of the admin_jamf_group?
         # If not, they are not allowed to talk to the xolo server.
@@ -44,7 +65,7 @@ module Xolo
         # @param admin_name [String] The jamf acct name of the person seeking access
         #
         # @return [Boolean] Is the admin a member of the admin_jamf_group?
-        #
+        #####################
         def member_of_admin_jamf_group?(admin_name)
           groupname = Xolo::Server.config.admin_jamf_group
           jgroup = Jamf.cnx.c_get("accounts/groupname/#{groupname}")[:group]
@@ -63,13 +84,12 @@ module Xolo
         # @param pw [String] The password for the jamf acct
         #
         # @return [Boolean] Did the password work for the user?
-        #
+        #####################
         def authenticated_via_jamf?(admin, pw)
           login_cnx = Jamf::Connection.new(
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,
             verify_cert: Xolo::Server.config.jamf_verify_cert,
-            ssl_version: Xolo::Server.config.jamf_ssl_version,
             open_timeout: Xolo::Server.config.jamf_open_timeout,
             timeout: Xolo::Server.config.jamf_timeout,
             user: admin,

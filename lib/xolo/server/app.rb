@@ -45,6 +45,9 @@ module Xolo
 
       helpers Sinatra::CustomLogger
       helpers Xolo::Server::Helpers::Auth
+      helpers Xolo::Core::JSONWrappers
+      helpers Xolo::Core::YAMLWrappers
+
       # helpers Xolo::Server::Helpers::JamfPro
       # helpers Xolo::Server::Helpers::TitleEditor
 
@@ -53,15 +56,19 @@ module Xolo
         set :bind, '0.0.0.0'
         set :port, 443
 
-        set :dump_errors, true
+        # set :dump_errors, true
         # set :server_settings, timeout: 300
 
         logger = Xolo::Server.logger
         logger.level = development? ? Logger::DEBUG : Logger::INFO
         set :logger, logger
 
+        # Sessions must be set up before the
+        # Rack::Session stuff
+        enable :sessions
         set :session_secret, SecureRandom.hex(64)
         set :protection, session: true
+
         use Rack::Session::Cookie,
             key: '_rack_session',
             path: '/',

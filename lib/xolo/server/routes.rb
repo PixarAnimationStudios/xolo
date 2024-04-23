@@ -44,6 +44,13 @@ module Xolo
       # pre-process
       ##############
       before do
+        logger.info "Processing #{request.request_method} #{request.path} from #{request.ip}"
+
+        # these routes don't need an auth'd session
+        break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
+        break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
+
+        # logger.info session.inspect
       end
 
       # post-process
@@ -76,8 +83,6 @@ module Xolo
           debug: Xolo::Server.debug?,
           data_dir: Xolo::Server.config.data_dir,
           log_file: Xolo::Server.config.log_file,
-          data_dir: Xolo::Server.config.data_dir,
-
           config: conf
         }
         JSON.pretty_generate state

@@ -162,16 +162,14 @@ module Xolo
         # process
         return if global_opts.walkthru
 
-        cmd_opts = parse_cmd_opts
-
         # save the opts hash from optimist into our OpenStruct
-        cmd_opts.each { |k, v| cli_cmd_opts[k] = v }
+        parse_cmd_opts.each { |k, v| cli_cmd_opts[k] = v }
 
         # Validate the options given on the commandline
         validate_cli_cmd_opts
 
         # add in current_opt_values for anything not given on the cli
-        current_opt_values.each do |k, v|
+        current_opt_values.to_h.each do |k, v|
           next if cli_cmd_opts["#{k}_given"]
 
           cli_cmd_opts[k] = v if v

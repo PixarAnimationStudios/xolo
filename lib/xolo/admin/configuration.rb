@@ -45,8 +45,8 @@ module Xolo
       # Constants
       ##############################
       ##############################
-
-      CONF_FILENAME = 'com.pixar.xolo.admin.prefs.yaml'
+      CONF_FILE_DIR = '~/Library/Preferences/'
+      CONF_FILENAME = 'com.pixar.xolo.admin.config.yaml'
 
       CREDENTIALS_NEEDED = '<credentials needed>'
       CREDENTIALS_IN_KEYCHAIN = '<stored in keychain>'
@@ -64,31 +64,45 @@ module Xolo
         hostname: {
           required: true,
           label: 'Hostname',
-          cli: :h,
+          cli: :H,
           type: :string,
-          validate: false,
+          validate: true,
           invalid_msg: "Invalid hostname, can't connect, or not a Xolo server.",
           desc: <<~ENDDESC
             The hostname of the Xolo Server to interact with,
             e.g. 'xolo.myschool.edu'
+            Enter 'x' to exit.
           ENDDESC
         },
 
-        # @!attribute credentials
-        #   @return [String] Prompt for the username and password?
-        #      They are stored in the user's keychain.
-        #      The prefs file will only contain '<credentials needed>'
-        #      or '<stored in keychain>'
-        credentials: {
+        # @!attribute user
+        #   @return [String]
+        user: {
           required: true,
-          label: 'User',
-          cli: :c,
-          type: :boolean,
+          label: 'Username',
+          cli: :u,
+          type: :string,
           validate: false,
-          invalid_msg: 'Invalid credentials.',
           desc: <<~ENDDESC
-            You will be prompted for a username and password to connect to
-            the Xolo server.
+            The user name for connecting to the Xolo server. The same that
+            you would use to connect to Jamf Pro.
+          ENDDESC
+        },
+
+        # @!attribute user
+        #   @return [String]
+        pw: {
+          required: true,
+          label: 'Password',
+          cli: :p,
+          type: :string,
+          validate: true,
+          walkthru_na: :pw_na,
+          secure_interactive_input: true,
+          invalid_msg: 'Incorrect username or password, or user not allowed.',
+          desc: <<~ENDDESC
+            The password for connecting to the Xolo server. The same that
+            you would use to connect to Jamf Pro. Enter 'x' to exit.
           ENDDESC
         }
 
@@ -115,7 +129,7 @@ module Xolo
       # @return [Pathname] The file that stores configuration values
       #######################
       def conf_file
-        @conf_file ||= Pathname.new("~/Library/Preferences/#{CONF_FILENAME}").expand_path
+        @conf_file ||= Pathname.new("#{CONF_FILE_DIR}#{CONF_FILENAME}").expand_path
       end
 
     end # class Configuration

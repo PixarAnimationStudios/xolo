@@ -36,18 +36,35 @@ module Xolo
       ##############################
       ##############################
 
-      # when this module is included
-      def self.included(includer)
-        Xolo.verbose_include includer, self
-      end
+      TIMEOUT = 300
+      OPEN_TIMEOUT = 10
+
+      PING_ROUTE = '/ping'
+      PING_RESPONSE = 'pong'
+
+      LOGIN_ROUTE = '/auth/login'
 
       # Module methods
       ##############################
       ##############################
 
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
+
       # Instance Methods
       ##############################
       ##############################
+
+      # The server base URL
+      #
+      def server_url(host: nil)
+        @server_url = nil if host
+        return @server_url if @server_url
+
+        @server_url = URI.parse "https://#{host || config.hostname}"
+      end
 
       # A possibly-authenticated connection for GET requests, or POST requests
       # without any file uploads
@@ -66,14 +83,13 @@ module Xolo
       #
       # @return [Faraday::Connection]
       ##################################
-      def server_cnx(user: nil, pw: nil, test: false)
-        url = test ? TEST_SERVER_URL : SERVER_URL
+      def server_cnx(host: nil)
+        @server_cnx = nil if host
+        return @server_cnx if @server_cnx
 
-        Faraday.new(url) do |cnx|
+        @server_cnx = Faraday.new(server_url(host: host)) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
-          cnx.request :authorization, :basic, user, pw
-
           cnx.request :json
           cnx.response :json, parser_options: { symbolize_names: true }
           cnx.adapter :net_http
@@ -94,13 +110,13 @@ module Xolo
       #
       # @return [Faraday::Connection]
       ##################################
-      def server_upload_cnx(user: nil, pw: nil, test: false)
-        url = test ? TEST_SERVER_URL : SERVER_URL
+      def upload_cnx(host: nil)
+        @upload_cnx = nil if host
+        return @upload_cnx if @upload_cnx
 
-        Faraday.new(url) do |cnx|
+        @upload_cnx = Faraday.new(server_url(host: host)) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
-          cnx.request :authorization, :basic, user, pw
           cnx.request :multipart
           cnx.request :url_encoded
           cnx.response :json, parser_options: { symbolize_names: true }

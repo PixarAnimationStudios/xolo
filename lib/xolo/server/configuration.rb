@@ -77,7 +77,7 @@ module Xolo
     #
     # To view the current settings, use {#print}.
     #
-    class Configuration
+    class Configuration < Xolo::Core::BaseClasses::Configuration
 
       include Singleton
 
@@ -177,7 +177,7 @@ module Xolo
           desc: <<~ENDDESC
             The server log is rotated daily. How many days of log files should be kept?
             All logs are kept in the 'logs' directory inside the server's data directory.
-            Default is #{DFT_LOG_DAYS_TO_KEEP}
+            Default is #{Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP}
           ENDDESC
         },
 

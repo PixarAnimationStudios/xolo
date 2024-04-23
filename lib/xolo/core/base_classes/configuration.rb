@@ -77,9 +77,11 @@ module Xolo
       #
       class Configuration
 
-        def self.inherited(child_class)
-          Xolo.verbose_inherit child_class, self
-        end
+        # Mixins
+        #####################################
+        #####################################
+
+        include Xolo::Core::YAMLWrappers
 
         # Constants
         #####################################
@@ -88,6 +90,14 @@ module Xolo
         PIPE = '|'
 
         PRIVATE = '<private>'
+
+        # Class Methods
+        #####################################
+        #####################################
+
+        def self.inherited(child_class)
+          Xolo.verbose_inherit child_class, self
+        end
 
         # Attributes
         #####################################
@@ -135,6 +145,12 @@ module Xolo
           data
         end
 
+        ###############
+        def save_to_file
+          conf_file.parent.mkpath unless conf_file.parent.directory?
+          save_yaml to_h, conf_file
+        end
+
         # Private Instance Methods
         #####################################
         #####################################
@@ -163,7 +179,7 @@ module Xolo
             return
           end
 
-          @raw_data = YAML.load_file conf_file
+          @raw_data = Xolo.load_yaml conf_file
           @raw_data.each do |k, v|
             v = send(keys[k][:load_method], v) if keys[k][:load_method]
             send "#{k}=", v

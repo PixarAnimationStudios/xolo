@@ -206,7 +206,8 @@ module Xolo
           display: "#{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
           walkthru_header: 'Editing xadm configuration',
-          arg_banner: :none
+          arg_banner: :none,
+          process_method: :update_config
         },
 
         HELP_CMD => {
@@ -371,7 +372,7 @@ module Xolo
 
         # config?
         if cli_cmd.command == CONFIG_CMD
-          KEYS.keys.each { |key| @current_opt_values[key] = config.send(key) }
+          Xolo::Admin::Configuration::KEYS.each_key { |key| @current_opt_values[key] = config.send(key) }
 
         # titles
         elsif title_command?

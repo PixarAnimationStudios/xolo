@@ -44,6 +44,7 @@ require 'xolo'
 require 'logger'
 require 'openssl'
 require 'securerandom'
+require 'yaml'
 
 # Gems
 ######

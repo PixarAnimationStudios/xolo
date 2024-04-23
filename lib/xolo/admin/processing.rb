@@ -1,11 +1,3 @@
-#!/usr/local/pixar/ruby/bin/ruby
-
-# TEMP
-ENV['GEM_PATH'] = "/usr/local/pixar/ruby/aliases/default/lib/ruby/gems:#{ENV['GEM_PATH']}"
-require 'pixenv'
-
-# !/usr/bin/env ruby
-
 # Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -28,44 +20,49 @@ require 'pixenv'
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
 # frozen_string_literal: true
 
-require 'xolo-server'
+# main module
+module Xolo
 
-# The Server Wrapper App
-#####################
-class XoloServer
+  module Admin
 
-  def initialize
-    Xolo::Server.executable = __FILE__
+    # Methods that process the xadm commands and their options
+    #
+    module Processing
 
-    # CLI
-    Xolo::Server.parse_cli
-    Xolo::Server.debug = Xolo::Server.cli_opts[:debug]
-    Xolo::Server.app_env = Xolo::Server.cli_opts[:production] ? Xolo::Server::APP_ENV_PROD : Xolo::Server::APP_ENV_DEV
-  end
+      # Constants
+      ##########################
+      ##########################
 
-  def run
-    Process.setproctitle Xolo::Server.executable.basename.to_s
+      # Module Methods
+      ##########################
+      ##########################
 
-    # TESTING
-    puts '##############################'
-    puts Gem.ruby
-    Xolo::Server.config.to_h.each { |k, v| puts "#{k} =>\n  #{v}" }
-    puts '##############################'
+      # when this module is included
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
 
-    Xolo::Server::App.run!
-  end # run
+      # Instance Methods
+      ##########################
+      ##########################
 
-end # class XoloServer
+      # update the adm config file using the values from 'xadm config'
+      #
+      def update_config
+        opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
+        Xolo::Admin::Configuration::KEYS.each_key do |key|
+          config.send "#{key}=", opts[key]
+        end
 
-# MAIN
-#####################
-begin
-  app = XoloServer.new
-  app.run
-rescue => e
-  warn "ERROR #{e.class}: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" }
-end
+        config.save_to_file
+      end
+
+    end # module Converters
+
+  end # module Admin
+
+end # module Xolo

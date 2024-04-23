@@ -107,16 +107,16 @@ module Xolo
               end
             end
 
-            # check for any required values missing or if
-            # there's internal inconsistency between given values
-            still_needed = missing_values
-            consistency_error = internal_consistency_error
-
             # always show 'Cancel' in the same position
             menu.choice(nil, nil, 'Cancel') do
               done_with_menu = true
               @cancelled = true
             end
+
+            # check for any required values missing or if
+            # there's internal inconsistency between given values
+            still_needed = missing_values
+            consistency_error = internal_consistency_error
 
             # only show 'done' when all required values are there and
             # consistency is OK
@@ -166,6 +166,15 @@ module Xolo
         "N/A if Target Group is '#{all}'" if tgt_all
       end
 
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def pw_na
+        user_empty = walkthru_cmd_opts[:user].to_s.empty?
+        host_empty = walkthru_cmd_opts[:hostname].to_s.empty?
+        'N/A until hostname and username are set' if host_empty || user_empty
+      end
+
       # @return [String, nil] any current internal consistency error. will be nil when none remain
       ##############################
       def internal_consistency_error
@@ -181,7 +190,7 @@ module Xolo
         header_text = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:walkthru_header].dup
         return unless header_text
 
-        header_text.sub! Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER, cli_cmd.title
+        header_text.sub! Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER, cli_cmd.title if cli_cmd.title
         header_text.sub! Xolo::Admin::Options::TARGET_VERSION_PLACEHOLDER, cli_cmd.version if cli_cmd.version
 
         header_sep_line = Xolo::DASH * header_text.length
@@ -229,11 +238,13 @@ module Xolo
           q.default = default
           q.readline = true # allows tab-completion of filenames, and using arrow keys
 
+          q.echo = '*' if deets[:secure_interactive_input]
+
           if validate
             q.validate = validate
 
             not_valid_response = +"\nERROR: #{deets[:invalid_msg]}"
-            not_valid_response << " Cannot be unset with 'none'." if deets[:required]
+            # not_valid_response << " Cannot be unset with 'none'." if deets[:required]
             not_valid_response = not_valid_response.pix_word_wrap
             q.responses[:not_valid] = not_valid_response
 
@@ -245,9 +256,6 @@ module Xolo
           # display a description of the value being asked for
           highline_cli.say q_desc
         end
-
-        puts "Answer was: #{answer}"
-
         return if answer.to_s.empty?
 
         answer = nil if answer == Xolo::NONE
@@ -311,8 +319,6 @@ module Xolo
         val_meth = valdation_method(key, deets)
         return unless val_meth
 
-        last_converted_value = nil
-
         # lambda to validate the value given.
         # must return boolean for Highline to deal with it.
         lambda do |ans|
@@ -335,6 +341,7 @@ module Xolo
           ans_to_validate = ans == Xolo::NONE ? nil : ans
 
           # split comma-sep. multi values
+          # TODO: investigate highline multi/array input
           ans_to_validate = ans_to_validate.split(Xolo::COMMA_SEP_RE) if deets[:multi]
 
           # save the validated/converted value for use in the

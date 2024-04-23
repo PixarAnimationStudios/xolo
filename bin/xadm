@@ -33,14 +33,20 @@ require 'xolo/admin'
 #####################
 class XoloAdmin
 
+  # Mixins
+  #####################################
+  #####################################
+
   include Xolo::Admin
   include Xolo::Admin::CommandLine
   include Xolo::Admin::Connection
-  include Xolo::Admin::Converters
+  include Xolo::Admin::Processing
   include Xolo::Admin::Credentials
   include Xolo::Admin::Interactive
   include Xolo::Admin::Options
   include Xolo::Admin::Validate
+  include Xolo::Core::JSONWrappers
+  include Xolo::Core::YAMLWrappers
 
   # Constructor
   ###################
@@ -88,6 +94,13 @@ class XoloAdmin
     opts.to_h.each do |k, v|
       puts "..#{k} => #{v}"
     end
+
+    process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
+    puts
+    puts "Processing command opts using method: #{process_method}"
+    send process_method
+
+    puts 'DONE'
   end # run
 
   ################

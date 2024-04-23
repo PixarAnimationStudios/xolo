@@ -110,45 +110,6 @@ module Xolo
         { user: user, pw: pw }
       end
 
-      # prompt for an account and passwd to store in the keychain
-      #
-      # Requires a block taking takes 2 params, user and pw, and returning
-      # true if they work and false if not.
-      #
-      # @return [Array<String>] The valid [account, password]
-      #
-      ##############################################
-      def prompt_to_store_credentials
-        validate_not_root
-        username_prompt = "#{username_prompt.chomp} "
-
-        puts message
-        account = nil
-        pw = nil
-        until account && pw
-          print username_prompt
-          account = $stdin.gets.chomp
-          print 'password: '
-          system 'stty -echo'
-          pw = $stdin.gets.chomp
-          system 'stty echo'
-
-          success = yield(account, pw)
-
-          if success
-            puts
-            store_credentials(account: account, pw: pw, service: service, label: label, **attributes)
-            return [account, pw]
-          end
-
-          puts "\nIncorrect username or password"
-          account = nil
-          pw = nil
-        end # until
-      ensure
-        system 'stty echo'
-      end # prompt_to_store_creds
-
       # Store an item in the default keychain
       ##############################################
       def store_credentials(user:, pw:)

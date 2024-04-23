@@ -27,42 +27,23 @@
 # main module
 module Xolo
 
-  module Admin
+  module Core
 
-    # Methods to convert CLI/Walkthru values from strings to
-    # something else, when there isn't an existing method
-    # like to_i
-    #
-    #
-    # TODO: Validation methods also convert - are we being WET here?
-    #
-    module Converters
-
-      # Constants
-      ##########################
-      ##########################
-
-      TRUE_STRINGS = %w[true, yes, y].freeze
-
-      # Module Methods
-      ##########################
-      ##########################
+    # constants and methods for consistent JSON processing on the server
+    module JSONWrappers
 
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self
       end
 
-      # Instance Methods
-      ##########################
-      ##########################
-
-      def to_boolean(str)
-        TRUE_STRINGS.include?(str.downcase) ? true : false
+      # always use :symbolize_names
+      def parse_json(str)
+        JSON.parse str, symbolize_names: true
       end
 
-    end # module Converters
+    end # JSON
 
-  end # module Admin
+  end # Core
 
 end # module Xolo

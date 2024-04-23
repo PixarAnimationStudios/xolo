@@ -494,6 +494,55 @@ module Xolo
         raise_invalid_data_error bad_grps.join(', '), VERSION_ATTRS[:pilot_groups][:invalid_msg]
       end
 
+      # Try to fetch a known route from the given xolo server
+      #
+      # @param val [String] The hostname to validate.
+      #
+      # @return [void]
+      #######
+      def validate_hostname(val)
+        if val.downcase == 'x'
+          val = nil
+          return
+        end
+
+        response = server_cnx(host: val).get Xolo::Admin::Connection::PING_ROUTE
+        val if response.body == Xolo::Admin::Connection::PING_RESPONSE
+      rescue Faraday::ConnectionFailed => e
+        raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:hostname][:invalid_msg]
+      end
+
+      # Password (and username) will be validated via the server
+      #
+      # @param val [String] The passwd to be validated with the stored or given username
+      #
+      # @return [void]
+      #######
+      def validate_pw(val)
+        if val.downcase == 'x'
+          val = nil
+          return
+        end
+
+        user = walkthru_cmd_opts[:user]
+        user ||= current_opt_values[:user]
+        server = walkthru_cmd_opts[:hostname]
+        server ||= current_opt_values[:hostname]
+
+        payload = { username: user, password: val }.to_json
+
+        resp = server_cnx(host: server).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+        puts resp.body
+
+        raise_invalid_data_error 'User/Password', resp.body[:error] unless resp.success?
+
+        # store the passwd in the keychain
+        store_credentials user: user, pw: val
+
+        # The passwd is never stored in the config, this is:
+        Xolo::Admin::Configuration::CREDENTIALS_IN_KEYCHAIN
+      end
+
       # Internal Consistency Checks!
       #
       ##################################################
@@ -615,7 +664,7 @@ module Xolo
       #######
       def validate_title_consistency_expire_paths(opts)
         return unless opts[:expiration].to_i.positive?
-        return unless opts[:expiration_paths].empty?
+        return unless opts[:expiration_paths].to_s.empty?
 
         msg =
           if walkthru?

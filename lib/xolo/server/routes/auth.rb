@@ -48,29 +48,24 @@ module Xolo
           Xolo.verbose_include includer, self
         end
 
-        # Ping Pong
-        ###################
-        get '/auth/ping' do
-          'auth-pong'
-        end
-
         # Auth a Xolo Admin via Jamf API login
         # Must be a member of the Jamf Admin group
         # named in Xolo::Server.config.admin_jamf_group
         # before
-        # TODO: set session cookies etc for multiple interactions
-        # for a single xadm process.
         ###################
         post '/auth/login' do
           request.body.rewind
-          payload = JSON.parse request.body.read, symbolize_names: true
+          payload = parse_json request.body.read
           user = payload[:username]
           pw = payload[:password]
 
           err = nil
-          err = "User '#{user}' is now allowed to use the Xolo server" unless member_of_admin_jamf_group?(user)
-          err = 'Incorrect username or password' unless authenticated_via_jamf?(user, pw)
+          err = "User '#{user}' is not allowed to use the Xolo server" unless member_of_admin_jamf_group?(user)
+          err ||= 'Incorrect username or password' unless authenticated_via_jamf?(user, pw)
           halt 401, { error: err }.to_json if err
+
+          session[:user] = user
+          session[:authenticated] = true
 
           { admin: user, authenticated: true }.to_json
         end
