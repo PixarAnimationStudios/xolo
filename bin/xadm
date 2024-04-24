@@ -38,6 +38,10 @@ class XoloAdmin
   #####################################
 
   include Xolo::Admin
+
+  # this is needed before the other mixins
+  Xolo::Admin.executable = __FILE__
+
   include Xolo::Admin::CommandLine
   include Xolo::Admin::Connection
   include Xolo::Admin::Processing
@@ -45,6 +49,7 @@ class XoloAdmin
   include Xolo::Admin::Interactive
   include Xolo::Admin::Options
   include Xolo::Admin::Validate
+  include Xolo::Core::Constants
   include Xolo::Core::JSONWrappers
   include Xolo::Core::YAMLWrappers
 
@@ -98,14 +103,27 @@ class XoloAdmin
     process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
     puts
     puts "Processing command opts using method: #{process_method}"
-    send process_method
+    send process_method if process_method
 
+    puts 'Running login...'
+    login
+
+    puts 'CookieJar:'
+    puts "  Session: #{Xolo::Admin::CookieJar.session_cookie}"
+    puts "  Expires: #{Xolo::Admin::CookieJar.session_expires}"
+
+    puts 'getting /threads'
+    resp = server_cnx.get '/threads'
+    puts "#{resp.body}"
+    puts
     puts 'DONE'
   end # run
 
-  ################
+  # Wrapper for module method
+  # @return [Pathname] The path to this executable file
+  ####################
   def executable
-    @executable ||= Pathname.new(__FILE__)
+    Xolo::Admin.executable
   end
 
 end # class XoloAdmin

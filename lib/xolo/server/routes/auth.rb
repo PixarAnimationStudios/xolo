@@ -59,6 +59,9 @@ module Xolo
           user = payload[:username]
           pw = payload[:password]
 
+          logger.debug "Payload: '#{payload}'"
+
+          logger.debug "Authenticating user '#{user}'"
           err = nil
           err = "User '#{user}' is not allowed to use the Xolo server" unless member_of_admin_jamf_group?(user)
           err ||= 'Incorrect username or password' unless authenticated_via_jamf?(user, pw)

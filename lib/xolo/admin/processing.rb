@@ -54,6 +54,7 @@ module Xolo
       #
       def update_config
         opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
+
         Xolo::Admin::Configuration::KEYS.each_key do |key|
           config.send "#{key}=", opts[key]
         end

@@ -61,10 +61,28 @@ module Xolo
       Xolo.verbose_include includer, self
     end
 
+    # Needed before the mixins
+    #
+    # @return [Pathname] The pathname to the xadm executable
+    #################
+    def self.executable
+      @executable
+    end
+
+    # Needed before the mixins
+    #
+    # @param path [String] The pathname to the xadm executable
+    #################
+    def self.executable=(path)
+      @executable = Pathname.new(path)
+    end
+
     # Instance Methods
     ##########################
     ##########################
 
+    # @return [String] the usage
+    ########################
     def usage
       @usage ||= "#{executable.basename} [global-options] command [target] [command-options]"
     end

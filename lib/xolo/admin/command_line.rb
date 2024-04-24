@@ -48,14 +48,6 @@ module Xolo
       # populating Xolo::Admin::Options.global_opts, and Xolo::Admin::Options.cli_cmd
       ################################################
       def parse_cli
-        # # accept --debug anywhere
-        # if ARGV.delete '--debug'
-        #   Xolo::Admin::Options.global_opts[:debug] = true
-        #   Xolo::Admin::Options.global_opts[:debug_given] = true
-        # end
-
-        # global_opts = parse_global_cli
-
         # save the global opts hash from optimist into our OpenStruct
         parse_global_cli.each { |k, v| global_opts[k] = v }
 
@@ -104,7 +96,7 @@ module Xolo
           banner Xolo::Admin::Options::DFT_CMD_VERSION_ARG_BANNER
 
           banner "\nCommand Options:"
-          banner "  Use '#{executable_file} help command'  or '#{executable_file} command --help' to see command-specific help."
+          banner "  Use '#{executable_file} help command'  or '#{executable_file} command #{Xolo::Admin::Options::HELP_OPT}' to see command-specific help."
 
           banner "\nExamples:"
           banner "  #{executable_file} add-title google-chrome <options...>"
@@ -150,30 +142,30 @@ module Xolo
       # Parse the remaining command line, now that we know the xadm command
       # to be executed.
       # This gets the title & version, if needed, storing them in
-      # Xolo::Admin::Options.cli_cmd.title and Xolo::Admin::Options.cli_cmd.version
-      # then it gets the command options, populating Xolo::Admin::Options.cli_cmd_opts
+      # #cli_cmd.title and #cli_cmd.version
+      # then it gets the command options, populating #cli_cmd_opts
       ######################
       def parse_command_cli
-        parse_cmd_and_args
+        parse_cmd_and_args unless cli_cmd.command
 
         # if we are using --walkthru, all remaining command options are ignored, so just return.
         #
-        # The Xolo::Admin::Options.walkthru_cmd_opts will be populated by the interactive
+        # The #walkthru_cmd_opts will be populated by the interactive
         # process
         return if global_opts.walkthru
 
         # save the opts hash from optimist into our OpenStruct
         parse_cmd_opts.each { |k, v| cli_cmd_opts[k] = v }
 
-        # Validate the options given on the commandline
-        validate_cli_cmd_opts
-
-        # add in current_opt_values for anything not given on the cli
+        # merge in current_opt_values for anything not given on the cli
         current_opt_values.to_h.each do |k, v|
           next if cli_cmd_opts["#{k}_given"]
 
-          cli_cmd_opts[k] = v if v
+          cli_cmd_opts[k] = v unless v.pix_blank?
         end
+
+        # Validate the options given on the commandline
+        validate_cli_cmd_opts
 
         # now cli_cmd_opts contains all the data for
         # processing whatever we're processing, so do the internal consistency check
@@ -197,6 +189,9 @@ module Xolo
         # we have a command, validate it
         validate_cli_command
 
+        # if the command is 'config' we always do walkthru
+        return if reparse_global_cli_for_mandatory_walkthru?
+
         # if the command is 'help'
         # then
         #   'xadm [globalOpts] help' becomes 'xadm --help'
@@ -211,9 +206,9 @@ module Xolo
           # we have a new command, for which we are getting help. Validate it
           validate_cli_command
           # 'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
-          ARGV.unshift '--help'
+          ARGV.unshift Xolo::Admin::Options::HELP_OPT
         end
-        return if ARGV.include?('--help')
+        return if ARGV.include?(Xolo::Admin::Options::HELP_OPT)
 
         # Otherwise, the command is not 'help', so figure out what the next item
         # on the command line is
@@ -238,8 +233,26 @@ module Xolo
         cmdstr = cli_cmd.command.to_s
         return false unless cmdstr.empty? || cmdstr.start_with?(Xolo::DASH)
 
-        ARGV.unshift '--help'
+        ARGV.unshift Xolo::Admin::Options::HELP_OPT
         parse_global_cli
+        true
+      end
+
+      # Are we doing mandatory walkthru? If so, re-parse the global opts
+      def reparse_global_cli_for_mandatory_walkthru?
+        return false if ARGV.include? Xolo::Admin::Options::HELP_OPT
+        return false unless cli_cmd.command == Xolo::Admin::Options::CONFIG_CMD
+
+        # ARGV.unshift '--walkthru'
+        # ARGV.unshift Xolo::Admin::Options::CONFIG_CMD
+        # parse_global_cli
+        ARGV.clear
+        ARGV << '--walkthru'
+        ARGV << '--debug' if global_opts.debug
+        ARGV << '--auto-confirm' if global_opts.auto_confirm
+        ARGV << Xolo::Admin::Options::CONFIG_CMD
+
+        parse_cli
         true
       end
 
@@ -251,6 +264,7 @@ module Xolo
         # set these for use inside the optimist options block
         executable_file = executable.basename
         cmd_desc = Xolo::Admin::Options::COMMANDS.dig cmd, :desc
+        cmd_usage = Xolo::Admin::Options::COMMANDS.dig cmd, :usage
         cmd_display = Xolo::Admin::Options::COMMANDS.dig cmd, :display
         cmd_opts = Xolo::Admin::Options::COMMANDS.dig cmd, :opts
         title_cmd = title_command?
@@ -268,7 +282,8 @@ module Xolo
           banner "  #{cmd}, #{cmd_desc}"
 
           banner "\nUsage:"
-          banner "  #{executable_file} #{cmd_display} [options]"
+          usage = cmd_usage || "#{executable_file} #{cmd_display} [options]"
+          banner "  #{usage}"
 
           unless arg_banner == :none
             banner "\nArguments:"

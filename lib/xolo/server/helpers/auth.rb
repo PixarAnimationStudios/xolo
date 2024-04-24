@@ -38,7 +38,8 @@ module Xolo
         #####################
 
         NO_AUTH_ROUTES = [
-          '/ping'
+          '/ping',
+          '/auth/login'
         ].freeze
 
         NO_AUTH_PREFIXES = [
@@ -70,6 +71,7 @@ module Xolo
           groupname = Xolo::Server.config.admin_jamf_group
           jgroup = Jamf.cnx.c_get("accounts/groupname/#{groupname}")[:group]
 
+          logger.debug "Checking for admin '#{admin_name}' in group '#{groupname}'"
           if jgroup[:ldap_server]
             Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], admin_name, groupname
           else

@@ -520,24 +520,23 @@ module Xolo
       #######
       def validate_pw(val)
         if val.downcase == 'x'
-          val = nil
+          val = Xolo::BLANK
           return
         end
 
-        user = walkthru_cmd_opts[:user]
-        user ||= current_opt_values[:user]
-        server = walkthru_cmd_opts[:hostname]
-        server ||= current_opt_values[:hostname]
+        hostname = walkthru? ? walkthru_cmd_opts[:hostname] : cli_cmd_opts[:hostname]
+        user = walkthru? ? walkthru_cmd_opts[:user] : cli_cmd_opts[:user]
+
+        raise Xolo::MissingDataError, 'hostname must be set before password' if hostname.pix_blank?
+        raise Xolo::MissingDataError, 'user must be set before password' if user.pix_blank?
 
         payload = { username: user, password: val }.to_json
-
-        resp = server_cnx(host: server).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
-        puts resp.body
+        resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
 
         raise_invalid_data_error 'User/Password', resp.body[:error] unless resp.success?
 
         # store the passwd in the keychain
-        store_credentials user: user, pw: val
+        store_pw user, val
 
         # The passwd is never stored in the config, this is:
         Xolo::Admin::Configuration::CREDENTIALS_IN_KEYCHAIN

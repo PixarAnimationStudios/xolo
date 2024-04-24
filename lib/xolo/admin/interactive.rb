@@ -53,14 +53,12 @@ module Xolo
       # Xolo::Admin::Options.walkthru_cmd_opts
       ###############################
       def do_walkthru
-        cmd = cli_cmd.command
-
-        return unless global_opts.walkthru
+        return unless walkthru?
 
         # if the command doesn't take any options, there's nothing to walk through
-        return if Xolo::Admin::Options::COMMANDS[cmd][:opts].empty?
+        return if Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts].empty?
 
-        display_walkthru_menu cmd
+        display_walkthru_menu cli_cmd.command
       end
 
       #

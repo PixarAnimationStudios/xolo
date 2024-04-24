@@ -57,8 +57,27 @@ module Xolo
       ##############################
       ##############################
 
-      # The server base URL
       #
+      ##############
+      def login
+        hostname = config.hostname
+        user = config.user
+        pw = fetch_pw
+
+        raise Xolo::MissingDataError, "No xolo server hostname. Please run 'xadm config'" unless hostname
+        raise Xolo::MissingDataError, "No xolo admin username. Please run 'xadm config'" unless user
+
+        payload = { username: user, password: pw }.to_json
+
+        # provide the hostname to make a persisten Faraday connection object
+        # so in the future we just call server_cnx
+        resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+
+        puts resp.body
+      end
+
+      # @return [URI] The server base URL
+      #################
       def server_url(host: nil)
         @server_url = nil if host
         return @server_url if @server_url
@@ -66,8 +85,7 @@ module Xolo
         @server_url = URI.parse "https://#{host || config.hostname}"
       end
 
-      # A possibly-authenticated connection for GET requests, or POST requests
-      # without any file uploads
+      # A connection for requests without any file uploads
       #
       # For routes that aren't protected, the user and pw are ignored.
       #
@@ -92,14 +110,12 @@ module Xolo
           cnx.options[:open_timeout] = OPEN_TIMEOUT
           cnx.request :json
           cnx.response :json, parser_options: { symbolize_names: true }
+          cnx.use Xolo::Admin::CookieJar
           cnx.adapter :net_http
         end
       end
 
-      # An authenticated connection for POST requests with file uploads
-      #
-      # User and pw can be omitted (left as nil) when this is used
-      # from a pre-approved host
+      # A connection for POST requests with file uploads
       #
       # The request body will be multipart/url-encoded
       # and authentication is required
@@ -120,6 +136,7 @@ module Xolo
           cnx.request :multipart
           cnx.request :url_encoded
           cnx.response :json, parser_options: { symbolize_names: true }
+          cnx.use Xolo::Admin::CookieJar
           cnx.adapter :net_http
         end
       end

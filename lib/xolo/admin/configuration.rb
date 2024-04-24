@@ -64,7 +64,6 @@ module Xolo
         hostname: {
           required: true,
           label: 'Hostname',
-          cli: :H,
           type: :string,
           validate: true,
           invalid_msg: "Invalid hostname, can't connect, or not a Xolo server.",
@@ -80,7 +79,6 @@ module Xolo
         user: {
           required: true,
           label: 'Username',
-          cli: :u,
           type: :string,
           validate: false,
           desc: <<~ENDDESC
@@ -94,7 +92,6 @@ module Xolo
         pw: {
           required: true,
           label: 'Password',
-          cli: :p,
           type: :string,
           validate: true,
           walkthru_na: :pw_na,
@@ -119,7 +116,7 @@ module Xolo
       #
       ####################
       def self.cli_opts
-        @cli_opts ||= KEYS.select { |_k, v| v[:cli] }
+        KEYS
       end
 
       # Public Instance methods

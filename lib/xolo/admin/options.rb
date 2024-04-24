@@ -47,7 +47,8 @@ module Xolo
             This causes xadm to present an interactive, menu-and-
             prompt-driven interface. All command-options given on the
             command line are ignored, and will be gathered
-            interactively
+            interactively.
+            Using the command 'config' will always imply --walkthru.
           ENDDESC
         },
 
@@ -96,6 +97,7 @@ module Xolo
       REPORT_CMD = 'report'
       CONFIG_CMD = 'config'
       HELP_CMD = 'help'
+      HELP_OPT = '--help'
 
       DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
       DFT_CMD_VERSION_ARG_BANNER = "  version:   The version of the title you are working with. e.g. '12.34.5'"
@@ -202,8 +204,9 @@ module Xolo
         },
 
         CONFIG_CMD => {
-          desc: 'Configure xadm.',
+          desc: 'Configure xadm. Implies --walkthru',
           display: "#{CONFIG_CMD}",
+          usage: "#{Xolo::Admin.executable.basename} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
           walkthru_header: 'Editing xadm configuration',
           arg_banner: :none,

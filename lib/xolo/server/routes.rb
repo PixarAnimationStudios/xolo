@@ -50,25 +50,40 @@ module Xolo
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
-        # logger.info session.inspect
+        logger.debug session.inspect
+        halt 401, { error: 'You must log in to the Xolo server' }.to_json unless session[:authenticated]
       end
 
       # post-process
       ##############
       after do
-        content_type :json unless @no_json
+        unless @no_json
+          content_type :json
+          # Nope, this only works if you remember to explicitly use
+          # `body body_content` in every route.
+          # You can't just define the body
+          # by the last evaluated statement of the route.
+          #
+          response.body = JSON.dump(response.body)
+        end
+      end
+
+      # error process
+      ##############
+      error do
+        body { status: response.status, error: env['sinatra.error'].message }
       end
 
       # Ping
       ##########
       get '/ping' do
-        'pong'.to_json
+        'pong'
       end
 
       # Threads
       ##########
       get '/threads' do
-        Xolo::Server.thread_info.to_json
+        body Xolo::Server.thread_info
       end
 
       # State

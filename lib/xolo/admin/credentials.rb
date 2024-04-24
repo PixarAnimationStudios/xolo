@@ -46,13 +46,13 @@ module Xolo
       SEC_STATUS_NOT_FOUND_ERROR = 44
 
       # The 'kind' of item in the keychain
-      XOLO_CREDS_KIND = 'Xolo::Admin::Credentials'
+      XOLO_CREDS_KIND = 'Xolo::Admin::Password'
 
       # the Service for the generic 'Xolo::Admin::Credentials' keychain entry
-      XOLO_CREDS_SVC = 'com.pixar.xolo.credentials'
+      XOLO_CREDS_SVC = 'com.pixar.xolo.password'
 
       # the Label for the generic 'Xolo::Admin::Credentialss' keychain entry
-      XOLO_CREDS_LBL = '"Xolo Admin Login and Password"'
+      XOLO_CREDS_LBL = '"Xolo Admin Password"'
 
       # Module methods
       ##############################
@@ -67,78 +67,57 @@ module Xolo
       ##########################
       ##########################
 
-      # Get an account and password from the login keychain
-      #
-      # Search terms are attributes of a 'generic password' and must be
-      # one or more of:
-      #
-      #    account:, service:, label:, creator:, type:, generic:, or comment:
-      #
-      #    value: can be used as a synonym for generic:
-      #
-      # NOTE: 'kind:' is always set to ITEM_KIND for items created by this module
-      #
-      # The combination of account and service are guaranteed to be unique in the
-      # keychain.
-      #
-      # For items created by this module, service and label also make a unique
-      # item.
-      #
-      # WARNING: if your search matches more than one item, only the first is
-      # returned.
-      #
-      # See also the initialize methods of MacKeychain::GenericPassword and
-      # MacKeychain::Password for info about the search terms
+      # Get the admin's acct/username and password from the login keychain
       #
       # @return [Array <String>] A 2-item array containing [account, pw] for the
       #   item, or an empty array if not found in the keychain
       #
       ##############################################
-      def credentials
+      def fetch_pw
         cmd = ['find-generic-password']
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
         cmd << '-l'
         cmd << XOLO_CREDS_LBL
 
-        run_security(cmd.map { |i| security_escape i }.join(' ')) =~ /"acct"<blob>="(.*)"/
-        user = Regexp.last_match(1)
+        # run_security(cmd.map { |i| security_escape i }.join(' ')) =~ /"acct"<blob>="(.*)"/
+        # user = Regexp.last_match(1)
 
         cmd << '-w'
-        pw = run_security(cmd.map { |i| security_escape i }.join(' '))
+        run_security(cmd.map { |i| security_escape i }.join(' '))
 
-        { user: user, pw: pw }
+        # { user: user, pw: pw }
       end
 
       # Store an item in the default keychain
       ##############################################
-      def store_credentials(user:, pw:)
+      def store_pw(user, pw)
         # delete the item first if its there
-        delete_credentials
+        delete_pw
 
         cmd = ['add-generic-password']
         cmd <<  '-a'
         cmd <<  user
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
-        cmd <<  '-w'
-        cmd <<  pw
-        cmd <<  '-l'
-        cmd <<  XOLO_CREDS_LBL
-        cmd <<  '-D'
-        cmd <<  XOLO_CREDS_KIND
+        cmd << '-w'
+        cmd << pw
+        cmd << '-l'
+        cmd << XOLO_CREDS_LBL
+        cmd << '-D'
+        cmd << XOLO_CREDS_KIND
 
         run_security(cmd.map { |i| security_escape i }.join(' '))
       end
 
       # delete the xolo admin creds from the login keychain
       ##############################################
-      def delete_credentials
+      def delete_pw
         cmd = ['delete-generic-password']
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
-        cmd <<  '-l'
-        cmd <<  XOLO_CREDS_LBL
+        cmd << '-l'
+        cmd << XOLO_CREDS_LBL
 
         run_security(cmd.map { |i| security_escape i }.join(' '))
       rescue RuntimeError => e
@@ -178,10 +157,10 @@ module Xolo
 
         case exit_status.exitstatus
         when SEC_STATUS_AUTH_ERROR
-          raise 'Incorrect user or password'
+          raise Xolo::KeychainError, 'Problem accessing login keychain. Is it locked?'
 
         when SEC_STATUS_NOT_FOUND_ERROR
-          raise 'No matching keychain item was found'
+          raise Xolo::NoSuchItemError, "No xolo admin password. Please run 'xadm config'"
 
         else
           errs.chomp!
@@ -189,7 +168,7 @@ module Xolo
           errnum = Regexp.last_match(1)
           desc = errnum ? security_error_desc(errnum) : errs
           desc ||= errs
-          raise "#{desc.gsub("\n", '; ')}; exit status #{exit_status.exitstatus}"
+          raise Xolo::KeychainError, "#{desc.gsub("\n", '; ')}; exit status #{exit_status.exitstatus}"
         end # case
       end # run_security
 

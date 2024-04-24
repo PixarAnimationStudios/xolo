@@ -50,6 +50,8 @@ module Xolo
 
       class InvalidTokenError < RuntimeError; end
 
+      class KeychainError < RuntimeError; end
+
       # Parsing errors
 
       class DisallowedYAMLDumpClass; end
