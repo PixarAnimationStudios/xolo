@@ -112,8 +112,8 @@ class XoloAdmin
     puts "  Session: #{Xolo::Admin::CookieJar.session_cookie}"
     puts "  Expires: #{Xolo::Admin::CookieJar.session_expires}"
 
-    puts 'getting /threads'
-    resp = server_cnx.get '/threads'
+    puts 'getting /state'
+    resp = server_cnx.get '/state'
     puts "#{resp.body}"
     puts
     puts 'DONE'

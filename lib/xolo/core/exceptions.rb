@@ -38,19 +38,21 @@ module Xolo
 
       class UnsupportedError < RuntimeError; end
 
+      class KeychainError < RuntimeError; end
+
       # Connections & Access
 
       class ConnectionError < RuntimeError; end
 
-      class NotConnectedError < RuntimeError; end
+      class NotConnectedError < ConnectionError; end
 
-      class AuthenticationError < RuntimeError; end
+      class AuthenticationError < ConnectionError; end
 
-      class PermissionError < RuntimeError; end
+      class PermissionError < ConnectionError; end
 
-      class InvalidTokenError < RuntimeError; end
+      class InvalidTokenError < ConnectionError; end
 
-      class KeychainError < RuntimeError; end
+      class ServerError < ConnectionError; end
 
       # Parsing errors
 

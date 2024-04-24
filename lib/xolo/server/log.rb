@@ -64,19 +64,19 @@ module Xolo
 
       # change log level of the server logger, new requests should inherit it
       #############################################
-      def self.set_level(level, user: :unknown)
-        lvl_const = level.to_s.upcase.to_sym
-        if Logger.constants.include? lvl_const
-          lvl = Logger.const_get lvl_const
-          logger.debug "changing log level to #{lvl_const} (#{lvl}) by #{user}"
-          logger.level = lvl
-          logger.info "log level changed to #{lvl_const} by #{user}"
+      # def self.set_level(level, user: :unknown)
+      #   lvl_const = level.to_s.upcase.to_sym
+      #   if Logger.constants.include? lvl_const
+      #     lvl = Logger.const_get lvl_const
+      #     logger.debug "changing log level to #{lvl_const} (#{lvl}) by #{user}"
+      #     logger.level = lvl
+      #     logger.info "log level changed to #{lvl_const} by #{user}"
 
-          { loglevel: lvl_const }
-        else
-          { error: "Unknown level '#{level}', use one of: debug, info, warn, error, fatal, unknown" }
-        end
-      end
+      #     { loglevel: lvl_const }
+      #   else
+      #     { error: "Unknown level '#{level}', use one of: debug, info, warn, error, fatal, unknown" }
+      #   end
+      # end
 
     end # module Log
 

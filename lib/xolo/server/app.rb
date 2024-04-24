@@ -57,9 +57,8 @@ module Xolo
         set :bind, '0.0.0.0'
         set :port, 443
 
-        # set :dump_errors, true
-        # set :server_settings, timeout: 300
-        set :show_exceptions, :after_handler
+        set :dump_errors, true
+        disable :show_exceptions
 
         logger = Xolo::Server.logger
         logger.level = development? ? Logger::DEBUG : Logger::INFO
@@ -74,7 +73,6 @@ module Xolo
       end
 
       configure :development do
-        set :show_exceptions, :after_handler
         require 'pp'
       end
 

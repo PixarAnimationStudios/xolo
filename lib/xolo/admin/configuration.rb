@@ -74,20 +74,20 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute user
+        # @!attribute admin
         #   @return [String]
-        user: {
+        admin: {
           required: true,
           label: 'Username',
           type: :string,
           validate: false,
           desc: <<~ENDDESC
-            The user name for connecting to the Xolo server. The same that
-            you would use to connect to Jamf Pro.
+            The Xolo admin username for connecting to the Xolo server.
+            The same that you would use to connect to Jamf Pro.
           ENDDESC
         },
 
-        # @!attribute user
+        # @!attribute pw
         #   @return [String]
         pw: {
           required: true,

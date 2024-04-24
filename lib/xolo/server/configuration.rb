@@ -29,6 +29,8 @@ module Xolo
 
   module Server
 
+    # TODO: Update this text!
+    #
     # A class for working with pre-defined settings & preferences for Xolo
     #
     # This is a singleton class, only one instance can exist at a time.

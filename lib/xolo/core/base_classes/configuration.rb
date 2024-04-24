@@ -181,6 +181,8 @@ module Xolo
 
           @raw_data = Xolo.load_yaml conf_file
           @raw_data.each do |k, v|
+            next unless keys[k]
+
             v = send(keys[k][:load_method], v) if keys[k][:load_method]
             send "#{k}=", v
           end

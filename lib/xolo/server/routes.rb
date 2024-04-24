@@ -50,16 +50,18 @@ module Xolo
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
+        # If here, we must have a session cookie marked as 'authenticated'
         logger.debug session.inspect
-        halt 401, { error: 'You must log in to the Xolo server' }.to_json unless session[:authenticated]
+        halt 401, { error: 'You must log in to the Xolo server' } unless session[:authenticated]
       end
 
       # post-process
       ##############
       after do
+        logger.debug 'Running after filter'
         unless @no_json
           content_type :json
-          # Nope, this only works if you remember to explicitly use
+          # IMPORTANT, this only works if you remember to explicitly use
           # `body body_content` in every route.
           # You can't just define the body
           # by the last evaluated statement of the route.
@@ -71,13 +73,15 @@ module Xolo
       # error process
       ##############
       error do
-        body { status: response.status, error: env['sinatra.error'].message }
+        logger.debug 'Running error filter'
+
+        body({ status: response.status, error: env['sinatra.error'].message })
       end
 
       # Ping
       ##########
       get '/ping' do
-        'pong'
+        body 'pong'
       end
 
       # Threads
@@ -89,7 +93,7 @@ module Xolo
       # State
       ##########
       get '/state' do
-        conf = Xolo::Server.config.to_h(private: true)
+        conf = Xolo::Server.config.to_h_private
 
         state = {
           executable: Xolo::Server.executable,
@@ -100,7 +104,8 @@ module Xolo
           log_file: Xolo::Server.config.log_file,
           config: conf
         }
-        JSON.pretty_generate state
+
+        body state
       end
 
     end #  Routes

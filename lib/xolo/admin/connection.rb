@@ -61,19 +61,25 @@ module Xolo
       ##############
       def login
         hostname = config.hostname
-        user = config.user
+        admin = config.admin
         pw = fetch_pw
 
         raise Xolo::MissingDataError, "No xolo server hostname. Please run 'xadm config'" unless hostname
-        raise Xolo::MissingDataError, "No xolo admin username. Please run 'xadm config'" unless user
+        raise Xolo::MissingDataError, "No xolo admin username. Please run 'xadm config'" unless admin
 
-        payload = { username: user, password: pw }.to_json
+        payload = { admin: admin, password: pw }
 
-        # provide the hostname to make a persisten Faraday connection object
+        # provide the hostname to make a persistent Faraday connection object
         # so in the future we just call server_cnx
         resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+        return if resp.success?
 
-        puts resp.body
+        case resp.status
+        when 401
+          raise Xolo::AuthenticationError, resp.body[:error]
+        else
+          raise Xolo::ServerError, "#{resp.status}: #{resp.body}"
+        end
       end
 
       # @return [URI] The server base URL
@@ -87,17 +93,14 @@ module Xolo
 
       # A connection for requests without any file uploads
       #
-      # For routes that aren't protected, the user and pw are ignored.
-      #
       # None of our GET routes expected any request body, so it doesn't matter if
       # its set to be JSON.
       #
       # For our POST routes that dont upload files (e.g. setloglevel), the request
       # body, if any, will be JSON.
       #
-      # @param user [String] The username for authentication
-      # @param pw [String] The password for authentication
-      # @param test [Boolean] Use the test s3po server
+      # @param host [String] The hostname of the Xolo server. Must be provided the
+      #   first time this is called (usually for logging in)
       #
       # @return [Faraday::Connection]
       ##################################
@@ -120,9 +123,8 @@ module Xolo
       # The request body will be multipart/url-encoded
       # and authentication is required
       #
-      # @param user [String] The username for authentication
-      # @param pw [String] The password for authentication
-      # @param test [Boolean] Use the test s3po server
+      # @param host [String] The hostname of the Xolo server. Must be provided the
+      #   first time this is called (usually for logging in)
       #
       # @return [Faraday::Connection]
       ##################################

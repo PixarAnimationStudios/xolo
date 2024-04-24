@@ -78,6 +78,8 @@ module Xolo
         # do something with the response
         # env[:response_headers].merge!(...)
         raw_cookie = env[:response_headers][SET_COOKIE_HEADER]
+        return unless raw_cookie
+
         tepid_cookie = raw_cookie.split(/\s*;\s*/)
         tepid_cookie.each do |part|
           name, value = part.split('=')

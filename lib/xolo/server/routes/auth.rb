@@ -56,21 +56,26 @@ module Xolo
         post '/auth/login' do
           request.body.rewind
           payload = parse_json request.body.read
-          user = payload[:username]
+          admin = payload[:admin]
           pw = payload[:password]
 
-          logger.debug "Payload: '#{payload}'"
+          logger.debug "Authenticating admin '#{admin}'"
 
-          logger.debug "Authenticating user '#{user}'"
           err = nil
-          err = "User '#{user}' is not allowed to use the Xolo server" unless member_of_admin_jamf_group?(user)
-          err ||= 'Incorrect username or password' unless authenticated_via_jamf?(user, pw)
-          halt 401, { error: err }.to_json if err
+          err = "'#{admin}' is not allowed to use the Xolo server" unless member_of_admin_jamf_group?(admin)
 
-          session[:user] = user
+          err ||= 'Incorrect xolo admin username or password' unless authenticated_via_jamf?(admin, pw)
+
+          if err
+            logger.debug "Authentication failed for '#{admin}': #{err}"
+            halt 401, { error: err }
+          end
+
+          # Set the session values
+          session[:admin] = admin
           session[:authenticated] = true
 
-          { admin: user, authenticated: true }.to_json
+          body({ admin: admin, authenticated: true })
         end
 
       end

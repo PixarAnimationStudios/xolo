@@ -67,10 +67,7 @@ module Xolo
       ##########################
       ##########################
 
-      # Get the admin's acct/username and password from the login keychain
-      #
-      # @return [Array <String>] A 2-item array containing [account, pw] for the
-      #   item, or an empty array if not found in the keychain
+      # @return [String] Get the admin's password from the login keychain
       #
       ##############################################
       def fetch_pw
@@ -79,25 +76,27 @@ module Xolo
         cmd << XOLO_CREDS_SVC
         cmd << '-l'
         cmd << XOLO_CREDS_LBL
-
-        # run_security(cmd.map { |i| security_escape i }.join(' ')) =~ /"acct"<blob>="(.*)"/
-        # user = Regexp.last_match(1)
-
         cmd << '-w'
         run_security(cmd.map { |i| security_escape i }.join(' '))
-
-        # { user: user, pw: pw }
       end
 
       # Store an item in the default keychain
+      #
+      # @param acct [String] The username for the password.
+      #   xadm doesn't use this, it uses the admin name from the
+      #   configuration. But the keychain item requires a value here.
+      #
+      # @param pw [String] The password to store
+      #
+      # @return [void]
       ##############################################
-      def store_pw(user, pw)
+      def store_pw(acct, pw)
         # delete the item first if its there
         delete_pw
 
         cmd = ['add-generic-password']
         cmd <<  '-a'
-        cmd <<  user
+        cmd <<  acct
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
         cmd << '-w'
@@ -110,7 +109,8 @@ module Xolo
         run_security(cmd.map { |i| security_escape i }.join(' '))
       end
 
-      # delete the xolo admin creds from the login keychain
+      # delete the xolo admin password from the login keychain
+      # @return [void]
       ##############################################
       def delete_pw
         cmd = ['delete-generic-password']
@@ -173,6 +173,7 @@ module Xolo
       end # run_security
 
       # use `security error` to get a description of an error number
+      ##############
       def security_error_desc(num)
         desc = `#{SEC_COMMAND} error #{num}`
         return if desc.include?('unknown error')
@@ -188,7 +189,7 @@ module Xolo
       # @param str[String] the string to escape
       #
       # @return [String] the escaped string
-      #
+      ###################
       def security_escape(str)
         # first escape backslashes
         str = str.to_s.gsub '\\', '\\\\\\'

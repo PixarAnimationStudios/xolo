@@ -79,7 +79,7 @@ module Xolo
           end
         end
 
-        # Try to authenticate the jamf user trying to log in
+        # Try to authenticate the jamf user trying to log in to xolo
         #
         # @param admin [String] The jamf acct name of the person seeking access
         #
@@ -88,6 +88,7 @@ module Xolo
         # @return [Boolean] Did the password work for the user?
         #####################
         def authenticated_via_jamf?(admin, pw)
+          logger.debug "Checking Jamf authentication for admin '#{admin}'"
           login_cnx = Jamf::Connection.new(
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,

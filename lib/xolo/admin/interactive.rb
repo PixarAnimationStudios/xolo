@@ -168,9 +168,9 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def pw_na
-        user_empty = walkthru_cmd_opts[:user].to_s.empty?
+        admin_empty = walkthru_cmd_opts[:admin].to_s.empty?
         host_empty = walkthru_cmd_opts[:hostname].to_s.empty?
-        'N/A until hostname and username are set' if host_empty || user_empty
+        'N/A until hostname and admin name are set' if host_empty || admin_empty
       end
 
       # @return [String, nil] any current internal consistency error. will be nil when none remain
