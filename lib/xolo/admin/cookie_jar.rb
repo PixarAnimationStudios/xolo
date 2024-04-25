@@ -31,6 +31,7 @@ module Xolo
 
     # Faraday Middleware for storing and sending the only cookie we
     # use with the Xolo server.
+    #
     # See https://lostisland.github.io/faraday/#/middleware/custom-middleware
     #
     class CookieJar < Faraday::Middleware
@@ -59,11 +60,10 @@ module Xolo
       ##########################
       ##########################
 
-      # we only send back the rack.session cookie, as long as it hasn't expired
+      # we only send back the rack.session cookie, as long as it
+      # exists and hasn't expired (it lasts an hour)
       #####################
       def on_request(env)
-        # do something with the request
-        # env[:request_headers].merge!(...)
         return unless self.class.session_cookie && self.class.session_expires
 
         raise Xolo::InvalidTokenError, 'Server Session Expired' if Time.now > self.class.session_expires
@@ -71,12 +71,11 @@ module Xolo
         env[:request_headers][COOKIE_HEADER] = "#{SESSION_COOKIE_NAME}=#{self.class.session_cookie}"
       end
 
-      # The server only ever sends one cookie, and we only care about 2 values,
-      # the rack.session, and expires
+      # The server only ever sends one cookie,
+      # and we only care about 2 values:
+      # rack.session, and expires
       ####################
       def on_complete(env)
-        # do something with the response
-        # env[:response_headers].merge!(...)
         raw_cookie = env[:response_headers][SET_COOKIE_HEADER]
         return unless raw_cookie
 

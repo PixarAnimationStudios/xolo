@@ -37,11 +37,10 @@ class XoloAdmin
   #####################################
   #####################################
 
-  include Xolo::Admin
-
-  # this is needed before the other mixins
+  # this is needed before the mixins
   Xolo::Admin.executable = __FILE__
 
+  include Xolo::Admin
   include Xolo::Admin::CommandLine
   include Xolo::Admin::Connection
   include Xolo::Admin::Processing
@@ -56,6 +55,11 @@ class XoloAdmin
   # Constructor
   ###################
   def initialize
+    puts "ARGV: #{ARGV}"
+    puts "Xolo::Admin::Options::COMMANDS.keys]: #{Xolo::Admin::Options::COMMANDS.keys}"
+    puts 'Intersection of ARGV and Xolo::Admin::Options::COMMANDS.keys:'
+    puts(ARGV & Xolo::Admin::Options::COMMANDS.keys)
+
     parse_cli
   end
 
@@ -108,13 +112,14 @@ class XoloAdmin
     puts 'Running login...'
     login
 
-    puts 'CookieJar:'
-    puts "  Session: #{Xolo::Admin::CookieJar.session_cookie}"
-    puts "  Expires: #{Xolo::Admin::CookieJar.session_expires}"
+    # puts 'CookieJar:'
+    # puts "  Session: #{Xolo::Admin::CookieJar.session_cookie}"
+    # puts "  Expires: #{Xolo::Admin::CookieJar.session_expires}"
 
-    puts 'getting /state'
-    resp = server_cnx.get '/state'
-    puts "#{resp.body}"
+    # puts 'getting /state'
+    # resp = server_cnx.get '/state'
+    # puts "#{resp.body}"
+
     puts
     puts 'DONE'
   end # run

@@ -41,11 +41,13 @@ module Xolo
 
         # Constants
         #############################
+        #############################
 
         # The value to use when all computers are the targets
         TARGET_ALL = 'all'
 
         # Attributes
+        ######################
         ######################
 
         # Attributes of Titles.
@@ -436,9 +438,14 @@ module Xolo
 
         # Constructor
         ######################
+        ######################
         def initialize(data_hash)
           data_hash.each { |k, v| instance_variable_set "@#{k}", v }
         end
+
+        # Instance Methods
+        ######################
+        ######################
 
       end # class Title
 

@@ -56,6 +56,9 @@ module Xolo
       end
 
       # use optimist to parse the global opts, stopping when it hits a known command
+      # This also generates the top level --help output
+      #
+      # @return [Hash] The global opts from the command line, parsed by optimist
       ############################
       def parse_global_cli
         # set this so its available inside the optimist options block
@@ -81,10 +84,14 @@ module Xolo
           opt :version, 'Print version and exit'
           opt :help, 'Show this help and exit'
 
+          # This actually sets the optimist global options and their help blurbs
+          #
           Xolo::Admin::Options::GLOBAL_OPTIONS.each do |opt_key, deets|
             opt opt_key, deets[:desc], short: deets[:cli]
           end
           stop_on Xolo::Admin::Options::COMMANDS.keys
+
+          # everything below is just more help output
 
           banner "\nCommands:"
           Xolo::Admin::Options::COMMANDS.each do |cmd, deets|
@@ -144,16 +151,21 @@ module Xolo
       # This gets the title & version, if needed, storing them in
       # #cli_cmd.title and #cli_cmd.version
       # then it gets the command options, populating #cli_cmd_opts
+      #
+      # @return [void]
       ######################
       def parse_command_cli
+        # This gets the command (like config or add-title) and any args
+        # like a title and/or a version
         parse_cmd_and_args unless cli_cmd.command
 
         # if we are using --walkthru, all remaining command options are ignored, so just return.
         #
         # The #walkthru_cmd_opts will be populated by the interactive
         # process
-        return if global_opts.walkthru
+        return if walkthru?
 
+        # This gets the -- options that go with the command and its args
         # save the opts hash from optimist into our OpenStruct
         parse_cmd_opts.each { |k, v| cli_cmd_opts[k] = v }
 
@@ -205,6 +217,7 @@ module Xolo
 
           # we have a new command, for which we are getting help. Validate it
           validate_cli_command
+
           # 'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
           ARGV.unshift Xolo::Admin::Options::HELP_OPT
         end
@@ -243,9 +256,6 @@ module Xolo
         return false if ARGV.include? Xolo::Admin::Options::HELP_OPT
         return false unless cli_cmd.command == Xolo::Admin::Options::CONFIG_CMD
 
-        # ARGV.unshift '--walkthru'
-        # ARGV.unshift Xolo::Admin::Options::CONFIG_CMD
-        # parse_global_cli
         ARGV.clear
         ARGV << '--walkthru'
         ARGV << '--debug' if global_opts.debug
@@ -267,6 +277,7 @@ module Xolo
         cmd_usage = Xolo::Admin::Options::COMMANDS.dig cmd, :usage
         cmd_display = Xolo::Admin::Options::COMMANDS.dig cmd, :display
         cmd_opts = Xolo::Admin::Options::COMMANDS.dig cmd, :opts
+
         title_cmd = title_command?
         vers_cmd = version_command?
         title_or_vers_command = title_or_version_command?

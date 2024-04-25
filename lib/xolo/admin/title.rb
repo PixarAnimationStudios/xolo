@@ -41,11 +41,16 @@ module Xolo
 
       # Class Methods
       #############################
+      #############################
 
       # @return [Hash{Symbol: Hash}] The ATTRIBUTES that are available as CLI & walkthru options
       def self.cli_opts
         @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
       end
+
+      # Instance Methods
+      #############################
+      #############################
 
     end # class Title
 

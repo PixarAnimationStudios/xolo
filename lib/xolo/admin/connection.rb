@@ -57,21 +57,25 @@ module Xolo
       ##############################
       ##############################
 
+      # Authenticate to the Xolo server and get a session token
+      # (maintained by Faraday via the Xolo::Admin::CookieJar middleware)
       #
       ##############
       def login
         hostname = config.hostname
         admin = config.admin
         pw = fetch_pw
+        xadm = Xolo::Admin.executable.basename
 
-        raise Xolo::MissingDataError, "No xolo server hostname. Please run 'xadm config'" unless hostname
-        raise Xolo::MissingDataError, "No xolo admin username. Please run 'xadm config'" unless admin
+        raise Xolo::MissingDataError, "No xolo server hostname. Please run '#{xadm} config'" unless hostname
+        raise Xolo::MissingDataError, "No xolo admin username. Please run '#{xadm} config'" unless admin
 
         payload = { admin: admin, password: pw }
 
         # provide the hostname to make a persistent Faraday connection object
-        # so in the future we just call server_cnx
-        resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+        # so in the future we just call server_cnx with no hostname to get the same
+        # connection object
+        resp = server_cnx.post Xolo::Admin::Connection::LOGIN_ROUTE, payload
         return if resp.success?
 
         case resp.status
@@ -82,6 +86,8 @@ module Xolo
         end
       end
 
+      # @pararm host [String] an alternate hostname to use, defaults to config.hostname
+      #
       # @return [URI] The server base URL
       #################
       def server_url(host: nil)

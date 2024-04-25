@@ -72,15 +72,9 @@ module Xolo
       # is the given command valid?
       #########
       def validate_cli_command
-        cmd = cli_cmd.command
-        return if Xolo::Admin::Options::COMMANDS.key? cmd
+        return if Xolo::Admin::Options::COMMANDS.key? cli_cmd.command
 
-        msg =
-          if cmd.to_s.empty?
-            "Usage: #{usage}"
-          else
-            "Unknonwn command: #{cmd}"
-          end
+        msg = cli_cmd.command.pix_blank? ? "Usage: #{usage}" : "Unknown command: '#{cli_cmd.command}'"
         raise ArgumentError, msg
       end # validate command
 

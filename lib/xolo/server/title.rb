@@ -29,6 +29,7 @@ module Xolo
 
   module Server
 
+    # A title in Xolo, as used on the server
     class Title < Xolo::Core::BaseClasses::Title
 
     end # class Title
