@@ -37,9 +37,6 @@ class XoloAdmin
   #####################################
   #####################################
 
-  # this is needed before the mixins
-  Xolo::Admin.executable = __FILE__
-
   include Xolo::Admin
   include Xolo::Admin::CommandLine
   include Xolo::Admin::Connection
@@ -48,18 +45,13 @@ class XoloAdmin
   include Xolo::Admin::Interactive
   include Xolo::Admin::Options
   include Xolo::Admin::Validate
-  include Xolo::Core::Constants
+  #  include Xolo::Core::Constants # included in Xolo itself
   include Xolo::Core::JSONWrappers
   include Xolo::Core::YAMLWrappers
 
   # Constructor
   ###################
   def initialize
-    puts "ARGV: #{ARGV}"
-    puts "Xolo::Admin::Options::COMMANDS.keys]: #{Xolo::Admin::Options::COMMANDS.keys}"
-    puts 'Intersection of ARGV and Xolo::Admin::Options::COMMANDS.keys:'
-    puts(ARGV & Xolo::Admin::Options::COMMANDS.keys)
-
     parse_cli
   end
 
@@ -104,32 +96,50 @@ class XoloAdmin
       puts "..#{k} => #{v}"
     end
 
-    process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
-    puts
-    puts "Processing command opts using method: #{process_method}"
-    send process_method if process_method
-
+    ##############
     puts 'Running login...'
     login
 
+    ###################
     # puts 'CookieJar:'
     # puts "  Session: #{Xolo::Admin::CookieJar.session_cookie}"
     # puts "  Expires: #{Xolo::Admin::CookieJar.session_expires}"
 
+    ###################
     # puts 'getting /state'
     # resp = server_cnx.get '/state'
     # puts "#{resp.body}"
 
+    ###################
+    puts 'Listing currently known titles:'
+    all_titles = Xolo::Admin::Title.all_titles server_cnx
+    puts all_titles
+
+    ###############
+    already_there = all_titles.include? cli_cmd.title
+    puts "all titles contains our title: #{already_there}"
+    if already_there
+      puts 'deleting the title first'
+      resp = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
+      puts "Delete Status: #{resp.status}"
+      puts 'Delete Body:'
+      puts resp.body
+    end
+
+    ###################
+    process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
+    puts
+    puts "Processing command opts using method: #{process_method}"
+    resp = send process_method if process_method
+
+    ##################
+    puts "Status: #{resp.status}"
+    puts 'Body:'
+    puts resp.body
+    puts
     puts
     puts 'DONE'
   end # run
-
-  # Wrapper for module method
-  # @return [Pathname] The path to this executable file
-  ####################
-  def executable
-    Xolo::Admin.executable
-  end
 
 end # class XoloAdmin
 
@@ -150,6 +160,7 @@ begin
 
   app.run
 rescue => e
+  # to
   warn "Error: #{e.class.name.split('::').last}: #{e}"
   e.backtrace.each { |l| warn "..#{l}" }
 end

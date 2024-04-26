@@ -52,6 +52,7 @@ module Xolo
 
       # update the adm config file using the values from 'xadm config'
       #
+      # @return [void]
       def update_config
         opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
 
@@ -60,6 +61,25 @@ module Xolo
         end
 
         config.save_to_file
+      end
+
+      # Add a title to Xolo
+      #
+      # @return [void]
+      def add_title
+        # Create a title object from the options
+        opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
+        puts "Making new title with these opts: #{opts}"
+
+        new_title = Xolo::Admin::Title.new opts
+        new_title.title = cli_cmd.title
+
+        puts 'new_title.to_json:'
+        puts new_title.to_json
+
+        new_title.add server_cnx
+      rescue StandardError => e
+        handle_server_error e
       end
 
     end # module Converters

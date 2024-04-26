@@ -42,12 +42,14 @@ module Xolo
 
       register Xolo::Server::Routes
       register Xolo::Server::Routes::Auth
+      register Xolo::Server::Routes::Titles
 
       helpers Sinatra::CustomLogger
-      helpers Xolo::Server::Helpers::Auth
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
       helpers Xolo::Core::YAMLWrappers
+      helpers Xolo::Server::Helpers::Auth
+      helpers Xolo::Server::Helpers::Titles
 
       # helpers Xolo::Server::Helpers::JamfPro
       # helpers Xolo::Server::Helpers::TitleEditor
@@ -99,6 +101,7 @@ module Xolo
       ##########################
       def self.setup
         Xolo::Server::DATA_DIR.mkpath
+        Xolo::Server::Title::TITLES_DIR.mkpath
         setup_ssl
         Xolo::Server.start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'

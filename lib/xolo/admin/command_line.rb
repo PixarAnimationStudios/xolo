@@ -62,7 +62,7 @@ module Xolo
       ############################
       def parse_global_cli
         # set this so its available inside the optimist options block
-        executable_file = executable.basename
+        executable_file = Xolo::Admin::EXECUTABLE_FILENAME
 
         Optimist.options do
           banner 'Name:'
@@ -272,7 +272,7 @@ module Xolo
         return if cmd == Xolo::Admin::Options::HELP_CMD || cmd.to_s.empty?
 
         # set these for use inside the optimist options block
-        executable_file = executable.basename
+        executable_file = Xolo::Admin::EXECUTABLE_FILENAME
         cmd_desc = Xolo::Admin::Options::COMMANDS.dig cmd, :desc
         cmd_usage = Xolo::Admin::Options::COMMANDS.dig cmd, :usage
         cmd_display = Xolo::Admin::Options::COMMANDS.dig cmd, :display

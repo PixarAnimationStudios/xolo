@@ -51,7 +51,7 @@ module Xolo
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
         # If here, we must have a session cookie marked as 'authenticated'
-        logger.debug session.inspect
+        logger.debug "Session in before filter: #{session.inspect}"
         halt 401, { error: 'You must log in to the Xolo server' } unless session[:authenticated]
       end
 
@@ -96,7 +96,7 @@ module Xolo
         conf = Xolo::Server.config.to_h_private
 
         state = {
-          executable: Xolo::Server.executable,
+          executable: Xolo::Server::EXECUTABLE_FILENAME,
           start_time: Xolo::Server.start_time,
           app_env: Xolo::Server.app_env,
           debug: Xolo::Server.debug?,

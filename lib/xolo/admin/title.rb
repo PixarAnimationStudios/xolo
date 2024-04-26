@@ -39,6 +39,18 @@ module Xolo
     # title data to and from the server.
     class Title < Xolo::Core::BaseClasses::Title
 
+      # Constants
+      #############################
+      #############################
+
+      # This is the server path for dealing with titles
+      # POST to add a new one
+      # GET to get a list of titles
+      # GET .../<title> to get the data for a single title
+      # PUT .../<title> to update a title with new data
+      # DELETE .../<title> to delete a title and its version
+      SERVER_ROUTE = '/titles'
+
       # Class Methods
       #############################
       #############################
@@ -48,9 +60,41 @@ module Xolo
         @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
       end
 
+      # @return [Array<String>] The currently known titles on the server
+      #############################
+      def self.all_titles(cnx)
+        resp = cnx.get SERVER_ROUTE
+        resp.body
+      end
+
+      # Delete a title from the server
+      # @param title [String] the title to delete
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return
+      ####################
+      def self.delete(title, cnx)
+        resp = cnx.delete "#{SERVER_ROUTE}/#{title}"
+      end
+
       # Instance Methods
       #############################
       #############################
+
+      # Add this title to the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return
+      ####################
+      def add(cnx)
+        resp = cnx.post SERVER_ROUTE, to_h
+      end
+
+      # Delete this title from the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return
+      ####################
+      def delete(cnx)
+        self.class.delete title, cnx
+      end
 
     end # class Title
 

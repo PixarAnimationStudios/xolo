@@ -45,6 +45,7 @@ require 'logger'
 require 'openssl'
 require 'securerandom'
 require 'yaml'
+require 'singleton'
 
 # Gems
 ######
@@ -96,17 +97,6 @@ module Xolo
     ### Module methods
     ##############################
     ##############################
-
-    # @return [Pathname] Path to the executable that started the server
-    ################
-    def self.executable
-      @executable
-    end
-
-    ################
-    def self.executable=(path)
-      @executable = Pathname.new path
-    end
 
     ################
     def self.start_time

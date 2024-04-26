@@ -120,9 +120,14 @@ module Xolo
           display: "#{ADD_TITLE_CMD} title",
           opts: Xolo::Admin::Title.cli_opts,
           walkthru_header: "Adding Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
-          target: :title
+          target: :title,
+          process_method: :add_title,
+          # Should server_route be part of the Xolo::Admin::Title class?
+          # probably, since using it will be a method of Xolo::Admin::Title
+          server_route: { method: 'POST', path: '/add-title' }
         },
 
+        # TODO: Implement PATCH, or just PUT ?
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
           display: "#{EDIT_TITLE_CMD} title",
@@ -153,6 +158,7 @@ module Xolo
           target: :version
         },
 
+        # TODO: Implement PATCH, or just PUT ?
         EDIT_VERSION_CMD => {
           desc: 'Edit a version of a title',
           display: "#{EDIT_VERSION_CMD} title version",
@@ -206,7 +212,7 @@ module Xolo
         CONFIG_CMD => {
           desc: 'Configure xadm. Implies --walkthru',
           display: "#{CONFIG_CMD}",
-          usage: "#{Xolo::Admin.executable.basename} #{CONFIG_CMD}",
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
           walkthru_header: 'Editing xadm configuration',
           arg_banner: :none,

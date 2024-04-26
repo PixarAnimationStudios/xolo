@@ -38,7 +38,6 @@ require 'date'
 require 'json'
 require 'yaml'
 require 'pathname'
-require 'singleton'
 
 # Other Gems to include at this level
 require 'pixar-ruby-extensions'
@@ -66,7 +65,6 @@ module Xolo
   extend Xolo::Core::Loading
   include Xolo::Core::Constants
   include Xolo::Core::Exceptions
-  extend Xolo::Core::YAMLWrappers
 
   VERSION = Xolo::Core::Version::VERSION
 

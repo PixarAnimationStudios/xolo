@@ -65,7 +65,7 @@ module Xolo
         hostname = config.hostname
         admin = config.admin
         pw = fetch_pw
-        xadm = Xolo::Admin.executable.basename
+        xadm = Xolo::Admin::EXECUTABLE_FILENAME
 
         raise Xolo::MissingDataError, "No xolo server hostname. Please run '#{xadm} config'" unless hostname
         raise Xolo::MissingDataError, "No xolo admin username. Please run '#{xadm} config'" unless admin
@@ -117,9 +117,14 @@ module Xolo
         @server_cnx = Faraday.new(server_url(host: host)) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
+
           cnx.request :json
-          cnx.response :json, parser_options: { symbolize_names: true }
+
           cnx.use Xolo::Admin::CookieJar
+
+          cnx.response :json, parser_options: { symbolize_names: true }
+          cnx.response :raise_error
+
           cnx.adapter :net_http
         end
       end
@@ -141,11 +146,28 @@ module Xolo
         @upload_cnx = Faraday.new(server_url(host: host)) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
+
           cnx.request :multipart
           cnx.request :url_encoded
-          cnx.response :json, parser_options: { symbolize_names: true }
+
           cnx.use Xolo::Admin::CookieJar
+
+          cnx.response :json, parser_options: { symbolize_names: true }
+          cnx.response :raise_error
+
           cnx.adapter :net_http
+        end
+      end
+
+      # Handle errors from the Xolo Server
+      #
+      #######################
+      def handle_server_error(err)
+        case err
+        when Faraday::Error
+          raise err, parse_json(err.response[:body])[:error]
+        else
+          raise err
         end
       end
 

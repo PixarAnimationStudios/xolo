@@ -38,6 +38,12 @@ module Xolo
 
   module Client
 
+    # Constants
+    ########################
+    ########################
+
+    EXECUTABLE_FILENAME = 'xolo'
+
   end
 
 end

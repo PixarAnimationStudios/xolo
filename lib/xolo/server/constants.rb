@@ -23,8 +23,6 @@
 
 # frozen_string_literal: true
 
-require 'singleton'
-
 module Xolo
 
   module Server
@@ -38,6 +36,8 @@ module Xolo
 
       # Constants
       #####################################
+
+      EXECUTABLE_FILENAME = 'xoloserver'
 
       # Sinatra App Environments
 

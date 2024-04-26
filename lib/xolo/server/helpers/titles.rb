@@ -1,11 +1,3 @@
-#!/usr/local/pixar/ruby/bin/ruby
-
-# TEMP
-ENV['GEM_PATH'] = "/usr/local/pixar/ruby/aliases/default/lib/ruby/gems:#{ENV['GEM_PATH']}"
-require 'pixenv'
-
-# !/usr/bin/env ruby
-
 # Copyright 2023 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -28,42 +20,44 @@ require 'pixenv'
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
+#
 
 # frozen_string_literal: true
 
-require 'xolo-server'
+# main module
+module Xolo
 
-# The Server Wrapper App
-#####################
-class XoloServer
+  module Server
 
-  def initialize
-    # CLI
-    Xolo::Server.parse_cli
-    Xolo::Server.debug = Xolo::Server.cli_opts[:debug]
-    Xolo::Server.app_env = Xolo::Server.cli_opts[:production] ? Xolo::Server::APP_ENV_PROD : Xolo::Server::APP_ENV_DEV
-  end
+    module Helpers
 
-  def run
-    Process.setproctitle Xolo::Server::EXECUTABLE_FILENAME
+      # constants and methods for working with Xolo Titles on the server
+      module Titles
 
-    # TESTING
-    # puts '##############################'
-    # puts Gem.ruby
-    # Xolo::Server.config.to_h.each { |k, v| puts "#{k} =>\n  #{v}" }
-    # puts '##############################'
+        # Module Methods
+        #######################
+        #######################
 
-    Xolo::Server::App.run!
-  end # run
+        # when this module is included
+        def self.included(includer)
+          Xolo.verbose_include includer, self
+        end
 
-end # class XoloServer
+        # Instance Methods
+        #######################
+        ######################
 
-# MAIN
-#####################
-begin
-  app = XoloServer.new
-  app.run
-rescue => e
-  warn "ERROR #{e.class}: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" }
-end
+        # A list of all known titles
+        # @return [Array<String>]
+        ############
+        def all_titles
+          Xolo::Server::Title.all_titles
+        end
+
+      end # TitleEditor
+
+    end # Helpers
+
+  end # Server
+
+end # module Xolo

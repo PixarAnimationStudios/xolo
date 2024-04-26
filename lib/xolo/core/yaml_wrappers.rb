@@ -39,9 +39,8 @@ module Xolo
     # calling YAML.dump
     module YAMLWrappers
 
-      def self.extended(extender)
-        Xolo.verbose_extend extender, self
-      end
+      # Constants
+      #########################
 
       # The classes allowed by Psych already
       SAFE_CLASSES = [
@@ -66,10 +65,20 @@ module Xolo
         Date,
         Time,
         Symbol,
-        Pathname
+        Pathname,
+        Xolo::Server::Title,
+        Xolo::Server::Version
       ].freeze
 
       OK_CLASSES = SAFE_CLASSES + PERMITTED_CLASSES
+
+      # Class Methods
+      ##################################
+      ##################################
+
+      def self.included(includer)
+        Xolo.verbose_include includer, self
+      end
 
       # Use YAML.safe_load with expanded permitted classes, symbolized names, and allowing aliases.
       #
@@ -95,8 +104,8 @@ module Xolo
       # @param src [String, Pathname] A path as a String or Pathname, or a String of YAML
       #
       # @return [Object] the YAML parsed into a ruby data structure.
-      #
-      def load_yaml(src)
+      ##############################
+      def self.load_yaml(src)
         path = Pathname.new(src)
         filename = nil
         if path.file?
@@ -124,17 +133,34 @@ module Xolo
       # @param path [String, Pathname] The file to which the YAML should be written
       #
       # @return [void]
-      def save_yaml(data, path)
+      #############################
+      def self.dump_yaml(data)
         dest = Pathname.new(path)
 
         if YAML.respond_to? :safe_dump
-          dest.pix_save YAML.safe_dump(data, permitted_classes: PERMITTED_CLASSES)
+          YAML.safe_dump(data, permitted_classes: PERMITTED_CLASSES)
           return
         end
 
         examine_object_for_safe_dump data
 
-        dest.pix_save YAML.dump(data)
+        YAML.dump(data)
+      end
+
+      # Instance Methods
+      ##################################
+      ##################################
+
+      # wrapper for module method
+      #############################
+      def load_yaml(src)
+        Xolo::Core::YAMLWrappers.load_yaml src
+      end
+
+      # wrapper for module method
+      #############################
+      def dump_yaml(data)
+        Xolo::Core::YAMLWrappers.dump_yaml data
       end
 
       #############################

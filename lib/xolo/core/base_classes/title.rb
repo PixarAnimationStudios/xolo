@@ -39,6 +39,13 @@ module Xolo
       #
       class Title
 
+        # Mixins
+        #############################
+        #############################
+
+        include Xolo::Core::YAMLWrappers
+        include Xolo::Core::JSONWrappers
+
         # Constants
         #############################
         #############################
@@ -440,12 +447,36 @@ module Xolo
         ######################
         ######################
         def initialize(data_hash)
-          data_hash.each { |k, v| instance_variable_set "@#{k}", v }
+          ATTRIBUTES.each_key do |k|
+            next unless data_hash[k]
+
+            send "#{k}=", data_hash[k]
+          end
         end
 
         # Instance Methods
         ######################
         ######################
+
+        # Convert to a Hash for sending between xadm and the Xolo Server
+        #
+        # @return [String] The attributes of this title as JSON
+        #####################
+        def to_h
+          hash = {}
+          ATTRIBUTES.each_key do |k|
+            hash[k] = send k
+          end
+          hash
+        end
+
+        # Convert to a JSON object for sending between xadm and the Xolo Server
+        #
+        # @return [String] The attributes of this title as JSON
+        #####################
+        def to_json(*_args)
+          to_h.to_json
+        end
 
       end # class Title
 

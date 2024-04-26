@@ -179,7 +179,7 @@ module Xolo
             return
           end
 
-          @raw_data = Xolo.load_yaml conf_file
+          @raw_data = load_yaml conf_file
           @raw_data.each do |k, v|
             next unless keys[k]
 

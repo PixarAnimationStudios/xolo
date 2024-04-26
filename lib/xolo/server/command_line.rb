@@ -73,7 +73,7 @@ module Xolo
 
       # CLI usage message
       def usage
-        @usage ||= "#{executable.basename} [--production --debug]"
+        @usage ||= "#{Xolo::Server::EXECUTABLE_FILENAME} [--production --debug]"
       end
 
       # An OStruct to hold the CLI options
@@ -86,7 +86,7 @@ module Xolo
       def parse_cli
         parsed_opts = Optimist.options do
           banner 'Name:'
-          banner "  #{Xolo::Server.executable.basename}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
+          banner "  #{Xolo::Server::EXECUTABLE_FILENAME}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
 
           banner "\nUsage:"
           banner "  #{usage}"

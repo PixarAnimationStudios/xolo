@@ -38,6 +38,7 @@ require 'highline'
 # e.g. opts[key] or method-style when you know the key e.g. opts.title
 require 'ostruct'
 require 'open3'
+require 'singleton'
 
 # Use optimist for CLI option processing
 # https://rubygems.org/gems/optimist
@@ -52,6 +53,12 @@ module Xolo
 
   module Admin
 
+    # Constants
+    ##########################
+    ##########################
+
+    EXECUTABLE_FILENAME = 'xadm'
+
     # Module Methods
     ##########################
     ##########################
@@ -61,22 +68,6 @@ module Xolo
       Xolo.verbose_include includer, self
     end
 
-    # Needed before the mixins
-    #
-    # @return [Pathname] The pathname to the xadm executable
-    #################
-    def self.executable
-      @executable
-    end
-
-    # Needed before the mixins
-    #
-    # @param path [String] The pathname to the xadm executable
-    #################
-    def self.executable=(path)
-      @executable = Pathname.new(path)
-    end
-
     # Instance Methods
     ##########################
     ##########################
@@ -84,7 +75,7 @@ module Xolo
     # @return [String] the usage
     ########################
     def usage
-      @usage ||= "#{executable.basename} [global-options] command [target] [command-options]"
+      @usage ||= "#{EXECUTABLE_FILENAME} [global-options] command [target] [command-options]"
     end
 
     def config
