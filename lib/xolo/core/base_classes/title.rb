@@ -43,7 +43,8 @@ module Xolo
         #############################
         #############################
 
-        include Xolo::Core::YAMLWrappers
+        extend Xolo::Core::JSONWrappers
+
         include Xolo::Core::JSONWrappers
 
         # Constants
@@ -112,7 +113,8 @@ module Xolo
         #     Xolo::Admin::Validate.non_empty_array(some_array_value)
         #   - Anything else: no validation, and the value will be a String
         #
-        # - type: [Symbol] the data type of the value. One of: :boolean, :string.
+        # - type: [Symbol] the data type of the value. One of: :boolean, :string, :integer,
+        #   :time
         #
         #   NOTE: We are not using Optimist's validation & auto-conversion of these types, they
         #   all come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
@@ -447,10 +449,15 @@ module Xolo
         ######################
         ######################
         def initialize(data_hash)
-          ATTRIBUTES.each_key do |k|
-            next unless data_hash[k]
+          ATTRIBUTES.each do |key, deets|
+            val = data_hash[key]
+            next if val.pix_blank?
 
-            send "#{k}=", data_hash[k]
+            # convert timestamps to Time objects if needed
+            # All the other values shouldn't need converting
+            # when taking in JSON or xadm opts.
+            val = Time.parse(val.to_s) if deets[:type] == :time && !val.is_a?(Time)
+            send "#{key}=", val
           end
         end
 
@@ -471,11 +478,13 @@ module Xolo
         end
 
         # Convert to a JSON object for sending between xadm and the Xolo Server
+        # or storage on the server.
+        # Always make it human readable.
         #
         # @return [String] The attributes of this title as JSON
         #####################
         def to_json(*_args)
-          to_h.to_json
+          JSON.pretty_generate to_h
         end
 
       end # class Title

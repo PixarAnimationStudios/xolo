@@ -67,6 +67,17 @@ module Xolo
         resp.body
       end
 
+      # Fetch a title from the server
+      # @param title [String] the title to delete
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return
+      ####################
+      def self.fetch(title, cnx)
+        resp = cnx.get "#{SERVER_ROUTE}/#{title}"
+
+        new resp.body
+      end
+
       # Delete a title from the server
       # @param title [String] the title to delete
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
@@ -86,6 +97,14 @@ module Xolo
       ####################
       def add(cnx)
         resp = cnx.post SERVER_ROUTE, to_h
+      end
+
+      # Add this title to the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return
+      ####################
+      def update(cnx)
+        resp = cnx.put SERVER_ROUTE, to_h
       end
 
       # Delete this title from the server

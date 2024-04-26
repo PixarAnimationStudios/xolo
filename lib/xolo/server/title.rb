@@ -32,6 +32,10 @@ module Xolo
     # A title in Xolo, as used on the server
     class Title < Xolo::Core::BaseClasses::Title
 
+      # Mixins
+      #############################
+      #############################
+
       # Constants
       ######################
       ######################
@@ -42,10 +46,10 @@ module Xolo
       # So a title 'foobar' would have a directory
       #    (Xolo::Server::DATA_DIR)/titles/foobar/
       # and in there will be a file
-      #    foobar.yaml
+      #    foobar.json
       # with the data for the Title instance itself
       #
-      # Also in there will be a 'versions' dir containing yaml
+      # Also in there will be a 'versions' dir containing json
       # files for each version of the title.
       # See {Xolo::Server::Version}
       #
@@ -82,13 +86,14 @@ module Xolo
       # @return [Pathname]
       #####################
       def self.title_data_file(title)
-        title_dir(title) + "#{title}.yaml"
+        title_dir(title) + "#{title}.json"
       end
 
-      # @return [Xolo::Server::Title] load an existing title from disk
+      # @return [Xolo::Server::Title] load an existing title
+      #   from the on-disk JSON file
       ######################
       def self.load(title)
-        Xolo::Core::YAMLWrappers.load_yaml title_data_file(title)
+        new parse_json(title_data_file(title).read)
       end
 
       # Attributes
@@ -134,7 +139,7 @@ module Xolo
       ##########################
       def save_to_file
         title_dir.mkpath
-        title_data_file.pix_atomic_write YAML.dump(self)
+        title_data_file.pix_atomic_write to_json
       end
 
       # Delete the title and all of its version
@@ -143,7 +148,7 @@ module Xolo
       def delete
         # TODO: delete from Jamf and the Title Editor
 
-        title_data_file.rmtree
+        title_dir.rmtree
       end
 
     end # class Title

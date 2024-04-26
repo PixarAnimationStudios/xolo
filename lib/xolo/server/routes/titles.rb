@@ -64,6 +64,8 @@ module Xolo
           end
 
           logger.info "Admin #{session[:admin]} is creating new title '#{title.title}'"
+          title.creation_date = Time.now
+          title.created_by = session[:admin]
           title.save
 
           resp_content = { title: title.title, status: 'saved' }
@@ -109,6 +111,8 @@ module Xolo
           end
 
           logger.info "Admin #{session[:admin]} is updating title '#{title.title}'"
+          title.modification_date = Time.now
+          title.modified_by = session[:admin]
           title.save
 
           resp_content = { title: title.title, status: 'updated' }

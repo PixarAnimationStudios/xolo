@@ -74,7 +74,6 @@ module Xolo
             required: true,
             cli: :d,
             validate: true,
-            default: Time.now,
             invalid_msg: 'Not a valid date!',
             desc: <<~ENDDESC
               The date this version was released by the publisher.

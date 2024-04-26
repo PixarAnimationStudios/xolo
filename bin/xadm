@@ -47,7 +47,6 @@ class XoloAdmin
   include Xolo::Admin::Validate
   #  include Xolo::Core::Constants # included in Xolo itself
   include Xolo::Core::JSONWrappers
-  include Xolo::Core::YAMLWrappers
 
   # Constructor
   ###################
@@ -133,10 +132,29 @@ class XoloAdmin
     resp = send process_method if process_method
 
     ##################
-    puts "Status: #{resp.status}"
-    puts 'Body:'
+    puts "Add Status: #{resp.status}"
+    puts 'Add Body:'
     puts resp.body
     puts
+
+    ##################
+    puts 're-fetching...'
+    title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+    puts "title class: #{title.class}"
+    puts 'title to_h:'
+    puts title.to_h
+    puts
+
+    ##################
+    puts 'updating...'
+    title.self_service = false
+    resp = title.update server_cnx
+    puts "Update Status: #{resp.status}"
+    puts 'Update Body:'
+    puts resp.body
+    puts
+
+    ##################
     puts
     puts 'DONE'
   end # run

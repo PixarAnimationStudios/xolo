@@ -47,7 +47,6 @@ module Xolo
       helpers Sinatra::CustomLogger
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
-      helpers Xolo::Core::YAMLWrappers
       helpers Xolo::Server::Helpers::Auth
       helpers Xolo::Server::Helpers::Titles
 

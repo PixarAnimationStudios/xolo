@@ -39,6 +39,8 @@ require 'highline'
 require 'ostruct'
 require 'open3'
 require 'singleton'
+require 'json'
+require 'yaml'
 
 # Use optimist for CLI option processing
 # https://rubygems.org/gems/optimist

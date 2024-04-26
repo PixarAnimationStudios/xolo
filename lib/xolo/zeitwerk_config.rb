@@ -91,7 +91,6 @@ module XoloZeitwerkConfig
     ###############################################
 
     @loader.inflector.inflect 'json_wrappers' => 'JSONWrappers'
-    @loader.inflector.inflect 'yaml_wrappers' => 'YAMLWrappers'
 
     ##### Ingored Paths
     #

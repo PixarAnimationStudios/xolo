@@ -81,8 +81,6 @@ module Xolo
         #####################################
         #####################################
 
-        include Xolo::Core::YAMLWrappers
-
         # Constants
         #####################################
         #####################################
@@ -148,7 +146,7 @@ module Xolo
         ###############
         def save_to_file
           conf_file.parent.mkpath unless conf_file.parent.directory?
-          save_yaml to_h, conf_file
+          conf_file.pix_save YAML.dump(to_h)
         end
 
         # Private Instance Methods
@@ -179,7 +177,7 @@ module Xolo
             return
           end
 
-          @raw_data = load_yaml conf_file
+          @raw_data = YAML.load conf_file.read
           @raw_data.each do |k, v|
             next unless keys[k]
 
