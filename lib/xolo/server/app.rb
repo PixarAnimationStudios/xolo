@@ -36,18 +36,22 @@ module Xolo
       ##############################
       ##############################
 
-      ### Extensions & Helpers
+      # Extensions & Helpers
       ##############################
       ##############################
 
       register Xolo::Server::Routes
       register Xolo::Server::Routes::Auth
+      register Xolo::Server::Routes::JamfPro
+      register Xolo::Server::Routes::TitleEditor
       register Xolo::Server::Routes::Titles
 
       helpers Sinatra::CustomLogger
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
       helpers Xolo::Server::Helpers::Auth
+      helpers Xolo::Server::Helpers::JamfPro
+      helpers Xolo::Server::Helpers::TitleEditor
       helpers Xolo::Server::Helpers::Titles
 
       # helpers Xolo::Server::Helpers::JamfPro
@@ -104,8 +108,6 @@ module Xolo
         setup_ssl
         Xolo::Server.start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
-        Xolo::Server::Helpers::JamfPro.connect_to_jamf
-        # Xolo::Server::Helpers::TitleEditor.connect_to_title_editor
       end
 
       ##########################

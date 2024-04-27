@@ -38,6 +38,7 @@ class XoloAdmin
   #####################################
 
   include Xolo::Admin
+  include Xolo::Core::JSONWrappers
   include Xolo::Admin::CommandLine
   include Xolo::Admin::Connection
   include Xolo::Admin::Processing
@@ -45,8 +46,8 @@ class XoloAdmin
   include Xolo::Admin::Interactive
   include Xolo::Admin::Options
   include Xolo::Admin::Validate
-  #  include Xolo::Core::Constants # included in Xolo itself
-  include Xolo::Core::JSONWrappers
+  include Xolo::Admin::JamfPro
+  include Xolo::Admin::TitleEditor
 
   # Constructor
   ###################
@@ -57,43 +58,44 @@ class XoloAdmin
   # Run
   ########################
   def run
+    # this line will actuall stay somewhere here in xadm!
     do_walkthru if walkthru?
 
-    puts
-    puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
-    puts 'GLOBAL OPTS:'
-    puts '----'
-    global_opts.to_h.each do |k, v|
-      puts "..#{k} => #{v}"
-    end
+    # puts
+    # puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
+    # puts 'GLOBAL OPTS:'
+    # puts '----'
+    # global_opts.to_h.each do |k, v|
+    #   puts "..#{k} => #{v}"
+    # end
 
-    puts
-    puts "COMMAND: #{cli_cmd.command}"
+    # puts
+    # puts "COMMAND: #{cli_cmd.command}"
 
-    puts
-    puts "TITLE: #{cli_cmd.title}"
+    # puts
+    # puts "TITLE: #{cli_cmd.title}"
 
-    puts
-    puts "VERSION: #{cli_cmd.version}"
+    # puts
+    # puts "VERSION: #{cli_cmd.version}"
 
-    puts
-    puts 'CURRENT OPT VALUES:'
-    puts 'The values the object had before xadm started working on it.'
-    puts 'If the object is being added, these are the default or inherited values'
-    puts '----'
-    current_opt_values.to_h.each do |k, v|
-      puts "..#{k} => #{v}"
-    end
+    # puts
+    # puts 'CURRENT OPT VALUES:'
+    # puts 'The values the object had before xadm started working on it.'
+    # puts 'If the object is being added, these are the default or inherited values'
+    # puts '----'
+    # current_opt_values.to_h.each do |k, v|
+    #   puts "..#{k} => #{v}"
+    # end
 
-    puts
-    puts 'COMMAND OPT VALUES:'
-    puts 'The command options collected by xadm, merged with the'
-    puts 'current values, to be applied to the object'
-    puts '----'
-    opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
-    opts.to_h.each do |k, v|
-      puts "..#{k} => #{v}"
-    end
+    # puts
+    # puts 'COMMAND OPT VALUES:'
+    # puts 'The command options collected by xadm, merged with the'
+    # puts 'current values, to be applied to the object'
+    # puts '----'
+    # opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
+    # opts.to_h.each do |k, v|
+    #   puts "..#{k} => #{v}"
+    # end
 
     ##############
     puts 'Running login...'
@@ -109,12 +111,12 @@ class XoloAdmin
     # resp = server_cnx.get '/state'
     # puts "#{resp.body}"
 
-    ###################
-    puts 'Listing currently known titles:'
+    # ###################
+    # puts 'Listing currently known titles:'
     all_titles = Xolo::Admin::Title.all_titles server_cnx
     puts all_titles
 
-    ###############
+    # ###############
     already_there = all_titles.include? cli_cmd.title
     puts "all titles contains our title: #{already_there}"
     if already_there
@@ -125,34 +127,40 @@ class XoloAdmin
       puts resp.body
     end
 
-    ###################
+    # ###################
     process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
     puts
     puts "Processing command opts using method: #{process_method}"
     resp = send process_method if process_method
-
-    ##################
     puts "Add Status: #{resp.status}"
     puts 'Add Body:'
     puts resp.body
     puts
 
-    ##################
-    puts 're-fetching...'
-    title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
-    puts "title class: #{title.class}"
-    puts 'title to_h:'
-    puts title.to_h
-    puts
+    # ##################
+    # puts 're-fetching...'
+    # title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+    # puts "title class: #{title.class}"
+    # puts 'title to_h:'
+    # puts title.to_h
+    # puts
 
-    ##################
-    puts 'updating...'
-    title.self_service = false
-    resp = title.update server_cnx
-    puts "Update Status: #{resp.status}"
-    puts 'Update Body:'
-    puts resp.body
-    puts
+    # ##################
+    # puts 'updating...'
+    # title.self_service = false
+    # resp = title.update server_cnx
+    # puts "Update Status: #{resp.status}"
+    # puts 'Update Body:'
+    # puts resp.body
+    # puts
+
+    ###################
+    # puts 'running jamf_package_names'
+    # puts jamf_package_names
+
+    ###################
+    puts 'running title_editor_titles'
+    puts title_editor_titles
 
     ##################
     puts

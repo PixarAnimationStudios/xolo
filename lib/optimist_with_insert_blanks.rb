@@ -993,7 +993,7 @@ module Optimist
 
   end
 
-  ### MULTI_OPT_TYPES :
+  # MULTI_OPT_TYPES :
   ## The set of values that indicate a multiple-parameter option (i.e., that
   ## takes multiple space-separated values on the commandline) when passed as
   ## the +:type+ parameter of #opt.

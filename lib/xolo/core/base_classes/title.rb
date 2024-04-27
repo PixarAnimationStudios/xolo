@@ -138,6 +138,7 @@ module Xolo
           #   @return [String] The unique title-string for this title.
           title: {
             label: 'Title',
+            title_editor_attribute: :id,
             required: true,
             immutable: true,
             cli: false,
@@ -155,6 +156,7 @@ module Xolo
           #   @return [String] The display-name for this title
           display_name: {
             label: 'Display Name',
+            title_editor_attribute: :name,
             required: true,
             cli: :n,
             type: :string,
@@ -186,6 +188,7 @@ module Xolo
           #   @return [String] The entity that publishes this title
           publisher: {
             label: 'Publisher',
+            title_editor_attribute: :publisher,
             required: true,
             cli: :p,
             type: :string,
@@ -200,6 +203,7 @@ module Xolo
           #   @return [String] The name of the .app installed by this title. Nil if no .app is installed
           app_name: {
             label: 'App Name',
+            title_editor_attribute: :appName,
             cli: :a,
             validate: true,
             type: :string,
@@ -221,6 +225,7 @@ module Xolo
           #   @return [String] The bundle ID of the .app installed by this title. Nil if no .app is installed
           app_bundle_id: {
             label: 'App Bundle ID',
+            title_editor_attribute: :bundleId,
             cli: :b,
             validate: true,
             type: :string,
@@ -442,22 +447,23 @@ module Xolo
 
         ATTRIBUTES.each_key do |attr|
           attr_accessor attr
-          attr_accessor "new_#{attr}"
         end
 
         # Constructor
         ######################
         ######################
         def initialize(data_hash)
-          ATTRIBUTES.each do |key, deets|
-            val = data_hash[key]
+          ATTRIBUTES.each do |attr, deets|
+            val = data_hash[attr]
             next if val.pix_blank?
 
-            # convert timestamps to Time objects if needed
+            # convert timestamps to Time objects if needed,
             # All the other values shouldn't need converting
             # when taking in JSON or xadm opts.
             val = Time.parse(val.to_s) if deets[:type] == :time && !val.is_a?(Time)
-            send "#{key}=", val
+
+            # call the setter
+            send "#{attr}=", val
           end
         end
 
@@ -471,15 +477,15 @@ module Xolo
         #####################
         def to_h
           hash = {}
-          ATTRIBUTES.each_key do |k|
-            hash[k] = send k
+          ATTRIBUTES.each_key do |attr|
+            hash[attr] = send attr
           end
           hash
         end
 
         # Convert to a JSON object for sending between xadm and the Xolo Server
         # or storage on the server.
-        # Always make it human readable.
+        # Always make it 'pretty', i.e.  human readable.
         #
         # @return [String] The attributes of this title as JSON
         #####################

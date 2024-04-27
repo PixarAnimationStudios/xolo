@@ -20,30 +20,40 @@
 #    KIND, either express or implied. See the Apache License for the specific
 #    language governing permissions and limitations under the Apache License.
 #
-#
 
 # frozen_string_literal: true
 
 # main module
 module Xolo
 
+  # Server Module
   module Server
 
-    module Helpers
+    module Routes
 
-      # constants and methods for accessing the Jamf Pro server
       module JamfPro
 
-        # Module methods
+        # This is how we 'mix in' modules to Sinatra servers
+        # for route definitions and similar things
         #
-        # These are available as module methods but not as 'helper'
-        # methods in sinatra routes & views.
+        # (things to be 'included' for use in route and view processing
+        # are mixed in by delcaring them to be helpers)
+        #
+        # We make them extentions here with
+        #    extend Sinatra::Extension (from sinatra-contrib)
+        # and then 'register' them in the server with
+        #    register Xolo::Server::<Module>
+        # Doing it this way allows us to split the code into a logical
+        # file structure, without re-opening the Sinatra::Base server app,
+        # and let xeitwork do the requiring of those files
+        extend Sinatra::Extension
+
+        # Module methods
         #
         ##############################
         ##############################
 
         # when this module is included
-        ##############################
         def self.included(includer)
           Xolo.verbose_include includer, self
         end
@@ -53,43 +63,25 @@ module Xolo
           Xolo.verbose_extend extender, self
         end
 
-        # Instance methods
-        #
-        # These are available directly in sinatra routes and views
+        # Routes
         #
         ##############################
         ##############################
 
-        # A connection to Jamd Pro via ruby-jss
-        # We don't use the default connection but
-        # use this method to create standalone ones as needed
-        # and ensure they are disconnected, (or will timeout)
-        # when we are done.
-        # TODO: allow using APIClients
-        #
-        # @return [Jamf::Connection] A connection object
-        def jamf_cnx
-          jcnx = Jamf::Connection.new(
-            name: "jamf-pro-cnx-#{Time.now.strftime('%F-%T')}",
-            host: Xolo::Server.config.jamf_hostname,
-            port: Xolo::Server.config.jamf_port,
-            verify_cert: Xolo::Server.config.jamf_verify_cert,
-            ssl_version: Xolo::Server.config.jamf_ssl_version,
-            open_timeout: Xolo::Server.config.jamf_open_timeout,
-            timeout: Xolo::Server.config.jamf_timeout,
-            user: Xolo::Server.config.jamf_api_user,
-            pw: Xolo::Server.config.jamf_api_pw,
-            keep_alive: false
-          )
-          Xolo::Server.logger.debug "Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
-
-          jcnx
+        # We probably don't need this - just for testing for now.
+        ###############
+        get '/jamf/package-names' do
+          logger.debug "Fetching Jamf Package Names for #{session[:admin]}"
+          jcnx = jamf_cnx
+          body Jamf::Package.all_names(cnx: jcnx).sort
+        ensure
+          jcnx&.disconnect
         end
 
-      end # JamfPro
+      end # Module
 
-    end # Helpers
+    end #  Routes
 
-  end # Server
+  end #  Server
 
 end # module Xolo

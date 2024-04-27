@@ -44,7 +44,8 @@ module Xolo
       # pre-process
       ##############
       before do
-        logger.info "Processing #{request.request_method} #{request.path} from #{request.ip}"
+        adm = session[:admin] ? ", admin '#{session[:admin]}'" : Xolo::BLANK
+        logger.info "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}"
 
         # these routes don't need an auth'd session
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
@@ -58,8 +59,10 @@ module Xolo
       # post-process
       ##############
       after do
-        logger.debug 'Running after filter'
-        unless @no_json
+        if @no_json
+          logger.debug 'NOT converting body to JSON in after filter'
+        else
+          logger.debug 'Converting body to JSON in after filter'
           content_type :json
           # IMPORTANT, this only works if you remember to explicitly use
           # `body body_content` in every route.

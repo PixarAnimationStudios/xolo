@@ -33,7 +33,12 @@ module Xolo
 
       module Titles
 
-        # This is how we 'mix in' modules to Sinatra servers:
+        # This is how we 'mix in' modules to Sinatra servers
+        # for route definitions and similar things
+        #
+        # (things to be 'included' for use in route and view processing
+        # are mixed in by delcaring them to be helpers)
+        #
         # We make them extentions here with
         #    extend Sinatra::Extension (from sinatra-contrib)
         # and then 'register' them in the server with
@@ -64,9 +69,7 @@ module Xolo
           end
 
           logger.info "Admin #{session[:admin]} is creating new title '#{title.title}'"
-          title.creation_date = Time.now
-          title.created_by = session[:admin]
-          title.save
+          title.save(admin: session[:admin])
 
           resp_content = { title: title.title, status: 'saved' }
           body resp_content

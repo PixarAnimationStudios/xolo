@@ -87,7 +87,7 @@ module Xolo
   #
   module Server
 
-    ### Mixins & extensions
+    # Mixins & extensions
     ##############################
     ##############################
 
@@ -95,7 +95,7 @@ module Xolo
     extend Xolo::Server::CommandLine
     include Xolo::Server::Log
 
-    ### Module methods
+    # Module methods
     ##############################
     ##############################
 

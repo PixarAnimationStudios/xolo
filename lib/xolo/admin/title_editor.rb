@@ -31,11 +31,16 @@ module Xolo
 
     # Methods that process the xadm commands and their options
     #
-    module Processing
+    module TitleEditor
 
       # Constants
       ##########################
       ##########################
+
+      TITLE_EDITOR_ROUTE_BASE = '/title-editor'
+
+      # Xolo server route to the list of titles
+      TITLES_ROUTE = "#{TITLE_EDITOR_ROUTE_BASE}/titles"
 
       # Module Methods
       ##########################
@@ -55,39 +60,14 @@ module Xolo
       ##########################
       ##########################
 
-      # update the adm config file using the values from 'xadm config'
-      #
-      # @return [void]
-      def update_config
-        opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
-
-        Xolo::Admin::Configuration::KEYS.each_key do |key|
-          config.send "#{key}=", opts[key]
-        end
-
-        config.save_to_file
+      # Perhaps not needed for anything, but used for initial connection testing
+      # @return [Array<String>] the titles of all Title objects in the Title Editor
+      #######################
+      def title_editor_titles
+        server_cnx.get(TITLES_ROUTE).body
       end
 
-      # Add a title to Xolo
-      #
-      # @return [void]
-      def add_title
-        # Create a title object from the options
-        opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
-        puts "Making new title with these opts: #{opts}"
-
-        new_title = Xolo::Admin::Title.new opts
-        new_title.title = cli_cmd.title
-
-        puts 'new_title.to_json:'
-        puts new_title.to_json
-
-        new_title.add server_cnx
-      rescue StandardError => e
-        handle_server_error e
-      end
-
-    end # module Converters
+    end # module
 
   end # module Admin
 
