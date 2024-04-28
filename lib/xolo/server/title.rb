@@ -38,6 +38,7 @@ module Xolo
 
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
+      include Xolo::Server::Helpers::Log
 
       # Constants
       ######################
@@ -68,6 +69,14 @@ module Xolo
       # Class Methods
       ######################
       ######################
+
+      # TODO: - pass in an ident for the request being processed?
+      # (also in the instance method)
+      # @return [Logger] quick access to the xolo server logger
+      ################
+      def self.logger
+        Xolo::Server.logger
+      end
 
       # @return [Array<Pathname>] A list of all known title dirs
       ######################
@@ -113,21 +122,19 @@ module Xolo
       # @pararm cnx [Windoo::Connection] The Title Editor connection to use
       # @return [Boolean] Does the given title exist in the Title Editor?
       ###############################
-      def self.in_title_editor?(title, cnx: nil)
-        ensure_disconnect = false
-        unless cnx
-          cnx = title_editor_cnx
-          ensure_disconnect = true
-        end
-
+      def self.in_title_editor?(title, cnx:)
         Windoo::SoftwareTitle.all_ids(cnx: cnx).include? title
-      ensure
-        cnx&.disconnect if ensure_disconnect
       end
 
       # Attributes
       ######################
       ######################
+
+      # The sinatra session that instantiates this title
+      attr_writer :session
+
+      # The Windoo::SoftwareTitle#softwareTitleId
+      attr_accessor :title_editor_id_number
 
       # Constructor
       ######################
@@ -136,6 +143,25 @@ module Xolo
       # Instance Methods
       ######################
       ######################
+
+      # @return [Hash]
+      ###################
+      def session
+        @session ||= {}
+      end
+
+      # @return [String]
+      ###################
+      def admin
+        session[:admin]
+      end
+
+      # @return [Windoo::Connection] a single Title Editor connection to use for
+      #   the life of this instance
+      #############################
+      def title_editor_cnx
+        @title_editor_cnx ||= super
+      end
 
       # The title dir for this title on the server
       # @return [Pathname]
@@ -156,35 +182,43 @@ module Xolo
       #
       # @return [void]
       #########################
-      def save(admin:)
-        Xolo::Server.logger.info "Saving title '#{title}' for admin '#{admin}'"
+      def save
+        log_info "Saving title '#{title}' for admin '#{admin}'"
 
         # Grab the on-disk state before we
         # update it, so we can compare it to this one
         # as we save to Jamf and Title Editor
         if title_data_file.file?
-          Xolo::Server.logger.debug 'Found existing older data, will use for update comparison'
+          log_debug 'Found existing older data, will use for update comparison'
           @prev_title = self.class.load(title)
         end
 
         # if we don't have one, we are creating a new one,
         # so set these values
         unless @prev_title
-          Xolo::Server.logger.debug 'This is a new title, setting creation data'
-          @creation_date = Time.now
-          @created_by = admin
-          Xolo::Server.logger.debug "creation_date: #{creation_date}, created_by: #{created_by}"
+          log_debug 'This is a new title, setting creation data'
+          self.creation_date = Time.now
+          self.created_by = admin
+          log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
         end
 
-        Xolo::Server.logger.debug 'Setting modification data'
-        @modification_date = Time.now
-        @modified_by = admin
-        Xolo::Server.logger.debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+        log_debug 'Setting modification data'
+        self.modification_date = Time.now
+        self.modified_by = admin
+        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
-        save_to_file
         save_to_title_editor
+
         # TODO: create or update in Jamf
         # save_to_jamf
+
+        # save to file last, because saving to TitleEd and Jamf will
+        # add some data
+        save_to_file
+
+        # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
+        # appname & bundleid (TEd requirements)
+        # in local file, and TRd, and... jamf?
       end
 
       # Save our current data out to our JSON data file
@@ -194,7 +228,7 @@ module Xolo
       ##########################
       def save_to_file
         title_dir.mkpath
-        Xolo::Server.logger.debug "Saving local data to: #{title_data_file}"
+        log_debug "Saving local data to: #{title_data_file}"
 
         title_data_file.pix_atomic_write to_json
       end
@@ -204,18 +238,14 @@ module Xolo
       # @return [void]
       #######################
       def save_to_title_editor
-        cnx = title_editor_cnx
-
         # update
-        if self.class.in_title_editor?(title, cnx: cnx)
-          update_in_title_editor(cnx)
+        if self.class.in_title_editor?(title, cnx: title_editor_cnx)
+          update_in_title_editor
 
         # create
         else
-          create_in_title_editor(cnx)
+          create_in_title_editor
         end
-      ensure
-        cnx&.disconnect
       end
 
       # Create a new title in the title editor
@@ -223,7 +253,8 @@ module Xolo
       # @param cnx [Windoo::Connection] The title editor connection
       # @return [void]
       ##########################
-      def create_in_title_editor(cnx)
+      def create_in_title_editor
+        log_info "Creating Title Editor SoftwareTitle '#{title}'"
         new_title = Windoo::SoftwareTitle.create(
           id: title,
           name: display_name,
@@ -231,9 +262,9 @@ module Xolo
           appName: app_name,
           bundleId: app_bundle_id,
           currentVersion: NEW_TITLE_CURRENT_VERSION,
-          cnx: cnx
+          cnx: title_editor_cnx
         )
-        # TODO: add ExtAttr (version script) and requirements
+        self.title_editor_id_number = new_title.softwareTitleId
       end
 
       # Update title in the title editor
@@ -241,28 +272,57 @@ module Xolo
       # @param cnx [Windoo::Connection] The title editor connection
       # @return [void]
       ##########################
-      def update_in_title_editor(cnx)
-        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: cnx
+      def update_in_title_editor
+        # TODO: raise and handle this situation...
+        return unless @prev_title
+
+        log_info "Updating Title Editor SoftwareTitle '#{title}'"
+        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
 
         ATTRIBUTES.each do |attr, deets|
-          next unless deets[:title_editor_attribute]
+          title_editor_attribute = deets[:title_editor_attribute]
+          next unless title_editor_attribute
 
+          old_val = @prev_title.send(attr)
           new_val = send(attr)
-          next if new_val == @prev_title.send(attr)
+          next if new_val == old_val
 
-          title_in_title_editor.send "#{title_in_title_editor}=", new_val
+          # These changes happen in real time on the Title Editor server
+          log_debug "Updating title_editor_attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
+          title_in_title_editor.send "#{title_editor_attribute}=", new_val
         end
 
-        # TODO: update ExtAttr (version script) and requirements
+        self.title_editor_id_number = title_in_title_editor.softwareTitleId
       end
 
       # Delete the title and all of its version
       # @return [void]
       ##########################
       def delete
-        # TODO: delete from Jamf and the Title Editor first
+        delete_from_title_editor
 
+        # TODO: delete in jamf
         title_dir.rmtree
+      end
+
+      # Delete from the title editor
+      # @return [Integer] title_editor_id_number
+      ###########################
+      def delete_from_title_editor
+        log_info "Deleting Title Editor SoftwareTitle '#{title}'"
+
+        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
+        title_in_title_editor.delete
+      rescue Windoo::NoSuchItemError
+        title_editor_id_number
+      end
+
+      # Add more data to our hash
+      ###########################
+      def to_h
+        hash = super
+        hash[:title_editor_id_number] = title_editor_id_number
+        hash
       end
 
     end # class Title

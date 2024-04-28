@@ -71,7 +71,7 @@ module Xolo
         # We probably don't need this - just for testing for now.
         ###############
         get '/jamf/package-names' do
-          logger.debug "Fetching Jamf Package Names for #{session[:admin]}"
+          log_debug "Fetching Jamf Package Names for #{session[:admin]}"
           jcnx = jamf_cnx
           body Jamf::Package.all_names(cnx: jcnx).sort
         ensure

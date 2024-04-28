@@ -45,14 +45,20 @@ module Xolo
       ##############
       before do
         adm = session[:admin] ? ", admin '#{session[:admin]}'" : Xolo::BLANK
-        logger.info "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}"
+
+        @x_sess_id = session[:xolo_id] ? " [#{session[:xolo_id]}]" : Xolo::BLANK
+
+        log_info(@x_sess_id) { "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}" }
+
+        # puts "in before - self.class: #{self.class}"
+        # puts "in before - self.respond_to? xolo_session_id: #{respond_to? :xolo_session_id}"
 
         # these routes don't need an auth'd session
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
         # If here, we must have a session cookie marked as 'authenticated'
-        logger.debug "Session in before filter: #{session.inspect}"
+        log_debug "Session in before filter: #{session.inspect}"
         halt 401, { error: 'You must log in to the Xolo server' } unless session[:authenticated]
       end
 
@@ -60,9 +66,9 @@ module Xolo
       ##############
       after do
         if @no_json
-          logger.debug 'NOT converting body to JSON in after filter'
+          log_debug 'NOT converting body to JSON in after filter'
         else
-          logger.debug 'Converting body to JSON in after filter'
+          log_debug 'Converting body to JSON in after filter'
           content_type :json
           # IMPORTANT, this only works if you remember to explicitly use
           # `body body_content` in every route.
@@ -76,7 +82,7 @@ module Xolo
       # error process
       ##############
       error do
-        logger.debug 'Running error filter'
+        log_debug 'Running error filter'
 
         body({ status: response.status, error: env['sinatra.error'].message })
       end
@@ -105,6 +111,9 @@ module Xolo
           debug: Xolo::Server.debug?,
           data_dir: Xolo::Server.config.data_dir,
           log_file: Xolo::Server.config.log_file,
+          xolo_version: Xolo::VERSION,
+          ruby_jss_version: Jamf::VERSION,
+          windoo_version: Windoo::VERSION,
           config: conf
         }
 

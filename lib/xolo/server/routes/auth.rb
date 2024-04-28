@@ -59,7 +59,7 @@ module Xolo
           admin = payload[:admin]
           pw = payload[:password]
 
-          logger.debug "Authenticating admin '#{admin}'"
+          log_debug "Authenticating admin '#{admin}'"
 
           err = nil
           err = "'#{admin}' is not allowed to use the Xolo server" unless member_of_admin_jamf_group?(admin)
@@ -67,11 +67,16 @@ module Xolo
           err ||= 'Incorrect xolo admin username or password' unless authenticated_via_jamf?(admin, pw)
 
           if err
-            logger.debug "Authentication failed for '#{admin}': #{err}"
+            log_debug "Authentication failed for '#{admin}': #{err}"
             halt 401, { error: err }
           end
 
           # Set the session values
+          # session[:xolo_id] = Time.now.strftime '%Y%m%d%H%M%S%6N'
+          # session[:xolo_id] = Time.now.strftime '%s%6N'
+          # session[:xolo_id] = object_id
+          session[:xolo_id] = "#{Time.now.to_i}#{SecureRandom.alphanumeric 4}"
+
           session[:admin] = admin
           session[:authenticated] = true
 

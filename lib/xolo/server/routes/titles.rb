@@ -59,17 +59,19 @@ module Xolo
         post '/titles' do
           request.body.rewind
           data = request.body.read
-          logger.debug "Incoming new title data: #{data}"
+          log_debug "Incoming new title data: #{data}"
 
           title = Xolo::Server::Title.new parse_json(data)
+          title.session = session
+
           if all_titles.include? title.title
             msg = "Title '#{title.title}' already exists"
-            logger.debug "ERROR: Admin #{session[:admin]}: #{msg}"
+            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
             halt 409, { error: msg }
           end
 
-          logger.info "Admin #{session[:admin]} is creating new title '#{title.title}'"
-          title.save(admin: session[:admin])
+          log_info "Admin #{session[:admin]} is creating new title '#{title.title}'"
+          title.save
 
           resp_content = { title: title.title, status: 'saved' }
           body resp_content
@@ -79,8 +81,7 @@ module Xolo
         # @return [Array<String>] the names of existing titles
         #################################
         get '/titles' do
-          logger.debug "Admin #{session[:admin]} is listing all titles'"
-
+          log_debug "Admin #{session[:admin]} is listing all titles'"
           body all_titles
         end
 
@@ -90,11 +91,12 @@ module Xolo
         get '/titles/:title' do
           unless all_titles.include? params[:title]
             msg = "Title '#{params[:title]}' does not exist."
-            logger.debug "ERROR: Admin #{session[:admin]}: #{msg}"
+            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
             halt 404, { error: msg }
           end
 
           title = Xolo::Server::Title.load params[:title]
+          title.session = session
           body title.to_h
         end
 
@@ -104,16 +106,18 @@ module Xolo
         put '/titles' do
           request.body.rewind
           data = request.body.read
-          logger.debug "Incoming update title data: #{data}"
+          log_debug "Incoming update title data: #{data}"
 
           title = Xolo::Server::Title.new parse_json(data)
+          title.session = session
+
           unless all_titles.include? title.title
             msg = "Title '#{title.title}' does not exist."
-            logger.debug "ERROR: Admin #{session[:admin]}: #{msg}"
+            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
             halt 404, { error: msg }
           end
 
-          logger.info "Admin #{session[:admin]} is updating title '#{title.title}'"
+          log_info "Admin #{session[:admin]} is updating title '#{title.title}'"
           title.modification_date = Time.now
           title.modified_by = session[:admin]
           title.save
@@ -128,13 +132,14 @@ module Xolo
         delete '/titles/:title' do
           unless all_titles.include? params[:title]
             msg = "Title '#{params[:title]}' does not exist."
-            logger.debug "ERROR: Admin #{session[:admin]}: #{msg}"
+            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
             halt 404, { error: msg }
           end
 
           title = Xolo::Server::Title.load params[:title]
+          title.session = session
 
-          logger.info "Admin #{session[:admin]} is deleting title '#{title.title}'"
+          log_info "Admin #{session[:admin]} is deleting title '#{title.title}'"
           title.delete
 
           resp_content = { title: params[:title], status: 'deleted' }

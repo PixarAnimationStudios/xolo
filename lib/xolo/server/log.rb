@@ -39,8 +39,9 @@ module Xolo
 
       DATETIME_FORMAT = '%F %T'
 
-      BASE_FORMATTER = proc do |severity, datetime, _progname, msg|
-        "#{datetime.strftime DATETIME_FORMAT} #{severity}: #{msg}\n"
+      LOG_FORMATTER = proc do |severity, datetime, progname, msg|
+        progname &&= " #{progname}"
+        "#{datetime.strftime DATETIME_FORMAT} #{severity}#{progname}: #{msg}\n"
       end
 
       LOG_DIR = Xolo::Server::DATA_DIR + 'logs'
@@ -56,11 +57,14 @@ module Xolo
 
         LOG_DIR.mkpath
         LOG_FILE.pix_touch
+
         @logger = Logger.new(
           LOG_FILE,
           datetime_format: DATETIME_FORMAT,
-          formatter: BASE_FORMATTER
+          formatter: LOG_FORMATTER
         )
+
+        @logger
       end
 
       # change log level of the server logger, new requests should inherit it

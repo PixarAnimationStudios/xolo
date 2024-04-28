@@ -75,7 +75,7 @@ module Xolo
           # This isn't well implemented in ruby-jss, so use c_get directly
           jgroup = jcnx.c_get("accounts/groupname/#{groupname}")[:group]
 
-          logger.debug "Checking for admin '#{admin_name}' in group '#{groupname}'"
+          log_debug "Checking for admin '#{admin_name}' in group '#{groupname}'"
           if jgroup[:ldap_server]
             Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], admin_name, groupname, cnx: jcnx
           else
@@ -94,7 +94,7 @@ module Xolo
         # @return [Boolean] Did the password work for the user?
         #####################
         def authenticated_via_jamf?(admin, pw)
-          logger.debug "Checking Jamf authentication for admin '#{admin}'"
+          log_debug "Checking Jamf authentication for admin '#{admin}'"
           login_cnx = Jamf::Connection.new(
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,

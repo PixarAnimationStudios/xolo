@@ -32,10 +32,6 @@ module Xolo
     # The actual server application - a Sinatra/Thin HTTPS server
     class App < Sinatra::Base
 
-      # Sinatra setup
-      ##############################
-      ##############################
-
       # Extensions & Helpers
       ##############################
       ##############################
@@ -46,17 +42,20 @@ module Xolo
       register Xolo::Server::Routes::TitleEditor
       register Xolo::Server::Routes::Titles
 
-      helpers Sinatra::CustomLogger
+      # helpers Sinatra::CustomLogger
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
+      helpers Xolo::Server::Helpers::Log
       helpers Xolo::Server::Helpers::Auth
       helpers Xolo::Server::Helpers::JamfPro
       helpers Xolo::Server::Helpers::TitleEditor
       helpers Xolo::Server::Helpers::Titles
 
-      # helpers Xolo::Server::Helpers::JamfPro
-      # helpers Xolo::Server::Helpers::TitleEditor
+      # Sinatra setup
+      ##############################
+      ##############################
 
+      ##########
       configure do
         set :server, :thin
         set :bind, '0.0.0.0'
@@ -65,22 +64,22 @@ module Xolo
         set :dump_errors, true
         disable :show_exceptions
 
-        logger = Xolo::Server.logger
-        logger.level = development? ? Logger::DEBUG : Logger::INFO
-        set :logger, logger
+        # logger = Xolo::Server.logger
+        # logger.level = development? ? Logger::DEBUG : Logger::INFO
+        # set :logger, logger
 
-        # Sessions must be set up before the
-        # Rack::Session stuff
         enable :sessions
         set :session_secret, SecureRandom.hex(64)
         set :protection, session: true
         set :sessions, expire_after: 3600
       end
 
+      ###############
       configure :development do
         require 'pp'
       end
 
+      #############
       configure :production do
         set :show_exceptions, false
       end

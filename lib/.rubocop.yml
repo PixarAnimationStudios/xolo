@@ -13,7 +13,7 @@ Metrics/MethodLength:
 
 #### Naming
 
-# allow both snake_case and camelCase variable names,
+# allow both snake_case and camelCase variable and method names,
 # for both ruby_standard and apiAttributeNames
 Naming/VariableName:
   Enabled: false

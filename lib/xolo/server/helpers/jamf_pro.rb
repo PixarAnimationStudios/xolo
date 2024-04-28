@@ -81,7 +81,7 @@ module Xolo
             pw: Xolo::Server.config.jamf_api_pw,
             keep_alive: false
           )
-          Xolo::Server.logger.debug "Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
+          log_debug "Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
 
           jcnx
         end
