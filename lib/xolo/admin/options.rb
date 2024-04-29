@@ -97,6 +97,7 @@ module Xolo
       REPORT_CMD = 'report'
       CONFIG_CMD = 'config'
       HELP_CMD = 'help'
+
       HELP_OPT = '--help'
 
       DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
@@ -112,6 +113,7 @@ module Xolo
           display: LIST_TITLES_CMD,
           opts: {},
           arg_banner: :none,
+          process_method: :list_titles,
           target: :none
         },
 
@@ -133,6 +135,7 @@ module Xolo
           display: "#{EDIT_TITLE_CMD} title",
           opts: Xolo::Admin::Title.cli_opts,
           walkthru_header: "Editing Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
+          process_method: :edit_title,
           target: :title
         },
 
@@ -140,6 +143,7 @@ module Xolo
           desc: 'Delete a software title, and all of its versions',
           display: "#{DELETE_TITLE_CMD} title",
           opts: {},
+          process_method: :delete_title,
           target: :title
         },
 
@@ -199,7 +203,8 @@ module Xolo
           desc: 'Show details about a title, or a version of a title',
           display: "#{INFO_CMD} title [version]",
           opts: {},
-          target: :title_or_version
+          target: :title_or_version,
+          process_method: :show_info
         },
 
         REPORT_CMD => {
@@ -215,6 +220,7 @@ module Xolo
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
           walkthru_header: 'Editing xadm configuration',
+          no_login: true,
           arg_banner: :none,
           process_method: :update_config
         },
@@ -232,6 +238,15 @@ module Xolo
 
       EDIT_COMMANDS = [EDIT_TITLE_CMD, EDIT_VERSION_CMD].freeze
 
+      DELETE_COMMANDS = [DELETE_TITLE_CMD, DELETE_VERSION_CMD].freeze
+
+      # For these commands, the title or version must exist
+      MUST_EXIST_COMMANDS = [
+        EDIT_TITLE_CMD, EDIT_VERSION_CMD,
+        DELETE_TITLE_CMD, DELETE_VERSION_CMD,
+        PILOT_VERSION_CMD, RELEASE_VERSION_CMD
+      ].freeze
+
       # Module methods
       ##############################
       ##############################
@@ -245,7 +260,20 @@ module Xolo
       ##########################
       ##########################
 
+      # the command definition details from Xolo::Admin::Options::COMMANDS
+      #
+      # @param cmd [Symbol] A key from Xolo::Admin::Options::COMMANDS
+      #   defaults to the current cli_cmd.commadn
+      #
+      # @return [Hash] The value for the key
+      #######################
+      def cmd_details(cmd = nil)
+        cmd ||= cli_cmd.command
+        Xolo::Admin::Options::COMMANDS[cmd]
+      end
+
       # Are we running in interactive mode?
+      #######################
       def walkthru?
         global_opts.walkthru
       end
@@ -385,14 +413,16 @@ module Xolo
 
         # titles
         elsif title_command?
+          opts_defs = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts]
+
           # adding a new one? just use defaults
           if add_command?
-            opts_defs = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts]
             opts_defs.each { |key, deets| @current_opt_values[key] = deets[:default] if deets[:default] }
 
           # editing? just use the current values
           elsif edit_command?
-            # do stuff here to fetch current values from the server.
+            current_title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+            opts_defs.each_key { |key| @current_opt_values[key] = current_title.send(key) }
           end
 
         # versions

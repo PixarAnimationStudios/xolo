@@ -405,6 +405,7 @@ module Xolo
             label: 'Created By',
             type: :string,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who created this title.
             ENDDESC
@@ -416,6 +417,7 @@ module Xolo
             label: 'Creation Date',
             type: :time,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm
             desc: <<~ENDDESC
               The date this title was created.
             ENDDESC
@@ -427,6 +429,7 @@ module Xolo
             label: 'Modified By',
             type: :string,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm
             desc: <<~ENDDESC
               The login of the admin who last modified this title.
             ENDDESC
@@ -438,6 +441,7 @@ module Xolo
             label: 'Modification Date',
             type: :time,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm
             desc: <<~ENDDESC
               The date this title was last modified.
             ENDDESC

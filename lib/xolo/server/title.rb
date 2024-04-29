@@ -177,40 +177,24 @@ module Xolo
         self.class.title_data_file title
       end
 
-      # Save a new title, adding or updating to the
+      # Save a new title, adding to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #
       # @return [void]
       #########################
-      def save
-        log_info "Saving title '#{title}' for admin '#{admin}'"
+      def create
+        log_info "Creating new title '#{title}' for admin '#{admin}'"
 
-        # Grab the on-disk state before we
-        # update it, so we can compare it to this one
-        # as we save to Jamf and Title Editor
-        if title_data_file.file?
-          log_debug 'Found existing older data, will use for update comparison'
-          @prev_title = self.class.load(title)
-        end
-
-        # if we don't have one, we are creating a new one,
-        # so set these values
-        unless @prev_title
-          log_debug 'This is a new title, setting creation data'
-          self.creation_date = Time.now
-          self.created_by = admin
-          log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
-        end
-
-        log_debug 'Setting modification data'
+        self.creation_date = Time.now
+        self.created_by = admin
+        log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
         self.modification_date = Time.now
         self.modified_by = admin
         log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
-        save_to_title_editor
+        create_in_title_editor
 
-        # TODO: create or update in Jamf
-        # save_to_jamf
+        # Nothing to do in Jamf until the first version is created
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
@@ -219,6 +203,49 @@ module Xolo
         # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
         # appname & bundleid (TEd requirements)
         # in local file, and TRd, and... jamf?
+
+        # TODO: upload any self svc icon
+      end
+
+      # Save a new title, adding or updating to the
+      # local filesystem, Jamf Pro, and the Title Editor as needed
+      #
+      # @param new_data [Hash] The new data sent from xadm
+      # @return [void]
+      #########################
+      def update(new_data)
+        log_info "Updating title '#{title}' for admin '#{admin}'"
+
+        self.modification_date = Time.now
+        self.modified_by = admin
+        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+
+        update_in_title_editor new_data
+
+        # TODO:  update in Jamf if needed
+
+        # update local data before saving back to file
+        ATTRIBUTES.each do |attr, deets|
+          next if deets[:read_only]
+
+          new_val = new_data[attr]
+          old_val = send(attr)
+          next if new_val == old_val
+
+          # These changes happen in real time on the Title Editor server
+          log_debug "Updating Xolo attribute '#{attr}': #{old_val} -> #{new_val}"
+          send "#{attr}=", new_val
+        end
+
+        # save to file last, because saving to TitleEd and Jamf will
+        # add some data
+        save_to_file
+
+        # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
+        # appname & bundleid (TEd requirements)
+        # in local file, and TRd, and... jamf?
+
+        # TODO: upload any self svc icon
       end
 
       # Save our current data out to our JSON data file
@@ -255,7 +282,7 @@ module Xolo
       ##########################
       def create_in_title_editor
         log_info "Creating Title Editor SoftwareTitle '#{title}'"
-        new_title = Windoo::SoftwareTitle.create(
+        new_ted_title = Windoo::SoftwareTitle.create(
           id: title,
           name: display_name,
           publisher: publisher,
@@ -264,18 +291,15 @@ module Xolo
           currentVersion: NEW_TITLE_CURRENT_VERSION,
           cnx: title_editor_cnx
         )
-        self.title_editor_id_number = new_title.softwareTitleId
+        self.title_editor_id_number = new_ted_title.softwareTitleId
       end
 
       # Update title in the title editor
       #
-      # @param cnx [Windoo::Connection] The title editor connection
+      # @param new_data [Hash] The new data sent from xadm
       # @return [void]
       ##########################
-      def update_in_title_editor
-        # TODO: raise and handle this situation...
-        return unless @prev_title
-
+      def update_in_title_editor(new_data)
         log_info "Updating Title Editor SoftwareTitle '#{title}'"
         title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
 
@@ -283,15 +307,14 @@ module Xolo
           title_editor_attribute = deets[:title_editor_attribute]
           next unless title_editor_attribute
 
-          old_val = @prev_title.send(attr)
-          new_val = send(attr)
+          new_val = new_data[attr]
+          old_val = send(attr)
           next if new_val == old_val
 
           # These changes happen in real time on the Title Editor server
           log_debug "Updating title_editor_attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
           title_in_title_editor.send "#{title_editor_attribute}=", new_val
         end
-
         self.title_editor_id_number = title_in_title_editor.softwareTitleId
       end
 

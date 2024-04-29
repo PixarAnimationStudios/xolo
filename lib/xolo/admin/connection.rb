@@ -62,6 +62,8 @@ module Xolo
       #
       ##############
       def login
+        return if cmd_details[:no_login]
+
         hostname = config.hostname
         admin = config.admin
         pw = fetch_pw

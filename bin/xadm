@@ -52,6 +52,8 @@ class XoloAdmin
   # Constructor
   ###################
   def initialize
+    # This will log us in to the xolo server
+    # if the command needs it.
     parse_cli
   end
 
@@ -60,7 +62,9 @@ class XoloAdmin
   def run
     # this line will actuall stay somewhere here in xadm!
     do_walkthru if walkthru?
+    return if @walkthru_cancelled
 
+    ###################
     # puts
     # puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
     # puts 'GLOBAL OPTS:'
@@ -69,15 +73,19 @@ class XoloAdmin
     #   puts "..#{k} => #{v}"
     # end
 
+    ###################
     # puts
     # puts "COMMAND: #{cli_cmd.command}"
 
+    ###################
     # puts
     # puts "TITLE: #{cli_cmd.title}"
 
+    ###################
     # puts
     # puts "VERSION: #{cli_cmd.version}"
 
+    ###################
     # puts
     # puts 'CURRENT OPT VALUES:'
     # puts 'The values the object had before xadm started working on it.'
@@ -87,6 +95,7 @@ class XoloAdmin
     #   puts "..#{k} => #{v}"
     # end
 
+    ###################
     # puts
     # puts 'COMMAND OPT VALUES:'
     # puts 'The command options collected by xadm, merged with the'
@@ -97,9 +106,10 @@ class XoloAdmin
     #   puts "..#{k} => #{v}"
     # end
 
-    ##############
-    puts 'Running login...'
-    login
+    process_method = cmd_details[:process_method]
+    return unless process_method
+
+    send process_method
 
     ###################
     # puts 'CookieJar:'
@@ -113,29 +123,29 @@ class XoloAdmin
 
     # ###################
     # puts 'Listing currently known titles:'
-    all_titles = Xolo::Admin::Title.all_titles server_cnx
-    puts all_titles
+    # all_titles = Xolo::Admin::Title.all_titles server_cnx
+    # puts all_titles
 
-    # ###############
-    already_there = all_titles.include? cli_cmd.title
-    puts "all titles contains our title: #{already_there}"
-    if already_there
-      puts 'deleting the title first'
-      resp = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
-      puts "Delete Status: #{resp.status}"
-      puts 'Delete Body:'
-      puts resp.body
-    end
+    # # ###############
+    # already_there = all_titles.include? cli_cmd.title
+    # puts "all titles contains our title: #{already_there}"
+    # if already_there
+    #   puts 'deleting the title first'
+    #   resp = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
+    #   puts "Delete Status: #{resp.status}"
+    #   puts 'Delete Body:'
+    #   puts resp.body
+    # end
 
-    # ###################
-    process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
-    puts
-    puts "Processing command opts using method: #{process_method}"
-    resp = send process_method if process_method
-    puts "Add Status: #{resp.status}"
-    puts 'Add Body:'
-    puts resp.body
-    puts
+    # # ###################
+    # process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
+    # puts
+    # puts "Processing command opts using method: #{process_method}"
+    # resp = send process_method if process_method
+    # puts "Add Status: #{resp.status}"
+    # puts 'Add Body:'
+    # puts resp.body
+    # puts
 
     # ##################
     # puts 're-fetching...'
@@ -159,12 +169,12 @@ class XoloAdmin
     # puts jamf_package_names
 
     ###################
-    puts 'running title_editor_titles'
-    puts title_editor_titles
+    # puts 'running title_editor_titles'
+    # puts title_editor_titles
 
     ##################
-    puts
-    puts 'DONE'
+    # puts
+    # puts 'DONE'
   end # run
 
 end # class XoloAdmin
@@ -187,6 +197,6 @@ begin
   app.run
 rescue => e
   # to
-  warn "Error: #{e.class.name.split('::').last}: #{e}"
+  warn "Error: #{e.class}: #{e}"
   e.backtrace.each { |l| warn "..#{l}" }
 end

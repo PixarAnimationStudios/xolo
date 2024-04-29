@@ -33,7 +33,12 @@ module Xolo
 
       # This is mixed in to Xolo::Server::App (as a helper, available in route processing)
       # and in Xolo::Server::Title and Xolo::Server::Version,
-      # for simplified access to the main server logger, with session IDs
+      # for simplified access to the main server logger, with access to session IDs
+      #
+      # The Title and Version objects must be instantiated with the current session object
+      # in order for this to work.
+      #
+      # See Xolo::Server::Helpers::Titles#instantiate_title for how this happens
       #
       # All those things need have have #session set before calling the log_* methods
       module Log

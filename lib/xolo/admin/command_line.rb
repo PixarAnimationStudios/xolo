@@ -199,6 +199,7 @@ module Xolo
         return if reparse_global_cli_for_help?
 
         # we have a command, validate it
+        login
         validate_cli_command
 
         # if the command is 'config' we always do walkthru
@@ -216,6 +217,7 @@ module Xolo
           return if reparse_global_cli_for_help?
 
           # we have a new command, for which we are getting help. Validate it
+          login
           validate_cli_command
 
           # 'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
@@ -235,7 +237,7 @@ module Xolo
           cli_cmd.title = ARGV.shift
           validate_cli_title
 
-          cli_cmd.version = ARGV.shift unless ARGV.first.to_s.start_with? XOLO::DASH
+          cli_cmd.version = ARGV.shift unless ARGV.first.to_s.start_with? Xolo::DASH
           validate_cli_version if cli_cmd.version
 
         end # if

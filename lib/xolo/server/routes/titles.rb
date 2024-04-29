@@ -54,24 +54,19 @@ module Xolo
         end
 
         # Create a new title from the body content of the request
+        #
         # @return [Hash] A response hash
         #################################
         post '/titles' do
           request.body.rewind
           data = request.body.read
           log_debug "Incoming new title data: #{data}"
-
-          title = Xolo::Server::Title.new parse_json(data)
-          title.session = session
-
-          if all_titles.include? title.title
-            msg = "Title '#{title.title}' already exists"
-            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
-            halt 409, { error: msg }
-          end
+          title = instantiate_title parse_json(data)
 
           log_info "Admin #{session[:admin]} is creating new title '#{title.title}'"
-          title.save
+          halt_on_existing_title title.title
+
+          title.create
 
           resp_content = { title: title.title, status: 'saved' }
           body resp_content
@@ -81,7 +76,7 @@ module Xolo
         # @return [Array<String>] the names of existing titles
         #################################
         get '/titles' do
-          log_debug "Admin #{session[:admin]} is listing all titles'"
+          log_debug "Admin #{session[:admin]} is listing all titles"
           body all_titles
         end
 
@@ -89,38 +84,33 @@ module Xolo
         # @return [Hash] The data for this title
         #################################
         get '/titles/:title' do
-          unless all_titles.include? params[:title]
-            msg = "Title '#{params[:title]}' does not exist."
-            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
-            halt 404, { error: msg }
-          end
+          log_debug "Admin #{session[:admin]} is fetching title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
 
-          title = Xolo::Server::Title.load params[:title]
-          title.session = session
+          title = instantiate_title params[:title]
           body title.to_h
         end
 
         # Replace the data for an existing title with the content of the request
         # @return [Hash] A response hash
         #################################
-        put '/titles' do
-          request.body.rewind
-          data = request.body.read
-          log_debug "Incoming update title data: #{data}"
+        put '/titles/:title' do
+          log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
 
-          title = Xolo::Server::Title.new parse_json(data)
-          title.session = session
+          title = instantiate_title params[:title]
 
-          unless all_titles.include? title.title
-            msg = "Title '#{title.title}' does not exist."
-            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
-            halt 404, { error: msg }
+          unless title.title == params[:title]
+            msg = "Title in JSON payload '#{title.title}' does not match title in URL parameter '#{params[:title]}'"
+            log_debug msg
+            halt 400, { error: msg }
           end
 
-          log_info "Admin #{session[:admin]} is updating title '#{title.title}'"
-          title.modification_date = Time.now
-          title.modified_by = session[:admin]
-          title.save
+          request.body.rewind
+          new_data = parse_json(request.body.read)
+          log_debug "Incoming update title data: #{new_data}"
+
+          title.update new_data
 
           resp_content = { title: title.title, status: 'updated' }
           body resp_content
@@ -130,19 +120,16 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         delete '/titles/:title' do
-          unless all_titles.include? params[:title]
-            msg = "Title '#{params[:title]}' does not exist."
-            log_debug "ERROR: Admin #{session[:admin]}: #{msg}"
-            halt 404, { error: msg }
-          end
+          resp_content =
+            if all_titles.include? params[:title]
+              title = instantiate_title params[:title]
+              log_info "Admin #{session[:admin]} is deleting title '#{title.title}'"
+              title.delete
+              { title: params[:title], status: 'deleted' }
+            else
+              { title: params[:title], status: "doesn't exist, not deleted" }
+            end
 
-          title = Xolo::Server::Title.load params[:title]
-          title.session = session
-
-          log_info "Admin #{session[:admin]} is deleting title '#{title.title}'"
-          title.delete
-
-          resp_content = { title: params[:title], status: 'deleted' }
           body resp_content
         end
 

@@ -39,6 +39,9 @@ module Xolo
 
       DATETIME_FORMAT = '%F %T'
 
+      # THe log format - we use 'progname' to hole the
+      # session object, if there is one.
+      #
       LOG_FORMATTER = proc do |severity, datetime, progname, msg|
         progname &&= " #{progname}"
         "#{datetime.strftime DATETIME_FORMAT} #{severity}#{progname}: #{msg}\n"

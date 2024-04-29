@@ -67,10 +67,19 @@ module Xolo
         resp.body
       end
 
-      # Fetch a title from the server
-      # @param title [String] the title to delete
+      # Does a title exist on the server?
+      # @param title [String] the title
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return
+      # @return [Boolean]
+      #############################
+      def self.exist?(title, cnx)
+        all_titles(cnx).include? title
+      end
+
+      # Fetch a title from the server
+      # @param title [String] the title to fetch
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Xolo::Admin::Title]
       ####################
       def self.fetch(title, cnx)
         resp = cnx.get "#{SERVER_ROUTE}/#{title}"
@@ -81,7 +90,7 @@ module Xolo
       # Delete a title from the server
       # @param title [String] the title to delete
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return
+      # @return [void]
       ####################
       def self.delete(title, cnx)
         resp = cnx.delete "#{SERVER_ROUTE}/#{title}"
@@ -93,7 +102,7 @@ module Xolo
 
       # Add this title to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return
+      # @return [void]
       ####################
       def add(cnx)
         resp = cnx.post SERVER_ROUTE, to_h
@@ -101,18 +110,18 @@ module Xolo
 
       # Add this title to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return
+      # @return [void]
       ####################
       def update(cnx)
-        resp = cnx.put SERVER_ROUTE, to_h
+        resp = cnx.put "#{SERVER_ROUTE}/#{title}", to_h
       end
 
       # Delete this title from the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return
+      # @return [void]
       ####################
       def delete(cnx)
-        self.class.delete title, cnx
+        resp = self.class.delete title, cnx
       end
 
     end # class Title

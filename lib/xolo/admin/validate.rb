@@ -66,7 +66,7 @@ module Xolo
 
       # Thes methods all raise this error
       def raise_invalid_data_error(val, msg)
-        raise Xolo::InvalidDataError, "'#{val}' #{msg}"
+        raise Xolo::InvalidDataError, "'#{val}': #{msg}"
       end
 
       # is the given command valid?
@@ -84,20 +84,10 @@ module Xolo
         # this command doesn't need a title arg
         return if Xolo::Admin::Options::COMMANDS[cli_cmd.command][:target] == :none
 
-        # TODO:
-        #   If this is an 'add-' command, ensure the title
-        #   doesn't already exist.
-        #   Otherwise, make sure it does already exist, except for
-        #   'search' which uses the CLI title as a search pattern.
-        #
-        title = cli_cmd.title
-        raise ArgumentError, "No title provided!\nUsage: #{usage}" unless title
+        raise ArgumentError, "No title provided!\nUsage: #{usage}" unless cli_cmd.title
 
-        validate_title title # unless title.to_s.start_with?(Xolo::DASH)
-
-        # return if title && !title.start_with?(Xolo::DASH)
-
-        #  raise ArgumentError, "No title provided!\nUsage: #{Xolo::Admin.usage}"
+        # this validates the format
+        validate_title cli_cmd.title
       end
 
       # were we given a version?
@@ -183,10 +173,19 @@ module Xolo
       def validate_title(val)
         val = val.to_s.strip
 
-        # TODO: Validate that it doesn't already exist in xolo if we are adding
-        return val if val =~ /\A[a-z0-9-][a-z0-9-]+\z/
+        err =
+          if Xolo::Admin::Title.exist?(val, server_cnx)
+            'already exists in Xolo' if cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
+          elsif Xolo::Admin::Options::MUST_EXIST_COMMANDS.include? cli_cmd.command
+            "doesn't exist in Xolo"
+          end
 
-        raise_invalid_data_error val, TITLE_ATTRS[:title][:invalid_msg]
+        # TODO: Validate that it doesn't already exist in xolo if we are adding
+        err ||= TITLE_ATTRS[:title][:invalid_msg] unless val =~ /\A[a-z0-9-][a-z0-9-]+\z/
+
+        return val unless err
+
+        raise_invalid_data_error val, err
       end
 
       # validate a title display-name. Must be 3+ chars long
@@ -501,9 +500,13 @@ module Xolo
         end
 
         response = server_cnx(host: val).get Xolo::Admin::Connection::PING_ROUTE
-        val if response.body == Xolo::Admin::Connection::PING_RESPONSE
+        return val if response.body == Xolo::Admin::Connection::PING_RESPONSE
+
+        raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:hostname][:invalid_msg]
       rescue Faraday::ConnectionFailed => e
         raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:hostname][:invalid_msg]
+      rescue Faraday::SSLError => e
+        raise_invalid_data_error val, 'SSL Error. Be sure to use the fully qualified hostname.'
       end
 
       # Password (and username) will be validated via the server

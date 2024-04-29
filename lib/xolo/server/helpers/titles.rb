@@ -54,6 +54,59 @@ module Xolo
           Xolo::Server::Title.all_titles
         end
 
+        # Instantiate a Server::Title
+        # If given a string, use it with .load to read the title from disk
+        #
+        # If given a Hash, use it with .new to instantiate fresh
+        #
+        # In all cases, pass in the session, to use for logging
+        # (the reason this method exists)
+        #
+        # @param data [Hash] hash to use with .new
+        # @param name [String] name to use with .load
+        # @return [Xolo::Server::Title]
+        #################
+        def instantiate_title(data)
+          title =
+            case data
+            when Hash
+              Xolo::Server::Title.new data
+
+            when String
+              halt_on_missing_title params[:title]
+              Xolo::Server::Title.load params[:title]
+
+            else
+              halt 400, 'Invalid data to instantiate a Xolo.Server::Title'
+            end
+          title.session = session
+          title
+        end
+
+        # Halt 404 if a title doesn't exist
+        # @pararm [String] The title of a Title
+        # @return [void]
+        ##################
+        def halt_on_missing_title(title)
+          return if all_titles.include? title
+
+          msg = "Title '#{title}' does not exist."
+          log_debug "ERROR: #{msg}"
+          halt 404, { error: msg }
+        end
+
+        # Halt 409 if a title already exists
+        # @pararm [String] The title of a Title
+        # @return [void]        #
+        ##################
+        def halt_on_existing_title(title)
+          return unless all_titles.include? title
+
+          msg = "Title '#{title}' already exists."
+          log_debug "ERROR: #{msg}"
+          halt 409, { error: msg }
+        end
+
       end # TitleEditor
 
     end # Helpers

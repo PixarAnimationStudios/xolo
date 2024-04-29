@@ -66,17 +66,17 @@ module Xolo
       def display_walkthru_menu(cmd)
         done_with_menu = false
 
-        # we start off with our Xolo::Admin::Options.walkthru_cmd_opts being the same
-        # the same as Xolo::Admin::Options.current_opt_values
+        # we start off with our walkthru_cmd_opts being the same
+        # the same as current_opt_values
         current_opt_values.to_h.each { |k, v| walkthru_cmd_opts[k] = v }
-
-        # as the current_values
         until done_with_menu
           # clear the screen and show the menu header
           display_walkthru_header
 
           # Generate the menu items
           highline_cli.choose do |menu|
+            menu.select_by = :index
+
             menu.responses[:ambiguous_completion] = nil
             menu.responses[:no_completion] = 'Unknown Choice'
 
@@ -108,7 +108,7 @@ module Xolo
             # always show 'Cancel' in the same position
             menu.choice(nil, nil, 'Cancel') do
               done_with_menu = true
-              @cancelled = true
+              @walkthru_cancelled = true
             end
 
             # check for any required values missing or if
@@ -234,16 +234,17 @@ module Xolo
 
         answer = highline_cli.ask(question, convert) do |q|
           q.default = default
-          q.readline = true # allows tab-completion of filenames, and using arrow keys
+          # q.readline = true # allows tab-completion of filenames, and using arrow keys
 
           q.echo = '*' if deets[:secure_interactive_input]
 
           if validate
             q.validate = validate
 
-            not_valid_response = +"\nERROR: #{deets[:invalid_msg]}"
+            not_valid_response = ->(_x) { "\nERROR: #{last_validation_error}".pix_word_wrap }
+            # not_valid_response ||= "\nERROR: #{deets[:invalid_msg]}"
             # not_valid_response << " Cannot be unset with 'none'." if deets[:required]
-            not_valid_response = not_valid_response.pix_word_wrap
+            # not_valid_response = not_valid_response.pix_word_wrap
             q.responses[:not_valid] = not_valid_response
 
             not_valid_re_ask = +"Enter #{deets[:label]}: "
@@ -254,7 +255,7 @@ module Xolo
           # display a description of the value being asked for
           highline_cli.say q_desc
         end
-        return if answer.to_s.empty?
+        return if answer.pix_blank?
 
         answer = nil if answer == Xolo::NONE
 
@@ -320,18 +321,21 @@ module Xolo
         # lambda to validate the value given.
         # must return boolean for Highline to deal with it.
         lambda do |ans|
+          # default to the pre-written error message
+          self.last_validation_error = deets[:invalid_msg]
+
           # to start, the converted value is just the given value
-          # use send here, otherwise the lambda sees last_converted_value
+          # use self. here, otherwise the lambda sees last_converted_value
           # as a local variable
-          send :last_converted_value=, ans
+          self.last_converted_value = ans
 
           # if user just hit return, nothing to validate,
           # the current/default value will remain.
-          return true if ans.to_s.empty?
+          return true if ans.pix_blank?
 
           # If this value isn't required, accept 'none'
           if !deets[:required] && (ans == Xolo::NONE)
-            send :last_converted_value=, Xolo::NONE
+            self.last_converted_value = Xolo::NONE
             return true
           end
 
@@ -345,11 +349,12 @@ module Xolo
           # save the validated/converted value for use in the
           # convert method. so we don't have to call the validate method
           # twice
-          send :last_converted_value=, (send val_meth, ans_to_validate)
+          self.last_converted_value = (send val_meth, ans_to_validate)
           true
-        rescue Xolo::InvalidDataError
+        rescue Xolo::InvalidDataError => e
+          self.last_validation_error = e.to_s
           false
-        end
+        end # lambda
       end
 
       # getter/setter for the value converted by the last validation
@@ -357,6 +362,12 @@ module Xolo
       #  convert and validate lambdas
       ##############################
       attr_accessor :last_converted_value
+
+      # getter/setter for the value converted by the last validation
+      # method call - we do this so the same value is available in the
+      #  convert and validate lambdas
+      ##############################
+      attr_accessor :last_validation_error
 
       # The method used to validate and convert a value
       ##############################

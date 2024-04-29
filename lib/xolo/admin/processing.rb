@@ -55,39 +55,109 @@ module Xolo
       ##########################
       ##########################
 
+      # Which opts to process, those from walkthru, or from the CLI?
+      #
+      # @return [OpenStruct] the opts to process
+      #######################
+      def opts_to_process
+        @opts_to_process ||= walkthru? ? walkthru_cmd_opts : cli_cmd_opts
+      end
+
       # update the adm config file using the values from 'xadm config'
       #
       # @return [void]
+      ###############################
       def update_config
-        opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
-
         Xolo::Admin::Configuration::KEYS.each_key do |key|
-          config.send "#{key}=", opts[key]
+          config.send "#{key}=", opts_to_process[key]
         end
 
         config.save_to_file
       end
 
+      # List all titles in Xolo
+      #
+      # @return [void]
+      ###############################
+      def list_titles
+        puts '# All titles in Xolo:'
+        puts '#####################'
+        Xolo::Admin::Title.all_titles(server_cnx).each { |t| puts t }
+      end
+
       # Add a title to Xolo
       #
       # @return [void]
+      ###############################
       def add_title
-        # Create a title object from the options
-        opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
-        puts "Making new title with these opts: #{opts}"
-
-        new_title = Xolo::Admin::Title.new opts
-        new_title.title = cli_cmd.title
-
-        puts 'new_title.to_json:'
-        puts new_title.to_json
-
+        opts_to_process.title = cli_cmd.title
+        new_title = Xolo::Admin::Title.new opts_to_process
         new_title.add server_cnx
+
+        puts "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
       rescue StandardError => e
         handle_server_error e
       end
 
-    end # module Converters
+      # Edit/Update a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def edit_title
+        opts_to_process.title = cli_cmd.title
+        title = Xolo::Admin::Title.new opts_to_process
+
+        title.update server_cnx
+
+        puts "Title '#{cli_cmd.title}' has been updated in Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # Delete a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def delete_title
+        Xolo::Admin::Title.delete cli_cmd.title, server_cnx
+
+        puts "Title '#{cli_cmd.title}' has been deleted from Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # Show details about a title or version in xolo
+      #
+      # @return [void]
+      ###############################
+      def show_info
+        cli_cmd.version ? show_version_info : show_title_info
+      end
+
+      # Show details about a title in xolo
+      #
+      # @return [void]
+      ###############################
+      def show_title_info
+        puts "# Info for Title '#{cli_cmd.title}'"
+        puts '###################################'
+
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        Xolo::Admin::Title::ATTRIBUTES.each do |attr, deets|
+          puts "#{deets[:label]}: #{title.send attr}"
+        end
+      end
+
+      # Show details about a title in xolo
+      #
+      # @return [void]
+      ###############################
+      def show_version_info
+        title = cli_cmd.title
+        version = cli_cmd.version
+      end
+
+    end # module processing
 
   end # module Admin
 
