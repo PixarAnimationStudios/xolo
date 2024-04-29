@@ -1,4 +1,4 @@
-# Copyright 2023 Pixar
+# Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -96,6 +96,23 @@ module Xolo
         resp = cnx.delete "#{SERVER_ROUTE}/#{title}"
       end
 
+      # Attributes
+      ######################
+      ######################
+
+      # Constructor
+      ######################
+      ######################
+
+      # Read in the contents of any version script given
+      def initialize(data_hash)
+        super
+        return unless version_script
+        return if version_script == VERSION_SCRIPT_UPLOADED
+
+        @version_script = version_script.read
+      end
+
       # Instance Methods
       #############################
       #############################
@@ -122,6 +139,12 @@ module Xolo
       ####################
       def delete(cnx)
         resp = self.class.delete title, cnx
+      end
+
+      # Add more data to our hash
+      ###########################
+      def to_h
+        super
       end
 
     end # class Title

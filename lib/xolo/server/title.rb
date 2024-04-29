@@ -1,4 +1,4 @@
-# Copyright 2023 Pixar
+# Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -66,6 +66,28 @@ module Xolo
       # title's value for this will be updated.
       NEW_TITLE_CURRENT_VERSION = '0.0.0'
 
+      # If a title has a 'version_script'
+      # the the contents are stored in the title dir
+      # in a file with this name
+      VERSION_SCRIPT_FILENAME = 'version-script'
+
+      # In the TitleEditor, the version script is
+      # stored as an Extension Attribute - each title can
+      # only have one.
+      # and it nees a 'key', which is used to indicate the
+      # EA in various criteria.
+      # The key is this value as a suffix on the title
+      # so for title 'foobar', it is 'foobar-xolo-version-ea'
+      # That value is also used as the display name
+      TITLE_EDITOR_EA_KEY_SUFFIX = '-xolo-version-ea'
+
+      # When we are given a Self Service icon for the title,
+      # we might not be ready to upload it to jamf, cuz until we
+      # have a version to pilot, there's nothing IN jamf.
+      # So we always store it locally in this file inside the
+      # title dir
+      SELF_SERVICE_ICON_FILENAME = 'self-service-icon'
+
       # Class Methods
       ######################
       ######################
@@ -91,10 +113,18 @@ module Xolo
         title_dirs.map(&:basename).map(&:to_s)
       end
 
+      # @return [String] The key and display name of a version script stored
+      #   in the title editor as the ExtAttr for a given title
+      #####################
+      def self.title_editor_ea_key(title)
+        "#{title}#{TITLE_EDITOR_EA_KEY_SUFFIX}"
+      end
+
       # The title dir for a given title on the server,
       # which may or may not exist.
       #
       # @pararm title [String] the title we care about
+      #
       # @return [Pathname]
       #####################
       def self.title_dir(title)
@@ -105,10 +135,19 @@ module Xolo
       # for the given title
       #
       # @pararm title [String] the title we care about
+      #
       # @return [Pathname]
       #####################
       def self.title_data_file(title)
         title_dir(title) + "#{title}.json"
+      end
+
+      # @pararm title [String] the title we care about
+      #
+      # @return [Pathname] The the local file containing the code of the version script
+      #####################
+      def self.version_script_file(title)
+        title_dir(title) + VERSION_SCRIPT_FILENAME
       end
 
       # @return [Xolo::Server::Title] load an existing title
@@ -139,6 +178,12 @@ module Xolo
       # Constructor
       ######################
       ######################
+
+      # Set more attrs
+      def initialize(data_hash)
+        super
+        @title_editor_id_number ||= data_hash[:title_editor_id_number]
+      end
 
       # Instance Methods
       ######################
@@ -177,6 +222,27 @@ module Xolo
         self.class.title_data_file title
       end
 
+      # @return [Pathname] The the local file containing the code of the version script
+      #####################
+      def version_script_file
+        self.class.version_script_file title
+      end
+
+      # @return [String] The content of the version_script, if any
+      ####################
+      def version_script_content
+        return if version_script.pix_blank?
+
+        version_script == VERSION_SCRIPT_UPLOADED ? version_script_file.read : varsion_script
+      end
+
+      # @return [String] The key and display name of a version script stored
+      #   in the title editor as the ExtAttr for this title
+      #####################
+      def title_editor_ea_key
+        self.class.title_editor_ea_key title
+      end
+
       # Save a new title, adding to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #
@@ -198,11 +264,11 @@ module Xolo
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
-        save_to_file
+        save_local_data
 
         # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
         # appname & bundleid (TEd requirements)
-        # in local file, and TRd, and... jamf?
+        # in local file, and TRd
 
         # TODO: upload any self svc icon
       end
@@ -215,6 +281,8 @@ module Xolo
       #########################
       def update(new_data)
         log_info "Updating title '#{title}' for admin '#{admin}'"
+
+        delete_version_script_file unless new_data[:version_script]
 
         self.modification_date = Time.now
         self.modified_by = admin
@@ -232,14 +300,13 @@ module Xolo
           old_val = send(attr)
           next if new_val == old_val
 
-          # These changes happen in real time on the Title Editor server
           log_debug "Updating Xolo attribute '#{attr}': #{old_val} -> #{new_val}"
           send "#{attr}=", new_val
         end
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
-        save_to_file
+        save_local_data
 
         # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
         # appname & bundleid (TEd requirements)
@@ -253,26 +320,43 @@ module Xolo
       #
       # @return [void]
       ##########################
-      def save_to_file
+      def save_local_data
         title_dir.mkpath
-        log_debug "Saving local data to: #{title_data_file}"
+        save_version_script
 
+        log_debug "Saving local data to: #{title_data_file}"
         title_data_file.pix_atomic_write to_json
       end
 
-      # Create or update this title in the title editor
+      # Save our current version script out to our local file,
+      # but only if we aren't using app_name and app_bundle_id
+      #
+      # This overwrites the existing data.
       #
       # @return [void]
-      #######################
-      def save_to_title_editor
-        # update
-        if self.class.in_title_editor?(title, cnx: title_editor_cnx)
-          update_in_title_editor
+      ##########################
+      def save_version_script
+        return if app_name && app_bundle_id
 
-        # create
-        else
-          create_in_title_editor
-        end
+        log_debug "Saving version_script to: #{version_script_file}"
+        version_script_file.pix_atomic_write version_script
+
+        # the json file only stores 'uploaded' in the version_script
+        # attr.
+        self.version_script = VERSION_SCRIPT_UPLOADED
+      end
+
+      # Delete the version script file
+      #
+      # @return [void]
+      ##########################
+      def delete_version_script_file
+        log_debug "version_script_file.file?: #{version_script_file} - #{version_script_file.file?}"
+        return unless version_script_file.file?
+
+        log_debug "Deleting version script file: #{version_script_file}"
+
+        version_script_file.delete
       end
 
       # Create a new title in the title editor
@@ -281,7 +365,7 @@ module Xolo
       # @return [void]
       ##########################
       def create_in_title_editor
-        log_info "Creating Title Editor SoftwareTitle '#{title}'"
+        log_info "Title Editor: Creating SoftwareTitle '#{title}'"
         new_ted_title = Windoo::SoftwareTitle.create(
           id: title,
           name: display_name,
@@ -291,6 +375,9 @@ module Xolo
           currentVersion: NEW_TITLE_CURRENT_VERSION,
           cnx: title_editor_cnx
         )
+
+        update_title_editor_requirements new_ted_title
+
         self.title_editor_id_number = new_ted_title.softwareTitleId
       end
 
@@ -300,7 +387,7 @@ module Xolo
       # @return [void]
       ##########################
       def update_in_title_editor(new_data)
-        log_info "Updating Title Editor SoftwareTitle '#{title}'"
+        log_info "Title Editor: Updating SoftwareTitle '#{title}'"
         title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
 
         ATTRIBUTES.each do |attr, deets|
@@ -312,10 +399,113 @@ module Xolo
           next if new_val == old_val
 
           # These changes happen in real time on the Title Editor server
-          log_debug "Updating title_editor_attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
+          log_debug "Updating Title Editor attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
           title_in_title_editor.send "#{title_editor_attribute}=", new_val
         end
+
+        update_title_editor_requirements title_in_title_editor, new_data
+
         self.title_editor_id_number = title_in_title_editor.softwareTitleId
+      end
+
+      # Add or update the requirements in the TItle Editor title.
+      # Requirements are criteria indicating that this title (any version)
+      # is installed on a client machine.
+      #
+      # If the Xolo Title has app_name and app_bundle_id defined,
+      # they are used as the criteria.
+      #
+      # If the Xolo Title as a version_script defined, it returns
+      # either an empty value, or the version installed on the client
+      # it is added to the Title Editor title and used both as the
+      # requirement criterion (not empty) and as a Patch Component
+      # criterion for versions (the value contains the version)
+      #
+      # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
+      #
+      # @return [void]
+      ######################
+      def update_title_editor_requirements(ted_title, new_data)
+        log_debug "Title Editor: Setting Requirements for title '#{title}'"
+
+        # delete the current requirements
+        ted_title.requirements.delete_all_criteria
+
+        ea_script = new_data[:version_script]
+
+        if new_data[:app_name] && new_data[:app_bundle_id]
+          update_title_editor_app_requirements ted_title, new_data
+
+        elsif ea_script
+          update_title_editor_ea_requirements ted_title, ea_script
+
+        else
+          msg = 'No version_script, nor app_name & app_bundle_id - Cannot create Title Editor Title Requirements'
+          log_error msg
+          raise Xolo::MissingDataError, msg
+        end
+      end
+
+      # Update the Title Editor Title EA  and requireents
+      # with the current version_script
+      #
+      # these changes happen immediately on the server
+      #
+      # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
+      #
+      # @param ea_script [String] the code of the script.
+      #
+      # @return [void]
+      ####################
+      def update_title_editor_ea_requirements(ted_title, ea_script)
+        log_debug "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'"
+
+        # delete and recreate the EA
+        ted_title.delete_extensionAttribute
+
+        ted_title.add_extensionAttribute(
+          key: title_editor_ea_key,
+          displayName: title_editor_ea_key,
+          script: ea_script
+        )
+
+        # add a requirement criterion using the EA
+        # Any value in the EA means the title is installed
+        # (the value will be the version that is installd)
+        ted_title.requirements.add_criterion(
+          type: 'extensionAttribute',
+          name: title_editor_ea_key,
+          operator: 'matches regex',
+          value: '.+'
+        )
+      end
+
+      # Update the Title Editor Title Requirements with app name and bundle id.
+      # these changes happen immediately on the server
+      #
+      # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
+      #
+      # @return [void]
+      ####################
+      def update_title_editor_app_requirements(ted_title, new_data)
+        log_debug "Title Editor: Setting App-based Requirement Criteria for title '#{title}'"
+
+        ted_title.requirements.add_criterion(
+          name: 'Application Title',
+          operator: 'is',
+          value: new_data[:app_name]
+        )
+
+        ted_title.requirements.add_criterion(
+          name: 'Application Bundle ID',
+          operator: 'is',
+          value: new_data[:app_bundle_id]
+        )
+
+        return unless ted_title.extensionAttribute
+
+        log_debug "Title Editor: Deleting unused Extension Attribute for title '#{title}'"
+        ted_title.delete_extensionAttribute
       end
 
       # Delete the title and all of its version

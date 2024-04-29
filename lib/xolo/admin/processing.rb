@@ -1,4 +1,4 @@
-# Copyright 2023 Pixar
+# Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -93,6 +93,8 @@ module Xolo
         opts_to_process.title = cli_cmd.title
         new_title = Xolo::Admin::Title.new opts_to_process
         new_title.add server_cnx
+
+        # Upload the version script, if any?
 
         puts "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
       rescue StandardError => e

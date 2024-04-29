@@ -29,10 +29,31 @@ module Xolo
 
   module Server
 
-    class Version < Xolo::Core::BaseClasses::Version
+    module Helpers
 
-    end # class Title
+      module FileTransfers
 
-  end # module Admin
+        # Constants
+        #######################
+        #######################
+
+        # Module Methods
+        #######################
+        #######################
+
+        # when this module is included
+        def self.included(includer)
+          Xolo.verbose_include includer, self
+        end
+
+        # Instance Methods
+        #######################
+        ######################
+
+      end # FileTransfers
+
+    end # Helpers
+
+  end # Server
 
 end # module Xolo

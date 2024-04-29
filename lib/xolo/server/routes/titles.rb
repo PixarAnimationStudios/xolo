@@ -1,4 +1,4 @@
-# Copyright 2023 Pixar
+# Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -133,7 +133,18 @@ module Xolo
           body resp_content
         end
 
-      end
+        # Add or update the version-script for a title
+        #
+        # @return [Hash] A response hash
+        #################################
+        post '/titles/:title/version_script' do
+          log_info "Admin #{session[:admin]} is updating the version script for title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
+
+          title = instantiate_title params[:title]
+        end
+
+      end # Titles
 
     end #  Routes
 

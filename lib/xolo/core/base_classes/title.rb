@@ -1,4 +1,4 @@
-# Copyright 2023 Pixar
+# Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -53,6 +53,10 @@ module Xolo
 
         # The value to use when all computers are the targets
         TARGET_ALL = 'all'
+
+        # Once a version script has been uploaded and saved, this
+        # is what the server returns as the #version_script attr
+        VERSION_SCRIPT_UPLOADED = 'uploaded'
 
         # Attributes
         ######################
@@ -489,7 +493,9 @@ module Xolo
 
         # Convert to a JSON object for sending between xadm and the Xolo Server
         # or storage on the server.
-        # Always make it 'pretty', i.e.  human readable.
+        #
+        # Always make it 'pretty', i.e.  human readable, since it often
+        # gets stored in files
         #
         # @return [String] The attributes of this title as JSON
         #####################

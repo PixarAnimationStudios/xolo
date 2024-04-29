@@ -1,4 +1,4 @@
-# Copyright 2023 Pixar
+# Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -59,7 +59,7 @@ module Xolo
         #
         # If given a Hash, use it with .new to instantiate fresh
         #
-        # In all cases, pass in the session, to use for logging
+        # In all cases, set the session, to use for logging
         # (the reason this method exists)
         #
         # @param data [Hash] hash to use with .new
