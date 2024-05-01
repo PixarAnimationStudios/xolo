@@ -54,10 +54,6 @@ module Xolo
         # The value to use when all computers are the targets
         TARGET_ALL = 'all'
 
-        # Once a version script has been uploaded and saved, this
-        # is what the server returns as the #version_script attr
-        VERSION_SCRIPT_UPLOADED = 'uploaded'
-
         # Attributes
         ######################
         ######################
@@ -395,11 +391,11 @@ module Xolo
             validate: true,
             type: :string,
             walkthru_na: :ssvc_na,
-            invalid_msg: 'Invalid Icon Path. No such local file found, or not readable.',
+            invalid_msg: 'Invalid Icon. Must exist locally and be a PNG, JPG, or GIF file.',
             desc: <<~ENDDESC
               Path to a local image file to use as the icon for this title in Self Service.
+              The file must be a PNG, JPG, or GIF file. The recommended size is 512x512 pixels.
               If one has already been set, this will replace it.
-              Ignored if not in Self Service.
             ENDDESC
           },
 

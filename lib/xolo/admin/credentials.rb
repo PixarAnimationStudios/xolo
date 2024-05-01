@@ -138,8 +138,8 @@ module Xolo
       #
       ######
       def run_security(cmd)
-        output = ''
-        errs = ''
+        output = Xolo::BLANK
+        errs = Xolo::BLANK
         exit_status = nil
 
         Open3.popen3("#{SEC_COMMAND} -i") do |stdin, stdout, stderr, wait_thr|

@@ -159,6 +159,13 @@ module Xolo
         # like a title and/or a version
         parse_cmd_and_args unless cli_cmd.command
 
+        # If the command does not take options, then nothing more to parse
+        # puts "cli_cmd.command: #{cli_cmd.command} / #{cli_cmd.command.class}"
+        # cmddeets = cmd_details
+        # puts "cmddeets: #{cmddeets} / #{cmddeets.class}"
+        # cmdopts = cmd_details[:opts]
+        return if cmd_details[:opts].pix_blank?
+
         # if we are using --walkthru, all remaining command options are ignored, so just return.
         #
         # The #walkthru_cmd_opts will be populated by the interactive

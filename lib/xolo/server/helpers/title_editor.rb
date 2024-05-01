@@ -88,7 +88,7 @@ module Xolo
             keep_alive: false
           )
 
-          log_debug "Connected to TitleEditor at #{wcnx.base_url} as user '#{Xolo::Server.config.title_editor_api_user}'. KeepAlive: #{wcnx.keep_alive?}, Expires: #{wcnx.token.expires}"
+          log_debug "Title Editor: Connected to TitleEditor at #{wcnx.base_url} as user '#{Xolo::Server.config.title_editor_api_user}'. KeepAlive: #{wcnx.keep_alive?}, Expires: #{wcnx.token.expires}"
 
           wcnx
         end

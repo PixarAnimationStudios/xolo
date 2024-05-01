@@ -30,6 +30,10 @@ module Xolo
     # Module for gathering and validating xadm options from an interactive terminal session
     module Interactive
 
+      # Constants
+      ###########################
+      ###########################
+
       # Module methods
       ##############################
       ##############################
@@ -43,10 +47,23 @@ module Xolo
       ##########################
       ##########################
 
-      #  Our HighLine instance
+      # how wide is our word wrap?
+      # terminal-width minus 5
+      # @return [Integer]
+      #########################
+      def terminal_word_wrap
+        @terminal_word_wrap ||= IO.console.winsize.last - 5
+      end
+
+      # Our HighLine instance
+      # Word wrap at terminal-width minus 5
       ##############################
       def highline_cli
+        return @highline_cli if @highline_cli
+
         @highline_cli ||= HighLine.new
+        @highline_cli.wrap_at = terminal_word_wrap
+        @highline_cli
       end
 
       # Use an interactive walkthru session to populate
@@ -69,6 +86,7 @@ module Xolo
         # we start off with our walkthru_cmd_opts being the same
         # the same as current_opt_values
         current_opt_values.to_h.each { |k, v| walkthru_cmd_opts[k] = v }
+
         until done_with_menu
           # clear the screen and show the menu header
           display_walkthru_header
@@ -88,20 +106,13 @@ module Xolo
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
               menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val, not_avail: not_avail)
 
-              # with menu.choice, the first arg is the 'name' which is used for text-based
-              # menu choosing, and we want number-based, so set it to nil.
-              # Second arg is 'help' which is not used unless the menu is a 'shell'
-              # menu
-              # third arg is 'text' which is the text of the menu item, and if left
-              # out, the 'name' is used.
-              # HighLine should really use keyword args for these, and prob will
-              # eventually.
-
               # no processing if item not available
               if not_avail
-                menu.choice(nil, nil, menu_item) {}
+                # menu.choice(nil, nil, menu_item) {}
+                menu.choice(menu_item) {}
               else
-                menu.choice(nil, nil, menu_item) { prompt_for_walkthru_value key, deets, curr_val }
+                # menu.choice(nil, nil, menu_item) { prompt_for_walkthru_value key, deets, curr_val }
+                menu.choice(menu_item) { prompt_for_walkthru_value key, deets, curr_val }
               end
             end
 
@@ -121,8 +132,8 @@ module Xolo
             menu.choice(nil, nil, 'Done') { done_with_menu = true } if still_needed.empty? && consistency_error.nil?
 
             # The prompt will include info about required values and consistency
-            prompt = ''
-            prompt = "#{prompt}\n- Missing: #{still_needed.join ', '}" unless still_needed.empty?
+            prompt = Xolo::BLANK
+            prompt = "#{prompt}\n- Missing: #{still_needed.join Xolo::COMMA_JOIN}" unless still_needed.empty?
             prompt = "#{prompt}\n- #{consistency_error}" if consistency_error
             prompt = "#{prompt}\nYour Choice: "
             menu.prompt = prompt
@@ -208,10 +219,13 @@ module Xolo
         txt = "#{lbl}:"
         return "#{txt} ** #{not_avail}" if not_avail
 
-        txt = "#{txt} #{old}".strip
+        txt = "#{lbl}: #{old}"
+        txt = "#{lbl}:\n#{old}\n" if txt.length >= terminal_word_wrap
         return txt if old == new
 
-        "#{txt} => #{new}"
+        txt = "#{lbl}: #{old} -> #{new}"
+        txt = "#{lbl}:\n#{old}\n  ->\n#{new}\n" if txt.length >= terminal_word_wrap
+        txt
       end
 
       # prompt for and return a value
@@ -269,7 +283,7 @@ module Xolo
         # default is the current value, or the
         # defined value if no current.
         default = walkthru_cmd_opts[key] || curr_val || deets[:default]
-        default = default.join(', ') if default.is_a? Array
+        default = default.join(Xolo::COMMA_JOIN) if default.is_a? Array
         default
       end
 

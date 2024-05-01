@@ -63,7 +63,6 @@ module Xolo
           log_debug "Incoming new title data: #{data}"
           title = instantiate_title parse_json(data)
 
-          log_info "Admin #{session[:admin]} is creating new title '#{title.title}'"
           halt_on_existing_title title.title
 
           title.create

@@ -94,7 +94,8 @@ module Xolo
         new_title = Xolo::Admin::Title.new opts_to_process
         new_title.add server_cnx
 
-        # Upload the version script, if any?
+        # Upload the ssvc icon, if any?
+        new_title.upload_self_service_icon(upload_cnx) if new_title.self_service_icon
 
         puts "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
       rescue StandardError => e
@@ -111,6 +112,10 @@ module Xolo
 
         title.update server_cnx
 
+        # Upload the ssvc icon, if any?
+        icon = title.self_service_icon
+        title.upload_self_service_icon(upload_cnx) if icon && icon != Xolo::ITEM_UPLOADED
+
         puts "Title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
         handle_server_error e
@@ -121,6 +126,7 @@ module Xolo
       # @return [void]
       ###############################
       def delete_title
+        # TODO: confirmation before deletion
         Xolo::Admin::Title.delete cli_cmd.title, server_cnx
 
         puts "Title '#{cli_cmd.title}' has been deleted from Xolo."

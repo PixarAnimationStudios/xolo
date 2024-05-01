@@ -41,8 +41,8 @@ module Xolo
       register Xolo::Server::Routes::JamfPro
       register Xolo::Server::Routes::TitleEditor
       register Xolo::Server::Routes::Titles
+      register Xolo::Server::Routes::Uploads
 
-      # helpers Sinatra::CustomLogger
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
       helpers Xolo::Server::Helpers::Log
@@ -50,6 +50,7 @@ module Xolo
       helpers Xolo::Server::Helpers::JamfPro
       helpers Xolo::Server::Helpers::TitleEditor
       helpers Xolo::Server::Helpers::Titles
+      helpers Xolo::Server::Helpers::FileTransfers
 
       # Sinatra setup
       ##############################

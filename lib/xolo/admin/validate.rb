@@ -51,6 +51,14 @@ module Xolo
       TITLE_ATTRS = Xolo::Admin::Title::ATTRIBUTES
       VERSION_ATTRS = Xolo::Admin::Version::ATTRIBUTES
 
+      # Self Service icons must be one of these mime types,
+      # as determined by the output of `file -b -I`
+      SSVC_ICON_MIME_TYPES = %w[
+        image/jpeg
+        image/png
+        image/gif
+      ]
+
       # Module methods
       ##############################
       ##############################
@@ -283,7 +291,7 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(', '), TITLE_ATTRSS[:target_groups][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRSS[:target_groups][:invalid_msg]
       end
 
       # validate an array  of jamf groups to use as exclusions.
@@ -304,7 +312,7 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(', '), TITLE_ATTRS[:excluded_groups][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:excluded_groups][:invalid_msg]
       end
 
       # TODO: Implement this for xadm via the xolo server
@@ -348,7 +356,7 @@ module Xolo
         end
         return val if bad_paths.empty?
 
-        raise_invalid_data_error bad_paths.join(', '), TITLE_ATTRS[:expiration_paths][:invalid_msg]
+        raise_invalid_data_error bad_paths.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:expiration_paths][:invalid_msg]
       end
 
       # validate boolean options
@@ -383,7 +391,10 @@ module Xolo
       # @return [Pathname] The valid value
       def validate_self_service_icon(val)
         val = Pathname.new val.to_s.strip
-        return val if val.file? && val.readable?
+        if val.file? && val.readable?
+          mimetype = `/usr/bin/file -b -I #{Shellwords.escape val.to_s}`.split(';').first
+          return val if SSVC_ICON_MIME_TYPES.include? mimetype
+        end
 
         raise_invalid_data_error val, TITLE_ATTRS[:self_service_icon][:invalid_msg]
       end
@@ -484,7 +495,7 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(', '), VERSION_ATTRS[:pilot_groups][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), VERSION_ATTRS[:pilot_groups][:invalid_msg]
       end
 
       # Try to fetch a known route from the given xolo server

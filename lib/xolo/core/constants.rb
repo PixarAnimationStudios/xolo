@@ -54,6 +54,10 @@ module Xolo
       # lots of things get joined with commas
       COMMA_JOIN = ', '
 
+      # Once a thing has been uploaded and saved, this
+      # is what the server returns as the  attr value
+      ITEM_UPLOADED = 'uploaded'
+
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self

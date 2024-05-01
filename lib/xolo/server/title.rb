@@ -85,7 +85,8 @@ module Xolo
       # we might not be ready to upload it to jamf, cuz until we
       # have a version to pilot, there's nothing IN jamf.
       # So we always store it locally in this file inside the
-      # title dir
+      # title dir. The extension from the original file will be
+      # appended, e.g. '.png'
       SELF_SERVICE_ICON_FILENAME = 'self-service-icon'
 
       # Class Methods
@@ -148,6 +149,14 @@ module Xolo
       #####################
       def self.version_script_file(title)
         title_dir(title) + VERSION_SCRIPT_FILENAME
+      end
+
+      # @pararm title [String] the title we care about
+      #
+      # @return [Pathname] The the local file containing the self-service icon
+      #####################
+      def self.ssvc_icon_file(title)
+        title_dir(title) + SELF_SERVICE_ICON_FILENAME
       end
 
       # @return [Xolo::Server::Title] load an existing title
@@ -228,12 +237,18 @@ module Xolo
         self.class.version_script_file title
       end
 
+      # @return [Pathname] The the local file containing the self-service icon
+      #####################
+      def ssvc_icon_file
+        self.class.ssvc_icon_file title
+      end
+
       # @return [String] The content of the version_script, if any
       ####################
       def version_script_content
         return if version_script.pix_blank?
 
-        version_script == VERSION_SCRIPT_UPLOADED ? version_script_file.read : varsion_script
+        version_script == Xolo::ITEM_UPLOADED ? version_script_file.read : varsion_script
       end
 
       # @return [String] The key and display name of a version script stored
@@ -324,7 +339,16 @@ module Xolo
         title_dir.mkpath
         save_version_script
 
+        # if we've ever uploaded an icon, the last one is still there
+        # so set this appropriately
+        if self_service_icon.pix_blank? && title_dir.children.any? do |f|
+             f.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME
+           end
+          self.self_service_icon = Xolo::ITEM_UPLOADED
+        end
+
         log_debug "Saving local data to: #{title_data_file}"
+
         title_data_file.pix_atomic_write to_json
       end
 
@@ -337,13 +361,41 @@ module Xolo
       ##########################
       def save_version_script
         return if app_name && app_bundle_id
+        return if version_script == Xolo::ITEM_UPLOADED
 
-        log_debug "Saving version_script to: #{version_script_file}"
-        version_script_file.pix_atomic_write version_script
+        file = version_script_file
+        log_debug "Saving version_script to: #{file}"
+        file.pix_atomic_write version_script
 
         # the json file only stores 'uploaded' in the version_script
         # attr.
-        self.version_script = VERSION_SCRIPT_UPLOADED
+        self.version_script = Xolo::ITEM_UPLOADED
+      end
+
+      # Save the self_service_icon from the upload tmpfile
+      # to the file in the data dir.
+      #
+      # This is run by the upload route, not the
+      # create or update methods here. xadm
+      # does the upload after creating or updating the title
+      #
+      # @param tempfile [Pathname] The path to the uploaded tmp file
+      #
+      # @return [void]
+      ##########################
+      def save_ssvc_icon(tempfile)
+        orig_filename = Pathname.new(self_service_icon).basename
+        file = ssvc_icon_file
+        ext_for_file = self_service_icon.split(Xolo::DOT).last
+        file = file.parent + "#{file.basename}.#{ext_for_file}" if ext_for_file
+
+        log_debug "Saving self_service_icon '#{orig_filename}' to: #{file}"
+        tempfile.rename file
+
+        # the json file only stores 'uploaded' in the self_service_icon
+        # attr.
+        self.self_service_icon = Xolo::ITEM_UPLOADED
+        save_local_data
       end
 
       # Delete the version script file
@@ -351,7 +403,6 @@ module Xolo
       # @return [void]
       ##########################
       def delete_version_script_file
-        log_debug "version_script_file.file?: #{version_script_file} - #{version_script_file.file?}"
         return unless version_script_file.file?
 
         log_debug "Deleting version script file: #{version_script_file}"
@@ -399,7 +450,7 @@ module Xolo
           next if new_val == old_val
 
           # These changes happen in real time on the Title Editor server
-          log_debug "Updating Title Editor attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
+          log_debug "Title Editor: Updating attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
           title_in_title_editor.send "#{title_editor_attribute}=", new_val
         end
 
@@ -425,19 +476,25 @@ module Xolo
       #
       # @return [void]
       ######################
-      def update_title_editor_requirements(ted_title, new_data)
+      def update_title_editor_requirements(ted_title, new_data = nil)
         log_debug "Title Editor: Setting Requirements for title '#{title}'"
 
         # delete the current requirements
         ted_title.requirements.delete_all_criteria
 
-        ea_script = new_data[:version_script]
+        req_app_name = new_data ? new_data[:app_name] : app_name
+        req_app_bundle_id = new_data ? new_data[:app_bundle_id] : app_bundle_id
+        req_ea_script = new_data ? new_data[:version_script] : version_script
 
-        if new_data[:app_name] && new_data[:app_bundle_id]
-          update_title_editor_app_requirements ted_title, new_data
+        if req_app_name && req_app_bundle_id
+          update_title_editor_app_requirements(
+            ted_title,
+            req_app_name: req_app_name,
+            req_app_bundle_id: req_app_bundle_id
+          )
 
-        elsif ea_script
-          update_title_editor_ea_requirements ted_title, ea_script
+        elsif req_ea_script
+          update_title_editor_ea_requirements ted_title, req_ea_script: req_ea_script
 
         else
           msg = 'No version_script, nor app_name & app_bundle_id - Cannot create Title Editor Title Requirements'
@@ -457,7 +514,7 @@ module Xolo
       #
       # @return [void]
       ####################
-      def update_title_editor_ea_requirements(ted_title, ea_script)
+      def update_title_editor_ea_requirements(ted_title, req_ea_script:)
         log_debug "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'"
 
         # delete and recreate the EA
@@ -466,7 +523,7 @@ module Xolo
         ted_title.add_extensionAttribute(
           key: title_editor_ea_key,
           displayName: title_editor_ea_key,
-          script: ea_script
+          script: req_ea_script
         )
 
         # add a requirement criterion using the EA
@@ -487,19 +544,19 @@ module Xolo
       #
       # @return [void]
       ####################
-      def update_title_editor_app_requirements(ted_title, new_data)
+      def update_title_editor_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
         log_debug "Title Editor: Setting App-based Requirement Criteria for title '#{title}'"
 
         ted_title.requirements.add_criterion(
           name: 'Application Title',
           operator: 'is',
-          value: new_data[:app_name]
+          value: app_name
         )
 
         ted_title.requirements.add_criterion(
           name: 'Application Bundle ID',
           operator: 'is',
-          value: new_data[:app_bundle_id]
+          value: app_bundle_id
         )
 
         return unless ted_title.extensionAttribute
@@ -515,6 +572,7 @@ module Xolo
         delete_from_title_editor
 
         # TODO: delete in jamf
+        log_info "Deleting local data for title '#{title}'"
         title_dir.rmtree
       end
 
@@ -522,7 +580,7 @@ module Xolo
       # @return [Integer] title_editor_id_number
       ###########################
       def delete_from_title_editor
-        log_info "Deleting Title Editor SoftwareTitle '#{title}'"
+        log_info "Title Editor: Deleting SoftwareTitle '#{title}'"
 
         title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
         title_in_title_editor.delete

@@ -51,6 +51,8 @@ module Xolo
       # DELETE .../<title> to delete a title and its version
       SERVER_ROUTE = '/titles'
 
+      UPLOAD_ICON_ROUTE = '/upload/ssvc-icon'
+
       # Class Methods
       #############################
       #############################
@@ -107,8 +109,10 @@ module Xolo
       # Read in the contents of any version script given
       def initialize(data_hash)
         super
+        @self_service_icon = nil if @self_service_icon == Xolo::ITEM_UPLOADED
+
         return unless version_script
-        return if version_script == VERSION_SCRIPT_UPLOADED
+        return if version_script == Xolo::ITEM_UPLOADED
 
         @version_script = version_script.read
       end
@@ -122,7 +126,7 @@ module Xolo
       # @return [void]
       ####################
       def add(cnx)
-        resp = cnx.post SERVER_ROUTE, to_h
+        cnx.post SERVER_ROUTE, to_h
       end
 
       # Add this title to the server
@@ -130,7 +134,29 @@ module Xolo
       # @return [void]
       ####################
       def update(cnx)
-        resp = cnx.put "#{SERVER_ROUTE}/#{title}", to_h
+        cnx.put "#{SERVER_ROUTE}/#{title}", to_h
+      end
+
+      # Upload an icon for self service
+      #
+      # @param local_file [Pathname, String] The path to the file to be uploaded
+      #
+      # @return [Faraday::Response] The server response
+      ##################################
+      def upload_self_service_icon(upload_cnx)
+        return if self_service_icon.pix_blank?
+        return if self_service_icon == Xolo::ITEM_UPLOADED
+
+        route = "#{UPLOAD_ICON_ROUTE}/#{title}"
+
+        upfile = Faraday::UploadIO.new(
+          self_service_icon.to_s,
+          'application/octet-stream',
+          self_service_icon.basename.to_s
+        )
+
+        content = { file: upfile }
+        upload_cnx.post(route) { |req| req.body = content }
       end
 
       # Delete this title from the server

@@ -31,9 +31,14 @@ module Xolo
 
     module Routes
 
-      module Auth
+      module Uploads
 
-        # This is how we 'mix in' modules to Sinatra servers:
+        # This is how we 'mix in' modules to Sinatra servers
+        # for route definitions and similar things
+        #
+        # (things to be 'included' for use in route and view processing
+        # are mixed in by delcaring them to be helpers)
+        #
         # We make them extentions here with
         #    extend Sinatra::Extension (from sinatra-contrib)
         # and then 'register' them in the server with
@@ -43,44 +48,39 @@ module Xolo
         # and let xeitwork do the requiring of those files
         extend Sinatra::Extension
 
+        # Module methods
+        ##############################
+        ##############################
+
         # when this module is included
         def self.included(includer)
           Xolo.verbose_include includer, self
         end
 
-        # Auth a Xolo Admin via Jamf API login
-        # Must be a member of the Jamf Admin group
-        # named in Xolo::Server.config.admin_jamf_group
-        # before
-        ###################
-        post '/auth/login' do
-          request.body.rewind
-          payload = parse_json request.body.read
-          admin = payload[:admin]
-          pw = payload[:password]
-
-          err =
-            if !member_of_admin_jamf_group?(admin)
-              "'#{admin}' is not allowed to use the Xolo server"
-            elsif !authenticated_via_jamf?(admin, pw)
-              "Incorrect xolo admin username or password for '#{admin}'"
-            end
-
-          if err
-            log_info "Authentication failed: #{err}"
-            halt 401, { error: err }
-          end
-
-          # Set the session values
-          session[:xolo_id] = "#{Time.now.to_i}#{SecureRandom.alphanumeric 3}"
-          session[:admin] = admin
-          session[:authenticated] = true
-          log_info "Authenticated admin '#{admin}' from #{request.ip}"
-
-          body({ admin: admin, authenticated: true })
+        # when this module is extended
+        def self.extended(extender)
+          Xolo.verbose_extend extender, self
         end
 
-      end
+        # Routes
+        ##############################
+        ##############################
+
+        # param with the uploaded file must be :file
+        ######################
+        post '/upload/ssvc-icon/:title' do
+          process_incoming_ssvc_icon
+          body({ status: :uploaded })
+        end
+
+        # param with the uploaded file must be :file
+        ######################
+        post '/upload/pkg/:title/:version' do
+          process_incoming_pkg
+          body({ status: :uploaded })
+        end
+
+      end # Module
 
     end #  Routes
 

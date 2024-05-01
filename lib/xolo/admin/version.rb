@@ -35,12 +35,36 @@ module Xolo
     # objects.
     class Version < Xolo::Core::BaseClasses::Version
 
+      UPLOAD_PKG_ROUTE = '/upload/pkg'
+
       # Class Methods
       #############################
 
       # @return [Hash{Symbol: Hash}] The ATTRIBUTES that are available as CLI & walkthru options
       def self.cli_opts
         @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
+      end
+
+      # Upload a .pkg (or zipped bundle pkg) for this version
+      #
+      # @param local_file [Pathname] The path to the file to be uploaded
+      #
+      # @return [Faraday::Response] The server response
+      ##################################
+      def upload_pkg
+        return if pkg.pix_blank?
+        return if pkg == Xolo::ITEM_UPLOADED
+
+        route = "#{UPLOAD_PKG_ROUTE}/#{title}/#{version}"
+
+        upfile = Faraday::UploadIO.new(
+          pkg.to_s,
+          'application/octet-stream',
+          pkg.basename.to_s
+        )
+
+        content = { file: upfile }
+        upload_cnx.post(route) { |req| req.body = content }
       end
 
     end # class Title
