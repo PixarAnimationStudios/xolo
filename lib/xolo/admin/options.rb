@@ -113,7 +113,7 @@ module Xolo
       COMMANDS = {
 
         LIST_TITLES_CMD => {
-          desc: 'List known titles.',
+          desc: 'List all software titles.',
           display: LIST_TITLES_CMD,
           opts: {},
           arg_banner: :none,
@@ -152,7 +152,7 @@ module Xolo
         },
 
         LIST_VERSIONS_CMD => {
-          desc: 'List known versions of a title.',
+          desc: 'List all versions of a title.',
           display: "#{LIST_VERSIONS_CMD} title",
           opts: {},
           target: :title
@@ -219,7 +219,7 @@ module Xolo
         },
 
         CONFIG_CMD => {
-          desc: 'Configure xadm. Implies --walkthru',
+          desc: 'Configure xadm. (Implies --walkthru)',
           display: "#{CONFIG_CMD}",
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,

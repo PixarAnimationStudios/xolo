@@ -77,12 +77,10 @@ module Xolo
         @jamf_computer_group_names ||= server_cnx.get(COMPUTER_GROUP_NAME_ROUTE).body
       end
 
-      # @return [Array<String>] the names of all Self Service categories in Jamf Pro.
-      #   Self Service Categories are those starting with uppercase letters
+      # @return [Array<String>] the names of all Categories in Jamf Pro.
       #######################
-      def jamf_ssvc_category_names
-        # Self Service Categories are those starting with uppercase letters
-        @jamf_ssvc_category_names ||= server_cnx.get(CATEGORY_NAME_ROUTE).body.select { |c| c =~ /^[A-Z]/ }
+      def jamf_category_names
+        @jamf_category_names ||= server_cnx.get(CATEGORY_NAME_ROUTE).body
       end
 
     end # module

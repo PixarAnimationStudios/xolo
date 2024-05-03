@@ -178,11 +178,12 @@ module Xolo
       # @return [void]
       ############################
       def list_categories
-        list_in_cols_with_less 'All Categories in Jamf Pro:', jamf_ssvc_category_names
+        list_in_cols_with_less 'All Categories in Jamf Pro:', jamf_category_names
       end
 
       # Display a list of items in as many columns as possible
       # based on terminal width.
+      #
       # and if the list is longer than terminal height,
       # pipe it through 'less'
       #
@@ -194,17 +195,17 @@ module Xolo
       # @return [void]
       ############################
       def list_in_cols_with_less(header, list)
-        term_height = IO.console.winsize.first
-        columnized_list = highline_cli.list(list, :columns_across)
+        longest_list_item = list.map(&:size).max
+        use_columns = (longest_list_item + 5) < terminal_width
 
-        use_less = (columnized_list.lines.size + 3) > term_height
+        list_to_display = use_columns ? highline_cli.list(list, :columns_across) : list.join("\n")
+        use_less = (list_to_display.lines.size + 3) > terminal_height
 
         output = +"# #{header}\n"
-        sep_len = output.length
         output << "# (displayed using 'less')\n" if use_less
-        output << '#' * sep_len
+        output << '#' * (terminal_width - 5)
         output << "\n"
-        output << columnized_list
+        output << list_to_display
 
         if use_less
           IO.popen('less', 'w') { |f| f.puts output }

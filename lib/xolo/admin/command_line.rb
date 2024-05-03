@@ -161,6 +161,9 @@ module Xolo
 
           banner "\n  #{executable_file} report google-chrome 95.144.21194"
           banner "    Report computers with version 95.144.21194 of title 'google-chrome' installed"
+
+          banner "\n  #{executable_file} list-groups"
+          banner '    List all computer groups in Jamf Pro'
         end # Optimist.options
       end
 
