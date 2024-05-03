@@ -25,9 +25,6 @@
 
 require 'xolo'
 
-# TODO: Is this needed in newer rubies?
-require 'io/console'
-
 require 'faraday'
 require 'faraday/multipart'
 require 'highline'
@@ -42,6 +39,8 @@ require 'singleton'
 require 'json'
 require 'yaml'
 require 'shellwords'
+require 'tempfile'
+require 'io/console'
 
 # Use optimist for CLI option processing
 # https://rubygems.org/gems/optimist

@@ -291,7 +291,7 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRSS[:target_groups][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:target_groups][:invalid_msg]
       end
 
       # validate an array  of jamf groups to use as exclusions.
@@ -319,9 +319,9 @@ module Xolo
       # @param grp_ary [Array<String>] Jamf groups to validate
       # @return [Array<String>] Jamf groups that do not exist.
       def bad_jamf_groups(group_ary)
-        bad_groups = []
-        group_ary.each { |g| bad_groups << g unless g } # is a jamf group
-        bad_groups
+        group_ary = [group_ary] unless group_ary.is_a? Array
+
+        group_ary - jamf_computer_group_names
       end
 
       # validate a titles expiration. Must be a non-negative integer
@@ -548,6 +548,19 @@ module Xolo
 
         # The passwd is never stored in the config, this is:
         Xolo::Admin::Configuration::CREDENTIALS_IN_KEYCHAIN
+      end
+
+      # Does the chosen editor exist and is it executable?
+      #
+      # @aram val [String] The path to the editor executable.
+      #
+      # @return [void]
+      #######
+      def validate_editor(val)
+        val = Pathname.new val
+        return val.to_s if val.executable?
+
+        raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:editor][:invalid_msg]
       end
 
       # Internal Consistency Checks!

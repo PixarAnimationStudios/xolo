@@ -42,6 +42,12 @@ module Xolo
       # Xolo server route to the list of package names
       PACKAGE_NAME_ROUTE = "#{JAMF_ROUTE_BASE}/package-names"
 
+      # Xolo server route to the list of computer group names
+      COMPUTER_GROUP_NAME_ROUTE = "#{JAMF_ROUTE_BASE}/computer-group-names"
+
+      # Xolo server route to the list available categories
+      CATEGORY_NAME_ROUTE = "#{JAMF_ROUTE_BASE}/category-names"
+
       # Module Methods
       ##########################
       ##########################
@@ -59,12 +65,24 @@ module Xolo
       # Instance Methods
       ##########################
       ##########################
-
-      # Perhaps not needed for anything, but used for initial connection testing
       # @return [Array<String>] the names of all Package objects in Jamf Pro
       #######################
       def jamf_package_names
-        server_cnx.get(PACKAGE_NAME_ROUTE).body
+        @jamf_package_names ||= server_cnx.get(PACKAGE_NAME_ROUTE).body
+      end
+
+      # @return [Array<String>] the names of all ComputerGroup objects in Jamf Pro
+      #######################
+      def jamf_computer_group_names
+        @jamf_computer_group_names ||= server_cnx.get(COMPUTER_GROUP_NAME_ROUTE).body
+      end
+
+      # @return [Array<String>] the names of all Self Service categories in Jamf Pro.
+      #   Self Service Categories are those starting with uppercase letters
+      #######################
+      def jamf_ssvc_category_names
+        # Self Service Categories are those starting with uppercase letters
+        @jamf_ssvc_category_names ||= server_cnx.get(CATEGORY_NAME_ROUTE).body.select { |c| c =~ /^[A-Z]/ }
       end
 
     end # module

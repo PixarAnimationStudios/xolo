@@ -101,6 +101,21 @@ module Xolo
             The password for connecting to the Xolo server. The same that
             you would use to connect to Jamf Pro. Enter 'x' to exit.
           ENDDESC
+        },
+
+        # @!attribute pw
+        #   @return [String]
+        editor: {
+          label: 'Preferred editor',
+          type: :string,
+          validate: true,
+          invalid_msg: 'That editor does not exist, or is not executable.',
+          desc: <<~ENDDESC
+            The editor to use for editing descriptions and other multi-line
+            text. Enter the full path to an editor, such as '/usr/bin/vim'. It must
+            take the name of a file as its only argument.
+            If not set in your config, you will be asked which to use.
+          ENDDESC
         }
 
       }.freeze

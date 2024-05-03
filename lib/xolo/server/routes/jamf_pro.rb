@@ -71,9 +71,29 @@ module Xolo
         # We probably don't need this - just for testing for now.
         ###############
         get '/jamf/package-names' do
-          log_debug "Fetching Jamf Package Names for #{session[:admin]}"
+          log_debug "Jamf: Fetching Jamf Package Names for #{session[:admin]}"
           jcnx = jamf_cnx
           body Jamf::Package.all_names(cnx: jcnx).sort
+        ensure
+          jcnx&.disconnect
+        end
+
+        # A list of all current computer groups
+        ###############
+        get '/jamf/computer-group-names' do
+          log_debug "Jamf: Fetching Jamf ComputerGroup Names for #{session[:admin]}"
+          jcnx = jamf_cnx
+          body Jamf::ComputerGroup.all_names(cnx: jcnx).sort
+        ensure
+          jcnx&.disconnect
+        end
+
+        # A list of all current categories
+        ###############
+        get '/jamf/category-names' do
+          log_debug "Jamf: Fetching Jamf Category Names for #{session[:admin]}"
+          jcnx = jamf_cnx
+          body Jamf::Category.all_names(cnx: jcnx).sort
         ensure
           jcnx&.disconnect
         end

@@ -42,6 +42,9 @@ module Xolo
       # Several things use dots
       DOT = '.'
 
+      # Cancelling is often an option
+      CANCEL = 'Cancel'
+
       # and we check for things ending with .app
       DOTAPP = '.app'
 

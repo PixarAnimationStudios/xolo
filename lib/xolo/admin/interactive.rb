@@ -34,6 +34,12 @@ module Xolo
       ###########################
       ###########################
 
+      MULTILINE_EDITORS = {
+        'vim (vi)' => '/usr/bin/vim',
+        'mg (emacs)' => '/usr/bin/mg',
+        'pico (nano)' => '/usr/bin/pico'
+      }
+
       # Module methods
       ##############################
       ##############################
@@ -47,9 +53,7 @@ module Xolo
       ##########################
       ##########################
 
-      # how wide is our word wrap?
-      # terminal-width minus 5
-      # @return [Integer]
+      # @return [Integer] how wide is our word wrap? terminal-width minus 5
       #########################
       def terminal_word_wrap
         @terminal_word_wrap ||= IO.console.winsize.last - 5
@@ -100,11 +104,12 @@ module Xolo
 
             # The menu items for setting values
             ####
-            Xolo::Admin::Options::COMMANDS[cmd][:opts].each do |key, deets|
+            # Xolo::Admin::Options::COMMANDS[cmd]
+            cmd_details(cmd)[:opts].each do |key, deets|
               curr_val = current_opt_values[key]
               new_val = walkthru_cmd_opts[key]
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
-              menu_item = menu_item_text(deets[:label], old: curr_val, new: new_val, not_avail: not_avail)
+              menu_item = menu_item_text(deets[:label], oldval: curr_val, newval: new_val, not_avail: not_avail)
 
               # no processing if item not available
               if not_avail
@@ -117,7 +122,7 @@ module Xolo
             end
 
             # always show 'Cancel' in the same position
-            menu.choice(nil, nil, 'Cancel') do
+            menu.choice(Xolo::CANCEL) do
               done_with_menu = true
               @walkthru_cancelled = true
             end
@@ -215,25 +220,28 @@ module Xolo
       end
 
       ##################################
-      def menu_item_text(lbl, old: nil, new: nil, not_avail: nil)
+      def menu_item_text(lbl, oldval: nil, newval: nil, not_avail: nil)
+        oldval = oldval.join(Xolo::COMMA_JOIN) if oldval.is_a? Array
+        newval = newval.join(Xolo::COMMA_JOIN) if newval.is_a? Array
+
         txt = "#{lbl}:"
         return "#{txt} ** #{not_avail}" if not_avail
 
-        txt = "#{lbl}: #{old}"
-        txt = "#{lbl}:\n#{old}\n" if txt.length >= terminal_word_wrap
-        return txt if old == new
+        txt = "#{lbl}: #{oldval}"
+        txt = "#{lbl}:\n#{oldval}\n" if txt.length >= terminal_word_wrap
+        return txt if oldval == newval
 
-        txt = "#{lbl}: #{old} -> #{new}"
-        txt = "#{lbl}:\n#{old}\n  ->\n#{new}\n" if txt.length >= terminal_word_wrap
+        txt = "#{lbl}: #{oldval} -> #{newval}"
+        txt = "#{lbl}:\n#{oldval}\n  ->\n#{newval}\n" if txt.length >= terminal_word_wrap
         txt
       end
 
       # prompt for and return a value
       ##############################
       def prompt_for_walkthru_value(key, deets, curr_val)
-        default = default_for_value(key, deets, curr_val)
+        default = default_for_value(key, deets, curr_val) # Needed??
         question = question_for_value(deets)
-        q_desc = question_desc(deets, default)
+        q_desc = question_desc(deets)
 
         # Highline wants a separate lambda for conversion
         # and validation, validation just returns boolean,
@@ -246,35 +254,107 @@ module Xolo
         validate = valdation_lambda(key, deets)
         convert = validate ? ->(_ans) { last_converted_value } : ->(ans) { ans }
 
+        answer =
+          if deets[:multiline]
+            prompt_via_multiline_editor(
+              question: question,
+              q_desc: q_desc,
+              current_value: default,
+              validate: validate
+            )
+          else
+            prompt_via_highline_ask(
+              question: question,
+              q_desc: q_desc,
+              convert: convert,
+              default: default,
+              validate: validate,
+              deets: deets
+            )
+          end
+
+        # answer = answer.map(&:strip).join("\n") if deets[:multiline]
+        # x means keep the current value
+        # answer = nil if answer == 'x'
+
+        # if no answer, keep the current value
+        return if answer.pix_blank?
+
+        # if 'none', erase the value in walkthru_cmd_opts
+        answer = nil if answer == Xolo::NONE
+
+        walkthru_cmd_opts[key] = answer
+      end # prompt for value
+
+      # Prompt for a one-line, or array value using highline 'ask'
+      #
+      # @param question [String] The question to ask
+      # @param q_desc [String] A longer description of what we're asking for
+      # @param convert [Lambda] The lambda for converting the validated value
+      # @param default [String] The value to use if the user just hits return
+      # @param deets [Hash] The option-details for the value we are collecting.
+      # @param validate [Lambda] The lambda for validating the answer before conversion
+      #
+      # @return [Object] The validated and converted value given by the user.
+      ###############################
+      def prompt_via_highline_ask(question:, q_desc:, convert:, default:, validate:, deets:)
         answer = highline_cli.ask(question, convert) do |q|
-          q.default = default
+          # disabling - default don't need the default displayed in the question.
+          # and can't  keep the default but disable the display until
+          # highline v3 which requries ruby 3
+          # q.default = default
+
           # q.readline = true # allows tab-completion of filenames, and using arrow keys
 
           q.echo = '*' if deets[:secure_interactive_input]
 
           if validate
             q.validate = validate
-
-            not_valid_response = ->(_x) { "\nERROR: #{last_validation_error}".pix_word_wrap }
-            # not_valid_response ||= "\nERROR: #{deets[:invalid_msg]}"
-            # not_valid_response << " Cannot be unset with 'none'." if deets[:required]
-            # not_valid_response = not_valid_response.pix_word_wrap
+            not_valid_response = ->(_x) { "\nERROR: #{last_validation_error}" }
             q.responses[:not_valid] = not_valid_response
-
-            not_valid_re_ask = +"Enter #{deets[:label]}: "
-            not_valid_re_ask << "|#{default}| " if default
-            q.responses[:ask_on_error] = not_valid_re_ask
+            q.responses[:ask_on_error] = "Enter #{deets[:label]}: \n"
           end
 
           # display a description of the value being asked for
           highline_cli.say q_desc
         end
-        return if answer.pix_blank?
+        puts "answer: #{answer}"
+        answer
+      end
 
-        answer = nil if answer == Xolo::NONE
+      # Prompt for a multiline value via an editor, like vim.
+      # This always returns a string.
+      # We handle validation ourselves, since we can't use highline.ask
+      #
+      # @param question [String] The question to ask
+      # @param q_desc [String] A longer description of what we're asking for
+      # @param current_value [String] The string to start editing.
+      # @param validate [Lambda] The lambda for validating the answer before conversion
+      # @return [String] the edited value.
+      ##############################
+      def prompt_via_multiline_editor(question:, q_desc:, current_value: Xolo::BLANK, validate: nil)
+        highline_cli.say "#{question}\n#{q_desc}"
 
-        walkthru_cmd_opts[key] = answer
-      end # prompt for value
+        new_val = nil
+        validated_new_val = nil
+        editor = multiline_editor_to_use
+        return if editor == Xolo::CANCEL
+
+        until validated_new_val
+          new_val = edited_multiline_value editor, current_value
+          if validate
+            validated_new_val = last_converted_value if validate.call new_val
+            unless validated_new_val
+              again = highline_cli.ask("\n#{last_validation_error}\nType a return to edit again, 'x' to exit")
+              break if again == 'x'
+            end
+          else
+            validated_new_val = new_val
+          end
+        end
+
+        validated_new_val || current_value
+      end
 
       # The 'default' value for the highline question
       # when prompting for a value
@@ -289,10 +369,17 @@ module Xolo
 
       # The multi-lines of text describing the value above the prompt
       ##############################
-      def question_desc(deets, default)
+      def question_desc(deets)
         q_desc = +"============= #{deets[:label]} =============\n"
         q_desc << deets[:desc]
-        q_desc << "\nType a return for default value '#{default}'" if default
+        if deets[:multiline]
+          # nada
+        elsif deets[:multi]
+          q_desc << "\nEnter one or more items, type a return between each.\nType a dot on a line by itself to end."
+        else
+          q_desc << "\nType a return to keep the current value."
+          q_desc << "\nType an 'x' to exit this choice." if deets[:validate]
+        end
         q_desc << "\n"
         q_desc
       end
@@ -308,8 +395,7 @@ module Xolo
           question << ", '#{Xolo::NONE}' to unset"
         end
         question << ':'
-        question = question.pix_word_wrap
-        question.chomp # + ' '
+        question.chomp
       end
 
       # Retun a lambda that calls one of our validation methods to validate
@@ -335,6 +421,9 @@ module Xolo
         # lambda to validate the value given.
         # must return boolean for Highline to deal with it.
         lambda do |ans|
+          # an 'x' alone is ok, and means no change.
+          return true if ans.downcase == 'x'
+
           # default to the pre-written error message
           self.last_validation_error = deets[:invalid_msg]
 
@@ -401,6 +490,37 @@ module Xolo
           missing_values << deets[:label]
         end
         missing_values
+      end
+
+      # Prompt for an editor to use from those in MULTILINE_EDITORS
+      # @return [String] the path to an editor to use for multiline values.
+      ##################
+      def multiline_editor_to_use
+        return config.editor if config.editor
+
+        highline_cli.choose do |menu|
+          menu.select_by = :index
+          menu.prompt = 'Choose an editor:'
+          MULTILINE_EDITORS.each do |name, cmd|
+            menu.choice(cmd, nil, name)
+          end # MULTILINE_EDITORS.each
+          menu.choice(Xolo::CANCEL)
+        end # @cli.choose
+      end # def
+
+      # Save some text in a temp file, edit it with the desired
+      # multiline editor, save it then return the edited value.
+      #
+      # @param editor [String, Pathname] The path to the editor to use
+      # @param text_to_edit [String] The text to edit
+      #
+      # @return [String] the edited text.
+      ##################
+      def edited_multiline_value(editor, text_to_edit)
+        f = Pathname.new(Tempfile.new('highline-test'))
+        f.pix_save text_to_edit.to_s
+        system "#{editor} #{f}"
+        f.read
       end
 
     end # module Interactive

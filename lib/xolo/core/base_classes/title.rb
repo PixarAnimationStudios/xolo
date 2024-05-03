@@ -175,7 +175,8 @@ module Xolo
             cli: :d,
             type: :string,
             validate: :validate_title_desc,
-            invalid_msg: "Not a valid description name, must be at least 20 characters. Provide a useful dscription of what the software does, URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
+            multiline: true,
+            invalid_msg: "Not a valid description, must be at least 20 characters. Provide a useful dscription of what the software does, URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
             desc: <<~ENDDESC
               A useful dscription of what the software installed by this title does. You can also include URLs, developer names, support info, etc.
 

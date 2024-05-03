@@ -165,6 +165,54 @@ module Xolo
         version = cli_cmd.version
       end
 
+      # List all the computer groups in jamf pro
+      #
+      # @return [void]
+      ############################
+      def list_groups
+        list_in_cols_with_less 'All Computer Groups in Jamf Pro:', jamf_computer_group_names
+      end
+
+      # List all the SSVC categories in jamf pro
+      #
+      # @return [void]
+      ############################
+      def list_categories
+        list_in_cols_with_less 'All Categories in Jamf Pro:', jamf_ssvc_category_names
+      end
+
+      # Display a list of items in as many columns as possible
+      # based on terminal width.
+      # and if the list is longer than terminal height,
+      # pipe it through 'less'
+      #
+      # @param header [String] A string to display at the top prepended with a '#'
+      #    and appended with a newline and a line of ######'s of the same length.
+      #
+      # @param list [Array<String>] the items to list
+      #
+      # @return [void]
+      ############################
+      def list_in_cols_with_less(header, list)
+        term_height = IO.console.winsize.first
+        columnized_list = highline_cli.list(list, :columns_across)
+
+        use_less = (columnized_list.lines.size + 3) > term_height
+
+        output = +"# #{header}\n"
+        sep_len = output.length
+        output << "# (displayed using 'less')\n" if use_less
+        output << '#' * sep_len
+        output << "\n"
+        output << columnized_list
+
+        if use_less
+          IO.popen('less', 'w') { |f| f.puts output }
+        else
+          puts output
+        end
+      end
+
     end # module processing
 
   end # module Admin

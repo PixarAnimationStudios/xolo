@@ -92,10 +92,14 @@ module Xolo
       RELEASE_VERSION_CMD = 'release-version'
       DELETE_VERSION_CMD = 'delete-version'
 
-      INFO_CMD = 'info'
-      SEARCH_CMD = 'search'
-      REPORT_CMD = 'report'
-      CONFIG_CMD = 'config'
+      INFO_CMD = 'info' # info on a title or version
+      SEARCH_CMD = 'search' # search for titles
+      REPORT_CMD = 'report' # report on installations
+      CONFIG_CMD = 'config' # configure xadm
+
+      LIST_GROUPS_CMD = 'list-groups'
+      LIST_CATEGORIES_CMD = 'list-categories'
+
       HELP_CMD = 'help'
 
       HELP_OPT = '--help'
@@ -225,10 +229,29 @@ module Xolo
           process_method: :update_config
         },
 
+        LIST_GROUPS_CMD => {
+          desc: 'List all computer groups in Jamf pro',
+          display: "#{LIST_GROUPS_CMD}",
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{LIST_GROUPS_CMD}",
+          opts: {},
+          arg_banner: :none,
+          process_method: :list_groups
+        },
+
+        LIST_CATEGORIES_CMD => {
+          desc: 'List all categories in Jamf pro',
+          display: "#{LIST_CATEGORIES_CMD}",
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{LIST_CATEGORIES_CMD}",
+          opts: {},
+          arg_banner: :none,
+          process_method: :list_categories
+        },
+
         HELP_CMD => {
           desc: 'Get help for a specifc command',
           display: 'help command',
-          opts: {}
+          opts: {},
+          no_login: true
         }
       }.freeze
 
