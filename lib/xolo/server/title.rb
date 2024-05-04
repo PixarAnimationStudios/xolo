@@ -384,9 +384,14 @@ module Xolo
       # @return [void]
       ##########################
       def save_ssvc_icon(tempfile)
+        # at this point, self_service_icon will contain the file path
+        # on the admin's local machine. So get the
+        # basename from it.
         orig_filename = Pathname.new(self_service_icon).basename
+        # here's where we'll store it on the server
         file = ssvc_icon_file
         ext_for_file = self_service_icon.split(Xolo::DOT).last
+
         file = file.parent + "#{file.basename}.#{ext_for_file}" if ext_for_file
 
         log_debug "Saving self_service_icon '#{orig_filename}' to: #{file}"

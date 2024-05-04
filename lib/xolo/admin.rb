@@ -40,6 +40,7 @@ require 'json'
 require 'yaml'
 require 'shellwords'
 require 'tempfile'
+require 'readline'
 require 'io/console'
 
 # Use optimist for CLI option processing
@@ -50,6 +51,11 @@ require 'io/console'
 # See comments in the required file for details.
 #
 require 'optimist_with_insert_blanks'
+
+# A small monkeypatch that allows Readline completion
+# of Highline.ask to optionally use a prompt and be
+# case insensitive
+require 'xolo/admin/highline_terminal'
 
 module Xolo
 

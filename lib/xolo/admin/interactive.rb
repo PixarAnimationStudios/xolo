@@ -40,6 +40,10 @@ module Xolo
         'pico (nano)' => '/usr/bin/pico'
       }
 
+      DEFAULT_HIGHLINE_READLINE_PROMPT = 'Enter value: '
+
+      HIGHLINE_READLINE_GATHER_INSTRUCTIONS = "\nUse tab for auto-completion, tab twice to see available choices\nUse '#{Xolo::NONE}' to unset all values\nType '#{Xolo::X}' to exit."
+
       # Module methods
       ##############################
       ##############################
@@ -87,6 +91,11 @@ module Xolo
       ###############################
       def do_walkthru
         return unless walkthru?
+
+        # only one readline thing per line
+        Readline.completion_append_character = nil
+        # all chars are allowed in readline choices
+        Readline.basic_word_break_characters = "\n"
 
         # if the command doesn't take any options, there's nothing to walk through
         return if Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts].empty?
@@ -251,7 +260,7 @@ module Xolo
       # prompt for and return a value
       ##############################
       def prompt_for_walkthru_value(key, deets, curr_val)
-        default = default_for_value(key, deets, curr_val) # Needed??
+        current_value = default_for_value(key, deets, curr_val) # Needed??
         question = question_for_value(deets)
         q_desc = question_desc(deets)
 
@@ -263,7 +272,7 @@ module Xolo
         # so we'll just return the last_converted_value we got
         # when we validate, or nil if we don't validate
         #
-        validate = valdation_lambda(key, deets)
+        validate = validation_lambda(key, deets)
         convert = validate ? ->(_ans) { last_converted_value } : ->(ans) { ans }
 
         answer =
@@ -271,15 +280,29 @@ module Xolo
             prompt_via_multiline_editor(
               question: question,
               q_desc: q_desc,
-              current_value: default,
+              current_value: current_value,
+              validate: validate
+            )
+          elsif deets[:readline] == :local_file
+            prompt_for_local_file_via_readline(
+              question: question,
+              q_desc: q_desc,
+              deets: deets,
+              validate: validate
+            )
+          elsif deets[:multi]
+            prompt_for_multi_values_with_highline(
+              question: question,
+              q_desc: q_desc,
+              deets: deets,
+              convert: convert,
               validate: validate
             )
           else
-            prompt_via_highline_ask(
+            prompt_for_single_value_with_highline(
               question: question,
               q_desc: q_desc,
               convert: convert,
-              default: default,
               validate: validate,
               deets: deets
             )
@@ -298,40 +321,61 @@ module Xolo
         walkthru_cmd_opts[key] = answer
       end # prompt for value
 
-      # Prompt for a one-line, or array value using highline 'ask'
+      # Prompt for a one-line value via highline, possibly with
+      # readline auto-completion from an array of possible values
       #
       # @param question [String] The question to ask
       # @param q_desc [String] A longer description of what we're asking for
       # @param convert [Lambda] The lambda for converting the validated value
-      # @param default [String] The value to use if the user just hits return
-      # @param deets [Hash] The option-details for the value we are collecting.
       # @param validate [Lambda] The lambda for validating the answer before conversion
+      # @param deets [Hash] The option-details for the value we are collecting.
       #
       # @return [Object] The validated and converted value given by the user.
       ###############################
-      def prompt_via_highline_ask(question:, q_desc:, convert:, default:, validate:, deets:)
-        answer = highline_cli.ask(question, convert) do |q|
-          # disabling - default don't need the default displayed in the question.
-          # and can't  keep the default but disable the display until
-          # highline v3 which requries ruby 3
-          # q.default = default
+      def prompt_for_single_value_with_highline(question:, q_desc:, convert:, validate:, deets:)
+        use_readline, convert, validate = setup_for_readline_in_highline(deets, convert, validate)
 
-          # q.readline = true # allows tab-completion of filenames, and using arrow keys
-
+        highline_cli.ask(question, convert) do |q|
+          q.readline = use_readline
           q.echo = '*' if deets[:secure_interactive_input]
 
           if validate
             q.validate = validate
-            not_valid_response = ->(_x) { "\nERROR: #{last_validation_error}" }
-            q.responses[:not_valid] = not_valid_response
+            q.responses[:not_valid] = ->(_x) { "\nERROR: #{last_validation_error}" }
             q.responses[:ask_on_error] = "Enter #{deets[:label]}: \n"
           end
-
-          # display a description of the value being asked for
           highline_cli.say q_desc
         end
-        puts "answer: #{answer}"
-        answer
+      end
+
+      # Prompt for an array of values using highline 'ask' with 'gather'
+      # and possibly readline auto-completion from an array
+      #
+      # @param question [String] The question to ask
+      # @param q_desc [String] A longer description of what we're asking for
+      # @param convert [Lambda] The lambda for converting the validated value
+      # @param validate [Lambda] The lambda for validating the answer before conversion
+      # @param deets [Hash] The option-details for the value we are collecting.
+      #
+      # @return [Array] The validated and converted values given by the user.
+      ###############################
+      def prompt_for_multi_values_with_highline(question:, q_desc:, deets:, convert: nil, validate: nil)
+        use_readline, convert, validate = setup_for_readline_in_highline(deets, convert, validate)
+
+        chosen_values = highline_cli.ask(question, convert) do |q|
+          q.readline = use_readline
+          q.gather = Xolo::X
+          q.responses[:no_completion] = "Unknown Choice.#{HIGHLINE_READLINE_GATHER_INSTRUCTIONS}"
+          q.responses[:ambiguous_completion] = "Ambiguous Choice.#{HIGHLINE_READLINE_GATHER_INSTRUCTIONS}"
+
+          # display a description of the value being asked for
+          highline_cli.say "#{q_desc}#{HIGHLINE_READLINE_GATHER_INSTRUCTIONS}"
+        end
+
+        # don't return an empty array if none was chosen, but
+        # return 'none' so that the whole value is cleared.
+        chosen_values = Xolo::NONE if chosen_values.include? Xolo::NONE
+        chosen_values
       end
 
       # Prompt for a multiline value via an editor, like vim.
@@ -368,6 +412,95 @@ module Xolo
         validated_new_val || current_value
       end
 
+      # Highline's ability to do autocompletion for local file selection is limited at best
+      # (it only will autocomplete within a single directory, defaulting to the one
+      # containing the executable)
+      #
+      # So if we want a shell-style autocompletion for selecting one or more files
+      # then we'll use readline directly, where its pretty simple to do.
+      #
+      def prompt_for_local_file_via_readline(question:, q_desc:, deets:, validate: nil)
+        Readline.completion_append_character = nil
+        Readline.basic_word_break_characters = "\n"
+        Readline.completion_proc = proc do |str|
+          str = Pathname.new(str).expand_path
+          str = str.directory? ? "#{str}/" : str.to_s
+
+          vals = Dir[str + '*'] + %w[x none]
+          Dir[str + '*'].grep(/^#{Regexp.escape(str)}/)
+        end
+
+        highline_cli.say "#{question}\n#{q_desc}"
+
+        validated_new_val = nil
+        until validated_new_val
+          new_val = Readline.readline('> ', true)
+          break if new_val == Xolo::X
+
+          if validate
+            validated_new_val = last_converted_value if validate.call new_val
+            highline_cli.say "#{last_validation_error}\nType 'x' to exit" unless validated_new_val
+          else
+            validated_new_val = new_val
+          end
+        end
+
+        validated_new_val
+      end
+
+      # should we use readline, and if so
+      # should we use an array of values or not?
+      #
+      ############################
+      def setup_for_readline_in_highline(deets, convert, validate)
+        # if deets[:readline] is a symbol, its an xadm method that returns an array
+        # of the possible values for readline completion and validation;
+        # only things in the array are allowed, so no need for other validation or conversion
+        # We add 'x' and 'none' to the list so they will be accepted for exiting and
+        # clearing.
+        #
+        # if its just truthy then we use readline without a pre-set list of values
+        # (e.g. paths, which might not exist locally) and may have a separate validate
+        # and convert lambdas
+        use_readline =
+          if deets[:readline]
+            if deets[:readline].is_a? Symbol
+              convert = send deets[:readline]
+              convert << Xolo::NONE unless deets[:required]
+              convert << Xolo::X
+              validate = nil
+            end
+            true
+          else
+            false
+          end
+
+        if use_readline
+          # Case Insensitivity, aka deets[:readline_casefold]
+          #
+          # If deets[:readline_casefold] is explicitly true or false, we honor that.
+          #
+          # Otherwise, when we have an array of possible values, we make readline case insensitive.
+          # and without such array, we make it sensitive (e.g. when selecting existing file paths)
+          #
+          # Setting this ENV is how we use our monkey patch to make this work
+          ENV['XADM_HIGHLINE_READLINE_CASE_INSENSITIVE'] =
+            case deets[:readline_casefold]
+            when true
+              Xolo::X
+            when false
+              nil
+            else
+              convert.is_a?(Array) ? Xolo::X : nil
+            end
+
+          # Setting this ENV is how we use our monkey patch to make this work
+          ENV['XADM_HIGHLINE_READLINE_PROMPT'] = deets[:multi_prompt] || DEFAULT_HIGHLINE_READLINE_PROMPT
+        end # if use_readline
+
+        [use_readline, convert, validate]
+      end
+
       # The 'default' value for the highline question
       # when prompting for a value
       ##############################
@@ -387,7 +520,8 @@ module Xolo
         if deets[:multiline]
           # nada
         elsif deets[:multi]
-          q_desc << "\nEnter one or more items, type a return between each.\nType a dot on a line by itself to end."
+          # nada
+          # q_desc << "\nEnter one or more items, type a return between each.\nType a dot on a line by itself to end."
         else
           q_desc << "\nType a return to keep the current value."
           q_desc << "\nType an 'x' to exit this choice." if deets[:validate]
@@ -426,7 +560,7 @@ module Xolo
       #    (and convert) a value, nil if we accept whatever was given.
       #
       ##############################
-      def valdation_lambda(key, deets)
+      def validation_lambda(key, deets)
         val_meth = valdation_method(key, deets)
         return unless val_meth
 

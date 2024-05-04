@@ -208,7 +208,6 @@ module Xolo
             cli: :a,
             validate: true,
             type: :string,
-            # conflicts: :version_script,
             walkthru_na: :app_name_bundleid_na,
             invalid_msg: "Not a valid App name, must end with '.app'",
             desc: <<~ENDDESC
@@ -230,8 +229,6 @@ module Xolo
             cli: :b,
             validate: true,
             type: :string,
-            # depends: :app_name,
-            # conflicts: :version_script,
             walkthru_na: :app_name_bundleid_na,
             invalid_msg: '"Not a valid bundle-id, must include at least one dot.',
             desc: <<~ENDDESC
@@ -253,7 +250,7 @@ module Xolo
             cli: :v,
             validate: true,
             type: :string,
-            # conflicts: :app_name,
+            readline: :local_file,
             walkthru_na: :version_script_na,
             invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
             desc: <<~ENDDESC
@@ -281,6 +278,8 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
+            multi_prompt: 'Group Name: ',
+            readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
               One or more Jamf Computer Groups containing computers that will automatically have this title installed.
@@ -301,6 +300,8 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
+            multi_prompt: 'Group Name: ',
+            readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
               One or more Jamf Computer Groups containing computers that are not allowed to install this title.
@@ -335,6 +336,7 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
+            multi_prompt: 'Path: ',
             invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
               One or more paths to executables that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the executable does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
@@ -371,6 +373,7 @@ module Xolo
             validate: true,
             type: :string,
             walkthru_na: :ssvc_na,
+            readline: :jamf_category_names,
             invalid_msg: 'Invalid category. Must exist in Jamf Pro.',
             desc: <<~ENDDESC
               The Category in which to display this title in Self Service.
@@ -391,6 +394,7 @@ module Xolo
             cli: :i,
             validate: true,
             type: :string,
+            readline: :local_file,
             walkthru_na: :ssvc_na,
             invalid_msg: 'Invalid Icon. Must exist locally and be a PNG, JPG, or GIF file.',
             desc: <<~ENDDESC

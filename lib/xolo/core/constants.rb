@@ -36,6 +36,9 @@ module Xolo
       # The value to use when unsetting an option
       NONE = 'none'
 
+      # Several things use x
+      X = 'x'
+
       # CLI options and other things use dashes
       DASH = '-'
 

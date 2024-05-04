@@ -109,7 +109,7 @@ module Xolo
       # Read in the contents of any version script given
       def initialize(data_hash)
         super
-        @self_service_icon = nil if @self_service_icon == Xolo::ITEM_UPLOADED
+        # @self_service_icon = nil if @self_service_icon == Xolo::ITEM_UPLOADED
 
         return unless version_script
         return if version_script == Xolo::ITEM_UPLOADED
