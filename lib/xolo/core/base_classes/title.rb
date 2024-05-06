@@ -144,7 +144,7 @@ module Xolo
             cli: false,
             type: :string,
             validate: true, # the validation method is called 'validate_title'
-            invalid_msg: 'Not a valid title! Must be lowercase alphanumeric and dashes only',
+            invalid_msg: 'Not a valid title: must be lowercase alphanumeric and dashes only',
             desc: <<~ENDDESC
               A unique string identifying this Title, e.g. 'folio' or 'google-chrome'.
               The same as a 'basename' in d3.
@@ -161,9 +161,10 @@ module Xolo
             cli: :n,
             type: :string,
             validate: :validate_title_display_name,
-            invalid_msg: 'Not a valid display name, must be at least three characters, starting and ending with non-whitespace.',
+            invalid_msg: 'Not a valid display name, must be at least three characters long.',
             desc: <<~ENDDESC
-              A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'. Must be at least three characters long.
+              A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
+              Must be at least three characters long.
             ENDDESC
           },
 
@@ -176,11 +177,18 @@ module Xolo
             type: :string,
             validate: :validate_title_desc,
             multiline: true,
-            invalid_msg: "Not a valid description, must be at least 20 characters. Provide a useful dscription of what the software does, URLs, developer names, etc. DO NOT USE, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.",
+            invalid_msg: <<~ENDINV,
+              Not a valid description, must be at least 20 characters.
+
+              Provide a useful dscription of what the software does, URLs, developer names, etc.
+
+              DO NOT USE, e.g. 'Installs Some App', because we know that already and it isn't helpful.
+            ENDINV
             desc: <<~ENDDESC
               A useful dscription of what the software installed by this title does. You can also include URLs, developer names, support info, etc.
 
-              DO NOT use, e.g. 'Installs Google Chrome' for the title 'google-chrome', that just wastes everyone's time.
+              DO NOT use, e.g. 'Installs Some App', because we know that already and it isn't helpful.
+
               Must be at least 20 Characters.
             ENDDESC
           },
@@ -250,7 +258,7 @@ module Xolo
             cli: :v,
             validate: true,
             type: :string,
-            readline: :local_file,
+            readline: :get_files,
             walkthru_na: :version_script_na,
             invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
             desc: <<~ENDDESC
@@ -278,7 +286,7 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
-            multi_prompt: 'Group Name: ',
+            readline_prompt: 'Group Name: ',
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
@@ -287,8 +295,7 @@ module Xolo
 
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no target groups.
 
-              To specify more than one group separate them with commas. If not using --walkthru you can
-              also use the CLI option multiple times.
+              If not using --walkthru you can use --target-groups multiple times.
             ENDDESC
           },
 
@@ -300,15 +307,14 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
-            multi_prompt: 'Group Name: ',
+            readline_prompt: 'Group Name: ',
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
               One or more Jamf Computer Groups containing computers that are not allowed to install this title.
               If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
 
-              To specify more than one group separate them with commas. If not using --walkthru you can
-              also use the CLI option multiple times.
+              If not using --walkthru you can use --excluded-groups multiple times.
             ENDDESC
           },
 
@@ -336,22 +342,25 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
-            multi_prompt: 'Path: ',
+            walkthru_na: :expiration_na,
+            readline: :get_files,
+            readline_prompt: 'Path: ',
             invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
               One or more paths to executables that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the executable does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
 
               If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office.
 
-              To specify more than one path separate them with commas. If not using --walkthru you can
-              also use the CLI option multiple times.
+              These paths do not need to exist on this computer.
+
+              If not using --walkthru you can use --expiration-paths multiple times.
             ENDDESC
           },
 
           # @!attribute self_service
           #   @return [Boolean] Does this title appear in Self Service?
           self_service: {
-            label: 'Show in Self Service',
+            label: 'In Self Service?',
             cli: :s,
             type: :boolean,
             validate: :validate_boolean,
@@ -394,7 +403,7 @@ module Xolo
             cli: :i,
             validate: true,
             type: :string,
-            readline: :local_file,
+            readline: :get_files,
             walkthru_na: :ssvc_na,
             invalid_msg: 'Invalid Icon. Must exist locally and be a PNG, JPG, or GIF file.',
             desc: <<~ENDDESC

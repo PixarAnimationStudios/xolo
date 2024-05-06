@@ -346,7 +346,7 @@ module Xolo
       # @return [Array<String>] The valid array
       def validate_expiration_paths(val)
         val = [val] unless val.is_a? Array
-        return [] if val == [Xolo::NONE]
+        return [] if val.include? [Xolo::NONE]
 
         val.map!(&:to_s)
         bad_paths = []
@@ -354,6 +354,7 @@ module Xolo
         val.each do |path|
           bad_paths << path unless path =~ %r{\A/\w.*/.*\z}
         end
+
         return val if bad_paths.empty?
 
         raise_invalid_data_error bad_paths.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:expiration_paths][:invalid_msg]
@@ -684,7 +685,7 @@ module Xolo
       #######
       def validate_title_consistency_expire_paths(opts)
         return unless opts[:expiration].to_i.positive?
-        return unless opts[:expiration_paths].to_s.empty?
+        return unless opts[:expiration_paths].pix_blank?
 
         msg =
           if walkthru?

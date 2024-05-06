@@ -40,9 +40,14 @@ module Xolo
         'pico (nano)' => '/usr/bin/pico'
       }
 
+      MULTILINE_HEADER_SEPARATOR = "\nDO NOT EDIT anything above the next line:\n=================================="
+
       DEFAULT_HIGHLINE_READLINE_PROMPT = 'Enter value: '
 
-      HIGHLINE_READLINE_GATHER_INSTRUCTIONS = "\nUse tab for auto-completion, tab twice to see available choices\nUse '#{Xolo::NONE}' to unset all values\nType '#{Xolo::X}' to exit."
+      HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS = <<~ENDINSTR
+        Use tab for auto-completion, tab twice to see available choices
+        Type '#{Xolo::X}' to exit."
+      ENDINSTR
 
       # Module methods
       ##############################
@@ -75,8 +80,8 @@ module Xolo
         @terminal_word_wrap ||= terminal_width - 5
       end
 
-      # Our HighLine instance
-      # Word wrap at terminal-width minus 5
+      # @return [Highline] Our HighLine instance.
+      #    Word wrap at terminal-width minus 5
       ##############################
       def highline_cli
         return @highline_cli if @highline_cli
@@ -88,6 +93,7 @@ module Xolo
 
       # Use an interactive walkthru session to populate
       # Xolo::Admin::Options.walkthru_cmd_opts
+      # @return [void]
       ###############################
       def do_walkthru
         return unless walkthru?
@@ -100,12 +106,14 @@ module Xolo
         # if the command doesn't take any options, there's nothing to walk through
         return if Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts].empty?
 
-        display_walkthru_menu cli_cmd.command
+        display_walkthru_menu
       end
 
-      #
+      # Build and display the walkthru menu for the given command
+      # @return [void]
       ##############################
-      def display_walkthru_menu(cmd)
+      def display_walkthru_menu
+        cmd = cli_cmd.command
         done_with_menu = false
 
         # we start off with our walkthru_cmd_opts being the same
@@ -124,8 +132,6 @@ module Xolo
             menu.responses[:no_completion] = 'Unknown Choice'
 
             # The menu items for setting values
-            ####
-            # Xolo::Admin::Options::COMMANDS[cmd]
             cmd_details(cmd)[:opts].each do |key, deets|
               curr_val = current_opt_values[key]
               new_val = walkthru_cmd_opts[key]
@@ -172,10 +178,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def version_script_na
-        return if !current_opt_values[:app_name] && \
-                  !current_opt_values[:app_bundle_id] && \
-                  !walkthru_cmd_opts[:app_name] && \
-                  !walkthru_cmd_opts[:app_bundle_id]
+        return unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
 
         'N/A when using App Name/BundleID'
       end
@@ -184,8 +187,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def app_name_bundleid_na
-        return if !current_opt_values[:version_script] && \
-                  !walkthru_cmd_opts[:version_script]
+        return unless walkthru_cmd_opts[:version_script]
 
         'N/A when using Version Script'
       end
@@ -194,19 +196,24 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def ssvc_na
-        all = Xolo::Admin::Title::TARGET_ALL
-        tgt_all = current_opt_values[:target_groups]&.include?(all) || \
-                  walkthru_cmd_opts[:target_groups]&.include?(all)
+        tgt_all = walkthru_cmd_opts[:target_groups]&.include?(Xolo::Admin::Title::TARGET_ALL)
 
-        "N/A if Target Group is '#{all}'" if tgt_all
+        "N/A if Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'" if tgt_all
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def expiration_na
+        'N/A unless expiration is > 0' unless walkthru_cmd_opts[:expiration].to_i.positive?
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
       def pw_na
-        admin_empty = walkthru_cmd_opts[:admin].to_s.empty?
-        host_empty = walkthru_cmd_opts[:hostname].to_s.empty?
+        admin_empty = walkthru_cmd_opts[:admin].pix_blank?
+        host_empty = walkthru_cmd_opts[:hostname].pix_blank?
         'N/A until hostname and admin name are set' if host_empty || admin_empty
       end
 
@@ -219,7 +226,8 @@ module Xolo
         e.to_s
       end
 
-      # The menu header
+      # Clear the terminal window and display the menu header above the highline menu
+      # @return [void]
       ##############################
       def display_walkthru_header
         header_text = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:walkthru_header].dup
@@ -240,6 +248,14 @@ module Xolo
         ENDPUTS
       end
 
+      # @param lbl [String] the label to use at the start of the text
+      #   e.g. 'Description'
+      # @param oldval [Object] the original value before we started doing
+      #   whatever we are doing
+      # @param newval [Object] the latest value that was entered by the user
+      # @param not_avail [String] if the menu item is unavailable, this
+      #   expalins why.
+      # @return [String] the menu item text
       ##################################
       def menu_item_text(lbl, oldval: nil, newval: nil, not_avail: nil)
         oldval = oldval.join(Xolo::COMMA_JOIN) if oldval.is_a? Array
@@ -257,10 +273,18 @@ module Xolo
         txt
       end
 
-      # prompt for and return a value
+      # prompt for an option value and store it in walkthru_cmd_opts
+      #
+      # @param key [Symbol] One of the keys of the opts hash for the current command;
+      #   the value for which we are prompting
+      # @param deets [Hash] the details about the option key we prompting for
+      # @param curr_val [Object] The current value of the option, if any
+      #
+      # @return [void]
       ##############################
-      def prompt_for_walkthru_value(key, deets, curr_val)
-        current_value = default_for_value(key, deets, curr_val) # Needed??
+      def prompt_for_walkthru_value(key, deets, _curr_val)
+        # current_value = default_for_value(key, deets, curr_val) # Needed??
+        current_value = walkthru_cmd_opts[key]
         question = question_for_value(deets)
         q_desc = question_desc(deets)
 
@@ -283,8 +307,8 @@ module Xolo
               current_value: current_value,
               validate: validate
             )
-          elsif deets[:readline] == :local_file
-            prompt_for_local_file_via_readline(
+          elsif deets[:readline] == :get_files
+            prompt_for_local_files_via_readline(
               question: question,
               q_desc: q_desc,
               deets: deets,
@@ -321,14 +345,14 @@ module Xolo
         walkthru_cmd_opts[key] = answer
       end # prompt for value
 
-      # Prompt for a one-line value via highline, possibly with
+      # Prompt for a one-line single value via highline, possibly with
       # readline auto-completion from an array of possible values
       #
       # @param question [String] The question to ask
       # @param q_desc [String] A longer description of what we're asking for
       # @param convert [Lambda] The lambda for converting the validated value
       # @param validate [Lambda] The lambda for validating the answer before conversion
-      # @param deets [Hash] The option-details for the value we are collecting.
+      # @param deets [Hash] The option-details for the value for which we are prompting
       #
       # @return [Object] The validated and converted value given by the user.
       ###############################
@@ -355,7 +379,7 @@ module Xolo
       # @param q_desc [String] A longer description of what we're asking for
       # @param convert [Lambda] The lambda for converting the validated value
       # @param validate [Lambda] The lambda for validating the answer before conversion
-      # @param deets [Hash] The option-details for the value we are collecting.
+      # @param deets [Hash] The option-details for the value for which we are prompting
       #
       # @return [Array] The validated and converted values given by the user.
       ###############################
@@ -365,11 +389,12 @@ module Xolo
         chosen_values = highline_cli.ask(question, convert) do |q|
           q.readline = use_readline
           q.gather = Xolo::X
-          q.responses[:no_completion] = "Unknown Choice.#{HIGHLINE_READLINE_GATHER_INSTRUCTIONS}"
-          q.responses[:ambiguous_completion] = "Ambiguous Choice.#{HIGHLINE_READLINE_GATHER_INSTRUCTIONS}"
+          q.responses[:no_completion] = "Unknown Choice.#{HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS}"
+          q.responses[:ambiguous_completion] = "Ambiguous Choice.#{HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS}"
+          q.validate = validate if validate
 
           # display a description of the value being asked for
-          highline_cli.say "#{q_desc}#{HIGHLINE_READLINE_GATHER_INSTRUCTIONS}"
+          highline_cli.say q_desc
         end
 
         # don't return an empty array if none was chosen, but
@@ -378,7 +403,7 @@ module Xolo
         chosen_values
       end
 
-      # Prompt for a multiline value via an editor, like vim.
+      # Prompt for a multiline cingle value via an editor, like vim.
       # This always returns a string.
       # We handle validation ourselves, since we can't use highline.ask
       #
@@ -397,12 +422,13 @@ module Xolo
         return if editor == Xolo::CANCEL
 
         until validated_new_val
-          new_val = edited_multiline_value editor, current_value
+          new_val = edited_multiline_value editor, q_desc, current_value
           if validate
-            validated_new_val = last_converted_value if validate.call new_val
-            unless validated_new_val
-              again = highline_cli.ask("\n#{last_validation_error}\nType a return to edit again, 'x' to exit")
-              break if again == 'x'
+            if validate.call new_val
+              validated_new_val = last_converted_value
+            else
+              again = highline_cli.ask("\n#{last_validation_error}\nType a return to edit again, '#{Xolo::X}' to exit")
+              break if again == Xolo::X
             end
           else
             validated_new_val = new_val
@@ -419,31 +445,49 @@ module Xolo
       # So if we want a shell-style autocompletion for selecting one or more files
       # then we'll use readline directly, where its pretty simple to do.
       #
-      def prompt_for_local_file_via_readline(question:, q_desc:, deets:, validate: nil)
-        Readline.completion_append_character = nil
-        Readline.basic_word_break_characters = "\n"
-        Readline.completion_proc = proc do |str|
-          str = Pathname.new(str).expand_path
-          str = str.directory? ? "#{str}/" : str.to_s
+      # @param question [String] The question to ask
+      # @param q_desc [String] A longer description of what we're asking for
+      # @param deets [Hash] The option-details for the value for which we are prompting
+      # @param validate [Lambda] The lambda for validating the answer before conversion
+      #
+      # @return [Object] The validated and converted value given by the user.
+      #######################
+      def prompt_for_local_files_via_readline(question:, q_desc:, deets:, validate: nil)
+        prompt = setup_for_readline_local_files(deets)
 
-          vals = Dir[str + '*'] + %w[x none]
-          Dir[str + '*'].grep(/^#{Regexp.escape(str)}/)
-        end
+        highline_cli.say "#{q_desc}\n#{question}"
 
-        highline_cli.say "#{question}\n#{q_desc}"
-
-        validated_new_val = nil
-        until validated_new_val
-          new_val = Readline.readline('> ', true)
-          break if new_val == Xolo::X
+        validated_new_val = deets[:multi] ? [] : nil
+        all_done = false
+        until all_done
+          latest_input = Readline.readline(prompt, true)
+          break if latest_input == Xolo::X
+          return Xolo::NONE if !deets[:required] && (latest_input == Xolo::NONE)
 
           if validate
-            validated_new_val = last_converted_value if validate.call new_val
-            highline_cli.say "#{last_validation_error}\nType 'x' to exit" unless validated_new_val
-          else
-            validated_new_val = new_val
+            if validate.call latest_input
+              latest_input = last_converted_value
+            else
+              highline_cli.say "#{last_validation_error}\nType 'x' to exit"
+              next
+            end
           end
-        end
+          # if we are here, the latest_input is valid
+
+          # We only validate individual items, but the validation
+          # method might return an array (which it does for CLI option validation
+          # for options that are stored in arrays - it validates them  all at once)
+          # so deal with that here or we'll get nested arrays here.
+          latest_input = latest_input.first if latest_input.is_a?(Array)
+
+          if deets[:multi]
+            validated_new_val << latest_input
+          else
+            validated_new_val = latest_input
+            all_done = true
+          end
+
+        end # until all_done
 
         validated_new_val
       end
@@ -451,6 +495,14 @@ module Xolo
       # should we use readline, and if so
       # should we use an array of values or not?
       #
+      # @param convert [Lambda] The lambda for converting the validated value
+      # @param validate [Lambda] The lambda for validating the answer before conversion
+      # @param deets [Hash] The option-details for the value for which we are prompting
+      #
+      # @return [Array] Three items:
+      #   - if we should use readline (boolean)
+      #   - the new 'convert' value - either the original passed to us or an array of possible values
+      #   - the new 'validate' value - either the original passed to us or nil if using an array of values
       ############################
       def setup_for_readline_in_highline(deets, convert, validate)
         # if deets[:readline] is a symbol, its an xadm method that returns an array
@@ -501,8 +553,27 @@ module Xolo
         [use_readline, convert, validate]
       end
 
+      # set up readline for local file autocomplete
+      # return the prompt we'll be using with readline
+      #
+      # @param deets [Hash] The option-details for the value for which we are prompting
+      #
+      # @return [String] the prompt to use with readline
+      #######################
+      def setup_for_readline_local_files(deets)
+        Readline.completion_append_character = nil
+        Readline.basic_word_break_characters = "\n"
+        Readline.completion_proc = proc do |str|
+          str = Pathname.new(str).expand_path
+          str = str.directory? ? "#{str}/" : str.to_s
+          Dir[str + '*'].grep(/^#{Regexp.escape(str)}/)
+        end
+        prompt = deets[:readline_prompt] || deets[:label] || '> '
+      end
+
       # The 'default' value for the highline question
       # when prompting for a value
+      # POSSIBLY NOT NEEDED. See commented-out call above
       ##############################
       def default_for_value(key, deets, curr_val)
         # default is the current value, or the
@@ -513,24 +584,29 @@ module Xolo
       end
 
       # The multi-lines of text describing the value above the prompt
+      # @param deets [Hash] The option-details for the value for which we are prompting
+      # @return [String] the text to display
       ##############################
       def question_desc(deets)
         q_desc = +"============= #{deets[:label]} =============\n"
-        q_desc << deets[:desc]
+        q_desc << deets[:desc].chomp
+
         if deets[:multiline]
-          # nada
+          # nada, will be shown in the editor
         elsif deets[:multi]
-          # nada
-          # q_desc << "\nEnter one or more items, type a return between each.\nType a dot on a line by itself to end."
+          q_desc << "\nUse tab for auto-completion, tab twice to see available choices" if deets[:readline]
+          q_desc << "\nType '#{Xolo::X}' to exit." if deets[:validate]
+
         else
           q_desc << "\nType a return to keep the current value."
-          q_desc << "\nType an 'x' to exit this choice." if deets[:validate]
         end
-        q_desc << "\n"
+
         q_desc
       end
 
       # The line of text prompting for a value.
+      # @param deets [Hash] The option-details for the value for which we are prompting
+      # @return [String] the one-line prompt to display
       ##############################
       def question_for_value(deets)
         question = +"Enter #{deets[:label]}"
@@ -538,7 +614,7 @@ module Xolo
         if deets[:type] == :boolean
           question << ', (y/n)'
         elsif !deets[:required]
-          question << ", '#{Xolo::NONE}' to unset"
+          question << ", use '#{Xolo::NONE}' to unset"
         end
         question << ':'
         question.chomp
@@ -561,28 +637,35 @@ module Xolo
       #
       ##############################
       def validation_lambda(key, deets)
-        val_meth = valdation_method(key, deets)
+        val_meth = validation_method(key, deets)
         return unless val_meth
 
         # lambda to validate the value given.
         # must return boolean for Highline to deal with it.
         lambda do |ans|
-          # an 'x' alone is ok, and means no change.
-          return true if ans.downcase == 'x'
-
-          # default to the pre-written error message
-          self.last_validation_error = deets[:invalid_msg]
-
-          # to start, the converted value is just the given value
+          # to start, the converted value is just the given value.
           # use self. here, otherwise the lambda sees last_converted_value
           # as a local variable
           self.last_converted_value = ans
 
-          # if user just hit return, nothing to validate,
-          # the current/default value will remain.
-          return true if ans.pix_blank?
+          # default to the pre-written error message
+          self.last_validation_error = deets[:invalid_msg]
+
+          # if entering multi-values, a 'x' is how we get out of
+          # the loop
+          if deets[:multi] && ans.downcase == Xolo::X
+            self.last_converted_value = nil
+            return true
+
+          # but for anything not multi, an empty response
+          # meansuser just hit return, nothing to validate,
+          # no changes to make
+          elsif ans.pix_blank?
+            return true
+          end
 
           # If this value isn't required, accept 'none'
+          # which clears the value
           if !deets[:required] && (ans == Xolo::NONE)
             self.last_converted_value = Xolo::NONE
             return true
@@ -591,15 +674,14 @@ module Xolo
           # otherwise 'none' becomes nil and will be validated
           ans_to_validate = ans == Xolo::NONE ? nil : ans
 
-          # split comma-sep. multi values
-          # TODO: investigate highline multi/array input
-          ans_to_validate = ans_to_validate.split(Xolo::COMMA_SEP_RE) if deets[:multi]
-
           # save the validated/converted value for use in the
           # convert method. so we don't have to call the validate method
           # twice
           self.last_converted_value = (send val_meth, ans_to_validate)
           true
+
+        # if validation fails, set the last_validation_error
+        # so we can display it and ask again
         rescue Xolo::InvalidDataError => e
           self.last_validation_error = e.to_s
           false
@@ -609,24 +691,32 @@ module Xolo
       # getter/setter for the value converted by the last validation
       # method call - we do this so the same value is available in the
       #  convert and validate lambdas
+      #
+      # @return [Object]
       ##############################
       attr_accessor :last_converted_value
 
-      # getter/setter for the value converted by the last validation
-      # method call - we do this so the same value is available in the
-      #  convert and validate lambdas
+      # getter/setter for any validation error message when
+      # a validation fails.
+      # @return [String]
       ##############################
       attr_accessor :last_validation_error
 
       # The method used to validate and convert a value
+      # @param deets [Hash] The option-details for the value for which we are prompting
+      # @param key [Symbol] One of the keys of the opts hash for the current command;
+      #   the value for which we are prompting
+      # @return [String, Symbol, nil] The method which will validate the value for the key
       ##############################
-      def valdation_method(key, deets)
+      def validation_method(key, deets)
         case deets[:validate]
         when TrueClass then "validate_#{key}"
         when Symbol then deets[:validate]
         end
       end
 
+      # @return [Array<String>] The names of any required opts that have no current value.
+      #   Displayed at the bottom of the walkthru menu.
       ##################################
       def missing_values
         missing_values = []
@@ -662,11 +752,12 @@ module Xolo
       #
       # @return [String] the edited text.
       ##################
-      def edited_multiline_value(editor, text_to_edit)
+      def edited_multiline_value(editor, desc, text_to_edit)
         f = Pathname.new(Tempfile.new('highline-test'))
-        f.pix_save text_to_edit.to_s
+        editor_content = "#{desc.chomp}\n#{MULTILINE_HEADER_SEPARATOR}\n#{text_to_edit}"
+        f.pix_save editor_content
         system "#{editor} #{f}"
-        f.read
+        f.read.split(MULTILINE_HEADER_SEPARATOR).last
       end
 
     end # module Interactive

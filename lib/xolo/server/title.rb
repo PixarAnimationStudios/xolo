@@ -388,12 +388,22 @@ module Xolo
         # on the admin's local machine. So get the
         # basename from it.
         orig_filename = Pathname.new(self_service_icon).basename
+
         # here's where we'll store it on the server
         file = ssvc_icon_file
         ext_for_file = self_service_icon.split(Xolo::DOT).last
 
         file = file.parent + "#{file.basename}.#{ext_for_file}" if ext_for_file
 
+        # delete any previous icon files
+        old_icons = title_dir.children.select { |c| c.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME }
+        unless old_icons.empty?
+          old_icons.each do |oi|
+            oi.delete
+            log_debug "Deleted older icon file: #{oi.basename}"
+          end
+        end
+        title_dir.children.each { |c| c.delete if c.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME }
         log_debug "Saving self_service_icon '#{orig_filename}' to: #{file}"
         tempfile.rename file
 
