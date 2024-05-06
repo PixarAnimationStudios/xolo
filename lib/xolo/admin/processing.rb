@@ -152,7 +152,9 @@ module Xolo
 
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
         Xolo::Admin::Title::ATTRIBUTES.each do |attr, deets|
-          puts "#{deets[:label]}: #{title.send attr}"
+          value = title.send attr
+          value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
+          puts "- #{deets[:label]}: #{value}".pix_word_wrap
         end
       end
 
