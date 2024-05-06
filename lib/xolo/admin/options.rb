@@ -110,6 +110,55 @@ module Xolo
       TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
       TARGET_VERSION_PLACEHOLDER = 'TARGET_TITLE_PH'
 
+      # The commands that xadm understands
+      # For each command there is a hash of details, with these possible keys:
+      #
+      # - desc: [String] a one-line description of the command
+      #
+      # - display: [String] The command with any arguments, but no options.
+      #   If no more specific usage: is defined, this is used in the help output
+      #   to build the 'usage' line: "#{executable_file} #{cmd_display} [options]"
+      #
+      # - usage: [String] If the usage line generated with the display: value is inaccurate,
+      #   you can define one explicitly here to override it.
+      #
+      # - arg_banner: [String] a line of help text defining the arguments taken by the command.
+      #   Defaults to Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
+      #   Will automatically append Xolo::Admin::Options::DFT_CMD_VERSION_ARG_BANNER if
+      #   the command is a version command. If ths command takes no args, set this to :none
+      #
+      # - target: [Symbol] Most commands operate on either titles, versions, or both. Set this
+      #   to one of :title, :version, or :title_or_version to let xadm apply revelant state.
+      #   Leave unset if the command doesn't take anything
+      #
+      #
+      # - opts: [Hash] The keys and details about all the options that can be given to this
+      #   command. It is usually a constant from some other part of Xolo::Admin.
+      #   See {Xolo::Core::BaseClasses::Title::ATTRIBUTES} for info about the contents
+      #   of this Hash. If the command takes no options, set this to an empty hash '{}'
+      #
+      # - walkthru_header: A string displayed above the main walkthru menu describing what
+      #   is happening. E.g. 'Editing Title foobar'.
+      #   Use TARGET_TITLE_PLACEHOLDER and TARGET_VERSION_PLACEHOLDER as needed to sub in the
+      #   names of the targets.
+      #
+      # - no_login: [Boolean] By default, xadm will connect to the xolo server. If that isn't
+      #   needed for this command, set this to true.
+      #
+      # - process_method: [Symbol] The name of a method defined in Xolo::Admin::Processing.
+      #   This method will be called to do the actual work of the command, after processing all
+      #   the arguments and options.
+      #
+      ###### Arguments vs options:
+      #
+      # We're using a more formal definition of these terms here.
+      #
+      # An argument is a value taken by a command - the thing the command will
+      # operate upon. This is usually a title, or a title and a version.
+      #
+      # An option is something that defines or modifies what the command will do
+      # with the argument(s). Options always begin with '-' or '--'
+      #
       COMMANDS = {
 
         LIST_TITLES_CMD => {

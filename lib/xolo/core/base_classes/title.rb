@@ -60,10 +60,20 @@ module Xolo
 
         # Attributes of Titles.
         #
-        # Title attributes have these attributes:
+        # This hash defines the attributes of all Xolo titles. Each key is the name
+        # of an attribute, and the values are hashes defining the details of that
+        # attribute.
         #
-        # - label: [String] to be displayed in admin interaction, walkthru, err msgs
-        #    e.g. 'Title ID'
+        # These attributes are also used to create/define CLI & walkthru options for
+        # title-relatead commands.
+        #
+        # Subclasses of Xolo::Core::BaseClasses::Title will define other attributes
+        # as needed, usually as accessors.
+        #
+        # Title attributes have these details:
+        #
+        # - label: [String] to be displayed in admin interaction, walkthru, help msgs
+        #    or error messages. e.g. 'Display Name'
         #
         # - required: [Boolean] Must be provided when making a new title, cannot be
         #   deleted from existing titles. (but can be changed if not immutable)
@@ -71,46 +81,38 @@ module Xolo
         # - immutable: [Boolean] This value can only be set when creatimg a new title.
         #   When editing an existing title, it cannot be changed.
         #
-        # - cli: [false, Symbol] Is this attr. taken as a CLI option &
-        #   walkthru menu item? If so, what is its 'short' option flag?
+        # - cli: [Symbol, false] What is the 'short' option flag for this option?
+        #   The long option flag is the key, preceded with '--' and with underscores
+        #   changed to '-', so display_name is set using the cli option '--display-name'.
+        #   If this is set to :n  then the short version is '-n'
         #
-        #   If falsey, this option is never taken as a cli
-        #   option or walkthru menu choice, but may be used elsewhere,
-        #   e.g. in this cli command:
-        #      xadm add-title my-title <options>
-        #   'add-title' is the command and 'my-title', which populates th
-        #   title attribute, is the command's argument, but not a CLI option, so for
-        #   'title', cli: is false
-        #
-        #   If a one-letter Symbol, this is the 'short' cli option, e.g. the Symbol :d
-        #   defines the cli option '-d' which is used as the short option for --description
-        #   NOTE: the long cli options are just the attrib keys preceded with -- and with
-        #   underscores converted to dashes, so :app_bundle_id becomes --app-bundle-id
-        #
-        #   If the symbol :none is used, there is no short variation of the CLI option.
-        #   but a long --option-flag will be used matching the attribute key, e.g.
-        #   for app_bundle_id it will be --app-bundle-id
+        #   If this attribute can't be set via walk thru or a CLI option, set this to false.
         #
         # - multi: [Boolean] If true, this option takes multiple values and is stored as
         #   an Array. On the commandline, it can be given multiple times and all the values
         #   will be in an array in the options hash.
         #   E.g. if foo: { multi: true } and these options are given on the commandline
-        #       --foo val1 --foo val2  --foo val3
-        #   then the options hash will contain: :foo => ['val1', 'val2', 'val3']
+        #       --foo val1 --foo val2  --foo 'val 3'
+        #   then the options hash will contain: :foo => ['val1', 'val2', 'val 3']
+        #   It can also be given as a single comma-separated string, e.g.
+        #       --foo 'val1, val2, val 3'
         #
-        #   In --walkthru, separate the values with commas to get the same result, e.g.:
-        #       val1, val2, val3
-        #   and the options hash will contain  ['val1', 'val2', 'val3']
+        #   In --walkthru the user will be asked to keep entering values, and to
+        #   end input with an 'x' by itself.
         #
         # - default: [String, Numeric, Boolean, nil] the default value if nothing is
         #   provided or inherited. Note that titles never inherit values, only versions do.
         #
         # - validate: [Boolean, Symbol] how to validate & convert values for this attribute.
-        #   - If true (not just truthy) call method Xolo::Admin::Validate.<value_key>(value)
-        #     e.g. Xolo::Admin::Validate.display_name(new_display_name)
+        #
+        #   - If true (not just truthy) call method named 'validate_<key>' in  Xolo::Admin::Validate
+        #     passing in the value to validate.
+        #     e.g. Xolo::Admin::Validate.validate_display_name(new_display_name)
+        #
         #   - If a Symbol, it's an arbitrary method to call on the Xolo::Admin::Validate module
         #     e.g. :non_empty_array will validate the value using
         #     Xolo::Admin::Validate.non_empty_array(some_array_value)
+        #
         #   - Anything else: no validation, and the value will be a String
         #
         # - type: [Symbol] the data type of the value. One of: :boolean, :string, :integer,
@@ -122,15 +124,35 @@ module Xolo
         #   The YARD docs for each attribute indicate the Class of the value in the
         #   Title object after CLI processing.
         #
-        # - invalid_msg: [String] custom message to display when the value is invalid
+        # - invalid_msg: [String] custom message to display when the value fails validation.
         #
         # - desc: [String] Helpful text explaining what the attribute is, and what its CLI option means.
         #   Displayed during walkthru, in help messages, and in some err messages.
         #
-        # - walkthru_na: [Symbol] The name of a method to call on Xolo::Admin::Interactive when
-        #   building this menu item. If it returns a string, it is an explanation of wny this option
+        # - walkthru_na: [Symbol] The name of a method to call (usually defined in Xolo::Admin::Interactive)
+        #   when building the walk thru menu item for this option.
+        #   If it returns a string, it is an explanation of wny this option
         #   is not available at the moment, and the item is not selectable. If it returns nil, the
         #   item is displayed and handled as normal.
+        #
+        # - multiline [Boolean] If true, the value for this option can be many lines lione, and in
+        #   walkthru, will be presented to the user in an editor like vim. See also multi: above
+        #
+        # - title_editor_attribute: [Symbol] If this attribute has a matching one on the related
+        #   Title Editor Title, this is the name of that attribute in the Windoo::SoftwareTitle
+        #
+        # - readline: [Symbol] If set, use readline to get the value from the user during walkthru.
+        #   If the symbol is :get_files, a custom method that uses readline with shell-style auto-
+        #   complete to get one or more file paths.
+        #   Any other symbol is the name of a method to call, which will return an array of possible
+        #   values for the option, which will be used for readline-based auto-completion.
+        #
+        # - readline_prompt: When using readline to gather mulit: values, this prompt is shown at the
+        #   start of each line of input for the next item.
+        #
+        # - read_only: [Boolean] defaults to false. When true, the server maintains this value, and
+        #   its only readable via xadm.
+        #
         #
         ATTRIBUTES = {
 
@@ -143,7 +165,7 @@ module Xolo
             immutable: true,
             cli: false,
             type: :string,
-            validate: true, # the validation method is called 'validate_title'
+            validate: true,
             invalid_msg: 'Not a valid title: must be lowercase alphanumeric and dashes only',
             desc: <<~ENDDESC
               A unique string identifying this Title, e.g. 'folio' or 'google-chrome'.
