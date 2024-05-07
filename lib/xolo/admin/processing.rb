@@ -158,6 +158,25 @@ module Xolo
         end
       end
 
+      # Add a version to a title to Xolo
+      #
+      # @return [void]
+      ###############################
+      def add_version
+        opts_to_process.title = cli_cmd.title
+        opts_to_process.version = cli_cmd.version
+
+        new_vers = Xolo::Admin::Version.new opts_to_process
+        new_vers.add server_cnx
+
+        # Upload the pkg, if any?
+        # new_vers.upload_pkg(upload_cnx) if new_title.self_service_icon
+
+        puts "Version '#{cli_cmd.version}' of '#{cli_cmd.title}' has been added to Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
       # Show details about a title in xolo
       #
       # @return [void]

@@ -37,12 +37,107 @@ module Xolo
 
       UPLOAD_PKG_ROUTE = '/upload/pkg'
 
+      # This is the server path for dealing with titles
+      # POST to add a new one
+      # GET to get a list of versions for a title
+      # GET .../<version> to get the data for a single version
+      # PUT .../<version> to update a version with new data
+      # DELETE .../<version> to delete a version from the title
+      SERVER_ROUTE = "/titles/#{Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER}/versions"
+
       # Class Methods
+      #############################
       #############################
 
       # @return [Hash{Symbol: Hash}] The ATTRIBUTES that are available as CLI & walkthru options
       def self.cli_opts
         @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
+      end
+
+      # get the server route to a specific version (or the version list) for a title
+      # @param title [String] the title
+      # @param version [String] the version to fetch
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Xolo::Admin::Title]
+      ####################
+      def self.server_route(title, version = nil)
+        route = SERVER_ROUTE.sub(Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER, title)
+        route << "/#{version}" if version
+        route
+      end
+
+      # @return [Array<String>] The currently known versions of a title on the server
+      #############################
+      def self.all_versions(title, cnx)
+        resp = cnx.get server_route(title)
+        resp.body
+      end
+
+      # Does a version of a title exist on the server?
+      # @param title [String] the title
+      # @param version [String] the version
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Boolean]
+      #############################
+      def self.exist?(title, version, cnx)
+        all_versions(title, cnx).include? version
+      end
+
+      # Fetch a version of a title from the server
+      # @param title [String] the title
+      # @param version [String] the version to fetch
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Xolo::Admin::Title]
+      ####################
+      def self.fetch(title, version, cnx)
+        resp = cnx.get server_route(title, version)
+        new resp.body
+      end
+
+      # Delete a version of a title from the server
+      # @param title [String] the title
+      # @param version [String] the version to delete
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def self.delete(title, version, cnx)
+        resp = cnx.delete server_route(title, version)
+      end
+
+      # Attributes
+      ######################
+      ######################
+
+      # Constructor
+      ######################
+      ######################
+
+      # Instance Methods
+      #############################
+      #############################
+
+      # Add this version to the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def add(cnx)
+        cnx.post SERVER_ROUTE, to_h
+      end
+
+      # Add this title to the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def update(cnx)
+        cnx.put "#{SERVER_ROUTE}/#{title}", to_h
+      end
+
+      # Delete this title from the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def delete(cnx)
+        resp = self.class.delete title, cnx
       end
 
       # Upload a .pkg (or zipped bundle pkg) for this version

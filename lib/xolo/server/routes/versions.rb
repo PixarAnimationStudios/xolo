@@ -31,7 +31,7 @@ module Xolo
 
     module Routes
 
-      module Titles
+      module Versions
 
         # This is how we 'mix in' modules to Sinatra servers
         # for route definitions and similar things
@@ -53,95 +53,95 @@ module Xolo
           Xolo.verbose_include includer, self
         end
 
-        # Create a new title from the body content of the request
+        # Create a new version from the body content of the request
         #
         # @return [Hash] A response hash
         #################################
-        post '/titles' do
+        post '/titles/:title/versions' do
           request.body.rewind
           data = request.body.read
-          log_debug "Incoming new title data: #{data}"
-          title = instantiate_title parse_json(data)
+          log_debug "Incoming new version data: #{data}"
+          version = instantiate_version parse_json(data)
 
           halt_on_existing_title title.title
 
           title.create
 
-          resp_content = { title: title.title, status: 'created' }
+          resp_content = { title: vers.title, version: vers.version, status: 'created' }
           body resp_content
         end
 
-        # get a list of title names
-        # @return [Array<String>] the names of existing titles
+        # get a list of version names for a title
+        # @return [Array<String>] the names of existing versions for the title
         #################################
-        get '/titles' do
-          log_debug "Admin #{session[:admin]} is listing all titles"
+        get '/titles/:title/versions' do
+          log_debug "Admin #{session[:admin]} is listing all versions for title '#{params[:title]}'"
           body all_titles
         end
 
-        # get all the data for a single title
-        # @return [Hash] The data for this title
+        # get all the data for a single version
+        # @return [Hash] The data for this version
         #################################
-        get '/titles/:title' do
-          log_debug "Admin #{session[:admin]} is fetching title '#{params[:title]}'"
-          halt_on_missing_title params[:title]
+        get '/titles/:title/versions/:version' do
+          log_debug "Admin #{session[:admin]} is fetching version '#{params[:version]}' of title '#{params[:title]}'"
+          halt_on_missing_version params[:title], params[:version]
 
-          title = instantiate_title params[:title]
-          body title.to_h
+          vers = instantiate_version params[:title], params[:version]
+          body vers.to_h
         end
 
-        # Replace the data for an existing title with the content of the request
+        # Replace the data for an existing version with the content of the request
         # @return [Hash] A response hash
         #################################
-        put '/titles/:title' do
-          log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
-          halt_on_missing_title params[:title]
+        put '/titles/:title/versions/:version' do
+          log_info "Admin #{session[:admin]} is updating version '#{params[:version]}' of title '#{params[:title]}'"
+          halt_on_missing_version params[:title], params[:version]
 
-          title = instantiate_title params[:title]
+          vers = instantiate_version params[:title], params[:version]
 
-          unless title.title == params[:title]
-            msg = "Title in JSON payload '#{title.title}' does not match title in URL parameter '#{params[:title]}'"
+          unless vers.title == params[:title] && vers.version == params[:version]
+            msg = "JSON payload title and versin '#{vers.title}/#{vers.version}' does not match  URL parameter '#{params[:title]}/#{params[:version]}'"
             log_debug msg
             halt 400, { error: msg }
           end
 
           request.body.rewind
           new_data = parse_json(request.body.read)
-          log_debug "Incoming update title data: #{new_data}"
+          log_debug "Incoming update version data: #{new_data}"
 
-          title.update new_data
+          vers.update new_data
 
-          resp_content = { title: title.title, status: 'updated' }
+          resp_content = { title: vers.title, version: vers.version, status: 'updated' }
           body resp_content
         end
 
-        # Delete an existing title
+        # Delete an existing version
         # @return [Hash] A response hash
         #################################
-        delete '/titles/:title' do
+        delete '/titles/:title/versions/:version' do
           resp_content =
-            if all_titles.include? params[:title]
-              title = instantiate_title params[:title]
-              log_info "Admin #{session[:admin]} is deleting title '#{title.title}'"
-              title.delete
-              { title: params[:title], status: 'deleted' }
+            if all_versions.include? params[:title], params[:version]
+              vers = instantiate_version params[:title], params[:version]
+              log_info "Admin #{session[:admin]} is deleting version #{params[:version]} of title '#{title.title}'"
+              vers.delete
+              { title: params[:title], version: params[:version], status: 'deleted' }
             else
-              { title: params[:title], status: "doesn't exist, not deleted" }
+              { title: params[:title], version: params[:version], status: "doesn't exist, not deleted" }
             end
 
           body resp_content
         end
 
-        # Add or update the version-script for a title
+        # Add or update the pkg for a version
         #
         # @return [Hash] A response hash
-        #################################
-        post '/titles/:title/version_script' do
-          log_info "Admin #{session[:admin]} is updating the version script for title '#{params[:title]}'"
-          halt_on_missing_title params[:title]
+        # #################################
+        # post '/titles/:title/versions/:version/pkg' do
+        #   log_info "Admin #{session[:admin]} is updating the version script for title '#{params[:title]}'"
+        #   halt_on_missing_version params[:title], params[:version]
 
-          title = instantiate_title params[:title]
-        end
+        #   title = instantiate_title params[:title], params[:version]
+        # end
 
       end # Titles
 

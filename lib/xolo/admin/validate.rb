@@ -186,10 +186,9 @@ module Xolo
             'already exists in Xolo' if cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
           elsif Xolo::Admin::Options::MUST_EXIST_COMMANDS.include? cli_cmd.command
             "doesn't exist in Xolo"
+          elsif val !~ /\A[a-z0-9-][a-z0-9-]+\z/
+            TITLE_ATTRS[:title][:invalid_msg]
           end
-
-        # TODO: Validate that it doesn't already exist in xolo if we are adding
-        err ||= TITLE_ATTRS[:title][:invalid_msg] unless val =~ /\A[a-z0-9-][a-z0-9-]+\z/
 
         return val unless err
 
@@ -403,6 +402,16 @@ module Xolo
       # Version Attributes
       #
       ##################################################
+
+      # validate a Xolo Version. Must be 2+ chars long, only lowercase
+      # alpha-numerics & dashes
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [String] The valid value
+      def validate_version(val)
+        ###
+      end
 
       # @param val [Object] The value to validate
       #

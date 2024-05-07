@@ -37,15 +37,11 @@ module Xolo
       # These are simpler objects than Windoo::SoftwareTitle instances.
       # The Xolo server will translate between the two.
       #
-      class Title
+      class Title < Xolo::Core::BaseClasses::ServerObject
 
         # Mixins
         #############################
         #############################
-
-        extend Xolo::Core::JSONWrappers
-
-        include Xolo::Core::JSONWrappers
 
         # Constants
         #############################
@@ -492,48 +488,10 @@ module Xolo
         # Constructor
         ######################
         ######################
-        def initialize(data_hash)
-          ATTRIBUTES.each do |attr, deets|
-            val = data_hash[attr]
-            next if val.pix_blank?
-
-            # convert timestamps to Time objects if needed,
-            # All the other values shouldn't need converting
-            # when taking in JSON or xadm opts.
-            val = Time.parse(val.to_s) if deets[:type] == :time && !val.is_a?(Time)
-
-            # call the setter
-            send "#{attr}=", val
-          end
-        end
 
         # Instance Methods
         ######################
         ######################
-
-        # Convert to a Hash for sending between xadm and the Xolo Server
-        #
-        # @return [String] The attributes of this title as JSON
-        #####################
-        def to_h
-          hash = {}
-          ATTRIBUTES.each_key do |attr|
-            hash[attr] = send attr
-          end
-          hash
-        end
-
-        # Convert to a JSON object for sending between xadm and the Xolo Server
-        # or storage on the server.
-        #
-        # Always make it 'pretty', i.e.  human readable, since it often
-        # gets stored in files
-        #
-        # @return [String] The attributes of this title as JSON
-        #####################
-        def to_json(*_args)
-          JSON.pretty_generate to_h
-        end
 
       end # class Title
 

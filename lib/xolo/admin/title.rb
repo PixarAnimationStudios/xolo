@@ -137,6 +137,14 @@ module Xolo
         cnx.put "#{SERVER_ROUTE}/#{title}", to_h
       end
 
+      # Delete this title from the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def delete(cnx)
+        resp = self.class.delete title, cnx
+      end
+
       # Upload an icon for self service
       #
       # @param local_file [Pathname, String] The path to the file to be uploaded
@@ -157,14 +165,6 @@ module Xolo
 
         content = { file: upfile }
         upload_cnx.post(route) { |req| req.body = content }
-      end
-
-      # Delete this title from the server
-      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
-      ####################
-      def delete(cnx)
-        resp = self.class.delete title, cnx
       end
 
       # Add more data to our hash

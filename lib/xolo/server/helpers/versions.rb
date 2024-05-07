@@ -1,0 +1,117 @@
+# Copyright 2024 Pixar
+#
+#    Licensed under the Apache License, Version 2.0 (the "Apache License")
+#    with the following modification; you may not use this file except in
+#    compliance with the Apache License and the following modification to it:
+#    Section 6. Trademarks. is deleted and replaced with:
+#
+#    6. Trademarks. This License does not grant permission to use the trade
+#       names, trademarks, service marks, or product names of the Licensor
+#       and its affiliates, except as required to comply with Section 4(c) of
+#       the License and to reproduce the content of the NOTICE file.
+#
+#    You may obtain a copy of the Apache License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the Apache License with the above modification is
+#    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#    KIND, either express or implied. See the Apache License for the specific
+#    language governing permissions and limitations under the Apache License.
+#
+#
+
+# frozen_string_literal: true
+
+# main module
+module Xolo
+
+  module Server
+
+    module Helpers
+
+      # constants and methods for working with Xolo Versions on the server
+      module Versions
+
+        # Module Methods
+        #######################
+        #######################
+
+        # when this module is included
+        def self.included(includer)
+          Xolo.verbose_include includer, self
+        end
+
+        # Instance Methods
+        #######################
+        ######################
+
+        # A list of all known titles
+        # @return [Array<String>]
+        ############
+        def all_versions(title)
+          Xolo::Server::Version.all_versions(title)
+        end
+
+        # Instantiate a Server::Title
+        # If given a string, use it with .load to read the title from disk
+        #
+        # If given a Hash, use it with .new to instantiate fresh
+        #
+        # In all cases, set the session, to use for logging
+        # (the reason this method exists)
+        #
+        # @param data [Hash] hash to use with .new
+        # @param name [String] name to use with .load
+        # @return [Xolo::Server::Title]
+        #################
+        def instantiate_version(data)
+          vers =
+            case data
+            when Hash
+              Xolo::Server::Version.new data
+
+            when String
+              halt_on_missing_title params[:title]
+              halt_on_missing_version params[:title], params[:version]
+              Xolo::Server::Version.load params[:title], params[:version]
+
+            else
+              halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
+            end
+          vers.session = session
+          vers
+        end
+
+        # Halt 404 if a title doesn't exist
+        # @pararm [String] The title of a Title
+        # @return [void]
+        ##################
+        def halt_on_missing_version(title, version)
+          return if all_versions(title).include? version
+
+          msg = "No version '#{version}' for title '#{title}'."
+          log_debug "ERROR: #{msg}"
+          halt 404, { error: msg }
+        end
+
+        # Halt 409 if a title already exists
+        # @pararm [String] The title of a Title
+        # @return [void]        #
+        ##################
+        def halt_on_existing_version(title, version)
+          return unless all_versions(title).include? version
+
+          msg = "Versoin '#{version}' of title '#{title}' already exists."
+          log_debug "ERROR: #{msg}"
+          halt 409, { error: msg }
+        end
+
+      end # TitleEditor
+
+    end # Helpers
+
+  end # Server
+
+end # module Xolo

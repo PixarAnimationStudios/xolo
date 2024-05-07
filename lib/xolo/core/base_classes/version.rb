@@ -31,20 +31,26 @@ module Xolo
 
     module BaseClasses
 
-      # The base class for dealing with Titles in the
+      # The base class for dealing with Versions/Patches in the
       # Xolo Server and the Admin modules.
       #
       # These are simpler objects than Windoo::SoftwareTitle instances.
       # The Xolo server will translate between the two.
       #
-      class Version
+      class Version < Xolo::Core::BaseClasses::ServerObject
+
+        # Mixins
+        #############################
+        #############################
 
         # Constants
+        #############################
         #############################
 
         USE_TITLE_FOR_KILLAPP = 'use-title'
 
         # Attributes
+        ######################
         ######################
 
         # Attributes of Versions
@@ -56,6 +62,21 @@ module Xolo
           version: {
             label: 'Version',
             required: true,
+            immutable: true,
+            cli: false,
+            type: :string,
+            validate: true,
+            invalid_msg: 'Not a valid version! Cannot already exist in this title.',
+            desc: <<~ENDDESC
+              A unique version string identifying this version in this title, e.g. '12.34.5'.
+            ENDDESC
+          },
+
+          # @!attribute title
+          #   @return [String] The title to which this version belongs
+          title: {
+            label: 'title',
+            read_only: true,
             immutable: true,
             cli: false,
             type: :string,
@@ -157,8 +178,7 @@ module Xolo
               If the title for this version has a defined --app-name and --app-bundle-id, you can
               use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}'
 
-              To specify more than one killapp separate them with commas. If not using --walkthru you can
-              also use the CLI option multiple times.
+              If not using --walkthru you can use --killapps multiple times
             ENDDESC
           },
 
@@ -171,6 +191,8 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
+            readline_prompt: 'Group Name: ',
+            readline: :jamf_computer_group_names,
             invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
               One or more Jamf Computer Groups containing computers that will automatically have this title installed before it is released.
@@ -188,6 +210,7 @@ module Xolo
             label: 'Status',
             type: :symbol,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               :pilot, :released, :skipped, :deprecated
             ENDDESC
@@ -199,6 +222,7 @@ module Xolo
             label: 'Created By',
             type: :string,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who created this version.
             ENDDESC
@@ -210,6 +234,7 @@ module Xolo
             label: 'Creation Date',
             type: :time,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The date this version was created.
             ENDDESC
@@ -221,6 +246,7 @@ module Xolo
             label: 'Modified By',
             type: :string,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who last modified this version.
             ENDDESC
@@ -232,6 +258,7 @@ module Xolo
             label: 'Modification Date',
             type: :time,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The date this version was last modified.
             ENDDESC
@@ -245,6 +272,7 @@ module Xolo
             label: 'Piloted By',
             type: :string,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who piloted this version in Xolo.
               This is when the Title Editor, or other Patch Source, tells Jamf Pro that
@@ -258,9 +286,10 @@ module Xolo
           #     This is when the Title Editor, or other Patch Source, tells Jamf Pro that
           #     this new version is available and can be piloted.
           pilot_date: {
-            label: 'Release Date',
+            label: 'Pilot Date',
             type: :time,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The timestamp when this version was piloted in Xolo.
               This is when the Title Editor, or other Patch Source, tells Jamf Pro that
@@ -274,9 +303,10 @@ module Xolo
           #     This is when the Xolo sets the status of this version to 'released', making it
           #     no longer 'in pilot' and the one to be installed or updated by default.
           released_by: {
-            label: 'Deployed By',
+            label: 'Released By',
             type: :string,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who released this version in Xolo.
               This is when the Xolo sets the status of this version to 'released', making it
@@ -289,9 +319,10 @@ module Xolo
           #     This is when the Xolo sets the status of this version to 'released', making it
           #     no longer 'in pilot' and the one to be installed or updated by default.
           release_date: {
-            label: 'Deployt Date',
+            label: 'Release Date',
             type: :time,
             cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The timestamp when this version was released in Xolo.
               This is when the Xolo sets the status of this version to 'released', making it
@@ -319,7 +350,11 @@ module Xolo
 
         # Constructor
         ######################
-        def initialize(json_data); end
+        ######################
+
+        # Instance Methods
+        ######################
+        ######################
 
       end # class Title
 
