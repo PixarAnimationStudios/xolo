@@ -69,7 +69,8 @@ module Xolo
       # @return [Array<Pathname>] A list of all known versions for a title
       ######################
       def self.version_files(title)
-        versions_dir(title).children
+        version_dir(title).mkpath
+        version_dir(title).children
       end
 
       # @pararm title [String] the title for the version
@@ -213,7 +214,7 @@ module Xolo
 
         update_killapps new_patch
         update_capabilites new_patch
-        update_components new_patch
+        update_component new_patch
 
         self.title_editor_id_number = new_patch.patchId
       end
@@ -226,7 +227,7 @@ module Xolo
       def update_killapps(patch)
         # delete the existing
         log_debug "Title Editor: updating killApps for Patch '#{version}' for SoftwareTitle '#{title}'"
-        patch.killApps.delete_all_killaps
+        patch.killApps.delete_all_killApps
 
         # Add the current ones back in
         killapps.each do |ka_str|

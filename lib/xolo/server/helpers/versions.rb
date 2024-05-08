@@ -103,7 +103,7 @@ module Xolo
         def halt_on_existing_version(title, version)
           return unless all_versions(title).include? version
 
-          msg = "Versoin '#{version}' of title '#{title}' already exists."
+          msg = "Version '#{version}' of title '#{title}' already exists."
           log_debug "ERROR: #{msg}"
           halt 409, { error: msg }
         end

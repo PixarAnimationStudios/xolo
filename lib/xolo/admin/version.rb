@@ -116,12 +116,14 @@ module Xolo
       #############################
       #############################
 
+      # The server route for this version, after it exists on the server
+
       # Add this version to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [void]
       ####################
       def add(cnx)
-        cnx.post SERVER_ROUTE, to_h
+        cnx.post self.class.server_route(title), to_h
       end
 
       # Add this title to the server

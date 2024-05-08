@@ -212,6 +212,7 @@ module Xolo
           display: "#{ADD_VERSION_CMD} title version",
           opts: Xolo::Admin::Version.cli_opts,
           walkthru_header: "Adding Version '#{TARGET_VERSION_PLACEHOLDER}' to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
+          process_method: :add_version,
           target: :version
         },
 

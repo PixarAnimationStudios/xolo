@@ -63,11 +63,11 @@ module Xolo
           log_debug "Incoming new version data: #{data}"
           version = instantiate_version parse_json(data)
 
-          halt_on_existing_title title.title
+          halt_on_existing_version version.title, version.version
 
           version.create
 
-          resp_content = { title: vers.title, version: vers.version, status: 'created' }
+          resp_content = { title: version.title, version: version.version, status: 'created' }
           body resp_content
         end
 

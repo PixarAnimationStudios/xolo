@@ -406,7 +406,7 @@ module Xolo
         # don't return an empty array if none was chosen, but
         # return 'none' so that the whole value is cleared.
         chosen_values = Xolo::NONE if chosen_values.include? Xolo::NONE
-        chosen_values
+        chosen_values.flatten if chosen_values.is_a? Array
       end
 
       # Prompt for a single multiline value via an editor, like vim.
