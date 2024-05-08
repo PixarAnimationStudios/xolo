@@ -65,7 +65,7 @@ module Xolo
 
           halt_on_existing_title title.title
 
-          title.create
+          version.create
 
           resp_content = { title: vers.title, version: vers.version, status: 'created' }
           body resp_content

@@ -42,7 +42,7 @@ module Xolo
 
       MULTILINE_HEADER_SEPARATOR = "\nDO NOT EDIT anything above the next line:\n=================================="
 
-      DEFAULT_HIGHLINE_READLINE_PROMPT = 'Enter value: '
+      DEFAULT_HIGHLINE_READLINE_PROMPT = 'Enter value'
 
       HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS = <<~ENDINSTR
         Use tab for auto-completion, tab twice to see available choices
@@ -285,8 +285,8 @@ module Xolo
       def prompt_for_walkthru_value(key, deets, _curr_val)
         # current_value = default_for_value(key, deets, curr_val) # Needed??
         current_value = walkthru_cmd_opts[key]
-        question = question_for_value(deets)
         q_desc = question_desc(deets)
+        question = question_for_value(deets)
 
         # Highline wants a separate lambda for conversion
         # and validation, validation just returns boolean,
@@ -359,6 +359,8 @@ module Xolo
       def prompt_for_single_value_with_highline(question:, q_desc:, convert:, validate:, deets:)
         use_readline, convert, validate = setup_for_readline_in_highline(deets, convert, validate)
 
+        highline_cli.say q_desc
+
         highline_cli.ask(question, convert) do |q|
           q.readline = use_readline
           q.echo = '*' if deets[:secure_interactive_input]
@@ -366,9 +368,8 @@ module Xolo
           if validate
             q.validate = validate
             q.responses[:not_valid] = ->(_x) { "\nERROR: #{last_validation_error}" }
-            q.responses[:ask_on_error] = "Enter #{deets[:label]}: \n"
+            q.responses[:ask_on_error] = :question
           end
-          highline_cli.say q_desc
         end
       end
 
@@ -386,15 +387,20 @@ module Xolo
       def prompt_for_multi_values_with_highline(question:, q_desc:, deets:, convert: nil, validate: nil)
         use_readline, convert, validate = setup_for_readline_in_highline(deets, convert, validate)
 
-        chosen_values = highline_cli.ask(question, convert) do |q|
-          q.readline = use_readline
-          q.gather = Xolo::X
-          q.responses[:no_completion] = "Unknown Choice.#{HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS}"
-          q.responses[:ambiguous_completion] = "Ambiguous Choice.#{HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS}"
-          q.validate = validate if validate
+        highline_cli.say q_desc
 
-          # display a description of the value being asked for
-          highline_cli.say q_desc
+        chosen_values = highline_cli.ask(question, convert) do |q|
+          if use_readline
+            q.readline = true
+            q.responses[:no_completion] = "Unknown Choice.#{HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS}"
+            q.responses[:ambiguous_completion] = "Ambiguous Choice.#{HIGHLINE_READLINE_GATHER_ERR_INSTRUCTIONS}"
+          end
+          if validate
+            q.validate = validate
+            q.responses[:not_valid] = ->(_x) { "\nERROR: #{last_validation_error}" }
+            q.responses[:ask_on_error] = :question
+          end
+          q.gather = Xolo::X
         end
 
         # don't return an empty array if none was chosen, but
@@ -403,7 +409,7 @@ module Xolo
         chosen_values
       end
 
-      # Prompt for a multiline cingle value via an editor, like vim.
+      # Prompt for a single multiline value via an editor, like vim.
       # This always returns a string.
       # We handle validation ourselves, since we can't use highline.ask
       #
@@ -547,7 +553,8 @@ module Xolo
             end
 
           # Setting this ENV is how we use our monkey patch to make this work
-          ENV['XADM_HIGHLINE_READLINE_PROMPT'] = deets[:multi_prompt] || DEFAULT_HIGHLINE_READLINE_PROMPT
+          prompt = deets[:readline_prompt] || deets[:multi_prompt] || deets[:label] || DEFAULT_HIGHLINE_READLINE_PROMPT
+          ENV['XADM_HIGHLINE_READLINE_PROMPT'] = "#{prompt}: "
         end # if use_readline
 
         [use_readline, convert, validate]
@@ -568,12 +575,13 @@ module Xolo
           str = str.directory? ? "#{str}/" : str.to_s
           Dir[str + '*'].grep(/^#{Regexp.escape(str)}/)
         end
-        prompt = deets[:readline_prompt] || deets[:label] || '> '
+        prompt = deets[:readline_prompt] || deets[:label] || DEFAULT_HIGHLINE_READLINE_PROMPT
+        "#{prompt}: "
       end
 
       # The 'default' value for the highline question
       # when prompting for a value
-      # POSSIBLY NOT NEEDED. See commented-out call above
+      # TODO: POSSIBLY NOT NEEDED. See commented-out call above
       ##############################
       def default_for_value(key, deets, curr_val)
         # default is the current value, or the
@@ -589,13 +597,14 @@ module Xolo
       ##############################
       def question_desc(deets)
         q_desc = +"============= #{deets[:label]} =============\n"
-        q_desc << deets[:desc].chomp
+        q_desc << deets[:desc]
 
         if deets[:multiline]
           # nada, will be shown in the editor
         elsif deets[:multi]
+          q_desc << "\nEnter one value per line."
           q_desc << "\nUse tab for auto-completion, tab twice to see available choices" if deets[:readline]
-          q_desc << "\nType '#{Xolo::X}' to exit." if deets[:validate]
+          q_desc << "\nType '#{Xolo::X}' on a line by itself to exit." if deets[:validate]
 
         else
           q_desc << "\nType a return to keep the current value."
@@ -605,6 +614,8 @@ module Xolo
       end
 
       # The line of text prompting for a value.
+      # End with a space to keep prompt on same line
+      #
       # @param deets [Hash] The option-details for the value for which we are prompting
       # @return [String] the one-line prompt to display
       ##############################
@@ -616,8 +627,8 @@ module Xolo
         elsif !deets[:required]
           question << ", use '#{Xolo::NONE}' to unset"
         end
-        question << ':'
-        question.chomp
+        question << ': ' unless deets[:readline]
+        question
       end
 
       # Retun a lambda that calls one of our validation methods to validate
@@ -644,8 +655,9 @@ module Xolo
         # must return boolean for Highline to deal with it.
         lambda do |ans|
           # to start, the converted value is just the given value.
-          # use self. here, otherwise the lambda sees last_converted_value
-          # as a local variable
+          #
+          # Use self here, otherwise the lambda sees 'last_converted_value ='
+          # as a local variable assignment, not a setter method call
           self.last_converted_value = ans
 
           # default to the pre-written error message
@@ -653,31 +665,25 @@ module Xolo
 
           # if entering multi-values, a 'x' is how we get out of
           # the loop
-          if deets[:multi] && ans.downcase == Xolo::X
-            self.last_converted_value = nil
-            return true
+          return true if deets[:multi] && ans == Xolo::X
 
           # but for anything not multi, an empty response
-          # meansuser just hit return, nothing to validate,
+          # means user just hit return, nothing to validate,
           # no changes to make
-          elsif ans.pix_blank?
-            return true
-          end
+          return true if ans.pix_blank?
 
           # If this value isn't required, accept 'none'
           # which clears the value
-          if !deets[:required] && (ans == Xolo::NONE)
-            self.last_converted_value = Xolo::NONE
-            return true
-          end
+          return true if !deets[:required] && (ans == Xolo::NONE)
 
           # otherwise 'none' becomes nil and will be validated
+          # and will fail if a value is required
           ans_to_validate = ans == Xolo::NONE ? nil : ans
 
-          # save the validated/converted value for use in the
-          # convert method. so we don't have to call the validate method
-          # twice
-          self.last_converted_value = (send val_meth, ans_to_validate)
+          # validate using the val_meth,
+          # saving the validated/converted value for use in the
+          # convert method.
+          self.last_converted_value = send(val_meth, ans_to_validate)
           true
 
         # if validation fails, set the last_validation_error

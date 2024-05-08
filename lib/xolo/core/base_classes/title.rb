@@ -96,7 +96,7 @@ module Xolo
         #   In --walkthru the user will be asked to keep entering values, and to
         #   end input with an 'x' by itself.
         #
-        # - default: [String, Numeric, Boolean, nil] the default value if nothing is
+        # - default: [String, Numeric, Boolean, Proc] the default value if nothing is
         #   provided or inherited. Note that titles never inherit values, only versions do.
         #
         # - validate: [Boolean, Symbol] how to validate & convert values for this attribute.
@@ -304,7 +304,7 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
-            readline_prompt: 'Group Name: ',
+            readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
@@ -325,7 +325,7 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
-            readline_prompt: 'Group Name: ',
+            readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
@@ -362,7 +362,7 @@ module Xolo
             multi: true,
             walkthru_na: :expiration_na,
             readline: :get_files,
-            readline_prompt: 'Path: ',
+            readline_prompt: 'Path',
             invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
               One or more paths to executables that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the executable does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.

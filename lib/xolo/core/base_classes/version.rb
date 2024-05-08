@@ -47,6 +47,10 @@ module Xolo
         #############################
         #############################
 
+        # The title editor requires a value for min os, so use this
+        # as the default
+        DEFAULT_MIN_OS = '10.9'
+
         USE_TITLE_FOR_KILLAPP = 'use-title'
 
         # Attributes
@@ -92,6 +96,7 @@ module Xolo
           publish_date: {
             label: 'Publish Date',
             type: :time,
+            default: -> { Date.today.to_s },
             required: true,
             cli: :d,
             validate: true,
@@ -102,18 +107,18 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute min_os
+          # @!attribute min_os = required to create the Title Editor Patch
           #   @return [String] The minimum OS version that this version can be installed on.
           min_os: {
             label: 'Minimum OS',
             cli: :o,
             type: :string,
+            required: true,
             validate: true,
-            default: Xolo::NONE,
+            default: DEFAULT_MIN_OS,
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
               The lowest version of macOS able to run this version of this title.
-              Leave blank or set to '#{Xolo::NONE}' if not applicable.
             ENDDESC
           },
 
@@ -124,11 +129,10 @@ module Xolo
             cli: :O,
             type: :string,
             validate: true,
-            default: Xolo::NONE,
+            # default: Xolo::NONE,
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
               The highest version of macOS able to run this version of this title.
-              Leave blank or set to '#{Xolo::NONE}' if not applicable.
             ENDDESC
           },
 
@@ -159,16 +163,17 @@ module Xolo
           # @!attribute killapps
           #   @return [Array<String>] The apps that cannot be running when this version is installed
           killapps: {
-            label: 'KillApp',
+            label: 'KillApps',
             cli: :k,
             type: :string,
             multi: true,
             validate: true,
-            default: Xolo::NONE,
+            # default: Xolo::NONE,
             invalid_msg: 'Not a valid killapp!',
             desc: <<~ENDDESC
               A killapp is an application that cannot be running while this version is installed.
               If running, installation is delayed, and users are notified to quit.
+
               Killapps are defined by an app name e.g. 'Google Chrome.app', and the app's Bundle ID
               e.g. 'com.google.chrome'.
 
@@ -186,12 +191,12 @@ module Xolo
           #   @return [Array<String>] Jamf groups that will automatically get this version for piloting
           pilot_groups: {
             label: 'Pilot Computer Groups',
-            default: Xolo::NONE,
+            # default: Xolo::NONE,
             cli: :p,
             validate: true,
             type: :string,
             multi: true,
-            readline_prompt: 'Group Name: ',
+            readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
             invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC

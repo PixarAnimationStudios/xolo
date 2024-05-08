@@ -159,6 +159,7 @@ module Xolo
         title_dir(title) + SELF_SERVICE_ICON_FILENAME
       end
 
+      # @pararm title [String] the title we care about
       # @return [Xolo::Server::Title] load an existing title
       #   from the on-disk JSON file
       ######################
@@ -347,9 +348,9 @@ module Xolo
           self.self_service_icon = Xolo::ITEM_UPLOADED
         end
 
-        log_debug "Saving local data to: #{title_data_file}"
-
-        title_data_file.pix_atomic_write to_json
+        file = title_data_file
+        log_debug "Saving local data to: #{file}"
+        file.pix_atomic_write to_json
       end
 
       # Save our current version script out to our local file,
@@ -427,7 +428,6 @@ module Xolo
 
       # Create a new title in the title editor
       #
-      # @param cnx [Windoo::Connection] The title editor connection
       # @return [void]
       ##########################
       def create_in_title_editor

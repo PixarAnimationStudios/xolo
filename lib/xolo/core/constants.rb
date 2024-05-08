@@ -60,6 +60,9 @@ module Xolo
       # lots of things get joined with commas
       COMMA_JOIN = ', '
 
+      # Some things get split on semicolons
+      SEMICOLON_SEP_RE = /\s*;\s*/.freeze
+
       # Once a thing has been uploaded and saved, this
       # is what the server returns as the  attr value
       ITEM_UPLOADED = 'uploaded'

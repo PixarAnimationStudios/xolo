@@ -43,6 +43,7 @@ class HighLine
     # Use readline to read one line
     # @param question [HighLine::Question] question from where to get
     #   autocomplete candidate strings
+    #################################
     def readline_read(question)
       # prep auto-completion
       unless question.selection.empty?
@@ -65,6 +66,31 @@ class HighLine
       raw_answer
     end
 
-  end
+    # Get one line from terminal using default #gets method.
+    ##############################
+    # def get_line_default(highline)
+    #   raise EOFError, 'The input stream is exhausted.' if highline.track_eof? && highline.input.eof?
+
+    #   highline.output.print "#{ENV['XADM_HIGHLINE_LINE_PROMPT']}" if ENV['XADM_HIGHLINE_LINE_PROMPT']
+
+    #   highline.input.gets
+    # end
+
+  end # terminal
+
+  # # Deals with the task of "asking" a question
+  # class QuestionAsker
+
+  #   alias ask_once_real ask_once
+
+  #   # Gets just one answer, as opposed to #gather_answers
+  #   #
+  #   # @return [String] answer
+  #   def ask_once
+  #     @highline.output.print "#{ENV['XADM_HIGHLINE_LINE_PROMPT']}" if ENV['XADM_HIGHLINE_LINE_PROMPT']
+  #     ask_once_real
+  #   end
+
+  # end # question asker
 
 end

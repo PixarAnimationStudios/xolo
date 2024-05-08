@@ -108,7 +108,7 @@ module Xolo
       DFT_CMD_VERSION_ARG_BANNER = "  version:   The version of the title you are working with. e.g. '12.34.5'"
 
       TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
-      TARGET_VERSION_PLACEHOLDER = 'TARGET_TITLE_PH'
+      TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
 
       # The commands that xadm understands
       # For each command there is a hash of details, with these possible keys:
@@ -479,17 +479,24 @@ module Xolo
 
         @current_opt_values = OpenStruct.new
 
+        opts_defs = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts]
+
         # config?
         if cli_cmd.command == CONFIG_CMD
-          Xolo::Admin::Configuration::KEYS.each_key { |key| @current_opt_values[key] = config.send(key) }
+          # Xolo::Admin::Configuration::KEYS.each_key { |key| @current_opt_values[key] = config.send(key) }
+          opts_defs.each_key { |key| @current_opt_values[key] = config.send(key) }
 
-        # titles
+          # titles
         elsif title_command?
-          opts_defs = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:opts]
 
-          # adding a new one? just use defaults
+          # adding a new one? just use defaults, if there are any
           if add_command?
-            opts_defs.each { |key, deets| @current_opt_values[key] = deets[:default] if deets[:default] }
+            # defaults
+            opts_defs.each do |key, deets|
+              next unless deets[:default]
+
+              @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : eets[:default]
+            end
 
           # editing? just use the current values
           elsif edit_command?
@@ -499,9 +506,16 @@ module Xolo
 
         # versions
         elsif version_command?
-          # adding a new one? get the values from the most recent, if there is one
-          if add_command?
 
+          # adding a new one? get the values from defaults first, then
+          # the most recent, if there is one
+          if add_command?
+            # defaults
+            opts_defs.each do |key, deets|
+              next unless deets[:default]
+
+              @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : deets[:default]
+            end
           # do stuff here to fetch most recent values from the server.
 
           # editing? just use the current values
