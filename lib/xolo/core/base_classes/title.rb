@@ -477,6 +477,31 @@ module Xolo
             desc: <<~ENDDESC
               The date this title was last modified.
             ENDDESC
+          },
+
+          # @!attribute version_order
+          #   @return [Array<String>] The known versions, newest to oldest
+          version_order: {
+            label: 'Versions',
+            type: :string,
+            multi: true,
+            cli: false,
+            read_only: true, # maintained by the server, not editable by xadm
+            desc: <<~ENDDESC
+              The known versions of the title, newest to oldest
+            ENDDESC
+          },
+
+          # @!attribute released_version
+          #   @return [String] The currently released version, if any
+          released_version: {
+            label: 'Released Version',
+            type: :string,
+            cli: false,
+            read_only: true, # maintained by the server, not editable by xadm
+            desc: <<~ENDDESC
+              The currently released version
+            ENDDESC
           }
 
         }.freeze

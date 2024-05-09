@@ -54,10 +54,12 @@ module Xolo
           Xolo::Server::Version.all_versions(title)
         end
 
-        # Instantiate a Server::Title
-        # If given a string, use it with .load to read the title from disk
+        # Instantiate a Server::Version
         #
         # If given a Hash, use it with .new to instantiate fresh
+        #
+        # If given a two-item array of [title, version], use .load
+        # to read the version from disk
         #
         # In all cases, set the session, to use for logging
         # (the reason this method exists)
@@ -72,10 +74,11 @@ module Xolo
             when Hash
               Xolo::Server::Version.new data
 
-            when String
-              halt_on_missing_title params[:title]
-              halt_on_missing_version params[:title], params[:version]
-              Xolo::Server::Version.load params[:title], params[:version]
+            when Array
+              title, version = data
+              halt_on_missing_title title
+              halt_on_missing_version title, version
+              Xolo::Server::Version.load title, version
 
             else
               halt 400, 'Invalid data to instantiate a Xolo.Server::Version'

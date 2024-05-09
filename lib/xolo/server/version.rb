@@ -178,7 +178,7 @@ module Xolo
       # @return [void]
       #########################
       def create
-        log_info "Creating new version #{version} in title '#{title}' for admin '#{admin}'"
+        log_info "Creating new version #{version} of title '#{title}' for admin '#{admin}'"
 
         self.creation_date = Time.now
         self.created_by = admin
@@ -192,14 +192,25 @@ module Xolo
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
         save_local_data
+
+        # TODO: allow specification of version_order, probably by accepting a value
+        # for the 'previous_version'?
+        # prepend our version to the version_order array of the title
+        log_debug "Updating title version_order, prepending '#{version}'"
+
+        title_object.version_order.unshift version
+        title_object.save_local_data
       end
 
       # Create a new version in the title editor
       #
+      # TODO: allow specification of version_order, probably by accepting a value
+      # for the 'previous_version'?
+      #
       # @return [void]
       ##########################
       def create_in_title_editor
-        log_info "Title Editor: Creating Patch '#{version}' for SoftwareTitle '#{title}'"
+        log_info "Title Editor: Creating Patch '#{version}' of SoftwareTitle '#{title}'"
 
         title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
 
@@ -219,20 +230,93 @@ module Xolo
         self.title_editor_id_number = new_patch.patchId
       end
 
+      # Update a this version, updating to the
+      # local filesystem, Jamf Pro, and the Title Editor as needed
+      #
+      #
+      # TODO: allow specification of version_order, probably by accepting a value
+      # for the 'previous_version'?
+      #
+      # @param new_data [Hash] The new data sent from xadm
+      # @return [void]
+      #########################
+      def update(new_data)
+        log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
+
+        self.modification_date = Time.now
+        self.modified_by = admin
+        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+
+        update_in_title_editor new_data
+
+        # TODO:  update in Jamf if needed
+
+        # update local data before saving back to file
+        ATTRIBUTES.each do |attr, deets|
+          next if deets[:read_only]
+
+          new_val = new_data[attr]
+          old_val = send(attr)
+          next if new_val == old_val
+
+          log_debug "Updating Xolo attribute '#{attr}': #{old_val} -> #{new_val}"
+          send "#{attr}=", new_val
+        end
+
+        # save to file last, because saving to TitleEd and Jamf will
+        # add some data
+        save_local_data
+
+        # TODO: upload any new pk=g
+      end
+
+      # Update version/patch in the title editor
+      #
+      # @param new_data [Hash] The new data sent from xadm
+      # @return [void]
+      ##########################
+      def update_in_title_editor(new_data)
+        log_info "Title Editor: Updating Patch '#{version}' SoftwareTitle '#{title}'"
+
+        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
+        patch = title_in_title_editor.patches.patch(version)
+
+        ATTRIBUTES.each do |attr, deets|
+          title_editor_attribute = deets[:title_editor_attribute]
+          next unless title_editor_attribute
+
+          new_val = new_data[attr]
+          old_val = send(attr)
+          next if new_val == old_val
+
+          # These changes happen in real time on the Title Editor server
+          log_debug "Title Editor: Updating patch attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
+          patch.send "#{title_editor_attribute}=", new_val
+        end
+
+        update_killapps patch, new_data
+        update_capabilites patch, new_data
+        update_component patch
+
+        self.title_editor_id_number = patch.patchId
+      end
+
       # Update any killapps for this version in the title editor.
       #
       # @param patch [Windoo::Patch] the patch that holds the killapps
       # @return [void]
       ##########################
-      def update_killapps(patch)
+      def update_killapps(patch, new_data = nil)
         # delete the existing
-        log_debug "Title Editor: updating killApps for Patch '#{version}' for SoftwareTitle '#{title}'"
+        log_debug "Title Editor: updating killApps for Patch '#{version}' of SoftwareTitle '#{title}'"
         patch.killApps.delete_all_killApps
 
+        kapps = new_data ? new_data[:killapps] : killapps
+
         # Add the current ones back in
-        killapps.each do |ka_str|
+        kapps.each do |ka_str|
           name, bundleid = ka_str.split(Xolo::SEMICOLON_SEP_RE)
-          log_debug "Title Editor: Setting killApp '#{ka_str}' for Patch '#{version}' for SoftwareTitle '#{title}'"
+          log_debug "Title Editor: Setting killApp '#{ka_str}' for Patch '#{version}' of SoftwareTitle '#{title}'"
 
           patch.killApps.add_killApp(
             appName: name,
@@ -253,30 +337,32 @@ module Xolo
       # @param patch [Windoo::Patch] the patch for which we are defining capabilities
       # @return [void]
       ##########################
-      def update_capabilites(patch)
-        log_debug "Title Editor: updating capabilities for Patch '#{version}' for SoftwareTitle '#{title}'"
+      def update_capabilites(patch, new_data = nil)
+        log_debug "Title Editor: updating capabilities for Patch '#{version}' of SoftwareTitle '#{title}'"
 
         # delete the existing
         patch.capabilities.delete_all_criteria
 
-        # Add the current ones back in
-
         # min os
-        log_debug "Title Editor: setting min_os capability for Patch '#{version}' for SoftwareTitle '#{title}'"
+        min = new_data ? new_data[:min_os] : min_os
+
+        log_debug "Title Editor: setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}'"
         patch.capabilities.add_criterion(
           name: 'Operating System Version',
           operator: 'greater than or equal',
-          value: min_os
+          value: min
         )
 
-        return unless max_os
-
         # max os
-        log_debug "Title Editor: setting max_os capability for Patch '#{version}' for SoftwareTitle '#{title}'"
+        max = new_data ? new_data[:max_os] : max_os
+
+        return unless max
+
+        log_debug "Title Editor: setting max_os capability for Patch '#{version}' of SoftwareTitle '#{title}'"
         patch.capabilities.add_criterion(
           name: 'Operating System Version',
           operator: 'less than or equal',
-          value: max_os
+          value: max
         )
       end
 
@@ -286,12 +372,13 @@ module Xolo
       # have this version installed
       #
       # TODO: allow xadm to define more complex critera?
+      # TODO: If title switches from versionscript to app info, all patch components must be updated
       #
       # @param patch [Windoo::Patch] the patch for which we are defining the component criteria
       # @return [void]
       ##########################
       def update_component(patch)
-        log_debug "Title Editor: updating component criteria for Patch '#{version}' for SoftwareTitle '#{title}'"
+        log_debug "Title Editor: updating component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
 
         # delete the existing component, and its criteria
         patch.delete_component
@@ -302,7 +389,7 @@ module Xolo
 
         # Are we using the 'version_script' (aka the EA for the title)
         if title_object.version_script
-          log_debug "Title Editor: setting EA-based component criteria for Patch '#{version}' for SoftwareTitle '#{title}'"
+          log_debug "Title Editor: setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
 
           comp.criteria.add_criterion(
             type: 'extensionAttribute',
@@ -314,7 +401,7 @@ module Xolo
         # If not, we are using the app name and bundle ID
         # and version
         else
-          log_debug "Title Editor: setting App-based component criteria for Patch '#{version}' for SoftwareTitle '#{title}'"
+          log_debug "Title Editor: setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
 
           comp.criteria.add_criterion(
             name: 'Application Title',
@@ -347,6 +434,50 @@ module Xolo
         file = version_data_file
         log_debug "Saving local data to: #{file}"
         file.pix_atomic_write to_json
+      end
+
+      # Delete the title and all of its version
+      # @return [void]
+      ##########################
+      def delete
+        delete_from_title_editor
+
+        # TODO: delete in jamf, along with pkg and everything related.
+
+        log_info "Deleting local data for version '#{version}' of title '#{title}'"
+
+        title_object.version_order.delete version
+        title_object.save_local_data
+
+        version_data_file.delete
+      end
+
+      # Delete from the title editor
+      # @return [Integer] title_editor_id_number
+      ###########################
+      def delete_from_title_editor
+        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
+
+        patch_id = title_in_title_editor.patches.versions_to_patchIds[version]
+        if patch_id
+          log_info "Title Editor: Deleting Patch '#{version}' of SoftwareTitle '#{title}'"
+          title_in_title_editor.patches.delete_patch patch_id
+          return
+        else
+          log_debug "Title Editor: No id for Patch '#{version}' of SoftwareTitle '#{title}', nothing to delete"
+        end
+
+        title_editor_id_number
+      rescue Windoo::NoSuchItemError
+        title_editor_id_number
+      end
+
+      # Add more data to our hash
+      ###########################
+      def to_h
+        hash = super
+        hash[:title_editor_id_number] = title_editor_id_number
+        hash
       end
 
     end # class Version

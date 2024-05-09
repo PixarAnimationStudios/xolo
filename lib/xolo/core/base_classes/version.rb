@@ -71,6 +71,7 @@ module Xolo
             type: :string,
             validate: true,
             invalid_msg: 'Not a valid version! Cannot already exist in this title.',
+            title_editor_attribute: :version,
             desc: <<~ENDDESC
               A unique version string identifying this version in this title, e.g. '12.34.5'.
             ENDDESC
@@ -100,6 +101,7 @@ module Xolo
             required: true,
             cli: :d,
             validate: true,
+            title_editor_attribute: :releaseDate,
             invalid_msg: 'Not a valid date!',
             desc: <<~ENDDESC
               The date this version was released by the publisher.
@@ -116,6 +118,7 @@ module Xolo
             required: true,
             validate: true,
             default: DEFAULT_MIN_OS,
+            title_editor_attribute: :minimumOperatingSystem,
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
               The lowest version of macOS able to run this version of this title.
@@ -143,6 +146,7 @@ module Xolo
             cli: :r,
             type: :boolean,
             validate: :validate_boolean,
+            title_editor_attribute: :reboot,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
             ENDDESC
@@ -155,6 +159,7 @@ module Xolo
             cli: :s,
             type: :boolean,
             validate: :validate_boolean,
+            title_editor_attribute: :standalone,
             desc: <<~ENDDESC
               The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
             ENDDESC
@@ -210,14 +215,19 @@ module Xolo
           },
 
           # @!attribute status
-          #   @return [symbol] One of: :pilot, :released, :skipped, :deprecated
+          #   @return [symbol] One of: :pending, :pilot, :released, :skipped, :deprecated
           status: {
             label: 'Status',
             type: :symbol,
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
-              :pilot, :released, :skipped, :deprecated
+              The state of this version in Xolo:
+              - pending: Not yet available for installation. A .pkg must be uploaded first.
+              - pilot: Can be installed for piloting, will auto install on any pilot-group members.
+              - released: This is the current version, can be generally installed, will auto install as appropriate.
+              - skipped: Was created, and maybe piloted, but never released.
+              - deprecated: Was released, but a newer version has since been released.
             ENDDESC
           },
 

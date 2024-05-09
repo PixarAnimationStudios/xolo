@@ -67,7 +67,7 @@ module Xolo
 
           version.create
 
-          resp_content = { title: version.title, version: version.version, status: 'created' }
+          resp_content = { title: version.title, version: version.version, result: 'created' }
           body resp_content
         end
 
@@ -76,7 +76,7 @@ module Xolo
         #################################
         get '/titles/:title/versions' do
           log_debug "Admin #{session[:admin]} is listing all versions for title '#{params[:title]}'"
-          body all_titles
+          body all_versions(params[:title])
         end
 
         # get all the data for a single version
@@ -86,7 +86,7 @@ module Xolo
           log_debug "Admin #{session[:admin]} is fetching version '#{params[:version]}' of title '#{params[:title]}'"
           halt_on_missing_version params[:title], params[:version]
 
-          vers = instantiate_version params[:title], params[:version]
+          vers = instantiate_version [params[:title], params[:version]]
           body vers.to_h
         end
 
@@ -97,10 +97,10 @@ module Xolo
           log_info "Admin #{session[:admin]} is updating version '#{params[:version]}' of title '#{params[:title]}'"
           halt_on_missing_version params[:title], params[:version]
 
-          vers = instantiate_version params[:title], params[:version]
+          vers = instantiate_version [params[:title], params[:version]]
 
           unless vers.title == params[:title] && vers.version == params[:version]
-            msg = "JSON payload title and versin '#{vers.title}/#{vers.version}' does not match  URL parameter '#{params[:title]}/#{params[:version]}'"
+            msg = "JSON payload title and version '#{vers.title}/#{vers.version}' does not match  URL parameter '#{params[:title]}/#{params[:version]}'"
             log_debug msg
             halt 400, { error: msg }
           end
@@ -111,7 +111,7 @@ module Xolo
 
           vers.update new_data
 
-          resp_content = { title: vers.title, version: vers.version, status: 'updated' }
+          resp_content = { title: vers.title, version: vers.version, result: 'updated' }
           body resp_content
         end
 
@@ -119,15 +119,17 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         delete '/titles/:title/versions/:version' do
-          resp_content =
-            if all_versions.include? params[:title], params[:version]
-              vers = instantiate_version params[:title], params[:version]
-              log_info "Admin #{session[:admin]} is deleting version #{params[:version]} of title '#{title.title}'"
-              vers.delete
-              { title: params[:title], version: params[:version], status: 'deleted' }
-            else
-              { title: params[:title], version: params[:version], status: "doesn't exist, not deleted" }
-            end
+          resp_content = { title: params[:title], version: params[:version] }
+
+          if all_versions(params[:title]).include? params[:version]
+
+            vers = instantiate_version [params[:title], params[:version]]
+            log_info "Admin #{session[:admin]} is deleting version #{params[:version]} of title '#{params[:title]}'"
+            vers.delete
+            resp_content[:result] = 'deleted'
+          else
+            resp_content[:result] = "doesn't exist, not deleted"
+          end
 
           body resp_content
         end

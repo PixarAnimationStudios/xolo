@@ -195,7 +195,6 @@ module Xolo
         # we loop thru them (its a hash) and save them into our
         # cli_cmd_optsOpenStruct
         parse_cmd_opts.each { |k, v| cli_cmd_opts[k] = v }
-
         # Now merge in current_opt_values for anything not given on the cli
         # This is how we inherit values, or apply defaults
         current_opt_values.to_h.each do |k, v|

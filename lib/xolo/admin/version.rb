@@ -102,6 +102,7 @@ module Xolo
       ####################
       def self.delete(title, version, cnx)
         resp = cnx.delete server_route(title, version)
+        resp.body
       end
 
       # Attributes
@@ -126,12 +127,12 @@ module Xolo
         cnx.post self.class.server_route(title), to_h
       end
 
-      # Add this title to the server
+      # Update this version to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [void]
       ####################
       def update(cnx)
-        cnx.put "#{SERVER_ROUTE}/#{title}", to_h
+        cnx.put self.class.server_route(title, version), to_h
       end
 
       # Delete this title from the server
@@ -139,7 +140,7 @@ module Xolo
       # @return [void]
       ####################
       def delete(cnx)
-        resp = self.class.delete title, cnx
+        self.class.delete title, version, cnx
       end
 
       # Upload a .pkg (or zipped bundle pkg) for this version

@@ -193,6 +193,7 @@ module Xolo
       def initialize(data_hash)
         super
         @title_editor_id_number ||= data_hash[:title_editor_id_number]
+        @version_order ||= []
       end
 
       # Instance Methods
@@ -289,7 +290,7 @@ module Xolo
         # TODO: upload any self svc icon
       end
 
-      # Save a new title, adding or updating to the
+      # Update this title, updating to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #
       # @param new_data [Hash] The new data sent from xadm
@@ -449,6 +450,9 @@ module Xolo
 
       # Update title in the title editor
       #
+      # TODO: If title switches from versionscript to app info, all patch components must be updated
+      #
+      #
       # @param new_data [Hash] The new data sent from xadm
       # @return [void]
       ##########################
@@ -465,7 +469,7 @@ module Xolo
           next if new_val == old_val
 
           # These changes happen in real time on the Title Editor server
-          log_debug "Title Editor: Updating attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
+          log_debug "Title Editor: Updating title attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
           title_in_title_editor.send "#{title_editor_attribute}=", new_val
         end
 
@@ -486,6 +490,8 @@ module Xolo
       # it is added to the Title Editor title and used both as the
       # requirement criterion (not empty) and as a Patch Component
       # criterion for versions (the value contains the version)
+      # TODO: If title switches from versionscript to app info, all patch components must be updated
+      #
       #
       # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
       #

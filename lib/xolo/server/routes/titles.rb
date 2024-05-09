@@ -67,7 +67,7 @@ module Xolo
 
           title.create
 
-          resp_content = { title: title.title, status: 'created' }
+          resp_content = { title: title.title, result: 'created' }
           body resp_content
         end
 
@@ -111,7 +111,7 @@ module Xolo
 
           title.update new_data
 
-          resp_content = { title: title.title, status: 'updated' }
+          resp_content = { title: title.title, result: 'updated' }
           body resp_content
         end
 
@@ -124,9 +124,9 @@ module Xolo
               title = instantiate_title params[:title]
               log_info "Admin #{session[:admin]} is deleting title '#{title.title}'"
               title.delete
-              { title: params[:title], status: 'deleted' }
+              { title: params[:title], result: 'deleted' }
             else
-              { title: params[:title], status: "doesn't exist, not deleted" }
+              { title: params[:title], result: "doesn't exist, not deleted" }
             end
 
           body resp_content

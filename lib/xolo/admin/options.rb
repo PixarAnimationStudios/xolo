@@ -204,7 +204,8 @@ module Xolo
           desc: 'List all versions of a title.',
           display: "#{LIST_VERSIONS_CMD} title",
           opts: {},
-          target: :title
+          target: :title,
+          process_method: :list_versions
         },
 
         ADD_VERSION_CMD => {
@@ -222,7 +223,8 @@ module Xolo
           display: "#{EDIT_VERSION_CMD} title version",
           opts: Xolo::Admin::Version.cli_opts,
           walkthru_header: "Editing Version '#{TARGET_VERSION_PLACEHOLDER}' of Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
-          target: :version
+          target: :version,
+          process_method: :edit_version
         },
 
         PILOT_VERSION_CMD => {
@@ -243,7 +245,8 @@ module Xolo
           desc: 'Delete a version from a title.',
           display: "#{DELETE_VERSION_CMD} title version",
           opts: {},
-          target: :version
+          target: :version,
+          process_method: :delete_version
         },
 
         SEARCH_CMD => {
@@ -461,6 +464,7 @@ module Xolo
       #
       # For titles:
       # - the default values for new titles, if it doesn't exist and we are adding it.
+      #   NB: at the moment there are no default values for new titles.
       # - the current values for the title, if it exists and we are editing it
       #
       # For versions:
@@ -508,20 +512,35 @@ module Xolo
         # versions
         elsif version_command?
 
-          # adding a new one? get the values from defaults first, then
-          # the most recent, if there is one
+          # adding a new one?
           if add_command?
-            # defaults
-            opts_defs.each do |key, deets|
-              next unless deets[:default]
+            prev_version = Xolo::Admin::Title.latest_version cli_cmd.title, server_cnx
 
-              @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : deets[:default]
+            # Use the most recent version if we have one
+            if prev_version
+              pvers = Xolo::Admin::Version.fetch cli_cmd.title, prev_version, server_cnx
+              opts_defs.each do |key, _deets|
+                val = pvers.send key
+                next unless val
+
+                @current_opt_values[key] = val
+              end
+              # publish date is always today to start with
+              @current_opt_values[:publish_date] = Date.today.to_s
+            # no prev version, so use the defaults
+            else
+              opts_defs.each do |key, deets|
+                next unless deets[:default]
+
+                @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : deets[:default]
+              end
             end
-          # do stuff here to fetch most recent values from the server.
 
           # editing? just use the current values
           elsif edit_command?
             # do stuff here to fetch current values from the server.
+            current_vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
+            opts_defs.each_key { |key| @current_opt_values[key] = current_vers.send(key) }
           end
         end
 

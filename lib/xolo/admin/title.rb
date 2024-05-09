@@ -98,6 +98,16 @@ module Xolo
         resp = cnx.delete "#{SERVER_ROUTE}/#{title}"
       end
 
+      # the latest version of a title in Xolo
+      # @param title [String] the title we care about
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def self.latest_version(title, cnx)
+        resp = cnx.get "#{SERVER_ROUTE}/#{title}"
+        resp.body[:version_order].first
+      end
+
       # Attributes
       ######################
       ######################
@@ -129,7 +139,7 @@ module Xolo
         cnx.post SERVER_ROUTE, to_h
       end
 
-      # Add this title to the server
+      # Update this title to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [void]
       ####################
@@ -142,7 +152,15 @@ module Xolo
       # @return [void]
       ####################
       def delete(cnx)
-        resp = self.class.delete title, cnx
+        self.class.delete title, cnx
+      end
+
+      # the latest version of this title in Xolo
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [void]
+      ####################
+      def latest_version(cnx)
+        self.class.latest_version(title, cnx)
       end
 
       # Upload an icon for self service

@@ -59,30 +59,34 @@ module Xolo
         def process_incoming_ssvc_icon
           filename = params[:file][:filename]
           tempfile = Pathname.new params[:file][:tempfile].path
+
           log_info "Processing uploaded SelfService icon for #{params[:title]}"
           title = instantiate_title params[:title]
           title.save_ssvc_icon(tempfile)
         end
 
-        # copy a .pkg file uploaded
+        #
         #############################
         def process_incoming_pkg
           filename = params[:file][:filename]
-          tempfile = Pathname.new params[:file][:tempfile].path
-
-          title = instantiate_title params[:title]
-          version = instantiate_version params[:version]
-
-          log.debug 'Processing incoming .pkg'
-          pkg_id = params[:pkg_id].to_s.empty? ? nil : validate_pkg_id(params[:pkg_id])
-          staged_file = stage_incoming_file
 
           # TODO: This check should happen in Admin
-          unless OK_PKG_EXTS.include? staged_file.extname
-            msg = "#{staged_file.basename}: Package files must end in .pkg or .zip (for old-style bundle packages)"
+          unless OK_PKG_EXTS.include? Pathname.new(filename).extname
+            msg = "Bad filename '#{filename}'. Package files must end in .pkg or .zip (for old-style bundle packages)"
             log_error msg
             halt 400, { error: msg }
           end
+
+          tempfile = Pathname.new params[:file][:tempfile].path
+
+          log_info "Processing uploaded .pkg icon for version '#{params[:version]}' of title '#{params[:title]}'"
+
+          version = instantiate_version [params[:title], params[:version]]
+
+          # sign the pkg if it isn't signed
+
+          pkg_id = params[:pkg_id].to_s.empty? ? nil : validate_pkg_id(params[:pkg_id])
+          staged_file = stage_incoming_file
 
           # The params that come with uploaded files are not JSON - they are
           # multipart urlencoded, which means that boolean false comes as

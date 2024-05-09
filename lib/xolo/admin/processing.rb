@@ -134,6 +134,66 @@ module Xolo
         handle_server_error e
       end
 
+      # List all versions of a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def list_versions
+        puts "# All versions of title '#{cli_cmd.title}' in Xolo:"
+        puts '###########################################'
+        Xolo::Admin::Version.all_versions(cli_cmd.title, server_cnx).each { |v| puts v }
+      end
+
+      # Add a version to a title to Xolo
+      #
+      # @return [void]
+      ###############################
+      def add_version
+        opts_to_process.title = cli_cmd.title
+        opts_to_process.version = cli_cmd.version
+
+        new_vers = Xolo::Admin::Version.new opts_to_process
+        new_vers.add server_cnx
+
+        # Upload the pkg, if any?
+        # new_vers.upload_pkg(upload_cnx) if new_title.self_service_icon
+
+        puts "Version '#{cli_cmd.version}' of '#{cli_cmd.title}' has been added to Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # Edit/Update a version in Xolo
+      #
+      # @return [void]
+      ###############################
+      def edit_version
+        opts_to_process.title = cli_cmd.title
+        opts_to_process.version = cli_cmd.version
+        vers = Xolo::Admin::Version.new opts_to_process
+
+        vers.update server_cnx
+
+        # TODO: Upload a pkg
+
+        puts "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # Delete a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def delete_version
+        # TODO: confirmation before deletion
+        Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
+
+        puts "Version '#{cli_cmd.title}' of Title '#{cli_cmd.title}' has been deleted from Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
       # Show details about a title or version in xolo
       #
       # @return [void]
@@ -158,32 +218,20 @@ module Xolo
         end
       end
 
-      # Add a version to a title to Xolo
-      #
-      # @return [void]
-      ###############################
-      def add_version
-        opts_to_process.title = cli_cmd.title
-        opts_to_process.version = cli_cmd.version
-
-        new_vers = Xolo::Admin::Version.new opts_to_process
-        new_vers.add server_cnx
-
-        # Upload the pkg, if any?
-        # new_vers.upload_pkg(upload_cnx) if new_title.self_service_icon
-
-        puts "Version '#{cli_cmd.version}' of '#{cli_cmd.title}' has been added to Xolo."
-      rescue StandardError => e
-        handle_server_error e
-      end
-
       # Show details about a title in xolo
       #
       # @return [void]
       ###############################
       def show_version_info
-        title = cli_cmd.title
-        version = cli_cmd.version
+        puts "# Info for Version #{cli_cmd.version} of Title '#{cli_cmd.title}'"
+        puts '##################################################'
+
+        vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
+        Xolo::Admin::Version::ATTRIBUTES.each do |attr, deets|
+          value = vers.send attr
+          value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
+          puts "- #{deets[:label]}: #{value}".pix_word_wrap
+        end
       end
 
       # List all the computer groups in jamf pro

@@ -98,7 +98,8 @@ module Xolo
 
       DFT_SSL_VERIFY = true
 
-      DFT_PKG_SIGNING_KEYCHAIN_FILENAME = 'xolo-pkg-signing.keychain-db'
+      PKG_SIGNING_KEYCHAIN_FILENAME = 'xolo-pkg-signing.keychain-db'
+      PKG_SIGNING_KEYCHAIN = Xolo::Server::DATA_DIR + PKG_SIGNING_KEYCHAIN_FILENAME
 
       PIPE = '|'
 
@@ -178,19 +179,6 @@ module Xolo
             The server log is rotated daily. How many days of log files should be kept?
             All logs are kept in the 'logs' directory inside the server's data directory.
             Default is #{Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP}
-          ENDDESC
-        },
-
-        # @!attribute pkg_signing_keychain
-        #   @return [Pathname] The path to a keychain holding the .pkg signing identity
-        pkg_signing_keychain: {
-          default: nil,
-          required: true,
-          desc: <<~ENDDESC
-            The path to a macOS Keychain file containing the package-signing certificate used
-            to sign pkgs as needed.
-
-            They keychain will be copied to #{DFT_PKG_SIGNING_KEYCHAIN_FILENAME} inside the server's data directory.
           ENDDESC
         },
 
@@ -347,24 +335,32 @@ module Xolo
           default: nil,
           required: true,
           desc: <<~ENDDESC
-            Upload tool - the path to an executable that will upload
-            a pkg as needed to make it available to Jamf Pro.
+            After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
 
-            The only parameter passed to it is the local path to the .pkg
-            to be uploaded.
+            This value is the path to an executable that will do that second upload to the distribution point(s).
 
-            So if the executable is /usr/local/bin/jamf-pkg-uploader
-            then when xolo recieves a pkg to be uploaded to Jamf, it will run
-              /usr/local/bin/jamf-pkg-uploader '/Library/Application Support/xolo/uploads/my-new.pkg'
+            It will be run with two arguments:
+            - The display name of the Jamf::Package object the .pkg is used with
+            - the path to the .pkg file on the Xolo server, which will be uploaded
+              to the Jamf distribution poing
+
+            So if the executable is '/usr/local/bin/jamf-pkg-uploader' then when Xolo recieves a .pkg to be uploaded to Jamf, it will run something like:
+
+              /usr/local/bin/jamf-pkg-uploader 'CoolApp' '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg'
+
+            Where 'CoolApp' is the name of the Jamf Package object that will use this .pkg, and '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' is the location where it was stored on the Xolo server when xadm uploaded it.
 
             The upload tool can itself run other tools as needed, e.g. one to upload
             to all fileshare distribution points, and another to upload to a Cloud dist. point.
             or it can do all the things itself.
 
+            After that tool runs, the copy of the .pkg on the server ( '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
+
             An external tool is used here because every Jamf Pro customer has different needs for this,
             e.g. various cloud and file-server distribution points, and Jamf has not provided a
-            supported way to upload packages via the APIs. There are some unsupported methods, and
-            you are welcome to use them in the external tool you provide here.
+            supported way to upload packages via the APIs.
+
+            There are some unsupported methods, and you are welcome to use them in the external tool you provide here.
           ENDDESC
         },
 

@@ -102,7 +102,7 @@ module Xolo
       #########
       def validate_cli_version
         # this command doesn't need a version arg
-        return unless version_command? || title_or_vers_command?
+        return unless version_command? || title_or_version_command?
 
         # TODO:
         #   If this is an 'add-' command, ensure the version
@@ -458,43 +458,55 @@ module Xolo
         return Xolo::X if val == [Xolo::X]
         return Xolo::NONE if val.include? Xolo::NONE
 
-        if val.include? Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP
-          title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
-          unless title.app_name
-            raise_invalid_data_error Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP,
-                                     'Title does not use app_name'
-          end
-          unless title.app_bundle_id
-            raise_invalid_data_error Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP,
-                                     'Title does not use app_bundle_id'
-          end
-
-          return "#{title.app_name};#{title.app_bundle_id}"
-        end
-
-        # Split every item on semicolons
         val.map!(&:to_s)
 
-        val.each do |ka|
-          name, bundle_id = ka.split(Xolo::SEMICOLON_SEP_RE)
-          raise_invalid_data_error name, 'App name required before semicolon' unless name
-          raise_invalid_data_error name, 'App Bundle ID required after semicolon' unless bundle_id
+        # if one of the killapps is Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP
+        # convert it into the appropriate string
+        val.map! { |ka| expand_use_title(ka) }
 
-          # If it is 'use-title' then just use a one-item subarray:
-          # ['use-title'] and the server will deal with it
-          # TODO: Make the server validate use-title, and report error if needed
-          next if name == Xolo::Core::BaseClasses::Version::USE_TITLE_FOR_KILLAPP
+        val.each { |ka| validate_single_killapp(ka) }
 
-          # app name must end with .app. Use the err messge from Title/app_name
-          raise_invalid_data_error name, TITLE_ATTRS[:app_name][:invalid_msg] unless name.end_with?(Xolo::DOTAPP)
-
-          # bundle id must contain a dot
-          next if bundle_id&.include?(Xolo::DOT)
-
-          # app bundle id  must contain a dot. Use the err messge from Title/app_bundle_id
-          raise_invalid_data_error bundle_id, TITLE_ATTRS[:app_bundle_id][:invalid_msg]
-        end
         val
+      end
+
+      # expand Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP into the proper killall string
+      #
+      # @param ka [String] the string to expand if needed
+      # @return [String] the original string, or the expanded version
+      def expand_use_title(ka)
+        return ka unless ka == Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP
+
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        unless title.app_name
+          raise_invalid_data_error Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP,
+                                   'Title does not use app_name'
+        end
+        unless title.app_bundle_id
+          raise_invalid_data_error Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP,
+                                   'Title does not use app_bundle_id'
+        end
+
+        "#{title.app_name};#{title.app_bundle_id}"
+      end
+
+      # Validate an individual killapp string
+      # @param ka [String] the string to expand if needed
+      # @return [String] the validated value
+      def validate_single_killapp(ka)
+        name, bundle_id = ka.split(Xolo::SEMICOLON_SEP_RE)
+        raise_invalid_data_error name, 'App name required before semicolon' unless name
+        raise_invalid_data_error name, 'App Bundle ID required after semicolon' unless bundle_id
+
+        # app name must end with .app. Use the err messge from Title/app_name
+        raise_invalid_data_error name, TITLE_ATTRS[:app_name][:invalid_msg] unless name.end_with?(Xolo::DOTAPP)
+
+        # app bundle id  must contain a dot. Use the err messge from Title/app_bundle_id
+        unless bundle_id&.include?(Xolo::DOT)
+          raise_invalid_data_error bundle_id,
+                                   TITLE_ATTRS[:app_bundle_id][:invalid_msg]
+        end
+
+        ka
       end
 
       # validate an array  of jamf groups to use as pilots for testing a version
