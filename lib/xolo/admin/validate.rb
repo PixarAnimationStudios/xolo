@@ -113,7 +113,7 @@ module Xolo
         vers = cli_cmd.version
         return unless vers.to_s.empty? || vers.start_with?(Xolo::DASH)
 
-        raise ArgumentError, "No version provided with '#{cli_cmd.command}' command!\nUsage: #{Xusage}"
+        raise ArgumentError, "No version provided with '#{cli_cmd.command}' command!\nUsage: #{usage}"
       end
 
       # Validate the command options acquired from the command line.
@@ -399,6 +399,19 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:self_service_icon][:invalid_msg]
       end
 
+      # validate a path to a jamf_pkg_file. Must exist locally and be readable
+      # and have the correct ext.
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [Pathname] The valid value
+      def validate_pkg_to_upload(val)
+        val = Pathname.new val.to_s.strip
+        return val if val.file? && val.readable? && (Xolo::OK_PKG_EXTS.include? val.extname)
+
+        raise_invalid_data_error val, VERSION_ATTRS[:jamf_pkg_file][:invalid_msg]
+      end
+
       # Version Attributes
       #
       ##################################################
@@ -620,6 +633,8 @@ module Xolo
       # @return [void]
       #######
       def validate_internal_consistency(opts)
+        return unless add_command? || edit_command?
+
         if version_command?
           validate_version_consistency opts
         elsif title_command?

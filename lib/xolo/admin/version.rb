@@ -35,6 +35,7 @@ module Xolo
     # objects.
     class Version < Xolo::Core::BaseClasses::Version
 
+      # Server route for uploading packages
       UPLOAD_PKG_ROUTE = '/upload/pkg'
 
       # This is the server path for dealing with titles
@@ -144,21 +145,22 @@ module Xolo
       end
 
       # Upload a .pkg (or zipped bundle pkg) for this version
+      # At this point, the jamf_pkg_file attribute
+      # will containt the local file path.
       #
-      # @param local_file [Pathname] The path to the file to be uploaded
+      # @param upload_cnx [Xolo::Admin::Connection] The server connection
       #
       # @return [Faraday::Response] The server response
       ##################################
-      def upload_pkg
-        return if pkg.pix_blank?
-        return if pkg == Xolo::ITEM_UPLOADED
+      def upload_pkg(upload_cnx)
+        return unless pkg_to_upload.is_a? Pathname
 
         route = "#{UPLOAD_PKG_ROUTE}/#{title}/#{version}"
 
         upfile = Faraday::UploadIO.new(
-          pkg.to_s,
+          pkg_to_upload.to_s,
           'application/octet-stream',
-          pkg.basename.to_s
+          pkg_to_upload.basename.to_s
         )
 
         content = { file: upfile }

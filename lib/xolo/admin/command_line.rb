@@ -260,6 +260,7 @@ module Xolo
 
         # log in now, cuz we need the server to validate the rest of the
         # command line
+        #
         # TODO: Be pickier about which commands actually need the server, and
         # only log in for them.
         #################
@@ -272,7 +273,15 @@ module Xolo
           cli_cmd.title = ARGV.shift
           validate_cli_title
 
-        elsif version_command? || title_or_version_command?
+        elsif version_command?
+          # the next item is the title and the one after that might be a version
+          cli_cmd.title = ARGV.shift
+          validate_cli_title
+
+          cli_cmd.version = ARGV.shift
+          validate_cli_version
+
+        elsif title_or_version_command?
           # the next item is the title and the one after that might be a version
           cli_cmd.title = ARGV.shift
           validate_cli_title

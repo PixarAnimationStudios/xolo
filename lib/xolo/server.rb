@@ -47,6 +47,7 @@ require 'securerandom'
 require 'singleton'
 require 'json'
 require 'yaml'
+require 'open3'
 
 # Gems
 ######

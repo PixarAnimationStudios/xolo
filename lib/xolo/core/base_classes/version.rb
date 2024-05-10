@@ -214,6 +214,26 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute jamf_pkg
+          #   @return [String] The file name of the installer for the Jamf::Package object that
+          #     installs this version.  'xolo-<title>-<version>.pkg' (or .zip)
+          pkg_to_upload: {
+            label: 'Upload Package',
+            type: :string,
+            cli: :u,
+            validate: true,
+            readline: :get_files,
+            invalid_msg: 'Invalid installer pkg. Must exist locally and be a .pkg file, or a .zip compressed old-style bundle package.',
+            desc: <<~ENDDESC
+              A local copy of the installer package for this version. Will be uploaded to Xolo and then Jamf Pro, distribution point(s), replacing any previously uploaded.
+
+              Must be a flat .pkg file, or a .zip compressed old-style bundle package.
+
+              It will be renamed to 'xolo-<title>-<version>.pkg' (or .zip).
+              If your Xolo server is confiured to sign unsigned packages, it will do so along the way.
+            ENDDESC
+          },
+
           # @!attribute status
           #   @return [symbol] One of: :pending, :pilot, :released, :skipped, :deprecated
           status: {
@@ -347,12 +367,25 @@ module Xolo
 
           # @!attribute jamf_pkg
           #   @return [String] The display name of the Jamf::Package object that installs this version.
-          jamf_pkg: {
+          #     'xolo-<title>-<version>'
+          jamf_pkg_name: {
             label: 'Jamf Package',
             type: :string,
             cli: false,
             desc: <<~ENDDESC
-              The display name of the Jamf::Package object that installs this version.
+              The display name of the Jamf::Package object that installs this version. 'xolo-<title>-<version>'
+            ENDDESC
+          },
+
+          # @!attribute jamf_pkg
+          #   @return [String] The display name of the Jamf::Package object that installs this version.
+          #     'xolo-<title>-<version>'
+          jamf_pkg_file: {
+            label: 'Jamf Package',
+            type: :string,
+            cli: false,
+            desc: <<~ENDDESC
+              The installer filename of the Jamf::Package object that installs this version: 'xolo-<title>-<version>.pkg' (or .zip).
             ENDDESC
           }
 

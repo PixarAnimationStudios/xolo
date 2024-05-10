@@ -156,7 +156,7 @@ module Xolo
         new_vers.add server_cnx
 
         # Upload the pkg, if any?
-        # new_vers.upload_pkg(upload_cnx) if new_title.self_service_icon
+        new_vers.upload_pkg(upload_cnx) if new_vers.pkg_to_upload.is_a? Pathname
 
         puts "Version '#{cli_cmd.version}' of '#{cli_cmd.title}' has been added to Xolo."
       rescue StandardError => e
@@ -174,7 +174,8 @@ module Xolo
 
         vers.update server_cnx
 
-        # TODO: Upload a pkg
+        # Upload the pkg, if any?
+        new_vers.upload_pkg(upload_cnx) if new_vers.pkg_to_upload.is_a? Pathname
 
         puts "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e

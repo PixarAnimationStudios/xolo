@@ -52,6 +52,9 @@ class XoloAdmin
   # Constructor
   ###################
   def initialize
+    # all bets are off during early testing
+    return if ARGV.include? '--test'
+
     # This will log us in to the xolo server
     # if the command needs it.
     parse_cli
@@ -60,9 +63,21 @@ class XoloAdmin
   # Run
   ########################
   def run
+    # during early testing - this will return all kinds of things.
+    if ARGV.include? '--test'
+      login test: true
+      puts server_cnx.get('/test').body
+      return
+    end
+
     # this line will actuall stay somewhere here in xadm!
     do_walkthru if walkthru?
     return if @walkthru_cancelled
+
+    process_method = cmd_details[:process_method]
+    return unless process_method
+
+    send process_method
 
     ###################
     # puts
@@ -105,11 +120,6 @@ class XoloAdmin
     # opts.to_h.each do |k, v|
     #   puts "..#{k} => #{v}"
     # end
-
-    process_method = cmd_details[:process_method]
-    return unless process_method
-
-    send process_method
 
     ###################
     # puts 'CookieJar:'

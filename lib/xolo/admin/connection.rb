@@ -61,8 +61,8 @@ module Xolo
       # (maintained by Faraday via the Xolo::Admin::CookieJar middleware)
       #
       ##############
-      def login
-        return if cmd_details[:no_login]
+      def login(test: false)
+        return if !test && cmd_details[:no_login]
 
         hostname = config.hostname
         admin = config.admin

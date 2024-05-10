@@ -163,9 +163,11 @@ module Xolo
         self.class.latest_version(title, cnx)
       end
 
-      # Upload an icon for self service
+      # Upload an icon for self service.
+      # At this point, the self_service_icon attribute
+      # will containt the local file path.
       #
-      # @param local_file [Pathname, String] The path to the file to be uploaded
+      # @param upload_cnx [Xolo::Admin::Connection] The server connection
       #
       # @return [Faraday::Response] The server response
       ##################################

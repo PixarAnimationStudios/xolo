@@ -54,6 +54,10 @@ module Xolo
       #
       VERSIONS_DIRNAME = 'versions'
 
+      # Xolo packages in Jamf are named 'xolo-<title>-<version>'
+      # Xolo package files in Jamf are named 'xolo-<title>-<version>.pkg' (or .zip)
+      JAMF_PACKAGE_NAME_PFX = 'xolo-'
+
       # Class Methods
       ######################
       ######################
@@ -134,6 +138,9 @@ module Xolo
       def initialize(data_hash)
         super
         @title_editor_id_number ||= data_hash[:title_editor_id_number]
+        @jamf_pkg_name ||= "#{JAMF_PACKAGE_NAME_PFX}#{title}-#{version}"
+        # set @jamf_pkg_file when a the first pkg is uploaded
+        # since we don't know until then if its a .pkg or .zip
       end
 
       # Instance Methods
@@ -165,6 +172,13 @@ module Xolo
         @title_editor_cnx ||= super
       end
 
+      # @return [Jamf::Connection] a single Jamf Pro API connection to use for
+      #   the life of this instance
+      #############################
+      def jamf_cnx
+        @jamf_cnx ||= super
+      end
+
       # The data file for this version
       # @return [Pathname]
       #########################
@@ -188,6 +202,7 @@ module Xolo
         log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
         create_in_title_editor
+        create_in_jamf
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
@@ -228,6 +243,13 @@ module Xolo
         update_component new_patch
 
         self.title_editor_id_number = new_patch.patchId
+      end
+
+      # Create the jamf stuff needed for a new version
+      #
+      #########################
+      def create_in_jamf
+        log_info "Jamf: Creating Package '#{version}' of SoftwareTitle '#{title}'"
       end
 
       # Update a this version, updating to the
@@ -307,11 +329,12 @@ module Xolo
       # @return [void]
       ##########################
       def update_killapps(patch, new_data = nil)
+        kapps = new_data ? new_data[:killapps] : killapps
+        return unless kapps
+
         # delete the existing
         log_debug "Title Editor: updating killApps for Patch '#{version}' of SoftwareTitle '#{title}'"
         patch.killApps.delete_all_killApps
-
-        kapps = new_data ? new_data[:killapps] : killapps
 
         # Add the current ones back in
         kapps.each do |ka_str|

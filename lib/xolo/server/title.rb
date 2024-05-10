@@ -219,6 +219,13 @@ module Xolo
         @title_editor_cnx ||= super
       end
 
+      # @return [Jamf::Connection] a single Jamf Pro API connection to use for
+      #   the life of this instance
+      #############################
+      def jamf_cnx
+        @jamf_cnx ||= super
+      end
+
       # The title dir for this title on the server
       # @return [Pathname]
       #########################

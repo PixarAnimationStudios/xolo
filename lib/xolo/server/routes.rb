@@ -116,6 +116,58 @@ module Xolo
         body state
       end
 
+      # test
+      ##########
+      get '/test' do
+        ##### UNLOCK KEYCHAIN
+        pw = Xolo::Server.config.pkg_signing_keychain_pw
+        # first escape backslashes
+        pw = pw.to_s.gsub '\\', '\\\\\\'
+        # then single quotes
+        pw.gsub! "'", "\\\\'"
+        # then warp in sgl quotes
+        pw = "'#{pw}'"
+
+        output = Xolo::BLANK
+        errs = Xolo::BLANK
+        exit_status = nil
+        Open3.popen3('/usr/bin/security -i') do |stdin, stdout, stderr, wait_thr|
+          # pid = wait_thr.pid # pid of the started process.
+          stdin.puts "unlock-keychain -p #{pw} '#{Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN}'"
+          stdin.close
+
+          output = stdout.read
+          errs = stderr.read
+
+          exit_status = wait_thr.value # Process::Status object returned.
+        end # Open3.popen3
+
+        tempfile = Pathname.new '/tmp/chrisltest-unsigned.pkg'
+        pkg_to_upload = Pathname.new '/tmp/chrisltest-xolo-signed.pkg'
+
+        sh_kch = Shellwords.escape Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
+        sh_tmpf = Shellwords.escape tempfile.to_s
+        sh_upf = Shellwords.escape pkg_to_upload.to_s
+        sh_ident = Shellwords.escape Xolo::Server.config.pkg_signing_identity
+
+        cmd = "/usr/bin/productsign --sign #{sh_ident} --keychain #{sh_kch} #{sh_tmpf} #{sh_upf}"
+        log_debug "running: #{cmd}"
+
+        out, err, sta = Open3.capture3(cmd)
+
+        #### CHECK SIGNED
+        sign_worked = system "/usr/sbin/pkgutil --check-signature #{Shellwords.escape pkg_to_upload.to_s}"
+
+        response_body = {
+          out: out,
+          err: err,
+          status: sta.exitstatus,
+          relockout: relockout,
+          sign_worked: sign_worked
+        }
+        body response_body
+      end
+
     end #  Routes
 
   end #  Server
