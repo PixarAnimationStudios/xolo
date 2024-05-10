@@ -175,7 +175,7 @@ module Xolo
         vers.update server_cnx
 
         # Upload the pkg, if any?
-        new_vers.upload_pkg(upload_cnx) if new_vers.pkg_to_upload.is_a? Pathname
+        vers.upload_pkg(upload_cnx) if vers.pkg_to_upload.is_a? Pathname
 
         puts "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
@@ -213,6 +213,8 @@ module Xolo
 
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
         Xolo::Admin::Title::ATTRIBUTES.each do |attr, deets|
+          next if deets[:hide_from_info]
+
           value = title.send attr
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap
@@ -229,6 +231,8 @@ module Xolo
 
         vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
         Xolo::Admin::Version::ATTRIBUTES.each do |attr, deets|
+          next if deets[:hide_from_info]
+
           value = vers.send attr
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap

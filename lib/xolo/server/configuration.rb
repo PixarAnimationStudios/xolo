@@ -58,11 +58,11 @@ module Xolo
     # matching the name of the attribute,
     # e.g.
     #
-    #   # read the current title_editor_server_name configuration value
-    #   Xolo.config.title_editor_server_name  # => 'foobar.appcatalog.jamfcloud.com'
+    #   # read the current ted_server_name configuration value
+    #   Xolo.config.ted_server_name  # => 'foobar.appcatalog.jamfcloud.com'
     #
-    #   # sets the title_editor_server_name to a new value
-    #   Xolo.config.title_editor_server_name = 'baz.appcatalog.jamfcloud.com'
+    #   # sets the ted_server_name to a new value
+    #   Xolo.config.ted_server_name = 'baz.appcatalog.jamfcloud.com'
     #
     #
     # The current settings may be saved to the CONF_FILEe, or an arbitrary
@@ -179,6 +179,26 @@ module Xolo
             The server log is rotated daily. How many days of log files should be kept?
             All logs are kept in the 'logs' directory inside the server's data directory.
             Default is #{Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP}
+          ENDDESC
+        },
+
+        # @!attribute sign_pkgs
+        #   @return [Boolean] Should the server sign any unsigned uploaded pkgs?
+        sign_pkgs: {
+          default: false,
+          desc: <<~ENDDESC
+            When someone uploads a .pkg from xadm, and it isn't signed, should the server
+            sign it before uploading to Jamf's Distribution Point(s)?
+
+            If you set this you true, you must install a keychain containing the signing identity
+            at:
+              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
+
+            and you must set the config values 'pkg_signing_keychain_pw' and 'pkg_signing_identity'
+
+            CAUTION: This has security-related plusses and minuses, such as:
+            - You need to trust your xadm users not to upload a malicious pkg.
+            - You don't need to distribute your signing certificates to a wide group of developers.
           ENDDESC
         },
 
@@ -367,9 +387,9 @@ module Xolo
         # Title Editor Connection
         ####################
 
-        # @!attribute title_editor_hostname
+        # @!attribute ted_hostname
         #   @return [String] The hostname of the Jamf Title Editor server we are connecting to
-        title_editor_hostname: {
+        ted_hostname: {
           default: nil,
           required: true,
           desc: <<~ENDDESC
@@ -377,10 +397,10 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute title_editor_open_timeout
+        # @!attribute ted_open_timeout
         #   @return [Integer] The timeout, in seconds, for establishing http connections to
         #      the Jamf Title Editor API
-        title_editor_open_timeout: {
+        ted_open_timeout: {
           default: Windoo::Connection::DFT_OPEN_TIMEOUT,
           desc: <<~ENDDESC
             The timeout, in seconds, for establishing a connection to the Title Editor server.
@@ -388,9 +408,9 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute title_editor_timeout
+        # @!attribute ted_timeout
         #   @return [Integer] The timeout, in seconds, for a response from the Jamf Title Editor API
-        title_editor_timeout: {
+        ted_timeout: {
           default: Windoo::Connection::DFT_TIMEOUT,
           desc: <<~ENDDESC
             The timeout, in seconds, for getting a response to a request made to the Title Editor server.
@@ -398,9 +418,9 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute title_editor_api_user
+        # @!attribute ted_api_user
         #   @return [String]  The username to use when connecting to the Jamf Title Editor API
-        title_editor_api_user: {
+        ted_api_user: {
           default: nil,
           required: true,
           desc: <<~ENDDESC
@@ -409,9 +429,9 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute title_editor_api_pw
+        # @!attribute ted_api_pw
         #   @return [String] A command, path, or value for the password for the Jamf Title Editor API user
-        title_editor_api_pw: {
+        ted_api_pw: {
           default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,

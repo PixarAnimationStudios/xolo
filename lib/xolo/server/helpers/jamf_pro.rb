@@ -34,6 +34,53 @@ module Xolo
       # constants and methods for accessing the Jamf Pro server
       module JamfPro
 
+        # Constants
+        #
+        ##############################
+        ##############################
+
+        #
+        # Each version gets one policy for initial installation.
+        #
+        # when piloted, the targets will be any tar
+
+        # install live:fd
+        #  => xolo install title
+        #
+        # runs 'jamf policy -trigger xolo-install-current-<title>'
+        # the xolo server maintains the trigger
+        #################
+        #
+        # install pilot:
+        #  => xolo install title version
+        #
+        # runs 'jamf policy -trigger xolo-install-<title>-<version>'
+        # the xolo server maintains the trigger
+        ##################
+        #
+        # auto-install on pilot groups or target groups
+        #  => xolo sync
+        #
+        # runs 'jamf policy'
+        # the xolo server maintains the scopes for the policies
+        # patch policies will be run as needed
+        ##################
+        #
+        # get the lates JSON data about titles and versions
+        # => xolo update
+        #
+        # runs 'jamf policy -trigger xolo-update'
+        # the xolo server maintains a package that deploys the JSON file
+        ##################
+        #
+        # list available titles or versions
+        #  => xolo list-titles
+        #
+        # reads from a local JSON file of title & version data
+        # maintained by the xolo server and pushed out via
+        # a checkin policy
+        ##################
+
         # Module methods
         #
         # These are available as module methods but not as 'helper'
@@ -81,7 +128,7 @@ module Xolo
             pw: Xolo::Server.config.jamf_api_pw,
             keep_alive: false
           )
-          log_debug "Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
+          log_debug "Jamf: Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
 
           jcnx
         end

@@ -63,7 +63,7 @@ module Xolo
       # Perhaps not needed for anything, but used for initial connection testing
       # @return [Array<String>] the titles of all Title objects in the Title Editor
       #######################
-      def title_editor_titles
+      def ted_titles
         server_cnx.get(TITLES_ROUTE).body
       end
 

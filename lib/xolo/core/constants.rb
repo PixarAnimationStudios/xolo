@@ -67,8 +67,12 @@ module Xolo
       # is what the server returns as the  attr value
       ITEM_UPLOADED = 'uploaded'
 
+      DOT_PKG = '.pkg'
+
+      DOT_ZIP = '.zip'
+
       # Installer packages must have one of these extensions
-      OK_PKG_EXTS = %w[.pkg .zip]
+      OK_PKG_EXTS = [DOT_PKG, DOT_ZIP]
 
       # when this module is included
       def self.included(includer)

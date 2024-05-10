@@ -179,8 +179,8 @@ class XoloAdmin
     # puts jamf_package_names
 
     ###################
-    # puts 'running title_editor_titles'
-    # puts title_editor_titles
+    # puts 'running ted_titles'
+    # puts ted_titles
 
     ##################
     # puts

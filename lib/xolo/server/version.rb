@@ -128,7 +128,7 @@ module Xolo
       attr_writer :session
 
       # The Windoo::Patch#patchId
-      attr_accessor :title_editor_id_number
+      attr_accessor :ted_id_number
 
       # Constructor
       ######################
@@ -137,7 +137,7 @@ module Xolo
       # Set more attrs
       def initialize(data_hash)
         super
-        @title_editor_id_number ||= data_hash[:title_editor_id_number]
+        @ted_id_number ||= data_hash[:ted_id_number]
         @jamf_pkg_name ||= "#{JAMF_PACKAGE_NAME_PFX}#{title}-#{version}"
         # set @jamf_pkg_file when a the first pkg is uploaded
         # since we don't know until then if its a .pkg or .zip
@@ -168,8 +168,8 @@ module Xolo
       # @return [Windoo::Connection] a single Title Editor connection to use for
       #   the life of this instance
       #############################
-      def title_editor_cnx
-        @title_editor_cnx ||= super
+      def ted_cnx
+        @ted_cnx ||= super
       end
 
       # @return [Jamf::Connection] a single Jamf Pro API connection to use for
@@ -186,6 +186,44 @@ module Xolo
         self.class.version_data_file title, version
       end
 
+      # @return [Windoo::Patch] The Windoo::Patch object that represents
+      #   this version in the title editor
+      #############################
+      def ted_patch
+        @ted_patch ||= ted_title.patches.patch(version)
+      end
+
+      # @return [Windoo::SoftwareTitle] The Windoo::SoftwareTitle object that represents
+      #   this version's title in the title editor
+      #############################
+      def ted_title
+        @ted_title ||= Windoo::SoftwareTitle.fetch id: title, cnx: ted_cnx
+      end
+
+      # For a patch to be enabled in the Title Editor, it needs at least a component criterion
+      # and one capability. Xolo enforces those when the patch is created, so from the title
+      # editor's view it should be OK from the start.
+      #
+      # But Xolo can't really do anything with it until there's a Jamf Package object and
+      # an uploaded installer.
+      # So once we have those, this method is called to enable the patch.
+      #
+      # @param version [Xolo::Server::Version] the version who's patch to enable
+      #
+      # @return [void]
+      ##############################
+      def enable_ted_patch
+        return if ted_patch.enabled?
+
+        log_debug "Title Editor: Enabling Patch '#{version} of SoftwareTitle '#{title}'"
+        ted_patch.enable
+
+        # Once we have an enabled patch, the title should also be enabled,
+        # cuz everything else should be OK to go.
+        # Do this thru the title object for logging
+        title_object.enable_ted_title
+      end
+
       # Save a new version, adding to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #
@@ -196,6 +234,8 @@ module Xolo
 
         self.creation_date = Time.now
         self.created_by = admin
+        self.status = STATUS_PENDING
+
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
         self.modification_date = Time.now
         self.modified_by = admin
@@ -227,29 +267,62 @@ module Xolo
       def create_in_title_editor
         log_info "Title Editor: Creating Patch '#{version}' of SoftwareTitle '#{title}'"
 
-        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
-
-        title_in_title_editor.patches.add_patch(
+        ted_title.patches.add_patch(
           version: version,
           minimumOperatingSystem: min_os,
           releaseDate: publish_date,
           reboot: reboot,
           standalone: standalone
         )
-        new_patch = title_in_title_editor.patches.patch version
+        new_patch = ted_title.patches.patch version
 
         update_killapps new_patch
         update_capabilites new_patch
         update_component new_patch
 
-        self.title_editor_id_number = new_patch.patchId
+        self.ted_id_number = new_patch.patchId
       end
 
-      # Create the jamf stuff needed for a new version
+      # Create the Jamf::Package object for this version if needed
+      #########################
+      def create_pkg_in_jamf
+        return if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
+
+        log_info "Jamf: Creating Jamf::Package '#{jamf_pkg_name}'"
+
+        Jamf::Package.create(
+          cnx: jamf_cnx,
+          name: jamf_pkg_name,
+          filename: jamf_pkg_file,
+          reboot_required: reboot
+        ).save
+      rescue StandardError => e
+        msg = "Jamf: Failed to create Jamf::Package '#{jamf_pkg_name}': #{e.class}: #{e}"
+        log_error msg
+        halt 400, { error: msg }
+      end
+
+      #
       #
       #########################
-      def create_in_jamf
-        log_info "Jamf: Creating Package '#{version}' of SoftwareTitle '#{title}'"
+      def create_install_policies_in_jamf
+        # make an initial installation policy for piloting
+
+        # make an initial installation policy for general deployment
+      end
+
+      #
+      #
+      #########################
+      def create_patch_policies_in_jamf
+        # make sure the jamf server activates the title
+        # NOTE, may need a server.config entry for the name or id of the title editor in the
+        # list of Jamf Patch Sources
+
+        # make a patch policy for piloting
+
+        # make a patch policy for general deployment
+        # any other patch config, e.g. reporting
       end
 
       # Update a this version, updating to the
@@ -300,27 +373,24 @@ module Xolo
       def update_in_title_editor(new_data)
         log_info "Title Editor: Updating Patch '#{version}' SoftwareTitle '#{title}'"
 
-        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
-        patch = title_in_title_editor.patches.patch(version)
-
         ATTRIBUTES.each do |attr, deets|
-          title_editor_attribute = deets[:title_editor_attribute]
-          next unless title_editor_attribute
+          ted_attribute = deets[:ted_attribute]
+          next unless ted_attribute
 
           new_val = new_data[attr]
           old_val = send(attr)
           next if new_val == old_val
 
           # These changes happen in real time on the Title Editor server
-          log_debug "Title Editor: Updating patch attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
-          patch.send "#{title_editor_attribute}=", new_val
+          log_debug "Title Editor: Updating patch attribute '#{ted_attribute}': #{old_val} -> #{new_val}"
+          ted_patch.send "#{ted_attribute}=", new_val
         end
 
-        update_killapps patch, new_data
-        update_capabilites patch, new_data
-        update_component patch
+        update_killapps ted_patch, new_data
+        update_capabilites ted_patch, new_data
+        update_component ted_patch
 
-        self.title_editor_id_number = patch.patchId
+        self.ted_id_number = ted_patch.patchId
       end
 
       # Update any killapps for this version in the title editor.
@@ -416,7 +486,7 @@ module Xolo
 
           comp.criteria.add_criterion(
             type: 'extensionAttribute',
-            name: title_object.title_editor_ea_key,
+            name: title_object.ted_ea_key,
             operator: 'is',
             value: version
           )
@@ -476,12 +546,10 @@ module Xolo
       end
 
       # Delete from the title editor
-      # @return [Integer] title_editor_id_number
+      # @return [Integer] title editor id
       ###########################
       def delete_from_title_editor
-        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
-
-        patch_id = title_in_title_editor.patches.versions_to_patchIds[version]
+        patch_id = ted_title.patches.versions_to_patchIds[version]
         if patch_id
           log_info "Title Editor: Deleting Patch '#{version}' of SoftwareTitle '#{title}'"
           title_in_title_editor.patches.delete_patch patch_id
@@ -490,16 +558,17 @@ module Xolo
           log_debug "Title Editor: No id for Patch '#{version}' of SoftwareTitle '#{title}', nothing to delete"
         end
 
-        title_editor_id_number
+        ted_id_number
       rescue Windoo::NoSuchItemError
-        title_editor_id_number
+        ted_id_number
       end
 
       # Add more data to our hash
       ###########################
       def to_h
+        self.deployable = ted_patch.enabled?
         hash = super
-        hash[:title_editor_id_number] = title_editor_id_number
+        hash[:ted_id_number] = ted_id_number
         hash
       end
 

@@ -117,7 +117,7 @@ module Xolo
       # @return [String] The key and display name of a version script stored
       #   in the title editor as the ExtAttr for a given title
       #####################
-      def self.title_editor_ea_key(title)
+      def self.ted_ea_key(title)
         "#{title}#{TITLE_EDITOR_EA_KEY_SUFFIX}"
       end
 
@@ -183,7 +183,7 @@ module Xolo
       attr_writer :session
 
       # The Windoo::SoftwareTitle#softwareTitleId
-      attr_accessor :title_editor_id_number
+      attr_accessor :ted_id_number
 
       # Constructor
       ######################
@@ -192,7 +192,7 @@ module Xolo
       # Set more attrs
       def initialize(data_hash)
         super
-        @title_editor_id_number ||= data_hash[:title_editor_id_number]
+        @ted_id_number ||= data_hash[:ted_id_number]
         @version_order ||= []
       end
 
@@ -215,8 +215,8 @@ module Xolo
       # @return [Windoo::Connection] a single Title Editor connection to use for
       #   the life of this instance
       #############################
-      def title_editor_cnx
-        @title_editor_cnx ||= super
+      def ted_cnx
+        @ted_cnx ||= super
       end
 
       # @return [Jamf::Connection] a single Jamf Pro API connection to use for
@@ -260,12 +260,46 @@ module Xolo
         version_script == Xolo::ITEM_UPLOADED ? version_script_file.read : varsion_script
       end
 
+      # @return [Windoo::SoftwareTitle] The Windoo::SoftwareTitle object that represents
+      #   this title in the title editor
+      #############################
+      def ted_title
+        @ted_title ||= Windoo::SoftwareTitle.fetch id: title, cnx: ted_cnx
+      end
+
       # @return [String] The key and display name of a version script stored
       #   in the title editor as the ExtAttr for this title
       #####################
-      def title_editor_ea_key
-        self.class.title_editor_ea_key title
+      def ted_ea_key
+        self.class.ted_ea_key title
       end
+
+      # For a Title to be enabled in the Title Editor, it needs at least a requirement criterion
+      # and one enabled patch. Xolo enforces the requirement when the title is created, so from
+      # the title editor's view it should be OK as soon as there's an enabled patch.
+      #
+      # So once we have that, this method is called to enable the title.
+      #
+      # @param title [Xolo::Server::Title] the Title to enable in the Title Editor
+      #
+      # @return [void]
+      ##############################
+      def enable_ted_title
+        return if ted_title.enabled?
+
+        log_debug "Title Editor: Enabling SoftwareTitle '#{title}'"
+        ted_title.enable
+      end
+
+      # For a title to be enabled, it must
+      # - have at least one enabled patch
+      # - have at least one requirement
+      #
+      # @return [Boolean] is this title enabled?
+      ########################
+      # def enabled?
+      #   ted_title.enabled?
+      # end
 
       # Save a new title, adding to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
@@ -447,12 +481,12 @@ module Xolo
           appName: app_name,
           bundleId: app_bundle_id,
           currentVersion: NEW_TITLE_CURRENT_VERSION,
-          cnx: title_editor_cnx
+          cnx: ted_cnx
         )
 
-        update_title_editor_requirements new_ted_title
+        update_ted_requirements new_ted_title
 
-        self.title_editor_id_number = new_ted_title.softwareTitleId
+        self.ted_id_number = new_ted_title.softwareTitleId
       end
 
       # Update title in the title editor
@@ -465,24 +499,23 @@ module Xolo
       ##########################
       def update_in_title_editor(new_data)
         log_info "Title Editor: Updating SoftwareTitle '#{title}'"
-        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
 
         ATTRIBUTES.each do |attr, deets|
-          title_editor_attribute = deets[:title_editor_attribute]
-          next unless title_editor_attribute
+          ted_attribute = deets[:ted_attribute]
+          next unless ted_attribute
 
           new_val = new_data[attr]
           old_val = send(attr)
           next if new_val == old_val
 
           # These changes happen in real time on the Title Editor server
-          log_debug "Title Editor: Updating title attribute '#{title_editor_attribute}': #{old_val} -> #{new_val}"
-          title_in_title_editor.send "#{title_editor_attribute}=", new_val
+          log_debug "Title Editor: Updating title attribute '#{ted_attribute}': #{old_val} -> #{new_val}"
+          ted_title.send "#{ted_attribute}=", new_val
         end
 
-        update_title_editor_requirements title_in_title_editor, new_data
+        update_ted_requirements ted_title, new_data
 
-        self.title_editor_id_number = title_in_title_editor.softwareTitleId
+        self.ted_id_number = ted_title.softwareTitleId
       end
 
       # Add or update the requirements in the TItle Editor title.
@@ -504,7 +537,7 @@ module Xolo
       #
       # @return [void]
       ######################
-      def update_title_editor_requirements(ted_title, new_data = nil)
+      def update_ted_requirements(ted_title, new_data = nil)
         log_debug "Title Editor: Setting Requirements for title '#{title}'"
 
         # delete the current requirements
@@ -515,14 +548,14 @@ module Xolo
         req_ea_script = new_data ? new_data[:version_script] : version_script
 
         if req_app_name && req_app_bundle_id
-          update_title_editor_app_requirements(
+          update_ted_app_requirements(
             ted_title,
             req_app_name: req_app_name,
             req_app_bundle_id: req_app_bundle_id
           )
 
         elsif req_ea_script
-          update_title_editor_ea_requirements ted_title, req_ea_script: req_ea_script
+          update_ted_ea_requirements ted_title, req_ea_script: req_ea_script
 
         else
           msg = 'No version_script, nor app_name & app_bundle_id - Cannot create Title Editor Title Requirements'
@@ -542,15 +575,15 @@ module Xolo
       #
       # @return [void]
       ####################
-      def update_title_editor_ea_requirements(ted_title, req_ea_script:)
+      def update_ted_ea_requirements(ted_title, req_ea_script:)
         log_debug "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'"
 
         # delete and recreate the EA
         ted_title.delete_extensionAttribute
 
         ted_title.add_extensionAttribute(
-          key: title_editor_ea_key,
-          displayName: title_editor_ea_key,
+          key: ted_ea_key,
+          displayName: ted_ea_key,
           script: req_ea_script
         )
 
@@ -559,7 +592,7 @@ module Xolo
         # (the value will be the version that is installd)
         ted_title.requirements.add_criterion(
           type: 'extensionAttribute',
-          name: title_editor_ea_key,
+          name: ted_ea_key,
           operator: 'matches regex',
           value: '.+'
         )
@@ -572,7 +605,7 @@ module Xolo
       #
       # @return [void]
       ####################
-      def update_title_editor_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
+      def update_ted_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
         log_debug "Title Editor: Setting App-based Requirement Criteria for title '#{title}'"
 
         ted_title.requirements.add_criterion(
@@ -605,22 +638,22 @@ module Xolo
       end
 
       # Delete from the title editor
-      # @return [Integer] title_editor_id_number
+      # @return [Integer] title editor id number
       ###########################
       def delete_from_title_editor
         log_info "Title Editor: Deleting SoftwareTitle '#{title}'"
 
-        title_in_title_editor = Windoo::SoftwareTitle.fetch id: title, cnx: title_editor_cnx
-        title_in_title_editor.delete
+        ted_title.delete
       rescue Windoo::NoSuchItemError
-        title_editor_id_number
+        ted_id_number
       end
 
       # Add more data to our hash
       ###########################
       def to_h
+        self.enabled = ted_title.enabled?
         hash = super
-        hash[:title_editor_id_number] = title_editor_id_number
+        hash[:ted_id_number] = ted_id_number
         hash
       end
 

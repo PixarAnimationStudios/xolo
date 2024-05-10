@@ -62,43 +62,66 @@ module Xolo
           title.save_ssvc_icon(tempfile)
         end
 
-        # Handle an incoming pkg installer
+        # Handle an uploaded pkg installer
         #############################
         def process_incoming_pkg
-          log_info "Processing uploaded .pkg icon for version '#{params[:version]}' of title '#{params[:title]}'"
+          log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
 
-          filename = params[:file][:filename]
-          tempfile = Pathname.new params[:file][:tempfile].path
-          log_debug "Incoming pkg file '#{filename}', tempfile: '#{tempfile}' "
-
-          # check its the kind of file we want
-          file_extname = validate_uploaded_pkg(filename)
-
-          # Set the pkg filename, now that we know the extension
+          # the Xolo::Server::Version that owns this pkg
           version = instantiate_version [params[:title], params[:version]]
-          version.jamf_pkg_file = "#{version.jamf_pkg_name}#{file_extname}"
 
+          # the original uploaded filename
+          orig_filename = params[:file][:filename]
+          log_debug "Incoming pkg file '#{orig_filename}' "
+          file_extname = validate_uploaded_pkg(orig_filename)
+
+          # Set the jamf_pkg_file, now that we know the extension
+          version.jamf_pkg_file = "#{version.jamf_pkg_name}#{file_extname}"
           log_debug "Jamf: Package.filename will be '#{version.jamf_pkg_file}'"
 
-          # save/update the local data file with the pkg name
-          version.save_local_data
+          # The tempfile created by Sinatra when the pkg was uploaded from xadm
+          tempfile = Pathname.new params[:file][:tempfile].path
 
-          # move and rename the tempfile into the title dir,
-          # signing it along the way if needed
-          pkg_to_upload = Xolo::Server::Title.title_dir(version.title) + version.jamf_pkg_file
-          # remove an old copy of this pkg
-          pkg_to_upload.delete if pkg_to_upload.file?
+          # The uploaded tmpfile will be staged here before uploading again to
+          # the Jamf Dist Point(s)
+          staged_pkg = Xolo::Server::Title.title_dir(version.title) + version.jamf_pkg_file
+          # remove an old ones
+          staged_pkg.delete if staged_pkg.file?
 
-          copy_and_sign_uploaded_pkg(filename, tempfile, pkg_to_upload)
+          if need_to_sign?(pkg)
+            sign_uploaded_pkg(tempfile, staged_pkg)
+          else
+            log_debug "Jamf; Package file is already signed, copying tempfile to '#{staged_pkg.basename}'"
+            tempfile.pix_cp staged_pkg
+          end
 
           # create the pkg obj. in jamf
-          create_jamf_package version
+          version.create_pkg_in_jamf
 
           # upload the pkg with the uploader tool defined in config
-          upload_to_dist_point(version, pkg_to_upload)
+          upload_to_dist_point(version, staged_pkg)
 
-          # delete the pkg from the title dir
-          pkg_to_upload.delete
+          # TODO: Everything below here isn't part of file transfers, so move it elsewhere
+
+          # now that we have a pkg and all the jamf stuff,
+          # enable the patch in the title editor
+          # TODO: the timing of this might need to be ensured.
+          # we are assuming the package upload will happen after all other
+          # patch stuff - which it is at the moment, cuz of the
+          # add_version and edit_version methods in Admin::Processing.
+          #
+          version.enable_ted_patch
+
+          # create the rest of the stuff in jame
+          version.create_install_policies_in_jamf
+          version.create_patch_policies_in_jamf
+
+          # save/update the local data file with the jamf_pkg_file,
+          # this indcates to the rest of Xolo that a version is
+          # ready to be deployed.
+          version.save_local_data
+
+          staged_pkg.delete
         end
 
         # upload the pkg with the uploader tool defined in config
@@ -119,7 +142,12 @@ module Xolo
           halt 400, { error: msg }
         end
 
-        # make sure the pkg is sort of what we expect
+        # Confirm and return the extension of the originally uplaoded file,
+        # either .pkg or .zip
+        #
+        # @param filename [String] The original name of the file uploaded to Xolo.
+        #
+        # @return [String] either '.pkg' or '.zip'
         ###############################
         def validate_uploaded_pkg(filename)
           log_debug "Validating pkg file ext for '#{filename}'"
@@ -132,86 +160,22 @@ module Xolo
           halt 400, { error: msg }
         end
 
-        # if the uploaded pkg needs to be signed, create the signed version in our title dirm
-        # otherwise, just copy it into the title dir
-        #######################################################
-        def copy_and_sign_uploaded_pkg(filename, tempfile, pkg_to_upload)
-          if system "/usr/sbin/pkgutil --check-signature #{Shellwords.escape tempfile.to_s}"
-            log_debug "Jamf; Package file is already signed, copying tempfile to '#{pkg_to_upload.basename}'"
-            tempfile.pix_cp pkg_to_upload
-          else
-            unlock_signing_keychain
-            # The signing command takes an input file and creates an output file
-            # so this accomplishes the 'rename' above.
-            sign_uploaded_package(filename, tempfile, pkg_to_upload)
-          end
-        end
-
-        # unlock the pkg signing keychain
-        # TODO: Be DRY with the keychain stuff in Xolo::Admin::Credentials
-        #############################
-        def unlock_signing_keychain
-          log_debug "Unlocking the signing keychain'"
-
-          pw = Xolo::Server.config.pkg_signing_keychain_pw
-          # first escape backslashes
-          pw = pw.to_s.gsub '\\', '\\\\\\'
-          # then single quotes
-          pw.gsub! "'", "\\\\'"
-          # then warp in sgl quotes
-          pw = "'#{pw}'"
-
-          outerrs = Xolo::BLANK
-          exit_status = nil
-
-          Open3.popen2e('/usr/bin/security -i') do |stdin, stdout_err, wait_thr|
-            stdin.puts "unlock-keychain -p #{pw} '#{Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN}'"
-            stdin.close
-            outerrs = stdout_err.read
-            exit_status = wait_thr.value # Process::Status object returned.
-          end # Open3.popen2e
-          return if exit_status.success?
-
-          msg = "Error unlocking signing keychain: #{outerrs}"
-          log_error msg
-          halt 400, { error: msg }
-        end
-
-        # sign the unsigned tempfile, creating the signed file to upload
-        ############################
-        def sign_uploaded_package(orig_filename, tempfile, pkg_to_upload)
-          sh_tmpf = Shellwords.escape tempfile.to_s
-          sh_upf = Shellwords.escape pkg_to_upload.to_s
-          sh_kch = Shellwords.escape Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
-          sh_ident = Shellwords.escape Xolo::Server.config.pkg_signing_identity
-
-          cmd = "/usr/bin/productsign --sign #{sh_ident} --keychain #{sh_kch} #{sh_tmpf} #{sh_upf}"
-          log_debug "Signing #{pkg_to_upload.basename} using this command: #{cmd}"
-
-          stdouterr, exit_status = Open3.capture2e(cmd)
-          return if exit_status.success?
-
-          msg = "Failed to sign #{orig_filename}: #{stdouterr}"
-          log_error msg
-          halt 400, { error: msg }
-        end
-
         # Create the Jamf::Package object for the uploaded installer if needed
         # @param version [Xolo::Server::Version]
         #############################
         def create_jamf_package(version)
-          return if Jamf::Package.all_names.include? version.jamf_pkg_name
+          return if Jamf::Package.all_names(cnx: version.jamf_cnx).include? version.jamf_pkg_name
 
-          log_info "Creating Jamf::Package '#{version.jamf_pkg_name}'"
+          log_info "Jamf: Creating Jamf::Package '#{version.jamf_pkg_name}'"
 
           Jamf::Package.create(
             cnx: version.jamf_cnx,
             name: version.jamf_pkg_name,
             filename: version.jamf_pkg_file,
-            reboot_required: reboot
-          )
+            reboot_required: version.reboot
+          ).save
         rescue StandardError => e
-          msg = "Failed to create Jamf::Package '#{version.jamf_pkg_name}': #{e.class}: #{e}"
+          msg = "Jamf: Failed to create Jamf::Package '#{version.jamf_pkg_name}': #{e.class}: #{e}"
           log_error msg
           halt 400, { error: msg }
         end

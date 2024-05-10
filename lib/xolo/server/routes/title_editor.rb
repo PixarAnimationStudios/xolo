@@ -73,7 +73,7 @@ module Xolo
         ###############
         get '/title-editor/titles' do
           log_debug "Fetching Title Editor titles for #{session[:admin]}"
-          wcnx = title_editor_cnx
+          wcnx = ted_cnx
           body Windoo::SoftwareTitle.all(cnx: wcnx).map { |t| t[:id] }.sort
         ensure
           wcnx&.disconnect

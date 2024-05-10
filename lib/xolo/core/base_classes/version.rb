@@ -53,6 +53,28 @@ module Xolo
 
         USE_TITLE_FOR_KILLAPP = 'use-title'
 
+        # Has been created in Xolo, but not yet made available
+        # for installation
+        STATUS_PENDING = 'pending'
+
+        # Has been released from the Title Editor, but is only
+        # available for piloting in Xolo. Will be auto-installed
+        # on non-excluded members of the pilot groups
+        STATUS_PILOT = 'pilot'
+
+        # Has been fully released in Xolo, this is the currently
+        # 'live' version. Will be auto-installed
+        # on non-excluded members of the target groups
+        STATUS_RELEASED = 'released'
+
+        # Was pending or pilot, but was never released in Xolo,
+        # and now a newer version has been released
+        STATUS_SKIPPED = 'skipped'
+
+        # Was released in Xolo, but now a newer version has been
+        # released
+        STATUS_DEPRECATED = 'deprecated'
+
         # Attributes
         ######################
         ######################
@@ -71,7 +93,7 @@ module Xolo
             type: :string,
             validate: true,
             invalid_msg: 'Not a valid version! Cannot already exist in this title.',
-            title_editor_attribute: :version,
+            ted_attribute: :version,
             desc: <<~ENDDESC
               A unique version string identifying this version in this title, e.g. '12.34.5'.
             ENDDESC
@@ -101,7 +123,7 @@ module Xolo
             required: true,
             cli: :d,
             validate: true,
-            title_editor_attribute: :releaseDate,
+            ted_attribute: :releaseDate,
             invalid_msg: 'Not a valid date!',
             desc: <<~ENDDESC
               The date this version was released by the publisher.
@@ -118,7 +140,7 @@ module Xolo
             required: true,
             validate: true,
             default: DEFAULT_MIN_OS,
-            title_editor_attribute: :minimumOperatingSystem,
+            ted_attribute: :minimumOperatingSystem,
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
               The lowest version of macOS able to run this version of this title.
@@ -146,7 +168,7 @@ module Xolo
             cli: :r,
             type: :boolean,
             validate: :validate_boolean,
-            title_editor_attribute: :reboot,
+            ted_attribute: :reboot,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
             ENDDESC
@@ -159,7 +181,7 @@ module Xolo
             cli: :s,
             type: :boolean,
             validate: :validate_boolean,
-            title_editor_attribute: :standalone,
+            ted_attribute: :standalone,
             desc: <<~ENDDESC
               The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
             ENDDESC
@@ -223,6 +245,7 @@ module Xolo
             cli: :u,
             validate: true,
             readline: :get_files,
+            hide_from_info: true,
             invalid_msg: 'Invalid installer pkg. Must exist locally and be a .pkg file, or a .zip compressed old-style bundle package.',
             desc: <<~ENDDESC
               A local copy of the installer package for this version. Will be uploaded to Xolo and then Jamf Pro, distribution point(s), replacing any previously uploaded.
@@ -235,19 +258,32 @@ module Xolo
           },
 
           # @!attribute status
-          #   @return [symbol] One of: :pending, :pilot, :released, :skipped, :deprecated
+          #   @return [String] One of: STATUS_PENDING, STATUS_PILOT, STATUS_RELEASED,
+          #     STATUS_SKIPPED, or STATUS_DEPRECATED
           status: {
             label: 'Status',
             type: :symbol,
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
-              The state of this version in Xolo:
-              - pending: Not yet available for installation. A .pkg must be uploaded first.
-              - pilot: Can be installed for piloting, will auto install on any pilot-group members.
-              - released: This is the current version, can be generally installed, will auto install as appropriate.
+              The status of this version in Xolo:
+              - pending: Not yet available for installation.
+              - pilot: Can be installed for piloting, will auto install on any pilot-groups.
+              - released: This is the current version, generally available, will auto-install on target groups.
               - skipped: Was created, and maybe piloted, but never released.
               - deprecated: Was released, but a newer version has since been released.
+            ENDDESC
+          },
+
+          # @!attribute deployable
+          #   @return [Boolean] Is this title deployable?
+          deployable: {
+            label: 'Deployable',
+            type: :boolean,
+            cli: false,
+            read_only: true, # maintained by the server, not directly by xadm
+            desc: <<~ENDDESC
+              Is this version deployable? It have an installer package uploaded.
             ENDDESC
           },
 
@@ -381,7 +417,7 @@ module Xolo
           #   @return [String] The display name of the Jamf::Package object that installs this version.
           #     'xolo-<title>-<version>'
           jamf_pkg_file: {
-            label: 'Jamf Package',
+            label: 'Jamf Package File',
             type: :string,
             cli: false,
             desc: <<~ENDDESC

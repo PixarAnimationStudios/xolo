@@ -134,7 +134,7 @@ module Xolo
         # - multiline [Boolean] If true, the value for this option can be many lines lione, and in
         #   walkthru, will be presented to the user in an editor like vim. See also multi: above
         #
-        # - title_editor_attribute: [Symbol] If this attribute has a matching one on the related
+        # - ted_attribute: [Symbol] If this attribute has a matching one on the related
         #   Title Editor Title, this is the name of that attribute in the Windoo::SoftwareTitle
         #
         # - readline: [Symbol] If set, use readline to get the value from the user during walkthru.
@@ -149,6 +149,7 @@ module Xolo
         # - read_only: [Boolean] defaults to false. When true, the server maintains this value, and
         #   its only readable via xadm.
         #
+        # - hide_from_info: [Boolean] when true, do not show this attribute in the 'info' output
         #
         ATTRIBUTES = {
 
@@ -156,11 +157,12 @@ module Xolo
           #   @return [String] The unique title-string for this title.
           title: {
             label: 'Title',
-            title_editor_attribute: :id,
+            ted_attribute: :id,
             required: true,
             immutable: true,
             cli: false,
             type: :string,
+            hide_from_info: true,
             validate: true,
             invalid_msg: 'Not a valid title: must be lowercase alphanumeric and dashes only',
             desc: <<~ENDDESC
@@ -174,7 +176,7 @@ module Xolo
           #   @return [String] The display-name for this title
           display_name: {
             label: 'Display Name',
-            title_editor_attribute: :name,
+            ted_attribute: :name,
             required: true,
             cli: :n,
             type: :string,
@@ -215,7 +217,7 @@ module Xolo
           #   @return [String] The entity that publishes this title
           publisher: {
             label: 'Publisher',
-            title_editor_attribute: :publisher,
+            ted_attribute: :publisher,
             required: true,
             cli: :p,
             type: :string,
@@ -230,7 +232,7 @@ module Xolo
           #   @return [String] The name of the .app installed by this title. Nil if no .app is installed
           app_name: {
             label: 'App Name',
-            title_editor_attribute: :appName,
+            ted_attribute: :appName,
             cli: :a,
             validate: true,
             type: :string,
@@ -251,7 +253,7 @@ module Xolo
           #   @return [String] The bundle ID of the .app installed by this title. Nil if no .app is installed
           app_bundle_id: {
             label: 'App Bundle ID',
-            title_editor_attribute: :bundleId,
+            ted_attribute: :bundleId,
             cli: :b,
             validate: true,
             type: :string,
@@ -476,6 +478,19 @@ module Xolo
             read_only: true, # maintained by the server, not editable by xadm
             desc: <<~ENDDESC
               The date this title was last modified.
+            ENDDESC
+          },
+
+          # @!attribute enabled
+          #   @return [Boolean] Is this title enabled?
+          enabled: {
+            label: 'Enabled',
+            type: :boolean,
+            cli: false,
+            read_only: true, # maintained by the server, not directly by xadm
+            desc: <<~ENDDESC
+              Is this title enabled? It must have one deployable version first.
+              A deployable version must have an installer package uploaded.
             ENDDESC
           },
 
