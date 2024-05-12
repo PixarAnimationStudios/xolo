@@ -33,6 +33,14 @@ module Xolo
 
       # constants and methods for accessing the Title Editor server
       #
+      # This is both uses as a 'helper' in the Sinatra server,
+      # and an included mixin for the Xolo::Server::Title and
+      # Xolo::Server::Version classes.
+      #
+      # This means methods here are available in instances of
+      # those classes, and in all routes, views, and helpers in
+      # Sinatra.
+      #
       # NOTE: The names of various attributes of Title Editor SoftwareTitles
       # and Xolo Titles are not always in sync.
       # For example:
@@ -43,9 +51,6 @@ module Xolo
       # See Windoo::SoftwareTitle::JSON_ATTRIBUTES for more details about them.
       # The Xolo server code will deal with all the translations.
       #
-      # This is used as a 'helper' in the Xolo server, so that routes and views have
-      # access to the instance methods, and also included in the Xolo::Server::Title
-      # class to that instances also have access to those methods.
       module TitleEditor
 
         # Module methods

@@ -29,20 +29,12 @@ module Xolo
 
   module Server
 
-    module Helpers
+    module Mixins
 
-      # constants and methods for accessing the Jamf Pro server
-      # from the Xolo server
+      # This is mixed in to Xolo::Server::Title
+      # to define Title-related access to the Jamf Pro server
       #
-      # This is both uses as a 'helper' in the Sinatra server,
-      # and an included mixin for the Xolo::Server::Title and
-      # Xolo::Server::Version classes.
-      #
-      # This means methods here are available in instances of
-      # those classes, and in all routes, views, and helpers in
-      # Sinatra.
-      #
-      module JamfPro
+      module JamfProTitle
 
         # Constants
         #
@@ -75,35 +67,14 @@ module Xolo
         ##############################
         ##############################
 
-        # A connection to Jamd Pro via ruby-jss
-        # We don't use the default connection but
-        # use this method to create standalone ones as needed
-        # and ensure they are disconnected, (or will timeout)
-        # when we are done.
-        # TODO: allow using APIClients
-        #
-        # @return [Jamf::Connection] A connection object
-        def jamf_cnx
-          jcnx = Jamf::Connection.new(
-            name: "jamf-pro-cnx-#{Time.now.strftime('%F-%T')}",
-            host: Xolo::Server.config.jamf_hostname,
-            port: Xolo::Server.config.jamf_port,
-            verify_cert: Xolo::Server.config.jamf_verify_cert,
-            ssl_version: Xolo::Server.config.jamf_ssl_version,
-            open_timeout: Xolo::Server.config.jamf_open_timeout,
-            timeout: Xolo::Server.config.jamf_timeout,
-            user: Xolo::Server.config.jamf_api_user,
-            pw: Xolo::Server.config.jamf_api_pw,
-            keep_alive: false
-          )
-          log_debug "Jamf: Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
-
-          jcnx
+        # Delete an entire title from Jamf Pro
+        def delete_title_from_jamf
+          # loop thru versions and delete each one
         end
 
-      end # JamfPro
+      end # JamfProTitle
 
-    end # Helpers
+    end # Mixins
 
   end # Server
 

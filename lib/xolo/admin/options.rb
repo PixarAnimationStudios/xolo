@@ -100,6 +100,7 @@ module Xolo
       LIST_GROUPS_CMD = 'list-groups'
       LIST_CATEGORIES_CMD = 'list-categories'
 
+      STATUS_CMD = 'status'
       HELP_CMD = 'help'
 
       HELP_OPT = '--help'
@@ -298,6 +299,13 @@ module Xolo
           opts: {},
           arg_banner: :none,
           process_method: :list_categories
+        },
+
+        STATUS_CMD => {
+          desc: 'Show status of Xolo server',
+          display: STATUS_CMD,
+          opts: {},
+          process_method: :server_status
         },
 
         HELP_CMD => {

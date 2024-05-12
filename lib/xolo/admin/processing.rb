@@ -239,6 +239,18 @@ module Xolo
         end
       end
 
+      # Show info about the server status
+      #
+      # @return [void]
+      def server_status
+        require 'pp'
+
+        puts '# Xolo Server Status'
+        puts '##################################################'
+        data = server_cnx.get('/state').body
+        pp data
+      end
+
       # List all the computer groups in jamf pro
       #
       # @return [void]

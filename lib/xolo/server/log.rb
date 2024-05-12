@@ -53,6 +53,9 @@ module Xolo
       # TODO: log rotation
       DFT_LOG_DAYS_TO_KEEP = 14
 
+      # Easier for reporting level changes - the index is the severity number
+      LEVELS = %w[DEBUG INFO WARN ERROR FATAL UNKNOWN]
+
       # top-level logger for the server as a whole
       #############################################
       def self.logger

@@ -36,6 +36,9 @@ module Xolo
       #############################
       #############################
 
+      include Xolo::Server::Mixins::JamfProTitle
+      include Xolo::Server::Mixins::TitleEditorTitle
+
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
@@ -156,7 +159,7 @@ module Xolo
       # @return [Pathname] The the local file containing the self-service icon
       #####################
       def self.ssvc_icon_file(title)
-        title_dir(title) + SELF_SERVICE_ICON_FILENAME
+        title_dir(title).children.select { |c| c.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME }.first
       end
 
       # @pararm title [String] the title we care about
@@ -171,7 +174,7 @@ module Xolo
       # @pararm cnx [Windoo::Connection] The Title Editor connection to use
       # @return [Boolean] Does the given title exist in the Title Editor?
       ###############################
-      def self.in_title_editor?(title, cnx:)
+      def self.in_ted?(title, cnx:)
         Windoo::SoftwareTitle.all_ids(cnx: cnx).include? title
       end
 
@@ -184,6 +187,8 @@ module Xolo
 
       # The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
+
+      alias versions version_order
 
       # Constructor
       ######################
@@ -274,32 +279,26 @@ module Xolo
         self.class.ted_ea_key title
       end
 
-      # For a Title to be enabled in the Title Editor, it needs at least a requirement criterion
-      # and one enabled patch. Xolo enforces the requirement when the title is created, so from
-      # the title editor's view it should be OK as soon as there's an enabled patch.
+      # instantiate a version if this title
       #
-      # So once we have that, this method is called to enable the title.
-      #
-      # @param title [Xolo::Server::Title] the Title to enable in the Title Editor
-      #
-      # @return [void]
-      ##############################
-      def enable_ted_title
-        return if ted_title.enabled?
+      # @return [Xolo::Server::Version]
+      ########################
+      def version_object(version)
+        return @version_object if @version_object
 
-        log_debug "Title Editor: Enabling SoftwareTitle '#{title}'"
-        ted_title.enable
+        @version_object = Xolo::Server::Version.load title, version
+        @version_object.session = session
+        @version_object
       end
 
-      # For a title to be enabled, it must
-      # - have at least one enabled patch
-      # - have at least one requirement
-      #
-      # @return [Boolean] is this title enabled?
+      # @return [Array<Xolo::Server::Version>] An array of all current version objects
       ########################
-      # def enabled?
-      #   ted_title.enabled?
-      # end
+      def versions(refresh: false)
+        @versions = nil if refresh
+        return @versions if @versions
+
+        @versions = version_order.map { |v| version_object v }
+      end
 
       # Save a new title, adding to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
@@ -316,7 +315,7 @@ module Xolo
         self.modified_by = admin
         log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
-        create_in_title_editor
+        create_title_in_ted
 
         # Nothing to do in Jamf until the first version is created
 
@@ -346,7 +345,7 @@ module Xolo
         self.modified_by = admin
         log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
-        update_in_title_editor new_data
+        update_title_in_ted new_data
 
         # TODO:  update in Jamf if needed
 
@@ -391,7 +390,7 @@ module Xolo
         end
 
         file = title_data_file
-        log_debug "Saving local data to: #{file}"
+        log_debug "Saving local title data to: #{file}"
         file.pix_atomic_write to_json
       end
 
@@ -468,184 +467,19 @@ module Xolo
         version_script_file.delete
       end
 
-      # Create a new title in the title editor
-      #
-      # @return [void]
-      ##########################
-      def create_in_title_editor
-        log_info "Title Editor: Creating SoftwareTitle '#{title}'"
-        new_ted_title = Windoo::SoftwareTitle.create(
-          id: title,
-          name: display_name,
-          publisher: publisher,
-          appName: app_name,
-          bundleId: app_bundle_id,
-          currentVersion: NEW_TITLE_CURRENT_VERSION,
-          cnx: ted_cnx
-        )
-
-        update_ted_requirements new_ted_title
-
-        self.ted_id_number = new_ted_title.softwareTitleId
-      end
-
-      # Update title in the title editor
-      #
-      # TODO: If title switches from versionscript to app info, all patch components must be updated
-      #
-      #
-      # @param new_data [Hash] The new data sent from xadm
-      # @return [void]
-      ##########################
-      def update_in_title_editor(new_data)
-        log_info "Title Editor: Updating SoftwareTitle '#{title}'"
-
-        ATTRIBUTES.each do |attr, deets|
-          ted_attribute = deets[:ted_attribute]
-          next unless ted_attribute
-
-          new_val = new_data[attr]
-          old_val = send(attr)
-          next if new_val == old_val
-
-          # These changes happen in real time on the Title Editor server
-          log_debug "Title Editor: Updating title attribute '#{ted_attribute}': #{old_val} -> #{new_val}"
-          ted_title.send "#{ted_attribute}=", new_val
-        end
-
-        update_ted_requirements ted_title, new_data
-
-        self.ted_id_number = ted_title.softwareTitleId
-      end
-
-      # Add or update the requirements in the TItle Editor title.
-      # Requirements are criteria indicating that this title (any version)
-      # is installed on a client machine.
-      #
-      # If the Xolo Title has app_name and app_bundle_id defined,
-      # they are used as the criteria.
-      #
-      # If the Xolo Title as a version_script defined, it returns
-      # either an empty value, or the version installed on the client
-      # it is added to the Title Editor title and used both as the
-      # requirement criterion (not empty) and as a Patch Component
-      # criterion for versions (the value contains the version)
-      # TODO: If title switches from versionscript to app info, all patch components must be updated
-      #
-      #
-      # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
-      #
-      # @return [void]
-      ######################
-      def update_ted_requirements(ted_title, new_data = nil)
-        log_debug "Title Editor: Setting Requirements for title '#{title}'"
-
-        # delete the current requirements
-        ted_title.requirements.delete_all_criteria
-
-        req_app_name = new_data ? new_data[:app_name] : app_name
-        req_app_bundle_id = new_data ? new_data[:app_bundle_id] : app_bundle_id
-        req_ea_script = new_data ? new_data[:version_script] : version_script
-
-        if req_app_name && req_app_bundle_id
-          update_ted_app_requirements(
-            ted_title,
-            req_app_name: req_app_name,
-            req_app_bundle_id: req_app_bundle_id
-          )
-
-        elsif req_ea_script
-          update_ted_ea_requirements ted_title, req_ea_script: req_ea_script
-
-        else
-          msg = 'No version_script, nor app_name & app_bundle_id - Cannot create Title Editor Title Requirements'
-          log_error msg
-          raise Xolo::MissingDataError, msg
-        end
-      end
-
-      # Update the Title Editor Title EA  and requireents
-      # with the current version_script
-      #
-      # these changes happen immediately on the server
-      #
-      # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
-      #
-      # @param ea_script [String] the code of the script.
-      #
-      # @return [void]
-      ####################
-      def update_ted_ea_requirements(ted_title, req_ea_script:)
-        log_debug "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'"
-
-        # delete and recreate the EA
-        ted_title.delete_extensionAttribute
-
-        ted_title.add_extensionAttribute(
-          key: ted_ea_key,
-          displayName: ted_ea_key,
-          script: req_ea_script
-        )
-
-        # add a requirement criterion using the EA
-        # Any value in the EA means the title is installed
-        # (the value will be the version that is installd)
-        ted_title.requirements.add_criterion(
-          type: 'extensionAttribute',
-          name: ted_ea_key,
-          operator: 'matches regex',
-          value: '.+'
-        )
-      end
-
-      # Update the Title Editor Title Requirements with app name and bundle id.
-      # these changes happen immediately on the server
-      #
-      # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
-      #
-      # @return [void]
-      ####################
-      def update_ted_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
-        log_debug "Title Editor: Setting App-based Requirement Criteria for title '#{title}'"
-
-        ted_title.requirements.add_criterion(
-          name: 'Application Title',
-          operator: 'is',
-          value: app_name
-        )
-
-        ted_title.requirements.add_criterion(
-          name: 'Application Bundle ID',
-          operator: 'is',
-          value: app_bundle_id
-        )
-
-        return unless ted_title.extensionAttribute
-
-        log_debug "Title Editor: Deleting unused Extension Attribute for title '#{title}'"
-        ted_title.delete_extensionAttribute
-      end
-
       # Delete the title and all of its version
       # @return [void]
       ##########################
       def delete
-        delete_from_title_editor
+        versions.each { |v| v.delete update_title: false }
+
+        delete_title_from_ted
 
         # TODO: delete in jamf
+        delete_title_from_jamf
+
         log_info "Deleting local data for title '#{title}'"
         title_dir.rmtree
-      end
-
-      # Delete from the title editor
-      # @return [Integer] title editor id number
-      ###########################
-      def delete_from_title_editor
-        log_info "Title Editor: Deleting SoftwareTitle '#{title}'"
-
-        ted_title.delete
-      rescue Windoo::NoSuchItemError
-        ted_id_number
       end
 
       # Add more data to our hash

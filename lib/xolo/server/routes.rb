@@ -98,19 +98,18 @@ module Xolo
       # State
       ##########
       get '/state' do
-        conf = Xolo::Server.config.to_h_private
-
         state = {
           executable: Xolo::Server::EXECUTABLE_FILENAME,
           start_time: Xolo::Server.start_time,
           app_env: Xolo::Server.app_env,
           data_dir: Xolo::Server::DATA_DIR,
           log_file: Xolo::Server::Log::LOG_FILE,
-          log_level: Xolo::Server.logger.level?,
+          log_level: Xolo::Server::Log::LEVELS[Xolo::Server.logger.level],
           xolo_version: Xolo::VERSION,
           ruby_jss_version: Jamf::VERSION,
           windoo_version: Windoo::VERSION,
-          config: conf
+          config: Xolo::Server.config.to_h_private,
+          threads: Xolo::Server.thread_info
         }
 
         body state

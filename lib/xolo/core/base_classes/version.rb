@@ -242,6 +242,7 @@ module Xolo
           pkg_to_upload: {
             label: 'Upload Package',
             type: :string,
+            required: true,
             cli: :u,
             validate: true,
             readline: :get_files,

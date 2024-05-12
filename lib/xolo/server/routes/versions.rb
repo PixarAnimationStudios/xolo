@@ -120,14 +120,16 @@ module Xolo
         #################################
         delete '/titles/:title/versions/:version' do
           resp_content = { title: params[:title], version: params[:version] }
+          log_info "Admin #{session[:admin]} is deleting version #{params[:version]} of title '#{params[:title]}'"
 
           if all_versions(params[:title]).include? params[:version]
-
             vers = instantiate_version [params[:title], params[:version]]
-            log_info "Admin #{session[:admin]} is deleting version #{params[:version]} of title '#{params[:title]}'"
             vers.delete
+            log_debug "Deleted version #{params[:version]} of title '#{params[:title]}'"
             resp_content[:result] = 'deleted'
+
           else
+            log_debug "Version #{params[:version]} of title '#{params[:title]}' does not exist"
             resp_content[:result] = "doesn't exist, not deleted"
           end
 
