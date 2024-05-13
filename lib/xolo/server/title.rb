@@ -29,19 +29,19 @@ module Xolo
 
   module Server
 
-    # A title in Xolo, as used on the server
+    # A Title in Xolo, as used on the server
     class Title < Xolo::Core::BaseClasses::Title
 
       # Mixins
       #############################
       #############################
 
-      include Xolo::Server::Mixins::JamfProTitle
-      include Xolo::Server::Mixins::TitleEditorTitle
-
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
+
+      include Xolo::Server::Mixins::TitleJamfPro
+      include Xolo::Server::Mixins::TitleTitleEditor
 
       # Constants
       ######################
@@ -284,11 +284,7 @@ module Xolo
       # @return [Xolo::Server::Version]
       ########################
       def version_object(version)
-        return @version_object if @version_object
-
-        @version_object = Xolo::Server::Version.load title, version
-        @version_object.session = session
-        @version_object
+        Xolo::Server::Version.load title, version
       end
 
       # @return [Array<Xolo::Server::Version>] An array of all current version objects

@@ -29,18 +29,19 @@ module Xolo
 
   module Server
 
+    # Xolo Version/Patch as used on the Xolo Server
     class Version < Xolo::Core::BaseClasses::Version
 
       # Mixins
       #############################
       #############################
 
-      include Xolo::Server::Mixins::JamfProVersion
-      include Xolo::Server::Mixins::TitleEditorVersion
-
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
+
+      include Xolo::Server::Mixins::VersionJamfPro
+      include Xolo::Server::Mixins::VersionTitleEditor
 
       # Constants
       ######################
@@ -257,6 +258,8 @@ module Xolo
         save_local_data
 
         create_patch_in_ted
+        enable_ted_patch
+
         create_in_jamf
 
         # save to file again now, because saving to TitleEd and Jamf will

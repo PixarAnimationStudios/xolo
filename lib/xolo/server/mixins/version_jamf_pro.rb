@@ -34,7 +34,7 @@ module Xolo
       # This is mixed in to Xolo::Server::Version
       # to define Version-related access to the Jamf Pro server
       #
-      module JamfProVersion
+      module VersionJamfPro
 
         # Constants
         #
@@ -75,19 +75,36 @@ module Xolo
         #     - the xolo client will determine which is released when
         #       running 'xolo install <title>'
         #
-        # Each version gets one patch policy
-        # TODO: Versions can have pilot groups that override those for the title
+        # NOTE: Other install policies can be created manually for other purposes, just
+        # don't name them with xolo-ish names
         #
-        # There's one patch policy for every version.
-        # To start with it's scoped only to the appropriate pilot groups
-        # (with exclusions) but when released, its re-scoped to everyone
-        # (who has any version installed - that's what patch policies do)
+        # Each version gets two ... or more patch policies ??
         #
-        # Folks who might be piloting newer versions shouldn't get the
-        # patch/update because they are newer.
-        # TODO: test all this.
+        # Definitely needs one for pilot groups, so they get
+        # the new versions before 'release'
         #
-
+        # and another for 'all' (auto-limited to eligible computers) so
+        # they get the latest 'released' version.
+        #
+        # But....
+        #
+        #  Should it act like d3, and auto-install updates always?
+        # def. for auto-install groups... but how about for the general
+        # populace, like those who installed initially via SSvc??
+        #
+        # If d3-like behaviour:
+        # - it auto-installs for anyone who has any version installed
+        # - at first, scoped to any pilot-groups, they'll get the latest version
+        # - when released, re-scoped to 'all' (see note below)
+        #
+        #
+        # NOTE: remember that patch polices are pre-scoped to only machine that
+        # have a lower version installed. Additional scoping just limits
+        # the targets even more
+        # NOTE: Other patch policies can be created manually for other purposes, just
+        # don't name them with xolo-ish names
+        #
+        #
         # install live
         #  => xolo install title
         #
@@ -159,10 +176,18 @@ module Xolo
         end
 
         # Create everything we need in Jamf
+        ############################
         def create_in_jamf
           ensure_jamf_xolo_category
+
           create_pkg_in_jamf
+
           create_install_policies_in_jamf
+
+          title_object.activate_patch_title_in_jamf
+
+          activate_patch_version_in_jamf
+
           create_patch_policies_in_jamf
         end
 
@@ -194,8 +219,10 @@ module Xolo
           create_auto_install_policy_in_jamf
         end
 
-        # The manual install policy is scoped to all computers
-        # but has a custom trigger, or can be installed via self service
+        # The manual install policy is scoped to pilot groups before release,
+        # then to all computers when released.
+        #
+        # The policy has a custom trigger, or can be installed via self service
         #
         #########################
         def create_manual_install_policy_in_jamf
@@ -206,14 +233,18 @@ module Xolo
           pol.add_package jamf_pkg_name
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
-          pol.scope.all_targets = true
 
+          # while in pilot, only pilot groups are targets
+          pilot_groups.each { |group| pol.scope.add_target :computer_group, group } unless pilot_groups.pix_blank?
+
+          # exclusions are for always
           set_policy_exclusions pol
 
           if title_object.self_service
             pol.add_to_self_service
             pol.add_self_service_category title_object.self_service_category
             pol.self_service_description = title_object.description
+            pol.self_service_display_name = title_object.display_name
           end
 
           pol.enable
@@ -242,9 +273,9 @@ module Xolo
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
 
-          # to start with, always the pilot targets
+          # while in pilot, only pilot groups are targets
           pilot_groups.each { |group| pol.scope.add_target :computer_group, group } unless pilot_groups.pix_blank?
-
+          # exclusions are for always
           set_policy_exclusions pol
 
           pol.enable
@@ -278,16 +309,57 @@ module Xolo
           end
         end
 
+        # @return [Jamf::PatchTitle::Version] The Jamf::PatchTitle::Version for this
+        # Xolo version
+        #####################
+        def jamf_patch_version
+          return @jamf_patch_version if @jamf_patch_version
+
+          # NOTE: in the line below, use the title_object's call to #jamf_patch_title
+          # because that will cache the Jamf::PatchTitle instance, and we need to
+          # use it to save changes to its Versions.
+          # Using the class method won't cache the instance we will need in the
+          # future.
+          @jamf_patch_version = title_object.jamf_patch_title.versions[version]
+          return @jamf_patch_version if @jamf_patch_version
+
+          msg = "Jamf: Version '#{version}' of Title '#{title}' is not visible in Jamf. Is the Patch enabled in the Title Editor?"
+          log_error msg
+          raise Xolo::NoSuchItemError, msg
+        end
+
+        # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
+        # This 'activates' the version in Jamf Patch, and must happen before
+        # patch policies can be created
+        # @return [void]
+        #########################
+        def activate_patch_version_in_jamf
+          log_debug "Jamf: Activating Version '#{version}' of Title '#{title_object.display_name}' by assigning package '#{jamf_pkg_name}'"
+
+          jamf_patch_version.package = jamf_pkg_name
+          title_object.jamf_patch_title.save
+        end
+
         #########################
         def create_patch_policies_in_jamf
-          # make sure the jamf server activates the title
-          # NOTE, may need a server.config entry for the name or id of the title editor in the
-          # list of Jamf Patch Sources
+          # TODO: decide how many patch policies - see comments at top
 
-          # make a patch policy for piloting
-
-          # make a patch policy for general deployment
-          # any other patch config, e.g. reporting
+          # TODO: How to set these, and should they be settable
+          # at the Xolo::Title or  Xolo::Version level?
+          #
+          # allow downgrade?  Yes, but think about how it works
+          #
+          # patch_unknown_versions... yes?
+          #
+          # if not in ssvc:
+          # - grace period?
+          # - update warning Message and Subject
+          #
+          # if in ssvc:
+          # - any way to use existing icon?
+          # - use title desc... do we want a version desc??
+          # - notifications?  Message and Subject? SSvc only, Notif Ctr?
+          # - deadline and grace period message and subbject
         end
 
         # Delete an entire version from Jamf Pro
@@ -296,8 +368,20 @@ module Xolo
 
           # spawn another thread to deal with jamf deletions
           # since they can take a long time and cause
-          # timeout or end-of-file errors.
-          # TODO: how to report real errors when doing this?
+          # timeout or end-of-file errors in xadm
+          #
+          # TODO: Identify server routes that take a long time and
+          # standardize on how to use threads to do them, and how
+          # to report completion or errors
+          # OR, use sinatra streaming responses to make xadm spin
+          # while its happening?? Prob not since some of these
+          # processes can take a long time (i.e. deleting a title
+          # with lots of versions)
+          #
+          # TODO: Use a thread pool or a limiting loop of some kind.
+          # If we are deleting a whole title
+          # we might end up with MANY MANY of these threads.
+          #
           thrname = "Jamf-delete-#{title}-#{version}"
           thr = Thread.new do
             log_debug "Starting thread '#{thrname}'"
@@ -316,7 +400,7 @@ module Xolo
               log_debug "Jamf: Deleted Policy '#{jamf_auto_install_policy_name}'"
             end
 
-            # Delete patch policy
+            # Delete patch policy(s)
 
             # Delete package object
             if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name

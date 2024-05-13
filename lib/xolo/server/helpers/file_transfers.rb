@@ -101,16 +101,8 @@ module Xolo
             tempfile.pix_cp staged_pkg
           end
 
-          # create the pkg obj, polcies, etc. in jamf
-          version.create_in_jamf
-
           # upload the pkg with the uploader tool defined in config
           upload_to_dist_point(version, staged_pkg)
-
-          # now that we have a pkg and all the jamf stuff,
-          # enable the patch in the title editor
-          # this will enable the title also if needed
-          version.enable_ted_patch
 
           # save/update the local data file, since we've done stuff to update it
           version.save_local_data

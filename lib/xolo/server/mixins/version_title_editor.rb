@@ -34,7 +34,7 @@ module Xolo
       # This is mixed in to Xolo::Server::Version
       # to define Version/Patch-related access to the Title Edit server
       #
-      module TitleEditorVersion
+      module VersionTitleEditor
 
         # Module methods
         #

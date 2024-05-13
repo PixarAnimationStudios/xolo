@@ -384,8 +384,18 @@ module Xolo
           ENDDESC
         },
 
-        # Title Editor Connection
+        # Title Editor
         ####################
+
+        # @!attribute ted_patch_source
+        #   @return [String] The name of the Patch Source in Jamf Pro that points at the Title Editor.
+        ted_patch_source: {
+          default: nil,
+          required: true,
+          desc: <<~ENDDESC
+            The name in Jamf Pro of the Title Editor as an External Patch Source
+          ENDDESC
+        },
 
         # @!attribute ted_hostname
         #   @return [String] The hostname of the Jamf Title Editor server we are connecting to
