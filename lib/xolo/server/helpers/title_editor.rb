@@ -83,7 +83,9 @@ module Xolo
         # @return [Windoo::Connection] A connection object
         ##############################
         def ted_cnx
-          wcnx = Windoo::Connection.new(
+          return @ted_cnx if @ted_cnx
+
+          @ted_cnx = Windoo::Connection.new(
             name: "title-editor-cnx-#{Time.now.strftime('%F-%T')}",
             host: Xolo::Server.config.ted_hostname,
             user: Xolo::Server.config.ted_api_user,
@@ -93,9 +95,9 @@ module Xolo
             keep_alive: false
           )
 
-          log_debug "Title Editor: Connected to TitleEditor at #{wcnx.base_url} as user '#{Xolo::Server.config.ted_api_user}'. KeepAlive: #{wcnx.keep_alive?}, Expires: #{wcnx.token.expires}"
+          log_debug "Title Editor: Connected to TitleEditor at #{@ted_cnx.base_url} as user '#{Xolo::Server.config.ted_api_user}'. KeepAlive: #{@ted_cnx.keep_alive?}, Expires: #{@ted_cnx.token.expires}. cnxID: #{@ted_cnx.object_id}"
 
-          wcnx
+          @ted_cnx
         end
 
       end # TitleEditor

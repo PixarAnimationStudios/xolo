@@ -75,7 +75,7 @@ module Xolo
         ##############################
         ##############################
 
-        # A connection to Jamd Pro via ruby-jss
+        # A connection to Jamf Pro via ruby-jss
         # We don't use the default connection but
         # use this method to create standalone ones as needed
         # and ensure they are disconnected, (or will timeout)
@@ -84,7 +84,9 @@ module Xolo
         #
         # @return [Jamf::Connection] A connection object
         def jamf_cnx
-          jcnx = Jamf::Connection.new(
+          return @jamf_cnx if @jamf_cnx
+
+          @jamf_cnx = Jamf::Connection.new(
             name: "jamf-pro-cnx-#{Time.now.strftime('%F-%T')}",
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,
@@ -96,9 +98,9 @@ module Xolo
             pw: Xolo::Server.config.jamf_api_pw,
             keep_alive: false
           )
-          log_debug "Jamf: Connected to Jamf Pro at #{jcnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{jcnx.keep_alive?}, Expires: #{jcnx.token.expires}"
+          log_debug "Jamf: Connected to Jamf Pro at #{@jamf_cnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{@jamf_cnx.keep_alive?}, Expires: #{@jamf_cnx.token.expires}. cnx ID: #{@jamf_cnx.object_id}"
 
-          jcnx
+          @jamf_cnx
         end
 
       end # JamfPro

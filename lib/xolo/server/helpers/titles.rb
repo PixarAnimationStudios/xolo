@@ -73,13 +73,15 @@ module Xolo
               Xolo::Server::Title.new data
 
             when String
-              halt_on_missing_title params[:title]
-              Xolo::Server::Title.load params[:title]
+              halt_on_missing_title data # params[:title]
+              Xolo::Server::Title.load data # params[:title]
 
             else
               halt 400, 'Invalid data to instantiate a Xolo.Server::Title'
             end
+          title.server_app_instance = self
           title.session = session
+
           title
         end
 

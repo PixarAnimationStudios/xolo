@@ -41,6 +41,9 @@ module Xolo
         ##############################
         ##############################
 
+        # everything xolo-related in Jamf is in this category
+        JAMF_XOLO_CATEGORY = 'xolo'
+
         # Jamf objects are named with this prefix followed by <title>-<version>
         # See also:  Xolo::Server::Version#jamf_obj_name_pfx
         # which holds the full prefix for that version, and is used as the
@@ -48,20 +51,25 @@ module Xolo
         JAMF_OBJECT_NAME_PFX = 'xolo-'
 
         # The policy that does initial installs on-demand
-        # (via 'xolo install <title> <version') is named  the full
+        # (via 'xolo install <title> <version') is named the full
         # prefix plus this suffix.
         JAMF_POLICY_NAME_MANUAL_INSTALL_SFX = '-manual-install'
 
-        # The policy that does auto-installs is named  the full
+        # The policy that does auto-installs is named the full
         # prefix plus this suffix.
         # The scope is changed as needed when a version's status
         # changes
         JAMF_POLICY_NAME_AUTO_INSTALL_SFX = '-auto-install'
 
-        # everything xolo related in Jamf is in this category
-        JAMF_XOLO_CATEGORY = 'xolo'
+        # The patch policy that updates pilot installs
+        # is the full prefix with this suffix:
+        JAMF_PILOT_PATCH_POLICY_SFX = '-pilot-update'
 
-        #
+        # The patch policy that updates all installs
+        # is the full prefix with this suffix:
+        JAMF_RELEASE_PATCH_POLICY_SFX = '-release-update'
+
+        # POLICIES
         # Each version gets two policies for initial installation
         # - one for auto-installs 'xolo-autoinstall-<title>-<version>'
         #   - scoped to pilot-groups first, then  target-groups when released
@@ -78,6 +86,7 @@ module Xolo
         # NOTE: Other install policies can be created manually for other purposes, just
         # don't name them with xolo-ish names
         #
+        # PATCH POLICIES
         # Each version gets two ... or more patch policies ??
         #
         # Definitely needs one for pilot groups, so they get
@@ -235,7 +244,11 @@ module Xolo
           pol.set_trigger_event :custom, jamf_manual_install_trigger
 
           # while in pilot, only pilot groups are targets
-          pilot_groups.each { |group| pol.scope.add_target :computer_group, group } unless pilot_groups.pix_blank?
+          unless pilot_groups_to_use.pix_blank?
+            pilot_groups_to_use.each do |group|
+              pol.scope.add_target :computer_group, group
+            end
+          end
 
           # exclusions are for always
           set_policy_exclusions pol
@@ -257,7 +270,7 @@ module Xolo
         # The auto install policy is triggered by checkin
         # but may have narrow scope targets, or may be
         # targeted to 'all' (after release)
-        # Before release, the targets are those defined in #pilot_groups
+        # Before release, the targets are those defined in #pilot_groups_to_use
         #
         # After release, the targets are changed to those
         # in title_object#target_group
@@ -274,7 +287,11 @@ module Xolo
           pol.set_trigger_event :custom, Xolo::BLANK
 
           # while in pilot, only pilot groups are targets
-          pilot_groups.each { |group| pol.scope.add_target :computer_group, group } unless pilot_groups.pix_blank?
+          unless pilot_groups_to_use.pix_blank?
+            pilot_groups_to_use.each do |group|
+              pol.scope.add_target :computer_group, group
+            end
+          end
           # exclusions are for always
           set_policy_exclusions pol
 
@@ -300,7 +317,7 @@ module Xolo
           pol.save
         end
 
-        # add excluded groups to a policy object's scope
+        # add excluded groups to a [patch] policy object's scope
         # @param pol [Jamf::Policy]
         ############################
         def set_policy_exclusions(pol)
@@ -343,13 +360,16 @@ module Xolo
         #########################
         def create_patch_policies_in_jamf
           # TODO: decide how many patch policies - see comments at top
+          # At least two, one for pilots and one for releases
 
           # TODO: How to set these, and should they be settable
           # at the Xolo::Title or  Xolo::Version level?
           #
-          # allow downgrade?  Yes, but think about how it works
+          # allow downgrade?  Yes, if needed but think about how it works
+          # and how we'd use it?
           #
           # patch_unknown_versions... yes?
+          #
           #
           # if not in ssvc:
           # - grace period?
@@ -360,7 +380,33 @@ module Xolo
           # - use title desc... do we want a version desc??
           # - notifications?  Message and Subject? SSvc only, Notif Ctr?
           # - deadline and grace period message and subbject
+
+          create_pilot_patch_policy_in_jamf
+          create_release_patch_policy_in_jamf
         end
+
+        #########################
+        def create_pilot_patch_policy_in_jamf
+          log_debug "Jamf: Creating Pilot Patch Policy for Version '#{version}' of Title '#{title_object.display_name}'."
+          ppol = Jamf::PatchPolicy.create(
+            cnx: jamf_cnx,
+            name: jamf_pilot_patch_policy_name,
+            patch_title: title_object.jamf_patch_title.id,
+            target_version: version,
+            patch_unknown: true
+          )
+          unless pilot_groups_to_use.pix_blank?
+            pilot_groups_to_use.each do |group|
+              ppol.scope.add_target :computer_group, group
+            end
+          end
+
+          # exclusions are for always
+          set_policy_exclusions pol
+        end
+
+        #########################
+        def create_release_patch_policy_in_jamf; end
 
         # Delete an entire version from Jamf Pro
         def delete_version_from_jamf

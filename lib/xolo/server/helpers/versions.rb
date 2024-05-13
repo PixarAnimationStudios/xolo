@@ -69,21 +69,23 @@ module Xolo
         # @return [Xolo::Server::Title]
         #################
         def instantiate_version(data)
-          vers =
-            case data
-            when Hash
-              Xolo::Server::Version.new data
+          case data
+          when Hash
+            vers = Xolo::Server::Version.new data
+            vers.server_app_instance = self
+            vers.session = session
 
-            when Array
-              title, version = data
-              halt_on_missing_title title
-              halt_on_missing_version title, version
-              Xolo::Server::Version.load title, version
+          when Array
+            title, version = data
+            halt_on_missing_title title
+            halt_on_missing_version title, version
 
-            else
-              halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
-            end
-          vers.session = session
+            title = instantiate_title(title)
+            vers = title.version_object version
+          else
+            halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
+          end
+
           vers
         end
 

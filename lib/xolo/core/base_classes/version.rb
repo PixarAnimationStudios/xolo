@@ -51,6 +51,9 @@ module Xolo
         # as the default
         DEFAULT_MIN_OS = '10.9'
 
+        # when this is provided as a killapp, the killapp will
+        # be defined by the app_name and app_bundle_id used in the
+        # title.
         USE_TITLE_FOR_KILLAPP = 'use-title'
 
         # Has been created in Xolo, but not yet made available
@@ -225,14 +228,17 @@ module Xolo
             multi: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
-            invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
+            invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group,'#{Xolo::NONE}', or '#{Xolo::NO_PILOT}'.",
             desc: <<~ENDDESC
-              One or more Jamf Computer Groups containing computers that will automatically have this title installed before it is released.
+              One or more Jamf Computer Groups containing computers that will automatically have this version installed for testing before it is released.
 
-              These computers will be used for testing not just the software, but the installation process itself. Computers that are also in an excluded group for the title will not be used as pilots.
+              These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
 
-              To specify more than one group separate them with commas. If not using --walkthru you can
-              also use the CLI option multiple times.
+              Any pilot-groups defined here in the version will override any defined in the title itself.
+
+              When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+
+              To remove any existing, use '#{Xolo::NONE}'. To remove existing and ignore any defined in the title itself, use '#{Xolo::NO_PILOT}'
             ENDDESC
           },
 

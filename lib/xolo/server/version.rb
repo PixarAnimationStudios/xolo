@@ -124,8 +124,16 @@ module Xolo
       ######################
       ######################
 
+      # The instance of Xolo::Server::App that instantiated this
+      # version object
+      attr_accessor :server_app_instance
+
       # The sinatra session that instantiates this version
       attr_writer :session
+
+      # The Xolo::Server::Title that contains, and usually instantiated
+      #   this version object
+      attr_writer :title_object
 
       # The Windoo::Patch#patchId
       attr_accessor :ted_id_number
@@ -141,8 +149,11 @@ module Xolo
       # the custom trigger is the same
       alias jamf_manual_install_trigger jamf_manual_install_policy_name
 
-      # Jamf Patch Policies are named this
-      attr_reader :jamf_patch_policy_name
+      # Jamf Pilot Patch Policies are named this
+      attr_reader :jamf_pilot_patch_policy_name
+
+      # Jamf Release Patch Policies are named this
+      attr_reader :jamf_releasae_patch_policy_name
 
       # The Jamf::Package object has this jamf id
       attr_reader :jamf_pkg_id
@@ -154,34 +165,65 @@ module Xolo
       # Set more attrs
       def initialize(data_hash)
         super
-        # no need to store these, just generate them now
+
+        # These attrs aren't defined in the ATTRIBUTES
+        # and/or are not stored in the on-disk json file
+
+        @ted_id_number ||= data_hash[:ted_id_number]
+        @jamf_pkg_id ||= data_hash[:jamf_pkg_id]
+
         @jamf_obj_name_pfx = "#{JAMF_OBJECT_NAME_PFX}#{title}-#{version}"
         @jamf_pkg_name ||= @jamf_obj_name_pfx
         @jamf_auto_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_AUTO_INSTALL_SFX}"
         @jamf_manual_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_MANUAL_INSTALL_SFX}"
 
+        @jamf_pilot_patch_policy_name = "#{jamf_obj_name_pfx}#{JAMF_PILOT_PATCH_POLICY_SFX}"
+        @jamf_releasae_patch_policy_name = "#{jamf_obj_name_pfx}#{JAMF_RELEASE_PATCH_POLICY_SFX}"
+
         # we set @jamf_pkg_file when a pkg is uploaded
         # since we don't know until then if its a .pkg or .zip
         # It will be stored in the local data and reloaded as needed
-
-        # These attrs aren't defined in the ATTRIBUTES
-        @ted_id_number ||= data_hash[:ted_id_number]
-        @jamf_pkg_id ||= data_hash[:jamf_pkg_id]
       end
 
       # Instance Methods
       ######################
       ######################
 
+      # which pilot groups should we acutally use, since they might be defined in both
+      # the title and here in the version.
+      # If the verison pilot_groups is a non-empty array, use those groups.
+      # If the version pilot_groups is nil or an empty array, use the ones from the title, if any.
+      # if the version pilot_groups is Xolo::NO_PILOT ('no-pilot') then done
+      #   ise any pilot groups even if the title has some defined
+      # @return [Array<String>] the pilot groups to use in policies and patch policies
+      ######################
+      def pilot_groups_to_use
+        @pilot_groups_to_use ||=
+          if pilot_groups == Xolo::NO_PILOT
+            []
+
+          # this catches nil and empty arrays
+          elsif pilot_groups.pix_blank?
+            title_object.pilot_groups
+
+          elsif pilot_groups.is_a? Array
+            pilot_groups
+
+          else
+            []
+          end
+      end
+
+      #
       # @return [Xolo::Server::Title] the Title object that holds this version
       ###########################
-      def title_object
-        return @title_object if @title_object
+      # def title_object
+      #   return @title_object if @title_object
 
-        @title_object = Xolo::Server::Title.load title
-        @title_object.session = session
-        @title_object
-      end
+      #   @title_object = Xolo::Server::Title.load title
+      #   @title_object.session = session
+      #   @title_object
+      # end
 
       # @return [Hash]
       ###################
@@ -195,18 +237,32 @@ module Xolo
         session[:admin]
       end
 
+      # This might have been set already if we were instantiated via our title
+      # @return [Xolo::Server::Title] the title for this version
+      ################
+      def title_object
+        return @title_object if @title_object
+
+        @title_object = Xolo::Server::Title.load title
+        @title_object.server_app_instance = server_app_instance
+        @title_object.session = session
+        @title_object
+      end
+
       # @return [Windoo::Connection] a single Title Editor connection to use for
       #   the life of this instance
       #############################
       def ted_cnx
-        @ted_cnx ||= super
+        # @ted_cnx ||= super
+        server_app_instance.ted_cnx
       end
 
       # @return [Jamf::Connection] a single Jamf Pro API connection to use for
       #   the life of this instance
       #############################
       def jamf_cnx
-        @jamf_cnx ||= super
+        # @jamf_cnx ||= super
+        server_app_instance.jamf_cnx
       end
 
       # The data file for this version

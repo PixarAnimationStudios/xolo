@@ -182,12 +182,18 @@ module Xolo
       ######################
       ######################
 
+      # The instance of Xolo::Server::App that instantiated this
+      # title object. This is how we access the single Jamf and TEd
+      # connections for this App Instnace.
+      attr_accessor :server_app_instance
+
       # The sinatra session that instantiates this title
       attr_writer :session
 
       # The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
 
+      # version_order is defined in ATTRIBUTES
       alias versions version_order
 
       # Constructor
@@ -221,14 +227,16 @@ module Xolo
       #   the life of this instance
       #############################
       def ted_cnx
-        @ted_cnx ||= super
+        server_app_instance.ted_cnx
+        # @ted_cnx ||= super
       end
 
       # @return [Jamf::Connection] a single Jamf Pro API connection to use for
       #   the life of this instance
       #############################
       def jamf_cnx
-        @jamf_cnx ||= super
+        server_app_instance.jamf_cnx
+        # @jamf_cnx ||= super
       end
 
       # The title dir for this title on the server
@@ -284,10 +292,15 @@ module Xolo
       # @return [Xolo::Server::Version]
       ########################
       def version_object(version)
-        Xolo::Server::Version.load title, version
+        version = Xolo::Server::Version.load title, version
+        version.server_app_instance = server_app_instance
+        version.session = session
+        version.title_object = self
+        version
       end
 
       # @return [Array<Xolo::Server::Version>] An array of all current version objects
+      #   NOTE: This might not be wise if hundreds of versions.
       ########################
       def versions(refresh: false)
         @versions = nil if refresh
