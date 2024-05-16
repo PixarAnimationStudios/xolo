@@ -84,7 +84,7 @@ module Xolo
           logger.unknown(session[:xolo_id]) { "#{msg}" }
         end
 
-      end # TitleEditor
+      end # Log
 
     end # Helpers
 

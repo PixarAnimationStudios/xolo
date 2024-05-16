@@ -29,7 +29,8 @@ module Xolo
 
   module Admin
 
-    # Methods that process the xadm commands and their options
+    # Stuff that works with data from the Jamf Pro server
+    # via the Xolo Server
     #
     module JamfPro
 
@@ -65,6 +66,7 @@ module Xolo
       # Instance Methods
       ##########################
       ##########################
+
       # @return [Array<String>] the names of all Package objects in Jamf Pro
       #######################
       def jamf_package_names

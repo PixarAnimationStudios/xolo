@@ -92,7 +92,7 @@ module Xolo
       def add_title
         opts_to_process.title = cli_cmd.title
         new_title = Xolo::Admin::Title.new opts_to_process
-        new_title.add server_cnx
+        new_title.add streaming_cnx
 
         # Upload the ssvc icon, if any?
         new_title.upload_self_service_icon(upload_cnx) if new_title.self_service_icon
@@ -149,16 +149,21 @@ module Xolo
       # @return [void]
       ###############################
       def add_version
+        # TODO: confirmation before adding
         opts_to_process.title = cli_cmd.title
         opts_to_process.version = cli_cmd.version
 
+        # TODO: confirmation before adding?
         new_vers = Xolo::Admin::Version.new opts_to_process
-        new_vers.add server_cnx
+        response_data = new_vers.add(server_cnx)
+
+        puts "response_data: #{response_data}"
+
+        display_progress response_data[:progress_stream_url_path]
 
         # Upload the pkg, if any?
+        # TODO: upload should be part of the streamed process
         new_vers.upload_pkg(upload_cnx) if new_vers.pkg_to_upload.is_a? Pathname
-
-        puts "Version '#{cli_cmd.version}' of '#{cli_cmd.title}' has been added to Xolo."
       rescue StandardError => e
         handle_server_error e
       end
@@ -168,6 +173,7 @@ module Xolo
       # @return [void]
       ###############################
       def edit_version
+        # TODO: confirmation before editing
         opts_to_process.title = cli_cmd.title
         opts_to_process.version = cli_cmd.version
         vers = Xolo::Admin::Version.new opts_to_process
@@ -188,9 +194,11 @@ module Xolo
       ###############################
       def delete_version
         # TODO: confirmation before deletion
-        Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
+        response_data = Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
 
-        puts "Version '#{cli_cmd.title}' of Title '#{cli_cmd.title}' has been deleted from Xolo."
+        puts "response_data: #{response_data}"
+
+        display_progress response_data[:progress_stream_url_path]
       rescue StandardError => e
         handle_server_error e
       end
@@ -226,10 +234,11 @@ module Xolo
       # @return [void]
       ###############################
       def show_version_info
+        vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
+
         puts "# Info for Version #{cli_cmd.version} of Title '#{cli_cmd.title}'"
         puts '##################################################'
 
-        vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
         Xolo::Admin::Version::ATTRIBUTES.each do |attr, deets|
           next if deets[:hide_from_info]
 
@@ -237,6 +246,8 @@ module Xolo
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap
         end
+      rescue Faraday::ResourceNotFound
+        puts "No Such Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
       end
 
       # Show info about the server status
@@ -298,6 +309,49 @@ module Xolo
         else
           puts output
         end
+      end
+
+      # get the /test route to do whatever testing it does
+      # during testing - this will return all kinds of things.
+      #
+      # @return [void]
+      ##########################
+      def get_test_route
+        cli_cmd.command = 'test'
+        if ARGV.include? '--quiet'
+          global_opts.quiet = true
+          puts "Set global_opts.quiet = true : #{global_opts.quiet}"
+        end
+
+        login test: true
+        resp = server_cnx.get('/test').body
+        puts "RESPONSE:\n#{resp}"
+        return unless resp[:progress_stream_url_path]
+
+        puts
+        puts 'Streaming progress:'
+        display_progress resp[:progress_stream_url_path]
+
+        puts 'All Done!'
+      rescue StandardError => e
+        msg = e.respond_to?(:response_body) ? "#{e}\nRespBody: #{e.response_body}" : e.to_s
+        puts "TEST ERROR: #{e.class}: #{msg}"
+        puts e.backtrace
+      end
+
+      # Start displaying the progress of a long-running task on the server
+      # but only if we aren't --quiet
+      # @return [void]
+      ##################################
+      def display_progress(url_path)
+        # in case it's nil
+        return unless url_path
+
+        # always make note of the path in the history
+        add_progress_history_entry url_path
+        return if global_opts.quiet
+
+        streaming_cnx.get url_path
       end
 
     end # module processing

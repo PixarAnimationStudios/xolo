@@ -32,6 +32,8 @@ module Xolo
     module Helpers
 
       # constants and methods for working with Xolo Versions on the server
+      # As a helper, these are available in the App instance context, for all
+      # routes and views
       module Versions
 
         # Module Methods
@@ -59,10 +61,12 @@ module Xolo
         # If given a Hash, use it with .new to instantiate fresh
         #
         # If given a two-item array of [title, version], use .load
+        # load the title, and then the title's #version_object method
         # to read the version from disk
         #
-        # In all cases, set the session, to use for logging
-        # (the reason this method exists)
+        # In all cases, set the server_app_instance, to use for
+        # access from the version object to the Sinatra App instance
+        # for the session and api connection objects
         #
         # @param data [Hash] hash to use with .new
         # @param name [String] name to use with .load
@@ -73,7 +77,7 @@ module Xolo
           when Hash
             vers = Xolo::Server::Version.new data
             vers.server_app_instance = self
-            vers.session = session
+            # vers.session = session
 
           when Array
             title, version = data
@@ -98,19 +102,22 @@ module Xolo
 
           msg = "No version '#{version}' for title '#{title}'."
           log_debug "ERROR: #{msg}"
-          halt 404, { error: msg }
+          resp_body = @streaming ? msg : { error: msg }
+
+          halt 404, resp_body
         end
 
         # Halt 409 if a title already exists
         # @pararm [String] The title of a Title
-        # @return [void]        #
+        # @return [void]
         ##################
         def halt_on_existing_version(title, version)
           return unless all_versions(title).include? version
 
           msg = "Version '#{version}' of title '#{title}' already exists."
           log_debug "ERROR: #{msg}"
-          halt 409, { error: msg }
+          resp_body = @streaming ? msg : { error: msg }
+          halt 409, resp_body
         end
 
       end # TitleEditor

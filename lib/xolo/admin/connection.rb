@@ -131,6 +131,30 @@ module Xolo
         end
       end
 
+      # A connection for responses that stream the progress of a long server
+      # process.
+      #
+      # @param host [String] The hostname of the Xolo server. Must be provided the
+      #   first time this is called (usually for logging in)
+      #
+      # @return [Faraday::Connection]
+      ##################################
+      def streaming_cnx(host: nil)
+        @streaming_cnx = nil if host
+        return @streaming_cnx if @streaming_cnx
+
+        # every time we get a chunk, just print it to stdout
+        req_opts = { on_data: proc { |chunk, _size, _env| puts chunk } }
+
+        @streaming_cnx = Faraday.new(server_url(host: host), request: req_opts) do |cnx|
+          cnx.options[:timeout] = TIMEOUT
+          cnx.options[:open_timeout] = OPEN_TIMEOUT
+          cnx.use Xolo::Admin::CookieJar
+          cnx.response :raise_error
+          cnx.adapter :net_http
+        end
+      end
+
       # A connection for POST requests with file uploads
       #
       # The request body will be multipart/url-encoded

@@ -39,6 +39,7 @@ module Xolo
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
+      include Xolo::Server::Helpers::ProgressStreaming
 
       include Xolo::Server::Mixins::TitleJamfPro
       include Xolo::Server::Mixins::TitleTitleEditor
@@ -188,7 +189,7 @@ module Xolo
       attr_accessor :server_app_instance
 
       # The sinatra session that instantiates this title
-      attr_writer :session
+      #  attr_writer :session
 
       # The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
@@ -214,7 +215,8 @@ module Xolo
       # @return [Hash]
       ###################
       def session
-        @session ||= {}
+        server_app_instance.session
+        # @session ||= {}
       end
 
       # @return [String]
@@ -294,7 +296,7 @@ module Xolo
       def version_object(version)
         version = Xolo::Server::Version.load title, version
         version.server_app_instance = server_app_instance
-        version.session = session
+        # version.session = session
         version.title_object = self
         version
       end

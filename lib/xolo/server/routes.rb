@@ -29,16 +29,22 @@ module Xolo
   # Server Module
   module Server
 
+    # Some "global" routes are defined here.
+    # most are defined in other modules.
+    ##################################
     module Routes
 
-      # This is how we 'mix in' modules to Sinatra servers:
+      # This is how we extend modules to Sinatra servers:
       # We make them extentions here with
       #    extend Sinatra::Extension (from sinatra-contrib)
       # and then 'register' them in the server with
       #    register Xolo::Server::<Module>
       # Doing it this way allows us to split the code into a logical
       # file structure, without re-opening the Sinatra::Base server app,
-      # and let xeitwork do the requiring of those files
+      # and let xeitwork do the requiring of those files.
+      #
+      # To 'include' modules in Sinatra servers, you declare them as helpers.
+      #
       extend Sinatra::Extension
 
       # pre-process
@@ -57,6 +63,15 @@ module Xolo
         halt 401, { error: 'You must log in to the Xolo server' } unless session[:authenticated]
       end
 
+      # error process
+      ##############
+      error do
+        log_debug 'Running error filter'
+
+        resp_body = { status: response.status, error: env['sinatra.error'].message }
+        body resp_body
+      end
+
       # post-process
       ##############
       after do
@@ -73,27 +88,10 @@ module Xolo
           response.body = JSON.dump(response.body)
         end
 
-        # don't use jamf_cnx method, it'll make a new connection if
-        # not already connected
-        if @jamf_cnx
-          @jamf_cnx.disconnect
-          log_debug "Jamf: Disconnected cnx ID: #{@jamf_cnx.object_id}"
-        end
-
-        # don't use jamf_cnx method, it'll make a new connection if
-        # not already connected
-        if @ted_cnx
-          @ted_cnx.disconnect
-          log_debug "Title Editor: Disconnected cnx ID: #{@ted_cnx.object_id}"
-        end
-      end
-
-      # error process
-      ##############
-      error do
-        log_debug 'Running error filter'
-
-        body({ status: response.status, error: env['sinatra.error'].message })
+        # TODO: See if there's any appropate place to disconnect
+        # from ruby-jss and windoo api connections?
+        # perhaps a callback to when a Sinatra server instance
+        # 'finishes'?
       end
 
       # Ping
@@ -130,18 +128,32 @@ module Xolo
         body state
       end
 
+      # The streamed progress updates
+      # The stream_file param should be in the URL query, i.e.
+      # "/streamed/progress/?streamed_file=<url-escaped path to file>"
+      #
+      ################
+      get '/streamed_progress/' do
+        log_info "Starting progress stream from file: #{params[:stream_file]}"
+        @no_json = true
+        stream_file = Pathname.new params[:stream_file]
+
+        stream do |stream_out|
+          stream_progress(stream_file: stream_file, stream: stream_out)
+        rescue StandardError => e
+          stream_out << "ERROR DURING PROGRESS STREAM: #{e.class}: #{e}"
+        ensure
+          stream_out.close
+        end
+      end
+
       # test
       ##########
       get '/test' do
-        # title = instantiate_title 'xolo-test'
-        # version = title.version_object '0.0.1'
-        version = instantiate_version ['xolo-test', '0.0.1']
-
-        response_body = {
-          # title_app: title.server_app_instance.class,
-          versionclass: version.class
-        }
-        body response_body
+        with_streaming do
+          log_debug "progress_stream_file in thread is: #{progress_stream_file}"
+          a_long_thing_with_streamed_feedback
+        end
       end
 
     end #  Routes

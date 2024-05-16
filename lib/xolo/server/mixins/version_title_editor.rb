@@ -65,8 +65,7 @@ module Xolo
         # @return [void]
         ##########################
         def create_patch_in_ted
-          log_info "Title Editor: Creating Patch '#{version}' of SoftwareTitle '#{title}'"
-
+          progress "Title Editor: Creating Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
           ted_title.patches.add_patch(
             version: version,
             minimumOperatingSystem: min_os,
@@ -121,7 +120,7 @@ module Xolo
           return unless kapps
 
           # delete the existing
-          log_debug "Title Editor: updating killApps for Patch '#{version}' of SoftwareTitle '#{title}'"
+          progress "Title Editor: updating killApps for Patch '#{version}' of SoftwareTitle '#{title}'", log: :debug
           patch.killApps.delete_all_killApps
 
           # Add the current ones back in
@@ -149,7 +148,8 @@ module Xolo
         # @return [void]
         ##########################
         def update_patch_capabilites(patch, new_data = nil)
-          log_debug "Title Editor: updating capabilities for Patch '#{version}' of SoftwareTitle '#{title}'"
+          progress "Title Editor: updating capabilities for Patch '#{version}' of SoftwareTitle '#{title}'",
+                   log: :debug
 
           # delete the existing
           patch.capabilities.delete_all_criteria
@@ -157,7 +157,9 @@ module Xolo
           # min os
           min = new_data ? new_data[:min_os] : min_os
 
-          log_debug "Title Editor: setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}'"
+          progress "Title Editor: setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
+                   log: :debug
+
           patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'greater than or equal',
@@ -169,7 +171,8 @@ module Xolo
 
           return unless max
 
-          log_debug "Title Editor: setting max_os capability for Patch '#{version}' of SoftwareTitle '#{title}'"
+          progress "Title Editor: setting max_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
+                   log: :debug
           patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'less than or equal',
@@ -200,7 +203,8 @@ module Xolo
 
           # Are we using the 'version_script' (aka the EA for the title)
           if title_object.version_script
-            log_debug "Title Editor: setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
+            progress "Title Editor: setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
+                     log: :debug
 
             comp.criteria.add_criterion(
               type: 'extensionAttribute',
@@ -212,7 +216,8 @@ module Xolo
           # If not, we are using the app name and bundle ID
           # and version
           else
-            log_debug "Title Editor: setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
+            progress "Title Editor: setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
+                     log: :debug
 
             comp.criteria.add_criterion(
               name: 'Application Title',
@@ -249,7 +254,7 @@ module Xolo
         def enable_ted_patch
           return if ted_patch.enabled?
 
-          log_debug "Title Editor: Enabling Patch '#{version} of SoftwareTitle '#{title}'"
+          progress "Title Editor: Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :debug
           ted_patch.enable
 
           # Once we have an enabled patch, the title should also be enabled,
@@ -264,9 +269,9 @@ module Xolo
         def delete_patch_from_ted
           patch_id = ted_title.patches.versions_to_patchIds[version]
           if patch_id
-            log_info "Title Editor: Deleting Patch '#{version}' of SoftwareTitle '#{title}'"
+            progress "Title Editor: Deleting Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
             ted_title.patches.delete_patch patch_id
-            return
+
           else
             log_debug "Title Editor: No id for Patch '#{version}' of SoftwareTitle '#{title}', nothing to delete"
           end

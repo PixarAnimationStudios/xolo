@@ -80,7 +80,7 @@ module Xolo
               halt 400, 'Invalid data to instantiate a Xolo.Server::Title'
             end
           title.server_app_instance = self
-          title.session = session
+          # title.session = session
 
           title
         end
@@ -99,7 +99,7 @@ module Xolo
 
         # Halt 409 if a title already exists
         # @pararm [String] The title of a Title
-        # @return [void]        #
+        # @return [void]
         ##################
         def halt_on_existing_title(title)
           return unless all_titles.include? title

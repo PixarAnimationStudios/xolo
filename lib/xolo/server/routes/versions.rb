@@ -57,18 +57,19 @@ module Xolo
         #
         # @return [Hash] A response hash
         #################################
-        post '/titles/:title/versions' do
+        post '/titles/:title/versions/:version' do
+          halt_on_existing_version params[:title], params[:version]
+
           request.body.rewind
           data = request.body.read
+
           log_debug "Incoming new version data: #{data}"
-          version = instantiate_version parse_json(data)
+          log_info "Admin #{session[:admin]} is creating version #{params[:version]} of title '#{params[:title]}'"
 
-          halt_on_existing_version version.title, version.version
-
-          version.create
-
-          resp_content = { title: version.title, version: version.version, result: 'created' }
-          body resp_content
+          vers = instantiate_version parse_json(data)
+          with_streaming do
+            vers.create
+          end
         end
 
         # get a list of version names for a title
@@ -116,36 +117,26 @@ module Xolo
         end
 
         # Delete an existing version
+        #
+        # This route sends a streamed response indicating progress
+        # in realtime, not a JSON object.
+        #
         # @return [Hash] A response hash
         #################################
         delete '/titles/:title/versions/:version' do
-          resp_content = { title: params[:title], version: params[:version] }
-          log_info "Admin #{session[:admin]} is deleting version #{params[:version]} of title '#{params[:title]}'"
+          halt_on_missing_version params[:title], params[:version]
 
-          if all_versions(params[:title]).include? params[:version]
-            vers = instantiate_version [params[:title], params[:version]]
+          log_info "Admin #{session[:admin]} is deleting version '#{params[:version]}' of title '#{params[:title]}'"
+
+          # for some reason, instantiating un the with_streaming block
+          # causes a throw error
+          data = [params[:title], params[:version]]
+          vers = instantiate_version data
+
+          with_streaming do
             vers.delete
-            log_debug "Deleted version #{params[:version]} of title '#{params[:title]}'"
-            resp_content[:result] = 'deleted'
-
-          else
-            log_debug "Version #{params[:version]} of title '#{params[:title]}' does not exist"
-            resp_content[:result] = "doesn't exist, not deleted"
           end
-
-          body resp_content
         end
-
-        # Add or update the pkg for a version
-        #
-        # @return [Hash] A response hash
-        # #################################
-        # post '/titles/:title/versions/:version/pkg' do
-        #   log_info "Admin #{session[:admin]} is updating the version script for title '#{params[:title]}'"
-        #   halt_on_missing_version params[:title], params[:version]
-
-        #   title = instantiate_title params[:title], params[:version]
-        # end
 
       end # Titles
 

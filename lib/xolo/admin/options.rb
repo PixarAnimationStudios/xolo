@@ -66,6 +66,24 @@ module Xolo
           ENDDESC
         },
 
+        # TODO: a command that will output the contents of a
+        # previous progress stream file, if it still exists
+        quiet: {
+          label: 'Quiet',
+          cli: :q,
+          walkthru: false,
+          desc: <<~ENDDESC
+            Run xadm in quiet mode
+            When used with add-, edit-, delete-, pilot-, and release-
+            commands, nothing will be printed to standard output.
+            Ignored for other commands, the purpose of which is to print
+            something to standard output.
+
+            WARNING: For some long-running processes, you may not see errors
+            that occur!
+          ENDDESC
+        },
+
         debug: {
           label: 'Debug',
           cli: :d,
@@ -150,6 +168,10 @@ module Xolo
       #   This method will be called to do the actual work of the command, after processing all
       #   the arguments and options.
       #
+      # - streamed_response: [Boolean] Used for long-running server processes, like delete_title
+      #   or delete_version. When true, we don't expect a JSON response from the server, but
+      #   instead a stream of status messages, which we just print out as they arrive.
+      #
       ###### Arguments vs options:
       #
       # We're using a more formal definition of these terms here.
@@ -178,9 +200,7 @@ module Xolo
           walkthru_header: "Adding Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :title,
           process_method: :add_title,
-          # Should server_route be part of the Xolo::Admin::Title class?
-          # probably, since using it will be a method of Xolo::Admin::Title
-          server_route: { method: 'POST', path: '/add-title' }
+          streamed_response: true
         },
 
         # TODO: Implement PATCH, or just PUT ?
@@ -190,7 +210,8 @@ module Xolo
           opts: Xolo::Admin::Title.cli_opts,
           walkthru_header: "Editing Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           process_method: :edit_title,
-          target: :title
+          target: :title,
+          streamed_response: true
         },
 
         DELETE_TITLE_CMD => {
@@ -198,7 +219,8 @@ module Xolo
           display: "#{DELETE_TITLE_CMD} title",
           opts: {},
           process_method: :delete_title,
-          target: :title
+          target: :title,
+          streamed_response: true
         },
 
         LIST_VERSIONS_CMD => {
@@ -215,7 +237,8 @@ module Xolo
           opts: Xolo::Admin::Version.cli_opts,
           walkthru_header: "Adding Version '#{TARGET_VERSION_PLACEHOLDER}' to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           process_method: :add_version,
-          target: :version
+          target: :version,
+          streamed_response: true
         },
 
         # TODO: Implement PATCH, or just PUT ?
@@ -225,21 +248,24 @@ module Xolo
           opts: Xolo::Admin::Version.cli_opts,
           walkthru_header: "Editing Version '#{TARGET_VERSION_PLACEHOLDER}' of Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :version,
-          process_method: :edit_version
+          process_method: :edit_version,
+          streamed_response: true
         },
 
         PILOT_VERSION_CMD => {
           desc: 'Make the version available for piloting',
           display: "#{PILOT_VERSION_CMD} title version",
           opts: {},
-          target: :version
+          target: :version,
+          streamed_response: true
         },
 
         RELEASE_VERSION_CMD => {
           desc: 'Make the version available for general installation.',
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
-          target: :version
+          target: :version,
+          streamed_response: true
         },
 
         DELETE_VERSION_CMD => {
@@ -247,7 +273,8 @@ module Xolo
           display: "#{DELETE_VERSION_CMD} title version",
           opts: {},
           target: :version,
-          process_method: :delete_version
+          process_method: :delete_version,
+          streamed_response: true
         },
 
         SEARCH_CMD => {

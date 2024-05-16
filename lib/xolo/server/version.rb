@@ -39,6 +39,7 @@ module Xolo
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
+      include Xolo::Server::Helpers::ProgressStreaming
 
       include Xolo::Server::Mixins::VersionJamfPro
       include Xolo::Server::Mixins::VersionTitleEditor
@@ -129,7 +130,7 @@ module Xolo
       attr_accessor :server_app_instance
 
       # The sinatra session that instantiates this version
-      attr_writer :session
+      # attr_writer :session
 
       # The Xolo::Server::Title that contains, and usually instantiated
       #   this version object
@@ -189,6 +190,9 @@ module Xolo
       ######################
       ######################
 
+      # send a message to the log and to the progress stream
+      ##################
+
       # which pilot groups should we acutally use, since they might be defined in both
       # the title and here in the version.
       # If the verison pilot_groups is a non-empty array, use those groups.
@@ -228,7 +232,8 @@ module Xolo
       # @return [Hash]
       ###################
       def session
-        @session ||= {}
+        server_app_instance.session
+        # @session ||= {}
       end
 
       # @return [String]
@@ -245,7 +250,8 @@ module Xolo
 
         @title_object = Xolo::Server::Title.load title
         @title_object.server_app_instance = server_app_instance
-        @title_object.session = session
+
+        # @title_object.session = session
         @title_object
       end
 
@@ -294,25 +300,26 @@ module Xolo
 
       # Save a new version, adding to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
+      # This should be running in the context of #with_streaming
       #
       # @return [void]
       #########################
       def create
-        log_info "Creating new version #{version} of title '#{title}' for admin '#{admin}'"
-
         self.creation_date = Time.now
         self.created_by = admin
         self.status = STATUS_PENDING
+        # log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
 
-        log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
         self.modification_date = Time.now
         self.modified_by = admin
-        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+        # log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
         # save to file here so that we have something to delete if
         # the next couple steps fail
+        progress 'Saving version data to Xolo server'
         save_local_data
 
+        # progress_stream << 'Saved version data to Xolo server'
         create_patch_in_ted
         enable_ted_patch
 
@@ -325,10 +332,12 @@ module Xolo
         # TODO: allow specification of version_order, probably by accepting a value
         # for the 'previous_version'?
         # prepend our version to the version_order array of the title
-        log_debug "Updating title version_order, prepending '#{version}'"
+        progress "Updating title version_order, prepending '#{version}'", log: debug
 
         title_object.version_order.unshift version
         title_object.save_local_data
+
+        progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
       end
 
       # Update a this version, updating to the
@@ -384,10 +393,11 @@ module Xolo
         file.pix_atomic_write to_json
       end
 
-      # Delete the title and all of its version
+      # Delete the version
+      #
       # @param update_title [Boolean] Update the title for this version to
-      # know the version is gone. Set this to false when the title itself
-      # is being deleted and calling this method.
+      #   know the version is gone. Set this to false when the title itself
+      #   is being deleted and calling this method.
       #
       # @return [void]
       ##########################
@@ -398,12 +408,14 @@ module Xolo
         # remove from the title's list of versions
         if update_title
           title_object.version_order.delete version
+          progress "Removing version '#{version}' from title '#{title}'", log: :debug
           title_object.save_local_data
         end
 
         # delete the local data
-        log_info "Deleting local data for version '#{version}' of title '#{title}'"
+        progress "Deleting data from the Xolo server for version '#{version}' of title '#{title}'", log: :info
         version_data_file.delete
+        progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
       end
 
       # Add more data to our hash

@@ -34,7 +34,7 @@ module Xolo
       # constants and methods for accessing the Jamf Pro server
       # from the Xolo server
       #
-      # This is both uses as a 'helper' in the Sinatra server,
+      # This is used both as a 'helper' in the Sinatra server,
       # and an included mixin for the Xolo::Server::Title and
       # Xolo::Server::Version classes.
       #

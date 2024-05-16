@@ -49,6 +49,11 @@ module Xolo
 
       DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
 
+      # streaming progress from the server.
+      # When a line containing only this string shows up in a stream file
+      # that means the stream is done, and no more lines will be sent.
+      PROGRESS_COMPLETE = 'PROGRESS_COMPLETE'
+
     end # module Constants
 
   end #  Server

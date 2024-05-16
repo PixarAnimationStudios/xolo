@@ -48,6 +48,7 @@ class XoloAdmin
   include Xolo::Admin::Validate
   include Xolo::Admin::JamfPro
   include Xolo::Admin::TitleEditor
+  include Xolo::Admin::ProgressHistory
 
   # Constructor
   ###################
@@ -64,14 +65,8 @@ class XoloAdmin
   ########################
   def run
     # during early testing - this will return all kinds of things.
-    begin
-      if ARGV.include? '--test'
-        login test: true
-        puts server_cnx.get('/test').body
-        return
-      end
-    rescue => e
-      puts "TEST ERROR: #{e.class}: #{e}\n#{e.response_body}"
+    if ARGV.include? '--test'
+      get_test_route
       return
     end
 

@@ -139,7 +139,8 @@ module Xolo
 
           title_in_jamf_patch.save
 
-          log_info "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
+          msg = "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
+          progress msg, log: :info
         end
 
         # The titles active in Jamf Patch Management from the Title Editor

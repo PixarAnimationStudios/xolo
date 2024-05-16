@@ -87,13 +87,16 @@ module Xolo
         # don't name them with xolo-ish names
         #
         # PATCH POLICIES
-        # Each version gets two ... or more patch policies ??
+        # Each version gets one ... or more patch policies ??
         #
-        # Definitely needs one for pilot groups, so they get
-        # the new versions before 'release'
+        # The primary patch policy is first scoped to any pilot
+        # groups.
         #
-        # and another for 'all' (auto-limited to eligible computers) so
-        # they get the latest 'released' version.
+        # When the version is released, the scope is changed to All
+        #
+        # NOTE: remember that patch polices are pre-limited to only 'eligible'
+        # machines - those that have a lower version installed and meet other
+        # conditions.
         #
         # But....
         #
@@ -107,9 +110,6 @@ module Xolo
         # - when released, re-scoped to 'all' (see note below)
         #
         #
-        # NOTE: remember that patch polices are pre-scoped to only machine that
-        # have a lower version installed. Additional scoping just limits
-        # the targets even more
         # NOTE: Other patch policies can be created manually for other purposes, just
         # don't name them with xolo-ish names
         #
@@ -181,6 +181,7 @@ module Xolo
         def ensure_jamf_xolo_category
           return if Jamf::Category.all_names(cnx: jamf_cnx).include? JAMF_XOLO_CATEGORY
 
+          log_debug "Jamf Pro: Creating category #{JAMF_XOLO_CATEGORY}"
           Jamf::Category.create(name: JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
         end
 
@@ -197,7 +198,7 @@ module Xolo
 
           activate_patch_version_in_jamf
 
-          create_patch_policies_in_jamf
+          create_patch_policy_in_jamf
         end
 
         # Create the Jamf::Package object for this version if needed
@@ -205,7 +206,7 @@ module Xolo
         def create_pkg_in_jamf
           return if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
 
-          log_info "Jamf: Creating Jamf::Package '#{jamf_pkg_name}'"
+          progress "Jamf: Creating Jamf::Package '#{jamf_pkg_name}'", log: :info
 
           pkg = Jamf::Package.create(
             cnx: jamf_cnx,
@@ -218,7 +219,7 @@ module Xolo
         rescue StandardError => e
           msg = "Jamf: Failed to create Jamf::Package '#{jamf_pkg_name}': #{e.class}: #{e}"
           log_error msg
-          halt 400, { error: msg }
+          halt 400, msg
         end
 
         #
@@ -235,7 +236,7 @@ module Xolo
         #
         #########################
         def create_manual_install_policy_in_jamf
-          log_debug "Jamf: Creating Jamf Manual Install Policy: #{jamf_manual_install_policy_name}"
+          progress "Jamf: Creating Jamf Manual Install Policy: #{jamf_manual_install_policy_name}", log: :debug
           pol = Jamf::Policy.create name: jamf_manual_install_policy_name, cnx: jamf_cnx
 
           pol.category = JAMF_XOLO_CATEGORY
@@ -278,7 +279,7 @@ module Xolo
         # This policy is never in self service
         #########################
         def create_auto_install_policy_in_jamf
-          log_debug "Jamf: Creating Jamf Auto Install Policy: #{jamf_auto_install_policy_name}"
+          progress "Jamf: Creating Jamf Auto Install Policy: #{jamf_auto_install_policy_name}", log: :debug
           pol = Jamf::Policy.create name: jamf_auto_install_policy_name, cnx: jamf_cnx
 
           pol.category = JAMF_XOLO_CATEGORY
@@ -351,16 +352,17 @@ module Xolo
         # @return [void]
         #########################
         def activate_patch_version_in_jamf
-          log_debug "Jamf: Activating Version '#{version}' of Title '#{title_object.display_name}' by assigning package '#{jamf_pkg_name}'"
+          progress "Jamf: Activating Version '#{version}' of Title '#{title_object.display_name}' by assigning package '#{jamf_pkg_name}'",
+                   log: :debug
 
           jamf_patch_version.package = jamf_pkg_name
           title_object.jamf_patch_title.save
         end
 
         #########################
-        def create_patch_policies_in_jamf
+        def create_patch_policy_in_jamf
           # TODO: decide how many patch policies - see comments at top
-          # At least two, one for pilots and one for releases
+          # At least one, one for pilots and then rescoped to all for release
 
           # TODO: How to set these, and should they be settable
           # at the Xolo::Title or  Xolo::Version level?
@@ -381,13 +383,11 @@ module Xolo
           # - notifications?  Message and Subject? SSvc only, Notif Ctr?
           # - deadline and grace period message and subbject
 
-          create_pilot_patch_policy_in_jamf
-          create_release_patch_policy_in_jamf
-        end
+          progress "Jamf: Creating Pilot Patch Policy for Version '#{version}' of Title '#{title_object.display_name}'.",
+                   log: :debug
 
-        #########################
-        def create_pilot_patch_policy_in_jamf
-          log_debug "Jamf: Creating Pilot Patch Policy for Version '#{version}' of Title '#{title_object.display_name}'."
+          log_debug "jamf_cnx is: #{jamf_cnx}"
+
           ppol = Jamf::PatchPolicy.create(
             cnx: jamf_cnx,
             name: jamf_pilot_patch_policy_name,
@@ -395,6 +395,8 @@ module Xolo
             target_version: version,
             patch_unknown: true
           )
+          log_debug "jamf_cnx is STILL: #{jamf_cnx}"
+
           unless pilot_groups_to_use.pix_blank?
             pilot_groups_to_use.each do |group|
               ppol.scope.add_target :computer_group, group
@@ -402,63 +404,54 @@ module Xolo
           end
 
           # exclusions are for always
-          set_policy_exclusions pol
+          set_policy_exclusions ppol
         end
 
         #########################
-        def create_release_patch_policy_in_jamf; end
+        def update_patch_policy_for_release
+          # TODO
+        end
 
         # Delete an entire version from Jamf Pro
+        #########################
         def delete_version_from_jamf
           log_debug "Deleting Version '#{version}' from Jamf"
 
-          # spawn another thread to deal with jamf deletions
-          # since they can take a long time and cause
-          # timeout or end-of-file errors in xadm
-          #
-          # TODO: Identify server routes that take a long time and
-          # standardize on how to use threads to do them, and how
-          # to report completion or errors
-          # OR, use sinatra streaming responses to make xadm spin
-          # while its happening?? Prob not since some of these
-          # processes can take a long time (i.e. deleting a title
-          # with lots of versions)
-          #
-          # TODO: Use a thread pool or a limiting loop of some kind.
-          # If we are deleting a whole title
-          # we might end up with MANY MANY of these threads.
-          #
-          thrname = "Jamf-delete-#{title}-#{version}"
-          thr = Thread.new do
-            log_debug "Starting thread '#{thrname}'"
+          # Delete manual install policy
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
+            log_debug "Jamf: Starting deletion of Policy '#{jamf_manual_install_policy_name}'"
+            Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx).delete
+            progress "Jamf: Deleted Policy '#{jamf_manual_install_policy_name}'", log: :debug
+          end
 
-            # Delete manual install policy
-            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
-              log_debug "Jamf: Starting deletion of Policy '#{jamf_manual_install_policy_name}'"
-              Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx).delete
-              log_debug "Jamf: Deleted Policy '#{jamf_manual_install_policy_name}'"
-            end
+          # Delete auto install policy
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
+            log_debug "Jamf: Starting deletion of Policy '#{jamf_auto_install_policy_name}'"
+            Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx).delete
+            progress "Jamf: Deleted Policy '#{jamf_auto_install_policy_name}'", log: :debug
+          end
 
-            # Delete auto install policy
-            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
-              log_debug "Jamf: Starting deletion of Policy '#{jamf_auto_install_policy_name}'"
-              Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx).delete
-              log_debug "Jamf: Deleted Policy '#{jamf_auto_install_policy_name}'"
-            end
+          # Delete patch policy(s)
 
-            # Delete patch policy(s)
+          # Delete package object
+          # This is slow and it blocks, so do it in a thread and update progress every
+          # 15 secs
+          return unless Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
 
-            # Delete package object
-            if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
-              log_debug "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id}"
-              Jamf::Package.fetch(name: jamf_pkg_name, cnx: jamf_cnx).delete
-              log_debug "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id}"
-            end
+          msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F $T'}..."
+          progress msg, log: :debug
 
-            log_debug "Finished thread '#{thrname}'"
-          end # thread.new
+          # do this in another thread, so we can report the progress while its happening
+          pkg_del_thr = Thread.new { Jamf::Package.fetch(name: jamf_pkg_name, cnx: jamf_cnx).delete }
+          pkg_del_thr.name = "package-deletion-thread-#{session[:xolo_id]}"
+          sleep 15
+          while pkg_del_thr.alive?
+            progress "...#{Time.now.strftime '%F %T'} still deleting, this is slow, sorry."
+            sleep 15
+          end
 
-          thr.name = thrname
+          msg = "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at  #{Time.now.strftime '%F $T'}"
+          progress msg, log: :debug
         end
 
       end # JamfPro
