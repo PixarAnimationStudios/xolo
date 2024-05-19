@@ -159,6 +159,7 @@ module Xolo
 
         route = "#{UPLOAD_PKG_ROUTE}/#{title}/#{version}"
 
+        # TODO: Update this to the more modern correct class
         upfile = Faraday::UploadIO.new(
           pkg_to_upload.to_s,
           'application/octet-stream',

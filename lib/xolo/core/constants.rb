@@ -57,6 +57,8 @@ module Xolo
       # and we check for things ending with .app
       DOTAPP = '.app'
 
+      DOTJSON = '.json'
+
       # These are handy for testing values without making new arrays, strings, etc every time.
       TRUE_FALSE = [true, false].freeze
 

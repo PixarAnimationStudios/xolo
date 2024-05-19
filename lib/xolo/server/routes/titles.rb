@@ -75,8 +75,8 @@ module Xolo
         # @return [Array<String>] the names of existing titles
         #################################
         get '/titles' do
-          log_debug "Admin #{session[:admin]} is listing all titles"
-          body all_titles
+          log_debug "Admin #{session[:admin]} is fetching all titles"
+          body all_title_instances.map(&:to_h)
         end
 
         # get all the data for a single title

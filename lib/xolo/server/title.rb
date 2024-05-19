@@ -100,14 +100,6 @@ module Xolo
       ######################
       ######################
 
-      # TODO: - pass in an ident for the request being processed?
-      # (also in the instance method)
-      # @return [Logger] quick access to the xolo server logger
-      ################
-      def self.logger
-        Xolo::Server.logger
-      end
-
       # @return [Array<Pathname>] A list of all known title dirs
       ######################
       def self.title_dirs
@@ -221,7 +213,7 @@ module Xolo
       # @return [Hash]
       ###################
       def session
-        server_app_instance.session
+        server_app_instance&.session || {}
         # @session ||= {}
       end
 

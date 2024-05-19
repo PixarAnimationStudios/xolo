@@ -80,9 +80,18 @@ module Xolo
       # @return [void]
       ###############################
       def list_titles
+        titles = Xolo::Admin::Title.all_titles(server_cnx).map { |td| Xolo::Admin::Title.new td }
+
+        if json?
+          puts JSON.pretty_generate(titles.map(&:to_h))
+          return
+        end
+
+        # TODO: include more columns than just the title name
+        #
         puts '# All titles in Xolo:'
         puts '#####################'
-        Xolo::Admin::Title.all_titles(server_cnx).each { |t| puts t }
+        puts titles.map(&:title).join "\n"
       end
 
       # Add a title to Xolo
@@ -172,7 +181,8 @@ module Xolo
       end
 
       # Upload a pkg in a thread with indeterminate progress feedback
-      # (i.e.  'still uploading...' ) Determining actual progress numbers
+      # (i.e.  '...Upload in progress' )
+      # Determining actual progress numbers
       # would require either a locol tool to meter the IO or a server
       # capable of sending it as a progress stream, neither of which
       # is straightforward.
@@ -191,12 +201,13 @@ module Xolo
         end
 
         puts "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
-
+        # start the upload in a thread
         upload_thr = Thread.new { version.upload_pkg(upload_cnx) }
 
+        # check the thread every second, but only update the terminal every 10 secs
         count = 0
         while upload_thr.alive?
-          # output every 10 secs
+
           puts "... #{Time.now.strftime '%F %T'} Upload in progress" if (count % 10).zero?
           sleep 1
           count += 1

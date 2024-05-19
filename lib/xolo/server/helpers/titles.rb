@@ -51,7 +51,14 @@ module Xolo
         # @return [Array<String>]
         ############
         def all_titles
-          Xolo::Server::Title.all_titles
+          @all_titles ||= Xolo::Server::Title.all_titles
+        end
+
+        # A an array of all server titles as Title objects
+        # @return [Array<Xolo::Server::Title>]
+        ############
+        def all_title_instances
+          all_titles.map { |t| instantiate_title t }
         end
 
         # Instantiate a Server::Title

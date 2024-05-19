@@ -150,6 +150,7 @@ module Xolo
         #   its only readable via xadm.
         #
         # - hide_from_info: [Boolean] when true, do not show this attribute in the 'info' output
+        #   NOTE: it will still be available when --json is given with the info command.
         #
         ATTRIBUTES = {
 

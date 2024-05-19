@@ -238,7 +238,7 @@ module Xolo
       # @return [Hash]
       ###################
       def session
-        server_app_instance.session
+        server_app_instance&.session || {}
         # @session ||= {}
       end
 
