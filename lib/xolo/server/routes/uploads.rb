@@ -33,7 +33,7 @@ module Xolo
 
       module Uploads
 
-        # This is how we 'mix in' modules to Sinatra servers
+        # This is how we 'extend' modules to Sinatra servers
         # for route definitions and similar things
         #
         # (things to be 'included' for use in route and view processing
@@ -62,6 +62,19 @@ module Xolo
           Xolo.verbose_extend extender, self
         end
 
+        # This hash contains upload progress stream urls
+        # for file uploads, keyed by session[:xolo_id]
+        # Individual sessions.
+        # Should be accessible from anywhere via
+        # Xolo::Server::App.file_upload_progress_files
+        # or Xolo::Server::Routes::Uploads.file_upload_progress_files
+        #
+        # @return [Hash {String => String}]
+        ##########################
+        def file_upload_progress_files
+          @file_upload_progress_files ||= {}
+        end
+
         # Routes
         ##############################
         ##############################
@@ -78,6 +91,14 @@ module Xolo
         post '/upload/pkg/:title/:version' do
           process_incoming_pkg
           body({ result: :uploaded })
+        end
+
+        # param with the uploaded file must be :file
+        ######################
+        post '/upload/test' do
+          with_streaming do
+            process_incoming_testfile
+          end
         end
 
       end # Module

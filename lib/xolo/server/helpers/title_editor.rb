@@ -95,7 +95,7 @@ module Xolo
             keep_alive: false
           )
 
-          log_debug "Title Editor: Connected to TitleEditor at #{@ted_cnx.base_url} as user '#{Xolo::Server.config.ted_api_user}'. KeepAlive: #{@ted_cnx.keep_alive?}, Expires: #{@ted_cnx.token.expires}. cnxID: #{@ted_cnx.object_id}"
+          log_debug "Title Editor: Connected at #{@ted_cnx.base_url}, user '#{Xolo::Server.config.ted_api_user}'. KeepAlive: #{@ted_cnx.keep_alive?}, Expires: #{@ted_cnx.token.expires}. cnxID: #{@ted_cnx.object_id}"
 
           @ted_cnx
         end

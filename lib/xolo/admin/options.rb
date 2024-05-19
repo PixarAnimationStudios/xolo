@@ -76,11 +76,24 @@ module Xolo
             Run xadm in quiet mode
             When used with add-, edit-, delete-, pilot-, and release-
             commands, nothing will be printed to standard output.
+
             Ignored for other commands, the purpose of which is to print
             something to standard output.
+            Also ignored if --debug is given
 
             WARNING: For some long-running processes, you may not see errors
             that occur!
+          ENDDESC
+        },
+
+        json: {
+          label: 'JSON',
+          cli: :j,
+          walkthru: false,
+          desc: <<~ENDDESC
+            For commands that output lists or info about titles and versions,
+            such as 'list-titles' or 'info <title> <version>',
+            return the data as raw JSON, not formatted for human eyes.
           ENDDESC
         },
 
@@ -150,6 +163,9 @@ module Xolo
       #   to one of :title, :version, or :title_or_version to let xadm apply revelant state.
       #   Leave unset if the command doesn't take anything
       #
+      # - confirmation: [Boolean] does this action require confirmation? (Are you sure?)
+      #   Confirmation can be overriden with the --auto-confirm global opt, as is needed
+      #   for using xadm in an automated workflow
       #
       # - opts: [Hash] The keys and details about all the options that can be given to this
       #   command. It is usually a constant from some other part of Xolo::Admin.
@@ -200,7 +216,8 @@ module Xolo
           walkthru_header: "Adding Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :title,
           process_method: :add_title,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         # TODO: Implement PATCH, or just PUT ?
@@ -211,7 +228,8 @@ module Xolo
           walkthru_header: "Editing Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           process_method: :edit_title,
           target: :title,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         DELETE_TITLE_CMD => {
@@ -220,7 +238,8 @@ module Xolo
           opts: {},
           process_method: :delete_title,
           target: :title,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         LIST_VERSIONS_CMD => {
@@ -238,7 +257,8 @@ module Xolo
           walkthru_header: "Adding Version '#{TARGET_VERSION_PLACEHOLDER}' to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           process_method: :add_version,
           target: :version,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         # TODO: Implement PATCH, or just PUT ?
@@ -249,7 +269,8 @@ module Xolo
           walkthru_header: "Editing Version '#{TARGET_VERSION_PLACEHOLDER}' of Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :version,
           process_method: :edit_version,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         PILOT_VERSION_CMD => {
@@ -257,7 +278,8 @@ module Xolo
           display: "#{PILOT_VERSION_CMD} title version",
           opts: {},
           target: :version,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         RELEASE_VERSION_CMD => {
@@ -265,7 +287,8 @@ module Xolo
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         DELETE_VERSION_CMD => {
@@ -274,7 +297,8 @@ module Xolo
           opts: {},
           target: :version,
           process_method: :delete_version,
-          streamed_response: true
+          streamed_response: true,
+          confirmation: true
         },
 
         SEARCH_CMD => {
@@ -384,9 +408,51 @@ module Xolo
       end
 
       # Are we running in interactive mode?
+      # --walkthru was givin in the global opts
+      # @return [Boolean]
       #######################
       def walkthru?
         global_opts.walkthru
+      end
+
+      # are we auto-confirming?
+      # --auto-confirm was given in the global opts
+      # and we are not using --walkthru
+      # @return [Boolean]
+      #######################
+      def auto_confirm?
+        global_opts.auto_confirm && !global_opts.walkthru
+      end
+
+      # do we need to ask for confirmation?
+      # the command we are running wants confirmation
+      # and auto_confirm? is false
+      # @return [Boolean]
+      #######################
+      def need_confirmation?
+        cmd_details[:confirmation] && !auto_confirm?
+      end
+
+      # are we outputing JSON?
+      # @return [Boolean]
+      #######################
+      def json?
+        global_opts.json
+      end
+
+      # are we showing debug output?
+      # @return [Boolean]
+      #######################
+      def debug?
+        global_opts.debug
+      end
+
+      # are we being quiet?
+      # --quiet was given, but --debug was not
+      # @return [Boolean]
+      #######################
+      def quiet?
+        global_opts.quiet && !global_opts.debug
       end
 
       # Global Opts

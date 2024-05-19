@@ -61,13 +61,16 @@ module Xolo
         # changes
         JAMF_POLICY_NAME_AUTO_INSTALL_SFX = '-auto-install'
 
+        # FOR NOW, only one patch pol. scope will be changed
+        # at release....
+
         # The patch policy that updates pilot installs
         # is the full prefix with this suffix:
-        JAMF_PILOT_PATCH_POLICY_SFX = '-pilot-update'
+        # JAMF_PILOT_PATCH_POLICY_SFX = '-pilot-update'
 
         # The patch policy that updates all installs
         # is the full prefix with this suffix:
-        JAMF_RELEASE_PATCH_POLICY_SFX = '-release-update'
+        # JAMF_RELEASE_PATCH_POLICY_SFX = '-release-update'
 
         # POLICIES
         # Each version gets two policies for initial installation
@@ -264,6 +267,8 @@ module Xolo
           pol.enable
           pol.save
 
+          # TODO: someday it would be nice if jamf lets us use the
+          # API to assign existing icons.
           icon_file = Xolo::Server::Title.ssvc_icon_file(title)
           pol.upload :icon, icon_file if icon_file && title_object.self_service
         end
@@ -390,11 +395,12 @@ module Xolo
 
           ppol = Jamf::PatchPolicy.create(
             cnx: jamf_cnx,
-            name: jamf_pilot_patch_policy_name,
+            name: jamf_patch_policy_name,
             patch_title: title_object.jamf_patch_title.id,
             target_version: version,
             patch_unknown: true
           )
+
           log_debug "jamf_cnx is STILL: #{jamf_cnx}"
 
           unless pilot_groups_to_use.pix_blank?
@@ -405,6 +411,8 @@ module Xolo
 
           # exclusions are for always
           set_policy_exclusions ppol
+
+          ppol.save
         end
 
         #########################
@@ -432,13 +440,18 @@ module Xolo
           end
 
           # Delete patch policy(s)
+          if Jamf::PatchPolicy.all_names(cnx: jamf_cnx).include? jamf_patch_policy_name
+            log_debug "Jamf: Starting deletion of PatchPolicy '#{jamf_patch_policy_name}'"
+            Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx).delete
+            progress "Jamf: Deleted PatchPolicy '#{jamf_patch_policy_name}'", log: :debug
+          end
 
           # Delete package object
           # This is slow and it blocks, so do it in a thread and update progress every
           # 15 secs
           return unless Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
 
-          msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F $T'}..."
+          msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}..."
           progress msg, log: :debug
 
           # do this in another thread, so we can report the progress while its happening
@@ -446,7 +459,7 @@ module Xolo
           pkg_del_thr.name = "package-deletion-thread-#{session[:xolo_id]}"
           sleep 15
           while pkg_del_thr.alive?
-            progress "...#{Time.now.strftime '%F %T'} still deleting, this is slow, sorry."
+            progress "... #{Time.now.strftime '%F %T'} still deleting, this is slow, sorry."
             sleep 15
           end
 

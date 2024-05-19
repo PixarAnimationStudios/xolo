@@ -30,6 +30,10 @@ module Xolo
   module Server
 
     # A Title in Xolo, as used on the server
+    #
+    # NOTE be sure to only instantiate these using the
+    # servers 'instantiate_title' method, or else
+    # they might not have all the correct innards
     class Title < Xolo::Core::BaseClasses::Title
 
       # Mixins
@@ -39,7 +43,6 @@ module Xolo
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
-      include Xolo::Server::Helpers::ProgressStreaming
 
       include Xolo::Server::Mixins::TitleJamfPro
       include Xolo::Server::Mixins::TitleTitleEditor
@@ -201,7 +204,10 @@ module Xolo
       ######################
       ######################
 
-      # Set more attrs
+      #
+      # NOTE be sure to only instantiate these using the
+      # servers 'instantiate_title' method, or else
+      # they might not have all the correct innards
       def initialize(data_hash)
         super
         @ted_id_number ||= data_hash[:ted_id_number]
@@ -223,6 +229,20 @@ module Xolo
       ###################
       def admin
         session[:admin]
+      end
+
+      # Append a message to the progress stream file,
+      # optionally sending it also to the log
+      #
+      # @param message [String] the message to append
+      # @param log [Symbol] the level at which to log the message
+      #   one of :debug, :info, :warn, :error, :fatal, or :unknown.
+      #   Default is nil, which doesn't log the message at all.
+      #
+      # @return [void]
+      ###################
+      def progress(msg, log: :debug)
+        server_app_instance.progress msg, log: log
       end
 
       # @return [Windoo::Connection] a single Title Editor connection to use for

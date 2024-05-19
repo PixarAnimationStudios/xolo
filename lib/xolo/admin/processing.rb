@@ -149,7 +149,8 @@ module Xolo
       # @return [void]
       ###############################
       def add_version
-        # TODO: confirmation before adding
+        return unless confirmed? "Add version '#{cli_cmd.version}' to title '#{cli_cmd.title}'"
+
         opts_to_process.title = cli_cmd.title
         opts_to_process.version = cli_cmd.version
 
@@ -157,15 +158,50 @@ module Xolo
         new_vers = Xolo::Admin::Version.new opts_to_process
         response_data = new_vers.add(server_cnx)
 
-        puts "response_data: #{response_data}"
+        if global_opts.debug
+          puts "response_data: #{response_data}"
+          puts
+        end
 
         display_progress response_data[:progress_stream_url_path]
 
         # Upload the pkg, if any?
-        # TODO: upload should be part of the streamed process
-        new_vers.upload_pkg(upload_cnx) if new_vers.pkg_to_upload.is_a? Pathname
+        upload_pkg(new_vers)
       rescue StandardError => e
         handle_server_error e
+      end
+
+      # Upload a pkg in a thread with indeterminate progress feedback
+      # (i.e.  'still uploading...' ) Determining actual progress numbers
+      # would require either a locol tool to meter the IO or a server
+      # capable of sending it as a progress stream, neither of which
+      # is straightforward.
+      #
+      # @param version [Xolo::Admin::Version] the version for which we are uploading
+      #   the pkg. It must have a 'pkg_to_upload' that is a pathname to an existing
+      #   file
+      # @return [void]
+      ################################
+      def upload_pkg(version)
+        return unless version.pkg_to_upload.is_a? Pathname
+
+        if global_opts.quiet
+          version.upload_pkg(upload_cnx)
+          return
+        end
+
+        puts "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
+
+        upload_thr = Thread.new { version.upload_pkg(upload_cnx) }
+
+        count = 0
+        while upload_thr.alive?
+          # output every 10 secs
+          puts "... #{Time.now.strftime '%F %T'} Upload in progress" if (count % 10).zero?
+          sleep 1
+          count += 1
+        end
+        puts 'Upload complete, Final upload to distribution points will happen soon.'
       end
 
       # Edit/Update a version in Xolo
@@ -193,10 +229,14 @@ module Xolo
       # @return [void]
       ###############################
       def delete_version
-        # TODO: confirmation before deletion
+        return unless confirmed? "Delete version '#{cli_cmd.version}' from title '#{cli_cmd.title}'"
+
         response_data = Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
 
-        puts "response_data: #{response_data}"
+        if global_opts.debug
+          puts "response_data: #{response_data}"
+          puts
+        end
 
         display_progress response_data[:progress_stream_url_path]
       rescue StandardError => e
@@ -216,10 +256,15 @@ module Xolo
       # @return [void]
       ###############################
       def show_title_info
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        if json?
+          puts title.to_json
+          return
+        end
+
         puts "# Info for Title '#{cli_cmd.title}'"
         puts '###################################'
 
-        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
         Xolo::Admin::Title::ATTRIBUTES.each do |attr, deets|
           next if deets[:hide_from_info]
 
@@ -235,6 +280,11 @@ module Xolo
       ###############################
       def show_version_info
         vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
+
+        if json?
+          puts vers.to_json
+          return
+        end
 
         puts "# Info for Version #{cli_cmd.version} of Title '#{cli_cmd.title}'"
         puts '##################################################'
@@ -329,14 +379,61 @@ module Xolo
         return unless resp[:progress_stream_url_path]
 
         puts
-        puts 'Streaming progress:'
-        display_progress resp[:progress_stream_url_path]
+        if global_opts.quiet
+          puts 'given --quiet, not showing progress'
+        else
+          puts 'Streaming progress:'
+          display_progress resp[:progress_stream_url_path]
+        end
+
+        # test uploads
+        # 1.2 gb
+        large_file = '/dist/caspershare/Packages-DEACTIVATED/SecUpd2020-006HighSierra.pkg'
+
+        pkg_to_upload = Pathname.new large_file
+        puts "Uploading Test File #{pkg_to_upload.size} bytes... "
+        upload_test_file(pkg_to_upload)
 
         puts 'All Done!'
       rescue StandardError => e
         msg = e.respond_to?(:response_body) ? "#{e}\nRespBody: #{e.response_body}" : e.to_s
         puts "TEST ERROR: #{e.class}: #{msg}"
         puts e.backtrace
+      end
+
+      # Upload a file to the test upload route
+      ############################
+      def upload_test_file(pkg_to_upload)
+        route = '/upload/test'
+
+        upfile = Faraday::UploadIO.new(
+          pkg_to_upload.to_s,
+          'application/octet-stream',
+          pkg_to_upload.basename.to_s
+        )
+
+        content = { file: upfile }
+        # upload the file in a thread
+        thr = Thread.new { upload_cnx.post(route) { |req| req.body = content } }
+
+        # when the server starts the upload, it notes the new
+        # streaming url for our session[:xolo_id], which we can then fetch and
+        # start displaying the progress
+        display_progress response_data[:progress_stream_url_path]
+      end
+
+      # get confirmation for an action that requires it
+      # @param action [String] A short description of what we're about to do,
+      #   e.g. "Add version '1.2.3' to title 'cool-app'"
+      #
+      # @return [Boolean] did we get confirmation?
+      ############################
+      def confirmed?(action)
+        return true unless need_confirmation?
+
+        puts "About to: #{action}"
+        print 'Are you sure? (y/n): '
+        STDIN.gets.chomp.downcase.start_with? 'y'
       end
 
       # Start displaying the progress of a long-running task on the server

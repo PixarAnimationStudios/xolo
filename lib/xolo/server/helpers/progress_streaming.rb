@@ -82,10 +82,12 @@ module Xolo
           log_debug 'Starting with_streaming block in thread'
 
           @streaming_thread = Thread.new do
+            log_debug 'Thread with_streaming is starting and yielding to block'
             yield
             log_debug 'Thread with_streaming is finished'
           rescue StandardError => e
             progress "ERROR: #{e.class}: #{e}", log: :error
+            e.backtrace.each { |l| log_debug "..#{l}" }
           ensure
             stop_progress_streaming
           end
@@ -114,15 +116,13 @@ module Xolo
         # End che current progress stream
         ###############################
         def stop_progress_streaming
+          log_debug "Stopping progress streaming to file: #{progress_stream_file}"
           progress Xolo::Server::PROGRESS_COMPLETE
         end
 
         # The file to which we write progess messages
         # for long-running processes, which might in turn
-        # be streamed to xadm.
-        #
-        # @param command [String] the xadm command that is causing this stream.
-        #   may be used for finding a returning the progress file after the fact.
+        # be streamed to xadm now or in the future
         #
         #############################
         def progress_stream_file
@@ -132,6 +132,8 @@ module Xolo
           tempf.close # we'll write to it later
           log_debug "Created progress_stream_file: #{tempf.path}"
           @progress_stream_file = Pathname.new(tempf.path)
+          @progress_stream_file.pix_touch
+          @progress_stream_file
         end
 
         # The file to which we write progess messages
@@ -153,6 +155,8 @@ module Xolo
         # @return [void]
         ###################
         def progress(msg, log: :debug)
+          log_debug "Progress method called from #{caller_locations.first}"
+
           progress_stream_file.pix_append "#{msg.chomp}\n"
 
           unless log

@@ -30,6 +30,11 @@ module Xolo
   module Server
 
     # Xolo Version/Patch as used on the Xolo Server
+    #
+    # NOTE be sure to only instantiate these using the
+    # servers 'instantiate_version' method, or else
+    # they might not have all the correct innards
+    ###
     class Version < Xolo::Core::BaseClasses::Version
 
       # Mixins
@@ -39,7 +44,6 @@ module Xolo
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
-      include Xolo::Server::Helpers::ProgressStreaming
 
       include Xolo::Server::Mixins::VersionJamfPro
       include Xolo::Server::Mixins::VersionTitleEditor
@@ -150,11 +154,8 @@ module Xolo
       # the custom trigger is the same
       alias jamf_manual_install_trigger jamf_manual_install_policy_name
 
-      # Jamf Pilot Patch Policies are named this
-      attr_reader :jamf_pilot_patch_policy_name
-
-      # Jamf Release Patch Policies are named this
-      attr_reader :jamf_releasae_patch_policy_name
+      # Jamf Patch Policy is named this
+      attr_reader :jamf_patch_policy_name
 
       # The Jamf::Package object has this jamf id
       attr_reader :jamf_pkg_id
@@ -163,7 +164,10 @@ module Xolo
       ######################
       ######################
 
-      # Set more attrs
+      #
+      # NOTE be sure to only instantiate these using the
+      # servers 'instantiate_version' method, or else
+      # they might not have all the correct innards
       def initialize(data_hash)
         super
 
@@ -173,13 +177,15 @@ module Xolo
         @ted_id_number ||= data_hash[:ted_id_number]
         @jamf_pkg_id ||= data_hash[:jamf_pkg_id]
 
+        # and these can be generated now
         @jamf_obj_name_pfx = "#{JAMF_OBJECT_NAME_PFX}#{title}-#{version}"
+
         @jamf_pkg_name ||= @jamf_obj_name_pfx
+
         @jamf_auto_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_AUTO_INSTALL_SFX}"
         @jamf_manual_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_MANUAL_INSTALL_SFX}"
 
-        @jamf_pilot_patch_policy_name = "#{jamf_obj_name_pfx}#{JAMF_PILOT_PATCH_POLICY_SFX}"
-        @jamf_releasae_patch_policy_name = "#{jamf_obj_name_pfx}#{JAMF_RELEASE_PATCH_POLICY_SFX}"
+        @jamf_patch_policy_name = @jamf_obj_name_pfx
 
         # we set @jamf_pkg_file when a pkg is uploaded
         # since we don't know until then if its a .pkg or .zip
@@ -240,6 +246,20 @@ module Xolo
       ###################
       def admin
         session[:admin]
+      end
+
+      # Append a message to the progress stream file,
+      # optionally sending it also to the log
+      #
+      # @param message [String] the message to append
+      # @param log [Symbol] the level at which to log the message
+      #   one of :debug, :info, :warn, :error, :fatal, or :unknown.
+      #   Default is nil, which doesn't log the message at all.
+      #
+      # @return [void]
+      ###################
+      def progress(msg, log: :debug)
+        server_app_instance.progress msg, log: log
       end
 
       # This might have been set already if we were instantiated via our title
@@ -332,7 +352,7 @@ module Xolo
         # TODO: allow specification of version_order, probably by accepting a value
         # for the 'previous_version'?
         # prepend our version to the version_order array of the title
-        progress "Updating title version_order, prepending '#{version}'", log: debug
+        progress "Updating title version_order, prepending '#{version}'", log: :debug
 
         title_object.version_order.unshift version
         title_object.save_local_data
@@ -408,12 +428,12 @@ module Xolo
         # remove from the title's list of versions
         if update_title
           title_object.version_order.delete version
-          progress "Removing version '#{version}' from title '#{title}'", log: :debug
+          progress 'Removing version from title data on the Xolo server', log: :debug
           title_object.save_local_data
         end
 
         # delete the local data
-        progress "Deleting data from the Xolo server for version '#{version}' of title '#{title}'", log: :info
+        progress 'Deleting version data from the Xolo server', log: :info
         version_data_file.delete
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
       end

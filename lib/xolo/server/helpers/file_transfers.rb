@@ -50,9 +50,26 @@ module Xolo
         #######################
         ######################
 
+        # upload a file for testing ... anything
+        #################################
+        def process_incoming_testfile
+          progress 'starting test file upload', log: :debug
+
+          filename = params[:file][:filename]
+          tempfile = Pathname.new params[:file][:tempfile].path
+
+          progress "1/3 TempFile is #{tempfile} size is #{tempfile.size}... is it still uploading?", log: :debug
+          sleep 2
+          progress "2/3 TempFile is #{tempfile} size is #{tempfile.size}... is it still uploading?", log: :debug
+          sleep 2
+          progress "3/3 TempFile is #{tempfile} size is #{tempfile.size}... is it still uploading?", log: :debug
+          progress 'all done', log: :debug
+        end
+
         # Store an uploaded self service icon in the title's
         # directory. It'll be added to Policies and Patch Policies as needed
         # (increasing the bloat in the database, of course)
+        #################################
         def process_incoming_ssvc_icon
           filename = params[:file][:filename]
           tempfile = Pathname.new params[:file][:tempfile].path
@@ -105,6 +122,7 @@ module Xolo
           upload_to_dist_point(version, staged_pkg)
 
           # save/update the local data file, since we've done stuff to update it
+          version.pkg_to_upload = Xolo::ITEM_UPLOADED
           version.save_local_data
 
           # remove the staged pkg. The tmp file will go away on its own.
