@@ -258,6 +258,8 @@ module Xolo
           set_policy_exclusions pol
 
           if title_object.self_service
+            pilot_groups_to_use.pix_blank?
+            progress 'Jamf: Adding to SelfService, will only be visible to appropriate groups.', log: :debug
             pol.add_to_self_service
             pol.add_self_service_category title_object.self_service_category
             pol.self_service_description = title_object.description
@@ -266,10 +268,17 @@ module Xolo
 
           pol.enable
           pol.save
+          return unless title_object.self_service
 
           # TODO: someday it would be nice if jamf lets us use the
           # API to assign existing icons.
           icon_file = Xolo::Server::Title.ssvc_icon_file(title)
+          unless icon_file
+            progress 'Jamf: NOTE: no self service icon has been uploaded for this title.'
+            return
+          end
+
+          progress 'Jamf: Attaching SelfService icon to policy', log: :debug
           pol.upload :icon, icon_file if icon_file && title_object.self_service
         end
 

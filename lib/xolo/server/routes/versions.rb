@@ -57,16 +57,16 @@ module Xolo
         #
         # @return [Hash] A response hash
         #################################
-        post '/titles/:title/versions/:version' do
-          halt_on_existing_version params[:title], params[:version]
-
+        post '/titles/:title/versions' do
           request.body.rewind
-          data = request.body.read
-
+          data = parse_json request.body.read
           log_debug "Incoming new version data: #{data}"
-          log_info "Admin #{session[:admin]} is creating version #{params[:version]} of title '#{params[:title]}'"
 
-          vers = instantiate_version parse_json(data)
+          vers = instantiate_version(data)
+          halt_on_existing_version vers.title, vers.version
+
+          log_info "Admin #{session[:admin]} is creating version #{data[:version]} of title '#{params[:title]}'"
+
           with_streaming do
             vers.create
           end

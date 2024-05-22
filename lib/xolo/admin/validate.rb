@@ -175,22 +175,36 @@ module Xolo
       # validate a Xolo title. Must be 2+ chars long, only lowercase
       # alpha-numerics & dashes
       #
+      # Must also exist or not exist, depending on the command we are running
       # @param val [Object] The value to validate
       #
       # @return [String] The valid value
       def validate_title(val)
         val = val.to_s.strip
 
-        err =
-          if Xolo::Admin::Title.exist?(val, server_cnx)
-            'already exists in Xolo' if cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
-          elsif Xolo::Admin::Options::MUST_EXIST_COMMANDS.include? cli_cmd.command
-            "doesn't exist in Xolo"
-          elsif val !~ /\A[a-z0-9-][a-z0-9-]+\z/
-            TITLE_ATTRS[:title][:invalid_msg]
-          end
+        title_exists = Xolo::Admin::Title.exist?(val, server_cnx)
 
-        return val unless err
+        # adding... cant already exist, and name must be OK
+        if cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
+          err =
+            if title_exists
+              'already exists in Xolo'
+            elsif val !~ /\A[a-z0-9-][a-z0-9-]+\z/
+              TITLE_ATTRS[:title][:invalid_msg]
+            else
+              return val
+            end
+
+        # a command where it must exist
+        elsif Xolo::Admin::Options::MUST_EXIST_COMMANDS.include?(cli_cmd.command)
+          return val if title_exists
+
+          err = "doesn't exist in Xolo"
+
+        # any other command
+        else
+          return val
+        end
 
         raise_invalid_data_error val, err
       end

@@ -158,6 +158,12 @@ module Xolo
         title_dir(title).children.select { |c| c.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME }.first
       end
 
+      # Instantiate from the local JSON file containing the current values
+      # for the given title
+      #
+      # NOTE: All instantiation should happen using the #instantiate_title method
+      # in the server app instance. Please don't call this method directly
+      #
       # @pararm title [String] the title we care about
       # @return [Xolo::Server::Title] load an existing title
       #   from the on-disk JSON file
@@ -179,8 +185,9 @@ module Xolo
       ######################
 
       # The instance of Xolo::Server::App that instantiated this
-      # title object. This is how we access the single Jamf and TEd
-      # connections for this App Instnace.
+      # title object. This is how we access things that are available in routes
+      # and helpers, like the single Jamf and TEd
+      # connections for this App instance.
       attr_accessor :server_app_instance
 
       # The sinatra session that instantiates this title
@@ -196,8 +203,7 @@ module Xolo
       ######################
       ######################
 
-      #
-      # NOTE be sure to only instantiate these using the
+      # NOTE: be sure to only instantiate these using the
       # servers 'instantiate_title' method, or else
       # they might not have all the correct innards
       def initialize(data_hash)
@@ -306,21 +312,27 @@ module Xolo
       # @return [Xolo::Server::Version]
       ########################
       def version_object(version)
-        version = Xolo::Server::Version.load title, version
-        version.server_app_instance = server_app_instance
+        data = [title, version]
+        log_debug "Instantiating version #{version} from Title instance #{title}"
+        server_app_instance.instantiate_version(data)
+
+        # version = Xolo::Server::Version.load title, version
+        # version.server_app_instance = server_app_instance
         # version.session = session
-        version.title_object = self
-        version
+        # version.title_object = self
+        # version
       end
 
       # @return [Array<Xolo::Server::Version>] An array of all current version objects
       #   NOTE: This might not be wise if hundreds of versions.
       ########################
-      def versions(refresh: false)
-        @versions = nil if refresh
-        return @versions if @versions
+      def version_objects(refresh: false)
+        version_order.map { |v| version_object v }
 
-        @versions = version_order.map { |v| version_object v }
+        # @version_objects = nil if refresh
+        # return @version_objects if @version_objects
+
+        # @version_objects = version_order.map { |v| version_object v }
       end
 
       # Save a new title, adding to the
@@ -329,8 +341,6 @@ module Xolo
       # @return [void]
       #########################
       def create
-        log_info "Creating new title '#{title}' for admin '#{admin}'"
-
         self.creation_date = Time.now
         self.created_by = admin
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
@@ -344,6 +354,7 @@ module Xolo
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
+        progress 'Saving title data to Xolo server'
         save_local_data
 
         # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
@@ -494,14 +505,16 @@ module Xolo
       # @return [void]
       ##########################
       def delete
-        versions.each { |v| v.delete update_title: false }
+        progress "Deleting all versions of #{title}...", log: :debug
+        version_objects.each do |vers|
+          vers.delete update_title: false
+        end
 
         delete_title_from_ted
 
-        # TODO: delete in jamf
         delete_title_from_jamf
 
-        log_info "Deleting local data for title '#{title}'"
+        progress "Deleting Xolo server data for title '#{title}'", log: :info
         title_dir.rmtree
       end
 

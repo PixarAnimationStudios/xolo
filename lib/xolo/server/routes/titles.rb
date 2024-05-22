@@ -59,16 +59,16 @@ module Xolo
         #################################
         post '/titles' do
           request.body.rewind
-          data = request.body.read
+          data = parse_json(request.body.read)
           log_debug "Incoming new title data: #{data}"
-          title = instantiate_title parse_json(data)
 
+          title = instantiate_title data
           halt_on_existing_title title.title
 
-          title.create
-
-          resp_content = { title: title.title, result: 'created' }
-          body resp_content
+          log_info "Admin #{session[:admin]} is creating title '#{title.title}'"
+          with_streaming do
+            title.create
+          end
         end
 
         # get a list of title names
@@ -119,17 +119,13 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         delete '/titles/:title' do
-          resp_content =
-            if all_titles.include? params[:title]
-              title = instantiate_title params[:title]
-              log_info "Admin #{session[:admin]} is deleting title '#{title.title}'"
-              title.delete
-              { title: params[:title], result: 'deleted' }
-            else
-              { title: params[:title], result: "doesn't exist, not deleted" }
-            end
+          halt_on_missing_title params[:title]
 
-          body resp_content
+          title = instantiate_title params[:title]
+
+          with_streaming do
+            title.delete
+          end
         end
 
         # Add or update the version-script for a title

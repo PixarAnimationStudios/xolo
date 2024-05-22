@@ -141,6 +141,31 @@ module Xolo
 
           msg = "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
           progress msg, log: :info
+
+          accept_xolo_ea_in_jamf
+        end
+
+        # TODO: make this a config setting, users should be able to require manual acceptance.
+        # and handle it not being accepted yet.
+        # TODO: when this is implemented in ruby-jss, use the direct implementation
+        #
+        ############################
+        def accept_xolo_ea_in_jamf
+          title_id = Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
+          patchdata = <<~ENDPATCHDATA
+            {
+              "extensionAttributes": [
+                {
+                  "accepted": true,
+                  "eaId": "#{ted_ea_key}"
+                }
+              ]
+            }
+          ENDPATCHDATA
+
+          # requires CRUD provs for computer ext attrs
+          jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{title_id}", patchdata
+          progress "Jamf: Accepted use of ExtensionAttribute version script '#{ted_ea_key}'", log: :debug
         end
 
         # The titles active in Jamf Patch Management from the Title Editor
@@ -183,12 +208,6 @@ module Xolo
         # Delete an entire title from Jamf Pro
         ########################
         def delete_title_from_jamf
-          # delete all the versions, which will delete the
-          # policies, patch policies, and packages.
-          version_order.each do |v|
-            version_object(v).delete_version_from_jamf
-          end
-
           # now delete ('unsubscribe') in Jamf Patch Mgmt
           delete_patch_title_from_jamf
         end
@@ -198,7 +217,10 @@ module Xolo
         def delete_patch_title_from_jamf
           return unless jamf_ted_title_active?
 
-          log_info "Jamf: Deleting (unsubscribing) title '#{display_name}'  (#{title}}) in Jamf Patch Management"
+          progress "Jamf: Deleting (unsubscribing) title '#{display_name}'  (#{title}}) in Jamf Patch Management",
+                   log: :info
+
+          # NOTE: jamf api user must have 'delete computer ext. attribs' permmissions
           jamf_patch_title.delete
         end
 

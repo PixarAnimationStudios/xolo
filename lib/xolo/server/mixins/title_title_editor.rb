@@ -62,7 +62,7 @@ module Xolo
         # @return [void]
         ##########################
         def create_title_in_ted
-          log_info "Title Editor: Creating SoftwareTitle '#{title}'"
+          progress "Title Editor: Creating SoftwareTitle '#{title}'", log: :info
           new_ted_title = Windoo::SoftwareTitle.create(
             id: title,
             name: display_name,
@@ -127,7 +127,7 @@ module Xolo
         # @return [void]
         ######################
         def update_ted_title_requirements(ted_title, new_data = nil)
-          log_debug "Title Editor: Setting Requirements for title '#{title}'"
+          progress "Title Editor: Setting Requirements for title '#{title}'", log: :debug
 
           # delete the current requirements
           ted_title.requirements.delete_all_criteria
@@ -161,7 +161,7 @@ module Xolo
         # @return [void]
         ####################
         def update_ted_title_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
-          log_debug "Title Editor: Setting App-based Requirement Criteria for title '#{title}'"
+          progress "Title Editor: Setting App-based Requirement Criteria for title '#{title}'", log: :debug
 
           ted_title.requirements.add_criterion(
             name: 'Application Title',
@@ -177,7 +177,7 @@ module Xolo
 
           return unless ted_title.extensionAttribute
 
-          log_debug "Title Editor: Deleting unused Extension Attribute for title '#{title}'"
+          progress "Title Editor: Deleting unused Extension Attribute for title '#{title}'", log: :debug
           ted_title.delete_extensionAttribute
         end
 
@@ -193,7 +193,8 @@ module Xolo
         # @return [void]
         ####################
         def update_ted_title_ea_requirements(ted_title, req_ea_script:)
-          log_debug "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'"
+          progress "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'",
+                   log: :debug
 
           # delete and recreate the EA
           ted_title.delete_extensionAttribute
@@ -228,7 +229,7 @@ module Xolo
         def enable_ted_title
           return if ted_title.enabled?
 
-          log_debug "Title Editor: Enabling SoftwareTitle '#{title}'"
+          progress "Title Editor: Enabling SoftwareTitle '#{title}'", log: :debug
           ted_title.enable
         end
 
@@ -236,7 +237,7 @@ module Xolo
         # @return [Integer] title editor id number
         ###########################
         def delete_title_from_ted
-          log_info "Title Editor: Deleting SoftwareTitle '#{title}'"
+          progress "Title Editor: Deleting SoftwareTitle '#{title}'", log: :info
 
           ted_title.delete
         rescue Windoo::NoSuchItemError

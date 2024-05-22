@@ -69,8 +69,8 @@ module Xolo
         # In all cases, set the session, to use for logging
         # (the reason this method exists)
         #
-        # @param data [Hash] hash to use with .new
-        # @param name [String] name to use with .load
+        # @param data [Hash, String] hash to use with .new or name to use with .load
+        #
         # @return [Xolo::Server::Title]
         #################
         def instantiate_title(data)
@@ -80,15 +80,14 @@ module Xolo
               Xolo::Server::Title.new data
 
             when String
-              halt_on_missing_title data # params[:title]
-              Xolo::Server::Title.load data # params[:title]
+              halt_on_missing_title data
+              Xolo::Server::Title.load data
 
             else
               halt 400, 'Invalid data to instantiate a Xolo.Server::Title'
             end
-          title.server_app_instance = self
-          # title.session = session
 
+          title.server_app_instance = self
           title
         end
 

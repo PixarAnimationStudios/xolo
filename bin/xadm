@@ -66,7 +66,7 @@ class XoloAdmin
   def run
     # during early testing - this will return all kinds of things.
     if ARGV.include? '--test'
-      get_test_route
+      run_test_route
       return
     end
 

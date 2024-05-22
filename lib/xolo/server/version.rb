@@ -103,8 +103,11 @@ module Xolo
         version_dir(title) + "#{version}.json"
       end
 
-      # The the local JSON file containing the current values
+      # Instantiate from the local JSON file containing the current values
       # for the given version of a title
+      #
+      # NOTE: All instantiation should happen using the #instantiate_version method
+      # in the server app instance. Please don't call this method directly
       #
       # @pararm title [String] the title for the version
       #
@@ -130,7 +133,9 @@ module Xolo
       ######################
 
       # The instance of Xolo::Server::App that instantiated this
-      # version object
+      # title object. This is how we access things that are available in routes
+      # and helpers, like the single Jamf and TEd
+      # connections for this App instance.
       attr_accessor :server_app_instance
 
       # The sinatra session that instantiates this version
@@ -164,8 +169,7 @@ module Xolo
       ######################
       ######################
 
-      #
-      # NOTE be sure to only instantiate these using the
+      # NOTE: be sure to only instantiate these using the
       # servers 'instantiate_version' method, or else
       # they might not have all the correct innards
       def initialize(data_hash)
@@ -266,13 +270,13 @@ module Xolo
       # @return [Xolo::Server::Title] the title for this version
       ################
       def title_object
-        return @title_object if @title_object
+        @title_object ||= server_app_instance.instantiate_title title
+        # return @title_object if @title_object
 
-        @title_object = Xolo::Server::Title.load title
-        @title_object.server_app_instance = server_app_instance
-
+        # @title_object = Xolo::Server::Title.load title
+        # @title_object.server_app_instance = server_app_instance
         # @title_object.session = session
-        @title_object
+        # @title_object
       end
 
       # @return [Windoo::Connection] a single Title Editor connection to use for

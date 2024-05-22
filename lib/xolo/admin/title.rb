@@ -62,11 +62,18 @@ module Xolo
         @cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli] }
       end
 
-      # @return [Array<String>] The currently known titles on the server
+      # @return [Array<String>] The currently known titles names on the server
       #############################
       def self.all_titles(cnx)
         resp = cnx.get SERVER_ROUTE
-        resp.body
+        resp.body.map { |t| t[:title] }
+      end
+
+      # @return [Array<Xolo::Admin::Title>] The currently known titles on the server
+      #############################
+      def self.all_title_objects(cnx)
+        resp = cnx.get SERVER_ROUTE
+        resp.body.map { |td| Xolo::Admin::Title.new td }
       end
 
       # Does a title exist on the server?
@@ -92,10 +99,11 @@ module Xolo
       # Delete a title from the server
       # @param title [String] the title to delete
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response data
       ####################
       def self.delete(title, cnx)
         resp = cnx.delete "#{SERVER_ROUTE}/#{title}"
+        resp.body
       end
 
       # the latest version of a title in Xolo
@@ -133,23 +141,25 @@ module Xolo
 
       # Add this title to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response body from the server
       ####################
       def add(cnx)
-        cnx.post SERVER_ROUTE, to_h
+        resp = cnx.post SERVER_ROUTE, to_h
+        resp.body
       end
 
       # Update this title to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response body from the server
       ####################
       def update(cnx)
-        cnx.put "#{SERVER_ROUTE}/#{title}", to_h
+        resp = cnx.put "#{SERVER_ROUTE}/#{title}", to_h
+        resp.body
       end
 
       # Delete this title from the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response data
       ####################
       def delete(cnx)
         self.class.delete title, cnx
@@ -157,7 +167,7 @@ module Xolo
 
       # the latest version of this title in Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [String]
       ####################
       def latest_version(cnx)
         self.class.latest_version(title, cnx)

@@ -56,15 +56,21 @@ module Xolo
 
         # Attributes of Titles.
         #
-        # This hash defines the attributes of all Xolo titles. Each key is the name
-        # of an attribute, and the values are hashes defining the details of that
-        # attribute.
+        # This hash defines the attributes of all Xolo titles - which should
+        # be available in all subclasses, both on the server, in xadm, and via the
+        # client.
         #
-        # These attributes are also used to create/define CLI & walkthru options for
-        # title-relatead commands.
+        # Each of those subclasses might define (and store or calculate) other
+        # values as needed.
         #
-        # Subclasses of Xolo::Core::BaseClasses::Title will define other attributes
-        # as needed, usually as accessors.
+        # In this hash, each key is the name of an attribute, and the values are
+        # hashes defining the details of that attribute.
+        #
+        # Since they are used by all subclasses, the details may include info used
+        # by one subclass but not another. For example, these attributes are
+        # used to create/define CLI & walkthru options for xadm
+        #
+        # The info below also applies to Xolo:Core::BaseClasses::Version.
         #
         # Title attributes have these details:
         #
@@ -82,7 +88,7 @@ module Xolo
         #   changed to '-', so display_name is set using the cli option '--display-name'.
         #   If this is set to :n  then the short version is '-n'
         #
-        #   If this attribute can't be set via walk thru or a CLI option, set this to false.
+        #   If this attribute can't be set via walkthru or a CLI option, set this to false.
         #
         # - multi: [Boolean] If true, this option takes multiple values and is stored as
         #   an Array. On the commandline, it can be given multiple times and all the values
@@ -210,6 +216,8 @@ module Xolo
 
               DO NOT use, e.g. 'Installs Some App', because we know that already and it isn't helpful.
 
+              IMPORTANT: If this title appears in Self Service, the description will be visible to users.
+
               Must be at least 20 Characters.
             ENDDESC
           },
@@ -220,7 +228,7 @@ module Xolo
             label: 'Publisher',
             ted_attribute: :publisher,
             required: true,
-            cli: :p,
+            cli: :P,
             type: :string,
             validate: true,
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',

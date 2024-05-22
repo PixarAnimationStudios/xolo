@@ -125,7 +125,7 @@ module Xolo
       # @return [void]
       ####################
       def add(cnx)
-        resp = cnx.post self.class.server_route(title, version), to_h
+        resp = cnx.post self.class.server_route(title), to_h
         resp.body
       end
 
@@ -135,6 +135,7 @@ module Xolo
       ####################
       def update(cnx)
         resp = cnx.put self.class.server_route(title, version), to_h
+        resp.body
       end
 
       # Delete this title from the server

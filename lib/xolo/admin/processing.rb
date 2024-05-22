@@ -80,7 +80,7 @@ module Xolo
       # @return [void]
       ###############################
       def list_titles
-        titles = Xolo::Admin::Title.all_titles(server_cnx).map { |td| Xolo::Admin::Title.new td }
+        titles = Xolo::Admin::Title.all_title_objects(server_cnx)
 
         if json?
           puts JSON.pretty_generate(titles.map(&:to_h))
@@ -99,12 +99,22 @@ module Xolo
       # @return [void]
       ###############################
       def add_title
+        return unless confirmed? "Add title '#{cli_cmd.title}'"
+
         opts_to_process.title = cli_cmd.title
+
         new_title = Xolo::Admin::Title.new opts_to_process
-        new_title.add streaming_cnx
+        response_data = new_title.add(server_cnx)
+
+        if global_opts.debug
+          puts "response_data: #{response_data}"
+          puts
+        end
+
+        display_progress response_data[:progress_stream_url_path]
 
         # Upload the ssvc icon, if any?
-        new_title.upload_self_service_icon(upload_cnx) if new_title.self_service_icon
+        upload_ssvc_icon new_title
 
         puts "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
       rescue StandardError => e
@@ -130,13 +140,36 @@ module Xolo
         handle_server_error e
       end
 
+      # Upload the ssvc icon, if any?
+      # TODO: progress feedback? Icons should never be very large, so
+      # prob. not, to start with
+      #
+      # @param title [Xolo::Admin::Title] the title for which we are uploading an icon
+      # @return [void]
+      #######################
+      def upload_ssvc_icon(title)
+        return unless title.self_service_icon.is_a? Pathname
+
+        puts 'Uploading self-service icon...'
+        title.upload_self_service_icon(upload_cnx)
+        puts 'Self-service icon uploaded.'
+      end
+
       # Delete a title in Xolo
       #
       # @return [void]
       ###############################
       def delete_title
-        # TODO: confirmation before deletion
-        Xolo::Admin::Title.delete cli_cmd.title, server_cnx
+        return unless confirmed? "Delete title '#{cli_cmd.title}' and all its versions"
+
+        response_data = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
+
+        if global_opts.debug
+          puts "response_data: #{response_data}"
+          puts
+        end
+
+        display_progress response_data[:progress_stream_url_path]
 
         puts "Title '#{cli_cmd.title}' has been deleted from Xolo."
       rescue StandardError => e
@@ -163,7 +196,6 @@ module Xolo
         opts_to_process.title = cli_cmd.title
         opts_to_process.version = cli_cmd.version
 
-        # TODO: confirmation before adding?
         new_vers = Xolo::Admin::Version.new opts_to_process
         response_data = new_vers.add(server_cnx)
 
@@ -377,7 +409,7 @@ module Xolo
       #
       # @return [void]
       ##########################
-      def get_test_route
+      def run_test_route
         cli_cmd.command = 'test'
         if ARGV.include? '--quiet'
           global_opts.quiet = true
