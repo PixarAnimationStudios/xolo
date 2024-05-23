@@ -63,6 +63,15 @@ module Xolo
         @opts_to_process ||= walkthru? ? walkthru_cmd_opts : cli_cmd_opts
       end
 
+      # puts a string to stdout, unless quiet? is true
+      #
+      # @param msg [String] the string to puts
+      # @return [void]
+      #########################
+      def speak(msg)
+        puts msg unless quiet?
+      end
+
       # update the adm config file using the values from 'xadm config'
       #
       # @return [void]
@@ -106,7 +115,7 @@ module Xolo
         new_title = Xolo::Admin::Title.new opts_to_process
         response_data = new_title.add(server_cnx)
 
-        if global_opts.debug
+        if debug?
           puts "response_data: #{response_data}"
           puts
         end
@@ -116,7 +125,7 @@ module Xolo
         # Upload the ssvc icon, if any?
         upload_ssvc_icon new_title
 
-        puts "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
+        speak "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
       rescue StandardError => e
         handle_server_error e
       end
@@ -135,7 +144,7 @@ module Xolo
         icon = title.self_service_icon
         title.upload_self_service_icon(upload_cnx) if icon && icon != Xolo::ITEM_UPLOADED
 
-        puts "Title '#{cli_cmd.title}' has been updated in Xolo."
+        speak "Title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
         handle_server_error e
       end
@@ -150,9 +159,24 @@ module Xolo
       def upload_ssvc_icon(title)
         return unless title.self_service_icon.is_a? Pathname
 
-        puts 'Uploading self-service icon...'
+        speak "Uploading self-service icon #{title.self_service_icon.basename}, #{title.self_service_icon.pix_humanize_size} to Xolo."
+
         title.upload_self_service_icon(upload_cnx)
-        puts 'Self-service icon uploaded.'
+
+        # upload_thr = Thread.new { title.upload_self_service_icon(upload_cnx) }
+
+        # # check the thread every second, but only update the terminal every 10 secs
+        # count = 0
+        # while upload_thr.alive?
+
+        #   speak "... #{Time.now.strftime '%F %T'} Upload in progress" if (count % 10).zero?
+        #   sleep 1
+        #   count += 1
+        # end
+
+        speak 'Self-service icon uploaded. Will be added to Self Service policies as needed'
+      rescue StandardError => e
+        handle_server_error e
       end
 
       # Delete a title in Xolo
@@ -164,14 +188,14 @@ module Xolo
 
         response_data = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
 
-        if global_opts.debug
+        if debug?
           puts "response_data: #{response_data}"
           puts
         end
 
         display_progress response_data[:progress_stream_url_path]
 
-        puts "Title '#{cli_cmd.title}' has been deleted from Xolo."
+        speak "Title '#{cli_cmd.title}' has been deleted from Xolo."
       rescue StandardError => e
         handle_server_error e
       end
@@ -199,7 +223,7 @@ module Xolo
         new_vers = Xolo::Admin::Version.new opts_to_process
         response_data = new_vers.add(server_cnx)
 
-        if global_opts.debug
+        if debug?
           puts "response_data: #{response_data}"
           puts
         end
@@ -227,12 +251,7 @@ module Xolo
       def upload_pkg(version)
         return unless version.pkg_to_upload.is_a? Pathname
 
-        if global_opts.quiet
-          version.upload_pkg(upload_cnx)
-          return
-        end
-
-        puts "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
+        speak "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
         # start the upload in a thread
         upload_thr = Thread.new { version.upload_pkg(upload_cnx) }
 
@@ -240,11 +259,11 @@ module Xolo
         count = 0
         while upload_thr.alive?
 
-          puts "... #{Time.now.strftime '%F %T'} Upload in progress" if (count % 10).zero?
+          speak "... #{Time.now.strftime '%F %T'} Upload in progress" if (count % 10).zero?
           sleep 1
           count += 1
         end
-        puts 'Upload complete, Final upload to distribution points will happen soon.'
+        speak 'Upload complete, Final upload to distribution points will happen soon.'
       end
 
       # Edit/Update a version in Xolo
@@ -262,7 +281,7 @@ module Xolo
         # Upload the pkg, if any?
         vers.upload_pkg(upload_cnx) if vers.pkg_to_upload.is_a? Pathname
 
-        puts "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
+        speak "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
         handle_server_error e
       end
@@ -276,7 +295,7 @@ module Xolo
 
         response_data = Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
 
-        if global_opts.debug
+        if debug?
           puts "response_data: #{response_data}"
           puts
         end
@@ -489,7 +508,7 @@ module Xolo
 
         # always make note of the path in the history
         add_progress_history_entry url_path
-        return if global_opts.quiet
+        return if quiet?
 
         streaming_cnx.get url_path
       end

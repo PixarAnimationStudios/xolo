@@ -81,8 +81,7 @@ module Xolo
             something to standard output.
             Also ignored if --debug is given
 
-            WARNING: For some long-running processes, you may not see errors
-            that occur!
+            WARNING: For long-running processes, you may not see server errors!
           ENDDESC
         },
 
@@ -104,7 +103,7 @@ module Xolo
           desc: <<~ENDDESC
             Run xadm in debug mode
             This causes more verbose output and full backtraces
-            to be printed on errors
+            to be printed on errors. Overrides --quiet
           ENDDESC
         }
       }.freeze

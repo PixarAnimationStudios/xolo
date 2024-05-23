@@ -175,25 +175,30 @@ module Xolo
 
       # Upload an icon for self service.
       # At this point, the self_service_icon attribute
-      # will containt the local file path.
+      # should contain the local file path.
       #
       # @param upload_cnx [Xolo::Admin::Connection] The server connection
       #
       # @return [Faraday::Response] The server response
       ##################################
       def upload_self_service_icon(upload_cnx)
-        return if self_service_icon.pix_blank?
-        return if self_service_icon == Xolo::ITEM_UPLOADED
+        return unless self_service_icon.is_a? Pathname
 
-        route = "#{UPLOAD_ICON_ROUTE}/#{title}"
+        unless self_service_icon.readable?
+          raise Xolo::Core::Exceptions::NoSuchItemError,
+                "Can't upload self service icon '#{self_service_icon}': file doesn't exist or is not readable"
+        end
 
-        upfile = Faraday::UploadIO.new(
-          self_service_icon.to_s,
-          'application/octet-stream',
-          self_service_icon.basename.to_s
-        )
+        # upfile = Faraday::UploadIO.new(
+        #   self_service_icon.to_s,
+        #   'application/octet-stream',
+        #   self_service_icon.basename.to_s
+        # )
 
+        mimetype = `/usr/bin/file --brief --mime-type #{Shellwords.escape self_service_icon.expand_path.to_s}`.chomp
+        upfile = Faraday::Multipart::FilePart.new(self_service_icon.expand_path.to_s, mimetype)
         content = { file: upfile }
+        route = "#{UPLOAD_ICON_ROUTE}/#{title}"
         upload_cnx.post(route) { |req| req.body = content }
       end
 

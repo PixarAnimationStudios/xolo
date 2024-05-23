@@ -415,13 +415,8 @@ module Xolo
         title_dir.mkpath
         save_version_script
 
-        # if we've ever uploaded an icon, the last one is still there
-        # so set this appropriately
-        if self_service_icon.pix_blank? && title_dir.children.any? do |f|
-             f.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME
-           end
-          self.self_service_icon = Xolo::ITEM_UPLOADED
-        end
+        # do we have a stored self service icon?
+        self.self_service_icon = ssvc_icon_file ? Xolo::ITEM_UPLOADED : nil
 
         file = title_data_file
         log_debug "Saving local title data to: #{file}"
@@ -452,36 +447,28 @@ module Xolo
       # to the file in the data dir.
       #
       # This is run by the upload route, not the
-      # create or update methods here. xadm
-      # does the upload after creating or updating the title
+      # create or update methods here.
+      # xadm does the upload after creating or updating the title
       #
       # @param tempfile [Pathname] The path to the uploaded tmp file
       #
       # @return [void]
       ##########################
-      def save_ssvc_icon(tempfile)
-        # at this point, self_service_icon will contain the file path
-        # on the admin's local machine. So get the
-        # basename from it.
-        orig_filename = Pathname.new(self_service_icon).basename
-
+      def save_ssvc_icon(tempfile, orig_filename)
         # here's where we'll store it on the server
-        file = ssvc_icon_file
-        ext_for_file = self_service_icon.split(Xolo::DOT).last
-
-        file = file.parent + "#{file.basename}.#{ext_for_file}" if ext_for_file
+        ext_for_file = orig_filename.split(Xolo::DOT).last
+        new_basename =  "#{SELF_SERVICE_ICON_FILENAME}.#{ext_for_file}"
+        new_icon_file = title_dir + new_basename
 
         # delete any previous icon files
-        old_icons = title_dir.children.select { |c| c.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME }
-        unless old_icons.empty?
-          old_icons.each do |oi|
-            oi.delete
-            log_debug "Deleted older icon file: #{oi.basename}"
-          end
+        existing_icon_file = ssvc_icon_file
+        if existing_icon_file&.file?
+          log_debug "Deleting older icon file: #{existing_icon_file.basename}"
+          existing_icon_file.delete
         end
-        title_dir.children.each { |c| c.delete if c.basename.to_s.start_with? SELF_SERVICE_ICON_FILENAME }
-        log_debug "Saving self_service_icon '#{orig_filename}' to: #{file}"
-        tempfile.rename file
+
+        log_debug "Saving self_service_icon '#{orig_filename}' to: #{new_basename}"
+        tempfile.rename new_icon_file
 
         # the json file only stores 'uploaded' in the self_service_icon
         # attr.
