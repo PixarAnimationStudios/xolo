@@ -39,6 +39,7 @@ class XoloAdmin
 
   include Xolo::Admin
   include Xolo::Core::JSONWrappers
+  include Xolo::Core::Output
   include Xolo::Admin::CommandLine
   include Xolo::Admin::Connection
   include Xolo::Admin::Processing

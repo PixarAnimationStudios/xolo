@@ -49,11 +49,18 @@ module Xolo
         #######################
         ######################
 
-        # A list of all known titles
+        # A list of all known versions of a title
         # @return [Array<String>]
         ############
         def all_versions(title)
           Xolo::Server::Version.all_versions(title)
+        end
+
+        # A list of all known versions of a title
+        # @return [Array<Xolo::Server::Version>]
+        ############
+        def all_version_instances(title)
+          all_versions(title).map { |v| instantiate_version title: title, version: v }
         end
 
         # Instantiate a Server::Version
@@ -68,23 +75,21 @@ module Xolo
         # access from the version object to the Sinatra App instance
         # for the session and api connection objects
         #
-        # @param data [Hash, Array] hash to use with .new or title and version to use with .load
+        # @param data [Hash, Array] hash to use with .new
+        # @param title [String] title to use with .load
+        # @param version [String] version to use with .load
         #
         # @return [Xolo::Server::Version]
         #################
-        def instantiate_version(data)
+        def instantiate_version(data = nil, title: nil, version: nil)
           vers =
-            case data
-            when Hash
+            if data.is_a? Hash
               Xolo::Server::Version.new data
-
-            when Array
-              title, version = data
+            elsif title && version
               halt_on_missing_title title
               halt_on_missing_version title, version
 
               Xolo::Server::Version.load title, version
-
             else
               halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
             end

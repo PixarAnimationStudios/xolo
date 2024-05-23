@@ -451,7 +451,7 @@ module Xolo
       # @return [Boolean]
       #######################
       def quiet?
-        global_opts.quiet && !global_opts.debug
+        global_opts.quiet && !debug? && !json?
       end
 
       # Global Opts

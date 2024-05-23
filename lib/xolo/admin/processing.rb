@@ -29,7 +29,7 @@ module Xolo
 
   module Admin
 
-    # Methods that process the xadm commands and their options
+    # Methods that execute the xadm commands and their options
     #
     module Processing
 
@@ -96,11 +96,21 @@ module Xolo
           return
         end
 
-        # TODO: include more columns than just the title name
-        #
-        puts '# All titles in Xolo:'
-        puts '#####################'
-        puts titles.map(&:title).join "\n"
+        report_title = 'All titles in Xolo'
+        header = %w[Title Created By SSvc? Curr Latest]
+        data = titles.map do |t|
+          [
+            t.title,
+            t.creation_date.to_date,
+            t.created_by,
+            t.self_service || false,
+            t.released_version,
+            t.latest_version
+          ]
+        end
+        show_text generate_report(data, header_row: header, title: report_title)
+      rescue StandardError => e
+        handle_server_error e
       end
 
       # Add a title to Xolo
@@ -205,9 +215,28 @@ module Xolo
       # @return [void]
       ###############################
       def list_versions
-        puts "# All versions of title '#{cli_cmd.title}' in Xolo:"
-        puts '###########################################'
-        Xolo::Admin::Version.all_versions(cli_cmd.title, server_cnx).each { |v| puts v }
+        versions = Xolo::Admin::Version.all_version_objects(cli_cmd.title, server_cnx)
+
+        if json?
+          puts JSON.pretty_generate(versions.map(&:to_h))
+          return
+        end
+
+        report_title = "All versions of '#{cli_cmd.title}' in Xolo"
+        header = %w[Vers Created By Released By Status]
+        data = versions.map do |v|
+          [
+            v.version,
+            v.creation_date.to_date,
+            v.created_by,
+            v.release_date&.to_date,
+            v.released_by,
+            v.status
+          ]
+        end
+        show_text generate_report(data, header_row: header, title: report_title)
+      rescue StandardError => e
+        handle_server_error e
       end
 
       # Add a version to a title to Xolo
@@ -379,7 +408,7 @@ module Xolo
       # @return [void]
       ############################
       def list_groups
-        list_in_cols_with_less 'All Computer Groups in Jamf Pro:', jamf_computer_group_names
+        list_in_cols 'All Computer Groups in Jamf Pro:', jamf_computer_group_names.sort_by(&:downcase)
       end
 
       # List all the SSVC categories in jamf pro
@@ -387,40 +416,7 @@ module Xolo
       # @return [void]
       ############################
       def list_categories
-        list_in_cols_with_less 'All Categories in Jamf Pro:', jamf_category_names
-      end
-
-      # Display a list of items in as many columns as possible
-      # based on terminal width.
-      #
-      # and if the list is longer than terminal height,
-      # pipe it through 'less'
-      #
-      # @param header [String] A string to display at the top prepended with a '#'
-      #    and appended with a newline and a line of ######'s of the same length.
-      #
-      # @param list [Array<String>] the items to list
-      #
-      # @return [void]
-      ############################
-      def list_in_cols_with_less(header, list)
-        longest_list_item = list.map(&:size).max
-        use_columns = (longest_list_item + 5) < terminal_width
-
-        list_to_display = use_columns ? highline_cli.list(list, :columns_across) : list.join("\n")
-        use_less = (list_to_display.lines.size + 3) > terminal_height
-
-        output = +"# #{header}\n"
-        output << "# (displayed using 'less')\n" if use_less
-        output << '#' * (terminal_width - 5)
-        output << "\n"
-        output << list_to_display
-
-        if use_less
-          IO.popen('less', 'w') { |f| f.puts output }
-        else
-          puts output
-        end
+        list_in_cols 'All Categories in Jamf Pro:', jamf_category_names.sort_by(&:downcase)
       end
 
       # get the /test route to do whatever testing it does

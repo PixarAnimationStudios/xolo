@@ -196,7 +196,9 @@ module Xolo
           begin
             errmsg = parse_json(err.response_body)[:error]
           rescue StandardError
-            errmsg = "#{err.class}: #{err}"
+            msg = err.response_body if err.respond_to? :response_body
+            msg ||= err.to_s
+            errmsg = "#{err.class}: #{msg}"
           end
           raise errmsg
         else

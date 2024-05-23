@@ -58,6 +58,7 @@ module Xolo
         # These are available directly in sinatra routes and views
         #
         ##############################
+        ##############################
 
         # do we need to sign a pkg?
         # TODO: sign zipped bundle installers? prob not, they shouldn't be used anymore

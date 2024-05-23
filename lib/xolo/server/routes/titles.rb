@@ -72,7 +72,7 @@ module Xolo
         end
 
         # get a list of title names
-        # @return [Array<String>] the names of existing titles
+        # @return [Array<Hash>] the data for existing titles
         #################################
         get '/titles' do
           log_debug "Admin #{session[:admin]} is fetching all titles"

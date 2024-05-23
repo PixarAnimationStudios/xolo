@@ -91,7 +91,7 @@ module Xolo
           log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
 
           # the Xolo::Server::Version that owns this pkg
-          version = instantiate_version [params[:title], params[:version]]
+          version = instantiate_version title: params[:title], version: params[:version]
 
           # the original uploaded filename
           orig_filename = params[:file][:filename]

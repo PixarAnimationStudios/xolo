@@ -515,19 +515,6 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute enabled
-          #   @return [Boolean] Is this title enabled?
-          enabled: {
-            label: 'Enabled',
-            type: :boolean,
-            cli: false,
-            read_only: true, # maintained by the server, not directly by xadm
-            desc: <<~ENDDESC
-              Is this title enabled? It must have one deployable version first.
-              A deployable version must have an installer package uploaded.
-            ENDDESC
-          },
-
           # @!attribute version_order
           #   @return [Array<String>] The known versions, newest to oldest
           version_order: {

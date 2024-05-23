@@ -248,7 +248,6 @@ module Xolo
       #############################
       def ted_cnx
         server_app_instance.ted_cnx
-        # @ted_cnx ||= super
       end
 
       # @return [Jamf::Connection] a single Jamf Pro API connection to use for
@@ -256,7 +255,6 @@ module Xolo
       #############################
       def jamf_cnx
         server_app_instance.jamf_cnx
-        # @jamf_cnx ||= super
       end
 
       # The title dir for this title on the server
@@ -312,9 +310,8 @@ module Xolo
       # @return [Xolo::Server::Version]
       ########################
       def version_object(version)
-        data = [title, version]
         log_debug "Instantiating version #{version} from Title instance #{title}"
-        server_app_instance.instantiate_version(data)
+        server_app_instance.instantiate_version(title: title, version: version)
 
         # version = Xolo::Server::Version.load title, version
         # version.server_app_instance = server_app_instance
@@ -508,7 +505,6 @@ module Xolo
       # Add more data to our hash
       ###########################
       def to_h
-        self.enabled = ted_title.enabled?
         hash = super
         hash[:ted_id_number] = ted_id_number
         hash

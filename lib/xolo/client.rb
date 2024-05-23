@@ -34,6 +34,8 @@
 
 require 'xolo'
 
+require 'io/console'
+
 module Xolo
 
   module Client

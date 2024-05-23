@@ -62,24 +62,6 @@ module Xolo
       ##########################
       ##########################
 
-      # @return [Integer] how many rows high is our terminal?
-      #########################
-      def terminal_height
-        IO.console.winsize.first
-      end
-
-      # @return [Integer] how many columns wide is our terminal?
-      #########################
-      def terminal_width
-        IO.console.winsize.last
-      end
-
-      # @return [Integer] how wide is our word wrap? terminal-width minus 5
-      #########################
-      def terminal_word_wrap
-        @terminal_word_wrap ||= terminal_width - 5
-      end
-
       # @return [Highline] Our HighLine instance.
       #    Word wrap at terminal-width minus 5
       ##############################

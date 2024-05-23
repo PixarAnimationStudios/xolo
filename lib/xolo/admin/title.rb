@@ -169,8 +169,8 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [String]
       ####################
-      def latest_version(cnx)
-        self.class.latest_version(title, cnx)
+      def latest_version
+        version_order&.first
       end
 
       # Upload an icon for self service.

@@ -77,7 +77,10 @@ module Xolo
         #################################
         get '/titles/:title/versions' do
           log_debug "Admin #{session[:admin]} is listing all versions for title '#{params[:title]}'"
-          body all_versions(params[:title])
+          # body all_versions(params[:title])
+          vers_ins = all_version_instances(params[:title])
+          # log_debug "vers_ins: #{vers_ins}"
+          body vers_ins.map(&:to_h)
         end
 
         # get all the data for a single version
@@ -87,7 +90,7 @@ module Xolo
           log_debug "Admin #{session[:admin]} is fetching version '#{params[:version]}' of title '#{params[:title]}'"
           halt_on_missing_version params[:title], params[:version]
 
-          vers = instantiate_version [params[:title], params[:version]]
+          vers = instantiate_version title: params[:title], version: params[:version]
           body vers.to_h
         end
 
@@ -98,7 +101,7 @@ module Xolo
           log_info "Admin #{session[:admin]} is updating version '#{params[:version]}' of title '#{params[:title]}'"
           halt_on_missing_version params[:title], params[:version]
 
-          vers = instantiate_version [params[:title], params[:version]]
+          vers = instantiate_version title: params[:title], version: params[:version]
 
           unless vers.title == params[:title] && vers.version == params[:version]
             msg = "JSON payload title and version '#{vers.title}/#{vers.version}' does not match  URL parameter '#{params[:title]}/#{params[:version]}'"
@@ -128,10 +131,9 @@ module Xolo
 
           log_info "Admin #{session[:admin]} is deleting version '#{params[:version]}' of title '#{params[:title]}'"
 
-          # for some reason, instantiating un the with_streaming block
+          # for some reason, instantiating in the with_streaming block
           # causes a throw error
-          data = [params[:title], params[:version]]
-          vers = instantiate_version data
+          vers = instantiate_version title: params[:title], version: params[:version]
 
           with_streaming do
             vers.delete

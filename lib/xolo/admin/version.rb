@@ -74,6 +74,13 @@ module Xolo
         resp.body
       end
 
+      # @return [Array<Xolo::Admin::Version>] The currently known versions of a title on the server
+      #############################
+      def self.all_version_objects(title, cnx)
+        resp = cnx.get server_route(title)
+        resp.body.map { |vd| Xolo::Admin::Version.new vd }
+      end
+
       # Does a version of a title exist on the server?
       # @param title [String] the title
       # @param version [String] the version
