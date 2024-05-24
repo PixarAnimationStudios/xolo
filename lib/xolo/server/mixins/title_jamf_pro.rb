@@ -107,8 +107,12 @@ module Xolo
         # create/activate the patch title in Jamf Pro, if not already done
         #
         # This 'subscribes' Jamf to the title in the title editor
-        # It must be enabled in the Title Editor first
-        # or it won't show up as available.
+        # It must be enabled in the Title Editor first, meaning
+        # it has at least one requirement, and an enabled patch/version.
+        #
+        # Xolo should have enabled it in the Title editor before we
+        # reach this point.
+        #
         ##########################
         def activate_patch_title_in_jamf
           if jamf_ted_title_active?
@@ -143,6 +147,9 @@ module Xolo
           msg = "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
           progress msg, log: :info
 
+          ea_matches = jamf_ea_matches_version_script?
+          return if ea_matches.nil?
+
           accept_xolo_ea_in_jamf
         end
 
@@ -153,7 +160,6 @@ module Xolo
         #
         ############################
         def accept_xolo_ea_in_jamf
-          title_id = Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
           patchdata = <<~ENDPATCHDATA
             {
               "extensionAttributes": [
@@ -165,9 +171,38 @@ module Xolo
             }
           ENDPATCHDATA
 
-          # requires CRUD provs for computer ext attrs
-          jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{title_id}", patchdata
+          # requires CRUD privs for computer ext attrs
+          jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
           progress "Jamf: Accepted use of ExtensionAttribute version script '#{ted_ea_key}'", log: :debug
+        end
+
+        # Does the EA for this title in Jamf match the version script we know about?
+        #
+        # If we don't have a version script, then we don't really care what Jamf has at the moment,
+        # Jamf's should go away once it catches up with the title editor.
+        #
+        # But if we do have one, and Jamf has something different, we'll need to start up a thread
+        # waiting for Jamf to notice the change, so we can accept it, if configured to do so
+        # automatically.
+        #
+        # This method just tells us the current situation.
+        #
+        # @return [Boolean, nil] nil if we have no version script,
+        #   otherwise, does jamf match our version_script?
+        #########################
+        def jamf_ea_matches_version_script?
+          our_version_script = version_script_content
+          # we don't have one, so if Jamf does at the moment, it'll go away soon
+          # when jamf catches up with the title editor.
+          return unless our_version_script
+
+          # TODO: which this gets implemented in ruby-jss, use that implementation
+          jea_data = jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jamf_title_id}/extension-attributes").first
+
+          j_script = (Base64.decode64(jea_data[:scriptContents]).chomp if jea_data)
+
+          # does jamf's script match ours?
+          our_version_script.chomp == j_script
         end
 
         # The titles active in Jamf Patch Management from the Title Editor
@@ -205,6 +240,12 @@ module Xolo
               source_id: jamf_ted_patch_source.id,
               cnx: jamf_cnx
             )
+        end
+
+        # @return [Integer] The Jamf ID of this title, if it is active in Jamf
+        ##################################
+        def jamf_title_id
+          @jamf_title_id ||= Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
         end
 
         # Delete an entire title from Jamf Pro

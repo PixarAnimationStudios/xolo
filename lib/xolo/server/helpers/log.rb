@@ -56,32 +56,71 @@ module Xolo
         #######################
         ######################
 
+        ###############################
         def logger
           Xolo::Server.logger
         end
 
-        def log_debug(msg)
-          logger.debug(session[:xolo_id]) { "#{msg}" }
+        ###############################
+        def log_debug(msg, alert: false)
+          logger.debug(session[:xolo_id]) { msg }
+          send_alert msg, :DEBUG if alert
         end
 
-        def log_info(msg)
-          logger.info(session[:xolo_id]) { "#{msg}" }
+        ###############################
+        def log_info(msg, alert: false)
+          logger.info(session[:xolo_id]) { msg }
+          send_alert msg, :INFO if alert
         end
 
-        def log_warn(msg)
-          logger.warn(session[:xolo_id]) { "#{msg}" }
+        ###############################
+        def log_warn(msg, alert: false)
+          logger.warn(session[:xolo_id]) { msg }
+          send_alert msg, :WARNING if alert
         end
 
-        def log_error(msg)
-          logger.error(session[:xolo_id]) { "#{msg}" }
+        ###############################
+        def log_error(msg, alert: false)
+          logger.error(session[:xolo_id]) { msg }
+          send_alert msg, :ERROR if alert
         end
 
-        def log_fatal(msg)
-          logger.fatal(session[:xolo_id]) { "#{msg}" }
+        ###############################
+        def log_fatal(msg, alert: false)
+          logger.fatal(session[:xolo_id]) { msg }
+          send_alert msg, :FATAL if alert
         end
 
-        def log_unknown(msg)
-          logger.unknown(session[:xolo_id]) { "#{msg}" }
+        ###############################
+        def log_unknown(msg, alert: false)
+          logger.unknown(session[:xolo_id]) { msg }
+          send_alert msg, :UNKNOWN if alert
+        end
+
+        # Send a message thru the alert_tool, if one is defined in the config.
+        #
+        # Messages are prepended with "#{level} ALERT: "
+        # This should be called by passing alert: true to one of the
+        # logging wrapper methods
+        #
+        # @param msg [String] the message to send
+        # @param level [Symbol] the log level of the message
+        #
+        # @return [void]
+        ###############################
+        def send_alert(msg, level)
+          return unless Xolo::Server.config.alert_tool
+
+          alerter = nil # just in case we need the ensure clause below.
+          alerter = IO.popen(Xolo::Server.config.alert_tool, 'w')
+          alerter.puts "#{level} ALERT: #{msg}"
+
+        # this catches the quitting of the alerter before expected
+        rescue Errno::EPIPE => e
+          true
+        ensure
+          # this flushes the pipe and makes the msg go
+          alerter&.close
         end
 
       end # Log

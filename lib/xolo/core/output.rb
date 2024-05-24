@@ -268,9 +268,11 @@ module Xolo
           help = "# -- Using /usr/bin/less: ' ' next, 'b' prev, 'q' exit, 'h' help --"
           text = "#{help}\n#{text}"
         end
+        less = nil
 
         # point stdout through less, print, then restore stdout
         less = IO.popen('/usr/bin/less', 'w')
+
         begin
           less.puts text
 
@@ -279,7 +281,7 @@ module Xolo
         rescue Errno::EPIPE => e
           true
         ensure
-          less.close
+          less&.close
         end
       end
 

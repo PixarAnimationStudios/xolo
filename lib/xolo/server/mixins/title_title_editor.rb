@@ -133,17 +133,17 @@ module Xolo
           req_app_bundle_id = new_data ? new_data[:app_bundle_id] : app_bundle_id
           req_ea_script = new_data ? new_data[:version_script] : version_script
 
+          # using app-based requirement
           if req_app_name && req_app_bundle_id
-            # delete the current requirements, which might be EA based
-            ted_title.requirements.delete_all_criteria
-
-            # re-add them
+            # delete existing requirements (which might be ea-based)
+            # and re-add the app-based
             update_ted_title_app_requirements(
               ted_title,
               req_app_name: req_app_name,
               req_app_bundle_id: req_app_bundle_id
             )
 
+          # using EA-based requirement
           elsif req_ea_script
             # nothing to do if the new data shows ITEM_UPLOADED - it hasn't changed
             return if req_ea_script == Xolo::ITEM_UPLOADED
@@ -159,8 +159,10 @@ module Xolo
             # if we are here, we are changing from app-based to EA-based requirement
             # so delete the current app-based requirements
             ted_title.requirements.delete_all_criteria
+
             # and add the EA and requirement
             update_ted_title_ea_requirements ted_title, req_ea_script: req_ea_script
+            # TODO: accept the EA when jamf notices the change in a few min.
 
           else
             msg = 'No version_script, nor app_name & app_bundle_id - Cannot create Title Editor Title Requirements'
@@ -178,6 +180,9 @@ module Xolo
         ####################
         def update_ted_title_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
           progress "Title Editor: Setting App-based Requirement Criteria for title '#{title}'", log: :debug
+
+          # delete the current requirements, which might be EA based
+          ted_title.requirements.delete_all_criteria
 
           ted_title.requirements.add_criterion(
             name: 'Application Title',

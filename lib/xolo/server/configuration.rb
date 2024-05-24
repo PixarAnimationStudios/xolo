@@ -202,6 +202,27 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute alert_tool
+        #   @return [Pathname] The path to an executable that relays messages from stdin to some means of alerting
+        #      Xolo server admins of a problem that would otherwise go unnoticed.
+        #
+        alert_tool: {
+          default: nil,
+          desc: <<~ENDDESC
+            Server errors that happen as part of xadm actions should be reported to the xadm user.
+            But sometimes an error might happen on the server that's outside of the scope of a xadm session.
+
+            While these errors will be logged in the log file, you might want them reported to a server
+            administrator in real time.
+
+            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error,
+            or other alert message, on standard input and send it somewhere where it'll be seen by an appropriate
+            audiance, be that an email address, a Slack channel - anything you'd like.
+
+            Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
+          ENDDESC
+        },
+
         # @!attribute pkg_signing_keychain_pw
         #   @return [String]  A command, path, or value for the password to unlock the pkg_signing_keychain
         pkg_signing_keychain_pw: {

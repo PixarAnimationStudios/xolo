@@ -48,6 +48,7 @@ require 'singleton'
 require 'json'
 require 'yaml'
 require 'open3'
+require 'base64'
 
 # Gems
 ######
