@@ -81,12 +81,12 @@ module Xolo
       # In the TitleEditor, the version script is
       # stored as an Extension Attribute - each title can
       # only have one.
-      # and it nees a 'key', which is used to indicate the
-      # EA in various criteria.
-      # The key is this value as a suffix on the title
-      # so for title 'foobar', it is 'foobar-xolo-version-ea'
+      # and it needs a 'key', which is used to indicate the
+      # EA in various criteria, and is the EA name in Jamf/
+      # The key is this value as a prefix on the title
+      # so for title 'foobar', it is 'xolo-version-ea-foobar'
       # That value is also used as the display name
-      TITLE_EDITOR_EA_KEY_SUFFIX = '-xolo-version-ea'
+      TITLE_EDITOR_EA_KEY_PREFIX = 'xolo-version-ea-'
 
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
@@ -117,7 +117,7 @@ module Xolo
       #   in the title editor as the ExtAttr for a given title
       #####################
       def self.ted_ea_key(title)
-        "#{title}#{TITLE_EDITOR_EA_KEY_SUFFIX}"
+        "#{TITLE_EDITOR_EA_KEY_PREFIX}#{title}"
       end
 
       # The title dir for a given title on the server,
@@ -354,11 +354,8 @@ module Xolo
         progress 'Saving title data to Xolo server'
         save_local_data
 
-        # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
-        # appname & bundleid (TEd requirements)
-        # in local file, and TRd
-
-        # TODO: upload any self svc icon
+        # ssvc icon is uploaded in a separate process, and the
+        # title data file will be updated as needed then.
       end
 
       # Update this title, updating to the
@@ -370,15 +367,14 @@ module Xolo
       def update(new_data)
         log_info "Updating title '#{title}' for admin '#{admin}'"
 
-        delete_version_script_file unless new_data[:version_script]
-
         self.modification_date = Time.now
         self.modified_by = admin
         log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
         update_title_in_ted new_data
 
-        # TODO:  update in Jamf if needed
+        # Nothing needs changing in Jamf here - Jamf changes are
+        # all version-based.
 
         # update local data before saving back to file
         ATTRIBUTES.each do |attr, deets|
@@ -392,15 +388,16 @@ module Xolo
           send "#{attr}=", new_val
         end
 
+        # even if we already have a version script, the new data should
+        # contain Xolo::ITEM_UPLOADED
+        delete_version_script_file unless new_data[:version_script]
+
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
         save_local_data
 
-        # TODO: Deal with VersionScript (TEd ExtAttr + requirement ), or
-        # appname & bundleid (TEd requirements)
-        # in local file, and TRd, and... jamf?
-
-        # TODO: upload any self svc icon
+        # self svc icon will be uploaded in a separate step
+        # and the local data will be updated again then
       end
 
       # Save our current data out to our JSON data file
@@ -422,7 +419,7 @@ module Xolo
 
       # Save our current version script out to our local file,
       # but only if we aren't using app_name and app_bundle_id
-      #
+      # and only if it's changed
       # This overwrites the existing data.
       #
       # @return [void]
@@ -432,6 +429,8 @@ module Xolo
         return if version_script == Xolo::ITEM_UPLOADED
 
         file = version_script_file
+        return if file&.readable? && version_script.chomp == file.read.chomp
+
         log_debug "Saving version_script to: #{file}"
         file.pix_atomic_write version_script
 

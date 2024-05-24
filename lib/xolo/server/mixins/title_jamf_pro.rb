@@ -104,7 +104,8 @@ module Xolo
           jamf_ted_available_titles.include? title
         end
 
-        # create/activate the patch title in Jamf Pro
+        # create/activate the patch title in Jamf Pro, if not already done
+        #
         # This 'subscribes' Jamf to the title in the title editor
         # It must be enabled in the Title Editor first
         # or it won't show up as available.
@@ -146,7 +147,8 @@ module Xolo
         end
 
         # TODO: make this a config setting, users should be able to require manual acceptance.
-        # and handle it not being accepted yet.
+        # Also - handle it not being accepted yet.
+        #
         # TODO: when this is implemented in ruby-jss, use the direct implementation
         #
         ############################

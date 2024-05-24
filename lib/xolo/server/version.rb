@@ -32,7 +32,7 @@ module Xolo
     # Xolo Version/Patch as used on the Xolo Server
     #
     # NOTE be sure to only instantiate these using the
-    # servers 'instantiate_version' method, or else
+    # server's 'instantiate_version' method, or else
     # they might not have all the correct innards
     ###
     class Version < Xolo::Core::BaseClasses::Version

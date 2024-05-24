@@ -129,14 +129,15 @@ module Xolo
         def update_ted_title_requirements(ted_title, new_data = nil)
           progress "Title Editor: Setting Requirements for title '#{title}'", log: :debug
 
-          # delete the current requirements
-          ted_title.requirements.delete_all_criteria
-
           req_app_name = new_data ? new_data[:app_name] : app_name
           req_app_bundle_id = new_data ? new_data[:app_bundle_id] : app_bundle_id
           req_ea_script = new_data ? new_data[:version_script] : version_script
 
           if req_app_name && req_app_bundle_id
+            # delete the current requirements, which might be EA based
+            ted_title.requirements.delete_all_criteria
+
+            # re-add them
             update_ted_title_app_requirements(
               ted_title,
               req_app_name: req_app_name,
@@ -144,6 +145,21 @@ module Xolo
             )
 
           elsif req_ea_script
+            # nothing to do if the new data shows ITEM_UPLOADED - it hasn't changed
+            return if req_ea_script == Xolo::ITEM_UPLOADED
+
+            # if we're already using an EA, but we are here,
+            # the EA script has changed so just update it
+            if ted_title.requirements.first.type == 'extensionAttribute'
+              title.extensionAttribute.script = req_ea_script
+              # TODO: re-accept the EA when jamf notices the change in a few min.
+              return
+            end
+
+            # if we are here, we are changing from app-based to EA-based requirement
+            # so delete the current app-based requirements
+            ted_title.requirements.delete_all_criteria
+            # and add the EA and requirement
             update_ted_title_ea_requirements ted_title, req_ea_script: req_ea_script
 
           else
@@ -207,7 +223,7 @@ module Xolo
 
           # add a requirement criterion using the EA
           # Any value in the EA means the title is installed
-          # (the value will be the version that is installd)
+          # (the value will be the version that is installed)
           ted_title.requirements.add_criterion(
             type: 'extensionAttribute',
             name: ted_ea_key,
