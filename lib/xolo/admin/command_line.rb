@@ -200,7 +200,7 @@ module Xolo
         current_opt_values.to_h.each do |k, v|
           next if cli_cmd_opts["#{k}_given"]
 
-          cli_cmd_opts[k] = v unless v.pix_blank?
+          cli_cmd_opts[k] = v unless v.pix_empty?
         end
 
         # Validate the options given on the commandline

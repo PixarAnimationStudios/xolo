@@ -58,7 +58,7 @@ module Xolo
         def initialize(data_hash)
           self.class::ATTRIBUTES.each do |attr, deets|
             val = data_hash[attr]
-            next if val.pix_blank?
+            next if val.pix_empty?
 
             # convert timestamps to Time objects if needed,
             # All the other values shouldn't need converting

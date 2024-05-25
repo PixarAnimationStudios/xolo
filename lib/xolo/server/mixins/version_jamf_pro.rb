@@ -248,7 +248,7 @@ module Xolo
           pol.set_trigger_event :custom, jamf_manual_install_trigger
 
           # while in pilot, only pilot groups are targets
-          unless pilot_groups_to_use.pix_blank?
+          unless pilot_groups_to_use.pix_empty?
             pilot_groups_to_use.each do |group|
               pol.scope.add_target :computer_group, group
             end
@@ -258,7 +258,7 @@ module Xolo
           set_policy_exclusions pol
 
           if title_object.self_service
-            pilot_groups_to_use.pix_blank?
+            pilot_groups_to_use.pix_empty?
             progress 'Jamf: Adding to SelfService, will only be visible to appropriate groups.', log: :debug
             pol.add_to_self_service
             pol.add_self_service_category title_object.self_service_category
@@ -302,7 +302,7 @@ module Xolo
           pol.set_trigger_event :custom, Xolo::BLANK
 
           # while in pilot, only pilot groups are targets
-          unless pilot_groups_to_use.pix_blank?
+          unless pilot_groups_to_use.pix_empty?
             pilot_groups_to_use.each do |group|
               pol.scope.add_target :computer_group, group
             end
@@ -412,7 +412,7 @@ module Xolo
 
           log_debug "jamf_cnx is STILL: #{jamf_cnx}"
 
-          unless pilot_groups_to_use.pix_blank?
+          unless pilot_groups_to_use.pix_empty?
             pilot_groups_to_use.each do |group|
               ppol.scope.add_target :computer_group, group
             end
@@ -472,7 +472,7 @@ module Xolo
             sleep 15
           end
 
-          msg = "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at  #{Time.now.strftime '%F $T'}"
+          msg = "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at  #{Time.now.strftime '%F %T'}"
           progress msg, log: :debug
         end
 

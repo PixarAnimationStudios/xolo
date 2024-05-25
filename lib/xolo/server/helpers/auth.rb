@@ -70,19 +70,17 @@ module Xolo
         def member_of_admin_jamf_group?(admin_name)
           groupname = Xolo::Server.config.admin_jamf_group
 
-          jcnx = jamf_cnx
-
           # This isn't well implemented in ruby-jss, so use c_get directly
-          jgroup = jcnx.c_get("accounts/groupname/#{groupname}")[:group]
+          jgroup = jamf_cnx.c_get("accounts/groupname/#{groupname}")[:group]
 
-          log_debug "Checking for admin '#{admin_name}' in group '#{groupname}'"
+          log_debug "Checking for admin '#{admin_name}' in group '#{groupname}' via jamf_cnx '#{jamf_cnx.name}'"
           if jgroup[:ldap_server]
-            Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], admin_name, groupname, cnx: jcnx
+            Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], admin_name, groupname, cnx: jamf_cnx
           else
             jgroup[:members].any? { |m| m[:name] == admin_name }
           end
         ensure
-          jcnx&.disconnect
+          jamf_cnx&.disconnect
         end
 
         # Try to authenticate the jamf user trying to log in to xolo

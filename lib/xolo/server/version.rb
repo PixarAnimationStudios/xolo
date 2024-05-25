@@ -217,7 +217,7 @@ module Xolo
             []
 
           # this catches nil and empty arrays
-          elsif pilot_groups.pix_blank?
+          elsif pilot_groups.pix_empty?
             title_object.pilot_groups
 
           elsif pilot_groups.is_a? Array
@@ -302,17 +302,23 @@ module Xolo
         self.class.version_data_file title, version
       end
 
+      # TODO: maybe pass in an appropriate Windoo::SoftwareTitle, so
+      # we don't have to use refresh all the time to re-fetch, if we just
+      # re-fetched from elsewhere?
+      #
       # @return [Windoo::Patch] The Windoo::Patch object that represents
       #   this version in the title editor
       #############################
-      def ted_patch
-        @ted_patch ||= ted_title.patches.patch(version)
+      def ted_patch(refresh: false)
+        @ted_patch = nil if refresh
+        @ted_patch ||= ted_title(refresh: refresh).patches.patch(version)
       end
 
       # @return [Windoo::SoftwareTitle] The Windoo::SoftwareTitle object that represents
       #   this version's title in the title editor
       #############################
-      def ted_title
+      def ted_title(refresh: false)
+        @ted_title = nil if refresh
         @ted_title ||= Windoo::SoftwareTitle.fetch id: title, cnx: ted_cnx
       end
 
@@ -376,13 +382,14 @@ module Xolo
       # @return [void]
       #########################
       def update(new_data)
+        @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
 
         self.modification_date = Time.now
         self.modified_by = admin
-        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
-        update_patch_in_ted new_data
+        update_patch_in_ted
+        enable_ted_patch
 
         # TODO:  update in Jamf if needed
 
@@ -390,7 +397,7 @@ module Xolo
         ATTRIBUTES.each do |attr, deets|
           next if deets[:read_only]
 
-          new_val = new_data[attr]
+          new_val = @new_data_for_update[attr]
           old_val = send(attr)
           next if new_val == old_val
 
@@ -402,7 +409,7 @@ module Xolo
         # add some data
         save_local_data
 
-        # TODO: upload any new pk=g
+        # TODO: upload any new pkg
       end
 
       # Save our current data out to our JSON data file

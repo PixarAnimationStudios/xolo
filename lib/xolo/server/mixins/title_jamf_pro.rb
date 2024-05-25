@@ -104,7 +104,7 @@ module Xolo
           jamf_ted_available_titles.include? title
         end
 
-        # create/activate the patch title in Jamf Pro, if not already done
+        # create/activate the patch title in Jamf Pro, if not already done.
         #
         # This 'subscribes' Jamf to the title in the title editor
         # It must be enabled in the Title Editor first, meaning
@@ -150,16 +150,42 @@ module Xolo
           ea_matches = jamf_ea_matches_version_script?
           return if ea_matches.nil?
 
+          # only call this if we expect jamf to tell us to accept the EA
           accept_xolo_ea_in_jamf
         end
 
+        # This method should only be called when we *expect* to need to accept the EA -
+        # not only when we first activate a title with a version script, but when the version_script
+        # has changed, or been added, replacing app_name and app_bundle_id.
+        #
+        # If the EA needs acceptance when this method starts, we accept it and we're done.
+        #
+        # If not (there is no EA, or it's already accepted) then we spin off a thread that
+        # waits up to an hour for Jamf to notice the change from the Title Editor and require
+        # re-acceptance.
+        #
+        # As soon as we see that Jamf shows accepted: false, we'll accept it and be done.
+        #
+        # If we make it for an hour and never see the expected need for acceptance, we
+        # log it and send an alert about it.
+        #
         # TODO: make this a config setting, users should be able to require manual acceptance.
         # Also - handle it not being accepted yet.
         #
-        # TODO: when this is implemented in ruby-jss, use the direct implementation
+        # TODO: when this is implemented in ruby-jss, use the implementation
         #
+        # NOTE: PATCHing the ea of the title requires CRUD privs for computer ext attrs
+        #
+        # @return [void]
         ############################
         def accept_xolo_ea_in_jamf
+          # return with warning if we aren't auto-accepting
+          unless Xolo::Server.config.jamf_auto_accept_xolo_eas
+            progress "Jamf: IMPORTANT: the version-script ExtAttr for this title '#{ted_ea_key}' must be accepted manually in Jamf Pro",
+                     log: :info
+            return
+          end
+
           patchdata = <<~ENDPATCHDATA
             {
               "extensionAttributes": [
@@ -171,9 +197,56 @@ module Xolo
             }
           ENDPATCHDATA
 
-          # requires CRUD privs for computer ext attrs
-          jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
-          progress "Jamf: Accepted use of ExtensionAttribute version script '#{ted_ea_key}'", log: :debug
+          if jamf_ea_needs_acceptance?
+            jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
+            progress "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :debug
+            return
+          end
+
+          auto_accept_ea_in_thread patchdata
+        end
+
+        #####################
+        def auto_accept_ea_in_thread(patchdata)
+          # don't do this if there's already one running for this instance
+          if @auto_accept_ea_thread&.alive?
+            log_debug "Jamf: auto_accept_ea_thread already running. Caller: #{caller_locations.first}"
+            return
+          end
+
+          progress "Jamf: version-script ExtAttr for this title '#{ted_ea_key}' will be auto-accepted when Jamf sees the changes in the Title Editor"
+
+          @auto_accept_ea_thread = Thread.new do
+            log_debug 'Jamf: Starting auto_accept_ea_thread for '
+            start_time = Time.now
+            max_time = start_time + 3600
+            did_it = false
+
+            while Time.now < max_time
+              sleep 30
+              log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time.strftime '%F %T'}"
+              next unless jamf_ea_needs_acceptance?
+
+              jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
+              log_info "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'"
+              did_it = true
+              break
+            end # while
+
+            unless did_it
+              log_error "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate.",
+                        alert: true
+            end
+          end # thread
+        end
+
+        # @return [Boolean] does the Jamf Title currently need its EA to be accepted?
+        #################################
+        def jamf_ea_needs_acceptance?
+          ead = jamf_ea_data
+          return unless ead
+
+          !ead[:accepted]
         end
 
         # Does the EA for this title in Jamf match the version script we know about?
@@ -181,28 +254,70 @@ module Xolo
         # If we don't have a version script, then we don't really care what Jamf has at the moment,
         # Jamf's should go away once it catches up with the title editor.
         #
-        # But if we do have one, and Jamf has something different, we'll need to start up a thread
-        # waiting for Jamf to notice the change, so we can accept it, if configured to do so
-        # automatically.
+        # But if we do have one, and Jamf has something different, we'll need to accept it,
+        # if configured to do so automatically.
         #
-        # This method just tells us the current situation.
+        # This method just tells us the current situation about our version script
+        # vs the Jamf EA.
+        #
+        # @param new_version_script [String, nil] If updating, this is the new incoming version script.
         #
         # @return [Boolean, nil] nil if we have no version script,
         #   otherwise, does jamf match our version_script?
         #########################
-        def jamf_ea_matches_version_script?
-          our_version_script = version_script_content
+        def jamf_ea_matches_version_script?(new_version_script: nil)
+          # our current version script - nil if we currently don't have one
+          our_version_script = version_script_contents
+
           # we don't have one, so if Jamf does at the moment, it'll go away soon
           # when jamf catches up with the title editor.
           return unless our_version_script
 
-          # TODO: which this gets implemented in ruby-jss, use that implementation
-          jea_data = jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jamf_title_id}/extension-attributes").first
-
-          j_script = (Base64.decode64(jea_data[:scriptContents]).chomp if jea_data)
+          # the script in Jamf
+          jea_data = jamf_ea_data
+          j_script = (Base64.decode64(jea_data[:scriptContents]) if jea_data).to_s
 
           # does jamf's script match ours?
-          our_version_script.chomp == j_script
+          our_version_script.chomp == j_script.chomp
+        end
+
+        # The version_script as a Jamf Extension Attribute,
+        # once the title as been activated in Jamf.
+        #
+        # This is a hash of data returned from the JP API endpoint:
+        #    "v2/patch-software-title-configurations/#{jamf_title_id}/extension-attributes"
+        # which has these keys:
+        #
+        #   :accepted [Boolean] has it been accepted for the title?
+        #
+        #   :eaId [String] the 'key' of the EA from the title editor
+        #
+        #   :displayName [String] the displayname from the title editor, for titles
+        #   maintained by xolo, it's the same as the eaId
+        #
+        #   :scriptContent [String] the Base64-encoded script of the EA.
+        #
+        # TODO: when this gets implemented in ruby-jss, use that implementation
+        # and return the patch title ea object.
+        #
+        # NOTE: The title must be activated in Jamf before accessing this.
+        #
+        # NOTE: We fetch this hash every time this method is called, since we may
+        #   be waiting for jamf to notice that the EA has changed in the Title Editor
+        #   and needs re-acceptance
+        #
+        # NOTE: While Jamf Patch allows for multiple EAs per title, the Title Editor only
+        #   allows for one. So even tho the data comes back in an array, we only care about
+        #   the first (and only) value.
+        #
+        # @return [Hash] the data from the JPAPI endpoint,
+        #   nil if the title has no EA at the moment
+        ########################
+        def jamf_ea_data
+          jid = jamf_title_id
+          return unless jid
+
+          jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jid}/extension-attributes").first
         end
 
         # The titles active in Jamf Patch Management from the Title Editor

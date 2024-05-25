@@ -357,6 +357,17 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute jamf_auto_accept_xolo_eas
+        #   @return [Boolean] should we auto-accept the Jamf patch title eas?
+        jamf_auto_accept_xolo_eas: {
+          default: Jamf::Connection::DFT_TIMEOUT,
+          desc: <<~ENDDESC
+            For titles fully maintained by Xolo, should we auto-accept the Patch Title Extension Attributes
+            that come from the uploaded version_script from xadm?
+            Default is false, meaning all Title EAs must be manually accepted in the Jamf Pro Web UI.
+          ENDDESC
+        },
+
         # @!attribute admin_jamf_group
         #   @return [String] The name of a Jamf account-group containing users of 'xadm'
         admin_jamf_group: {

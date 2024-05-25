@@ -75,60 +75,58 @@ module Xolo
           )
           new_patch = ted_title.patches.patch version
 
-          update_patch_killapps new_patch
-          update_patch_capabilites new_patch
-          update_patch_component new_patch
+          update_patch_killapps
+          update_patch_capabilites
+          update_patch_component
 
           self.ted_id_number = new_patch.patchId
         end
 
         # Update version/patch in the title editor
         #
-        # @param new_data [Hash] The new data sent from xadm
         # @return [void]
         ##########################
-        def update_patch_in_ted(new_data)
+        def update_patch_in_ted
           log_info "Title Editor: Updating Patch '#{version}' SoftwareTitle '#{title}'"
 
           Xolo::Server::Version::ATTRIBUTES.each do |attr, deets|
             ted_attribute = deets[:ted_attribute]
             next unless ted_attribute
 
-            new_val = new_data[attr]
+            new_val = @new_data_for_update[attr]
             old_val = send(attr)
             next if new_val == old_val
 
-            # These changes happen in real time on the Title Editor server
+            # These changes happen in real time on the Title Editor server, no need to #save
             log_debug "Title Editor: Updating patch attribute '#{ted_attribute}': #{old_val} -> #{new_val}"
             ted_patch.send "#{ted_attribute}=", new_val
           end
 
-          update_patch_killapps ted_patch, new_data
-          update_patch_capabilites ted_patch, new_data
-          update_patch_component ted_patch
+          update_patch_killapps
+          update_patch_capabilites
+          update_patch_component
 
           self.ted_id_number = ted_patch.patchId
         end
 
         # Update any killapps for this version in the title editor.
         #
-        # @param patch [Windoo::Patch] the patch that holds the killapps
         # @return [void]
         ##########################
-        def update_patch_killapps(patch, new_data = nil)
-          kapps = new_data ? new_data[:killapps] : killapps
+        def update_patch_killapps
+          kapps = @new_data_for_update ? @new_data_for_update[:killapps] : killapps
           return unless kapps
 
           # delete the existing
           progress "Title Editor: updating killApps for Patch '#{version}' of SoftwareTitle '#{title}'", log: :debug
-          patch.killApps.delete_all_killApps
+          ted_patch.killApps.delete_all_killApps
 
           # Add the current ones back in
           kapps.each do |ka_str|
             name, bundleid = ka_str.split(Xolo::SEMICOLON_SEP_RE)
             log_debug "Title Editor: Setting killApp '#{ka_str}' for Patch '#{version}' of SoftwareTitle '#{title}'"
 
-            patch.killApps.add_killApp(
+            ted_patch.killApps.add_killApp(
               appName: name,
               bundleId: bundleid
             )
@@ -144,36 +142,35 @@ module Xolo
         #
         # TODO: Allow xadm to specify other capability criteria?
         #
-        # @param patch [Windoo::Patch] the patch for which we are defining capabilities
         # @return [void]
         ##########################
-        def update_patch_capabilites(patch, new_data = nil)
+        def update_patch_capabilites
           progress "Title Editor: updating capabilities for Patch '#{version}' of SoftwareTitle '#{title}'",
                    log: :debug
 
           # delete the existing
-          patch.capabilities.delete_all_criteria
+          ted_patch.capabilities.delete_all_criteria
 
           # min os
-          min = new_data ? new_data[:min_os] : min_os
+          min = @new_data_for_update ? @new_data_for_update[:min_os] : min_os
 
           progress "Title Editor: setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
                    log: :debug
 
-          patch.capabilities.add_criterion(
+          ted_patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'greater than or equal',
             value: min
           )
 
           # max os
-          max = new_data ? new_data[:max_os] : max_os
+          max = @new_data_for_update ? @new_data_for_update[:max_os] : max_os
 
           return unless max
 
           progress "Title Editor: setting max_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
                    log: :debug
-          patch.capabilities.add_criterion(
+          ted_patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'less than or equal',
             value: max
@@ -186,57 +183,74 @@ module Xolo
         # have this version installed
         #
         # TODO: allow xadm to define more complex critera?
-        # TODO: If title switches from versionscript to app info, all patch components must be updated
+        # TODO: If title switches between version script and app info, all patch components must be updated
         #
-        # @param patch [Windoo::Patch] the patch for which we are defining the component criteria
+        # @param title [Xolo::Server::Title] an existing title object for this version, so  when the title
+        #   loops thru calling this method, we don't keep re-instantiating it
+        #
         # @return [void]
         ##########################
-        def update_patch_component(patch)
+        def update_patch_component(title_obj: nil)
           log_debug "Title Editor: updating component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
 
           # delete the existing component, and its criteria
-          patch.delete_component
+          ted_patch.delete_component
 
           # create a new one
-          patch.add_component name: title, version: version
-          comp = patch.component
+          ted_patch.add_component name: title, version: version
+          comp = ted_patch.component
+
+          # if we weren't passed one, instantiate it now
+          title_obj ||= title_object
 
           # Are we using the 'version_script' (aka the EA for the title)
-          if title_object.version_script
-            progress "Title Editor: setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
-                     log: :debug
-
-            comp.criteria.add_criterion(
-              type: 'extensionAttribute',
-              name: title_object.ted_ea_key,
-              operator: 'is',
-              value: version
-            )
+          if title_obj.version_script
+            update_ea_component(comp, title_obj)
 
           # If not, we are using the app name and bundle ID
           # and version
           else
-            progress "Title Editor: setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
-                     log: :debug
-
-            comp.criteria.add_criterion(
-              name: 'Application Title',
-              operator: 'is',
-              value: title_object.app_name
-            )
-
-            comp.criteria.add_criterion(
-              name: 'Application Bundle ID',
-              operator: 'is',
-              value: title_object.app_bundle_id
-            )
-
-            comp.criteria.add_criterion(
-              name: 'Application Version',
-              operator: 'is',
-              value: version
-            )
+            update_app_component(comp, title_obj)
           end
+        end
+
+        # @return [void]
+        ##############################
+        def update_ea_component(comp, title_obj)
+          progress "Title Editor: setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
+                   log: :debug
+
+          comp.criteria.add_criterion(
+            type: 'extensionAttribute',
+            name: title_obj.ted_ea_key,
+            operator: 'is',
+            value: version
+          )
+        end
+
+        # @return [void]
+        ##############################
+        def update_app_component(comp, title_obj)
+          progress "Title Editor: setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
+                   log: :debug
+
+          comp.criteria.add_criterion(
+            name: 'Application Title',
+            operator: 'is',
+            value: title_obj.app_name
+          )
+
+          comp.criteria.add_criterion(
+            name: 'Application Bundle ID',
+            operator: 'is',
+            value: title_obj.app_bundle_id
+          )
+
+          comp.criteria.add_criterion(
+            name: 'Application Version',
+            operator: 'is',
+            value: version
+          )
         end
 
         # For a patch to be enabled in the Title Editor, it needs at least a component criterion
@@ -252,8 +266,6 @@ module Xolo
         # @return [void]
         ##############################
         def enable_ted_patch
-          return if ted_patch.enabled?
-
           progress "Title Editor: Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :debug
           ted_patch.enable
 

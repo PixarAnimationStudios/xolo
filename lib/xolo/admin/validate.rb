@@ -82,7 +82,7 @@ module Xolo
       def validate_cli_command
         return if Xolo::Admin::Options::COMMANDS.key? cli_cmd.command
 
-        msg = cli_cmd.command.pix_blank? ? "Usage: #{usage}" : "Unknown command: '#{cli_cmd.command}'"
+        msg = cli_cmd.command.pix_empty? ? "Usage: #{usage}" : "Unknown command: '#{cli_cmd.command}'"
         raise ArgumentError, msg
       end # validate command
 
@@ -595,8 +595,8 @@ module Xolo
         hostname = walkthru? ? walkthru_cmd_opts[:hostname] : cli_cmd_opts[:hostname]
         admin = walkthru? ? walkthru_cmd_opts[:admin] : cli_cmd_opts[:admin]
 
-        raise Xolo::MissingDataError, 'hostname must be set before password' if hostname.pix_blank?
-        raise Xolo::MissingDataError, 'admin username must be set before password' if admin.pix_blank?
+        raise Xolo::MissingDataError, 'hostname must be set before password' if hostname.pix_empty?
+        raise Xolo::MissingDataError, 'admin username must be set before password' if admin.pix_empty?
 
         payload = { admin: admin, password: val }.to_json
         resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
@@ -746,7 +746,7 @@ module Xolo
       #######
       def validate_title_consistency_expire_paths(opts)
         return unless opts[:expiration].to_i.positive?
-        return unless opts[:expiration_paths].pix_blank?
+        return unless opts[:expiration_paths].pix_empty?
 
         msg =
           if walkthru?

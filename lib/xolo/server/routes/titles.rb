@@ -94,25 +94,17 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         put '/titles/:title' do
-          log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
-          halt_on_missing_title params[:title]
-
-          title = instantiate_title params[:title]
-
-          unless title.title == params[:title]
-            msg = "Title in JSON payload '#{title.title}' does not match title in URL parameter '#{params[:title]}'"
-            log_debug msg
-            halt 400, { error: msg }
-          end
-
           request.body.rewind
           new_data = parse_json(request.body.read)
           log_debug "Incoming update title data: #{new_data}"
 
-          title.update new_data
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
 
-          resp_content = { title: title.title, result: 'updated' }
-          body resp_content
+          log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
+          with_streaming do
+            title.update new_data
+          end
         end
 
         # Delete an existing title

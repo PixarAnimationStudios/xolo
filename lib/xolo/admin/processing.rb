@@ -145,14 +145,22 @@ module Xolo
       # @return [void]
       ###############################
       def edit_title
-        opts_to_process.title = cli_cmd.title
-        title = Xolo::Admin::Title.new opts_to_process
+        return unless confirmed? "Edit title '#{cli_cmd.title}'"
 
-        title.update server_cnx
+        opts_to_process.title = cli_cmd.title
+
+        title = Xolo::Admin::Title.new opts_to_process
+        response_data = title.update server_cnx
+
+        if debug?
+          puts "response_data: #{response_data}"
+          puts
+        end
+
+        display_progress response_data[:progress_stream_url_path]
 
         # Upload the ssvc icon, if any?
-        icon = title.self_service_icon
-        title.upload_self_service_icon(upload_cnx) if icon && icon != Xolo::ITEM_UPLOADED
+        upload_ssvc_icon title
 
         speak "Title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e

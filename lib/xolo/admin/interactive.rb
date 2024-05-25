@@ -194,8 +194,8 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def pw_na
-        admin_empty = walkthru_cmd_opts[:admin].pix_blank?
-        host_empty = walkthru_cmd_opts[:hostname].pix_blank?
+        admin_empty = walkthru_cmd_opts[:admin].pix_empty?
+        host_empty = walkthru_cmd_opts[:hostname].pix_empty?
         'N/A until hostname and admin name are set' if host_empty || admin_empty
       end
 
@@ -319,7 +319,7 @@ module Xolo
         # answer = nil if answer == 'x'
 
         # if no answer, keep the current value
-        return if answer.pix_blank?
+        return if answer.pix_empty?
 
         # if 'none', erase the value in walkthru_cmd_opts
         answer = nil if answer == Xolo::NONE
@@ -652,7 +652,7 @@ module Xolo
           # but for anything not multi, an empty response
           # means user just hit return, nothing to validate,
           # no changes to make
-          return true if ans.pix_blank?
+          return true if ans.pix_empty?
 
           # If this value isn't required, accept 'none'
           # which clears the value

@@ -271,30 +271,38 @@ module Xolo
         self.class.title_data_file title
       end
 
-      # @return [Pathname] The the local file containing the code of the version script
-      #####################
-      def version_script_file
-        self.class.version_script_file title
-      end
-
       # @return [Pathname] The the local file containing the self-service icon
       #####################
       def ssvc_icon_file
         self.class.ssvc_icon_file title
       end
 
-      # @return [String] The content of the version_script, if any
-      ####################
-      def version_script_content
-        return if version_script.pix_blank?
+      # @return [Pathname] The the local file containing the code of the version script
+      #####################
+      def version_script_file
+        self.class.version_script_file title
+      end
 
-        version_script == Xolo::ITEM_UPLOADED ? version_script_file.read : varsion_script
+      # @return [String] The string contents of the version_script, if any
+      ####################
+      def version_script_contents
+        # the value will be nil (no script used),
+        # a script, that will replace any existing,
+        # or Xolo::ITEM_UPLOADED, meaning use the one we have saved on disk
+
+        # if we have incoming data, that's what we care about
+        # otherwise we use our current value
+        curr_script = @new_data_for_update ? @new_data_for_update[:version_script] : version_script
+        return if curr_script.pix_empty?
+
+        curr_script == Xolo::ITEM_UPLOADED ? version_script_file.read : curr_script
       end
 
       # @return [Windoo::SoftwareTitle] The Windoo::SoftwareTitle object that represents
       #   this title in the title editor
       #############################
-      def ted_title
+      def ted_title(refresh: false)
+        @ted_title = nil if refresh
         @ted_title ||= Windoo::SoftwareTitle.fetch id: title, cnx: ted_cnx
       end
 
@@ -312,12 +320,6 @@ module Xolo
       def version_object(version)
         log_debug "Instantiating version #{version} from Title instance #{title}"
         server_app_instance.instantiate_version(title: title, version: version)
-
-        # version = Xolo::Server::Version.load title, version
-        # version.server_app_instance = server_app_instance
-        # version.session = session
-        # version.title_object = self
-        # version
       end
 
       # @return [Array<Xolo::Server::Version>] An array of all current version objects
@@ -325,11 +327,6 @@ module Xolo
       ########################
       def version_objects(refresh: false)
         version_order.map { |v| version_object v }
-
-        # @version_objects = nil if refresh
-        # return @version_objects if @version_objects
-
-        # @version_objects = version_order.map { |v| version_object v }
       end
 
       # Save a new title, adding to the
@@ -365,18 +362,22 @@ module Xolo
       # @return [void]
       #########################
       def update(new_data)
+        # makes the new data availble as needed
+        # for methods like version_script_contents
+        # so they can be used even before we apply
+        # the new data to this instance.
+        @new_data_for_update = new_data
+
         log_info "Updating title '#{title}' for admin '#{admin}'"
 
         self.modification_date = Time.now
         self.modified_by = admin
-        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
-        update_title_in_ted new_data
+        # update anything needed in Title Editor - do this before checking
+        # for things in Jamf
+        update_title_in_ted
 
-        # Nothing needs changing in Jamf here - Jamf changes are
-        # all version-based.
-
-        # update local data before saving back to file
+        # update instance data so that methods like version_script_contents work
         ATTRIBUTES.each do |attr, deets|
           next if deets[:read_only]
 
@@ -384,21 +385,58 @@ module Xolo
           old_val = send(attr)
           next if new_val == old_val
 
-          log_debug "Updating Xolo attribute '#{attr}': #{old_val} -> #{new_val}"
+          log_debug "Updating Xolo Title attribute '#{attr}': #{old_val} -> #{new_val}"
           send "#{attr}=", new_val
         end
+
+        # Does our version script match what jamf sees as the EA?
+        # if not, we might need to (re)accept the version-script EA
+        ea_matches = jamf_ea_matches_version_script?
+
+        # if its true or nil, no need to re-accept
+        # if its false, jamf should eventually need us to re-accept
+        accept_xolo_ea_in_jamf if ea_matches == false
 
         # even if we already have a version script, the new data should
         # contain Xolo::ITEM_UPLOADED
         delete_version_script_file unless new_data[:version_script]
 
-        # save to file last, because saving to TitleEd and Jamf will
-        # add some data
+        # save to file last, because saving to TitleEd and Jamf may
+        # add or change some data
         save_local_data
 
-        # self svc icon will be uploaded in a separate step
+        # Now loop thru the versions and do any needed Title Editor updates
+        # if changing between version-script and app-based component criteria
+        vobjs = version_objects
+        vobjs.each do |vo|
+          vo.update_patch_component title_obj: self
+          progress "Title Editor: Re-enabling Patch '#{vo.version} of SoftwareTitle '#{title}'", log: :debug
+          # loop until the enablement goes thru
+          loop do
+            sleep 5
+            vo.ted_patch(refresh: true).enable
+            break
+          rescue StandardError => e
+            log_debug "Title Editor: Caught #{e.class} while Looping while re-enabling  Patch '#{vo.version} of SoftwareTitle '#{title}'"
+            nil
+          end
+        end
+        return if vobjs.empty?
+
+        progress "Title Editor: Re-enabling SoftwareTitle '#{title}'", log: :debug
+        # loop until the enablement goes thru
+        loop do
+          sleep 5
+          ted_title(refresh: true).enable
+          break
+        rescue Windoo::MissingDataError
+          log_debug "Title Editor: Looping while re-enabling SoftwareTitle '#{title}'"
+          nil
+        end
+
+        # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
-      end
+      end # update
 
       # Save our current data out to our JSON data file
       # This overwrites the existing data.
