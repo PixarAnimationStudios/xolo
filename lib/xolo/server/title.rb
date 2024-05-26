@@ -389,6 +389,16 @@ module Xolo
           send "#{attr}=", new_val
         end
 
+        # Update Jamfy Things
+
+        # TODO: if the Excluded, Pilot, or Target groups changed at the
+        # title level, update the scope of all version-specific policies and patch policies
+
+        # TODO: update everything in jamf if any relevant SSvc settings change.
+
+        # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
+        # e.g. if expiration data changes
+
         # Does our version script match what jamf sees as the EA?
         # if not, we might need to (re)accept the version-script EA
         ea_matches = jamf_ea_matches_version_script?

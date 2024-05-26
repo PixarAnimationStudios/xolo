@@ -97,6 +97,14 @@ module Xolo
     extend Xolo::Server::CommandLine
     include Xolo::Server::Log
 
+    # Constants
+    #############################
+    #############################
+
+    # everything xolo-related in Jamf is in this category
+    # (this is never used as a SSvc category - that should be set per title)
+    JAMF_XOLO_CATEGORY = 'xolo'
+
     # Module methods
     ##############################
     ##############################

@@ -88,7 +88,7 @@ module Xolo
         # @return [void]
         ##########################
         def update_title_in_ted
-          log_info "Title Editor: Updating SoftwareTitle '#{title}'"
+          progress "Title Editor: Updating SoftwareTitle '#{title}'", log: :info
 
           Xolo::Server::Title::ATTRIBUTES.each do |attr, deets|
             ted_attribute = deets[:ted_attribute]

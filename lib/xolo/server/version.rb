@@ -207,8 +207,8 @@ module Xolo
       # the title and here in the version.
       # If the verison pilot_groups is a non-empty array, use those groups.
       # If the version pilot_groups is nil or an empty array, use the ones from the title, if any.
-      # if the version pilot_groups is Xolo::NO_PILOT ('no-pilot') then done
-      #   ise any pilot groups even if the title has some defined
+      # if the version pilot_groups is Xolo::NO_PILOT ('no-pilot') then dont
+      #   use any pilot groups even if the title has some defined
       # @return [Array<String>] the pilot groups to use in policies and patch policies
       ######################
       def pilot_groups_to_use
@@ -228,7 +228,30 @@ module Xolo
           end
       end
 
+      # which excluded groups should we acutally use, since they might be defined in both
+      # the title and here in the version.
       #
+      # - Always use a merger of those defined in the title and the version.
+      #
+      # @return [Array<String>] the excluded groups to use in policies and patch policies
+      ######################
+      def excluded_groups_to_use
+        @excluded_groups_to_use ||= (excluded_groups + title_object.excluded_groups).uniq
+      end
+
+      # which target groups should we acutally use, since they might be defined in both
+      # the title and here in the version.
+      #
+      # - ignore the version-specific groups if the title group(s) is 'all'
+      # - Always use a merger of those defined in the title and the version.
+      #
+      # @return [Array<String>] the excluded groups to use in policies and patch policies
+      ######################
+      def target_groups_to_use
+        # TODO: nothing if title 'all'
+        @target_groups_to_use ||= (target_groups + title_object.target_groups).uniq
+      end
+
       # @return [Xolo::Server::Title] the Title object that holds this version
       ###########################
       # def title_object

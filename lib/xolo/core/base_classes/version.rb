@@ -242,6 +242,56 @@ module Xolo
             ENDDESC
           },
 
+          # TODO: make it so that when a xoloadmin says target_group = all, an optional policy
+          # is run that requests approval for that.  That policy can run a script to do ... anything
+          # but until the approval is granted, the target_group is an empty array
+          #
+          # @!attribute target_groups
+          #   @return [Array<String>] Jamf groups that will automatically get this title installed when released
+          target_groups: {
+            label: 'Target Computer Groups',
+            cli: :t,
+            cli_alias: :target_group,
+            validate: true,
+            type: :string,
+            multi: true,
+            readline_prompt: 'Group Name',
+            readline: :jamf_computer_group_names,
+            invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
+            desc: <<~ENDDESC
+              One or more Jamf Computer Groups containing computers that will automatically have this version of the title installed.
+              Use '#{TARGET_ALL}' to auto-install on all computers that aren't excluded.
+
+              Any target-groups defined here in the version will be merged with any defined in the title itself. If the
+              title specifies "all" then setting this per version is meaningless (use --excluded-groups to limit installation per version)
+
+              NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no target groups.
+
+              When using the --target-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+            ENDDESC
+          },
+
+          # @!attribute excluded_groups
+          #   @return [Array<String>] Jamf groups that are not allowed to install this title
+          excluded_groups: {
+            label: 'Excluded Computer Groups',
+            cli: :x,
+            validate: true,
+            type: :string,
+            multi: true,
+            readline_prompt: 'Group Name',
+            readline: :jamf_computer_group_names,
+            invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
+            desc: <<~ENDDESC
+              One or more Jamf Computer Groups containing computers that are not allowed to install this title.
+              If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
+
+              Any exclluded-groups defined here in the version will be merged with any defined in the title itself, we always err on the side of NOT installing something. Consider this when defining exclusions at the title-level.
+
+              If not using --walkthru you can use --excluded-groups multiple times.
+            ENDDESC
+          },
+
           # @!attribute jamf_pkg
           #   @return [String] The file name of the installer for the Jamf::Package object that
           #     installs this version.  'xolo-<title>-<version>.pkg' (or .zip)

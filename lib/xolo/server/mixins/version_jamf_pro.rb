@@ -41,9 +41,6 @@ module Xolo
         ##############################
         ##############################
 
-        # everything xolo-related in Jamf is in this category
-        JAMF_XOLO_CATEGORY = 'xolo'
-
         # Jamf objects are named with this prefix followed by <title>-<version>
         # See also:  Xolo::Server::Version#jamf_obj_name_pfx
         # which holds the full prefix for that version, and is used as the
@@ -182,10 +179,10 @@ module Xolo
 
         # ensure the xolo category exists
         def ensure_jamf_xolo_category
-          return if Jamf::Category.all_names(cnx: jamf_cnx).include? JAMF_XOLO_CATEGORY
+          return if Jamf::Category.all_names(cnx: jamf_cnx).include? Xolo::Server::JAMF_XOLO_CATEGORY
 
-          log_debug "Jamf Pro: Creating category #{JAMF_XOLO_CATEGORY}"
-          Jamf::Category.create(name: JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
+          log_debug "Jamf Pro: Creating category #{Xolo::Server::JAMF_XOLO_CATEGORY}"
+          Jamf::Category.create(name: Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
         end
 
         # Create everything we need in Jamf
@@ -216,7 +213,7 @@ module Xolo
             name: jamf_pkg_name,
             filename: jamf_pkg_file,
             reboot_required: reboot,
-            category: JAMF_XOLO_CATEGORY
+            category: Xolo::Server::JAMF_XOLO_CATEGORY
           )
           @jamf_pkg_id = pkg.save
         rescue StandardError => e
@@ -242,13 +239,13 @@ module Xolo
           progress "Jamf: Creating Jamf Manual Install Policy: #{jamf_manual_install_policy_name}", log: :debug
           pol = Jamf::Policy.create name: jamf_manual_install_policy_name, cnx: jamf_cnx
 
-          pol.category = JAMF_XOLO_CATEGORY
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.add_package jamf_pkg_name
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
 
           # while in pilot, only pilot groups are targets
-          unless pilot_groups_to_use.pix_empty?
+          unless pilot_groups_to_use.pix_empty? # it could be nil
             pilot_groups_to_use.each do |group|
               pol.scope.add_target :computer_group, group
             end
@@ -296,13 +293,13 @@ module Xolo
           progress "Jamf: Creating Jamf Auto Install Policy: #{jamf_auto_install_policy_name}", log: :debug
           pol = Jamf::Policy.create name: jamf_auto_install_policy_name, cnx: jamf_cnx
 
-          pol.category = JAMF_XOLO_CATEGORY
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.add_package jamf_pkg_name
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
 
           # while in pilot, only pilot groups are targets
-          unless pilot_groups_to_use.pix_empty?
+          unless pilot_groups_to_use.pix_empty? # it could be nil
             pilot_groups_to_use.each do |group|
               pol.scope.add_target :computer_group, group
             end
@@ -314,7 +311,10 @@ module Xolo
           pol.save
         end
 
-        # When a version is released, update the target groups to
+        # When a version is released, or the title or version is updated,
+        # update the target groups to
+        # TODO: use this method for any updates, not just releasing
+        # but releasing tells us the scope targets: pilots, or targets
         # the auto-install policy object's scope
         # Manual install policies are allways scoped to all targets
         ############################
@@ -336,7 +336,7 @@ module Xolo
         # @param pol [Jamf::Policy]
         ############################
         def set_policy_exclusions(pol)
-          title_object.excluded_groups.each do |group|
+          excluded_groups_to_use.each do |group|
             pol.scope.add_exclusion :computer_group, group
           end
         end

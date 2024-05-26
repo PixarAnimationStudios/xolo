@@ -155,12 +155,12 @@ module Xolo
         # @return [void]
         ###################
         def progress(msg, log: :debug)
-          log_debug "Progress method called from #{caller_locations.first}"
+          # log_debug "Progress method called from #{caller_locations.first}"
 
           progress_stream_file.pix_append "#{msg.chomp}\n"
 
           unless log
-            log_debug 'Processed unlogged progress message'
+            # log_debug 'Processed unlogged progress message'
             return
           end
 
