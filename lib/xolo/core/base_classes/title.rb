@@ -319,7 +319,7 @@ module Xolo
 
               These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
 
-              Pilot groups specified here for the Title will apply to all versions. However you can specify a different set of pilot groups per version and they will override any given here.
+              Pilot groups specified here for the Title are the default for all versions. However you can specify a different set of pilot groups per version and they will override any given here.
 
               When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
@@ -344,12 +344,17 @@ module Xolo
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
-              One or more Jamf Computer Groups containing computers that will automatically have this title installed.
+              One or more Jamf Computer Groups containing computers that will automatically have this title installed as new versions are released.
+
               Use '#{TARGET_ALL}' to auto-install on all computers that aren't excluded.
+
+              Target groups specified here for the Title are the default for all versions. However you can specify a different set of target groups per version and they will override any given here.
 
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no target groups.
 
-              If not using --walkthru you can use --target-groups multiple times.
+              When using the --target-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+
+              To remove any existing, use '#{Xolo::NONE}'.
             ENDDESC
           },
 
@@ -368,7 +373,11 @@ module Xolo
               One or more Jamf Computer Groups containing computers that are not allowed to install this title.
               If a computer is both a target and an exclusion, the exclusion wins and the title will not be available.
 
-              If not using --walkthru you can use --excluded-groups multiple times.
+              Excluded groups specified here for the Title are the default for all versions. However you can specify a different set of excluded groups per version and they will override any given here.
+
+              When using the --excluded-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+
+              To remove any existing, use '#{Xolo::NONE}'.
             ENDDESC
           },
 

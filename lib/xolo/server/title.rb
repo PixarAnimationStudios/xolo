@@ -196,6 +196,12 @@ module Xolo
       # The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
 
+      # when applying updates, the new data is stored
+      # here so it can be accessed by update-methods
+      # and compared to the current instanace values
+      # both for updating the title, and the versions
+      attr_reader :new_data_for_update
+
       # version_order is defined in ATTRIBUTES
       alias versions version_order
 
@@ -286,9 +292,10 @@ module Xolo
       # @return [String] The string contents of the version_script, if any
       ####################
       def version_script_contents
-        # the value will be nil (no script used),
-        # a script, that will replace any existing,
-        # or Xolo::ITEM_UPLOADED, meaning use the one we have saved on disk
+        # the value will be
+        # - nil (no script used),
+        # - a script, that will replace any existing,
+        # - or Xolo::ITEM_UPLOADED, meaning use the one we have saved on disk
 
         # if we have incoming data, that's what we care about
         # otherwise we use our current value
@@ -356,16 +363,16 @@ module Xolo
       end
 
       # Update this title, updating to the
-      # local filesystem, Jamf Pro, and the Title Editor as needed
+      # local filesystem, Jamf Pro, and the Title Editor,
+      # and applying any changes to existing versions as needed.
       #
       # @param new_data [Hash] The new data sent from xadm
       # @return [void]
       #########################
       def update(new_data)
-        # makes the new data availble as needed
-        # for methods like version_script_contents
-        # so they can be used even before we apply
-        # the new data to this instance.
+        # make the new data availble as needed,
+        # for methods to compare the incoming new data
+        # with the existing instance data
         @new_data_for_update = new_data
 
         log_info "Updating title '#{title}' for admin '#{admin}'"
@@ -373,80 +380,108 @@ module Xolo
         self.modification_date = Time.now
         self.modified_by = admin
 
-        # update anything needed in Title Editor - do this before checking
-        # for things in Jamf
+        # Do this before doing things in Jamf
         update_title_in_ted
 
-        # update instance data so that methods like version_script_contents work
-        ATTRIBUTES.each do |attr, deets|
-          next if deets[:read_only]
+        update_title_in_jamf
 
-          new_val = new_data[attr]
-          old_val = send(attr)
-          next if new_val == old_val
-
-          log_debug "Updating Xolo Title attribute '#{attr}': #{old_val} -> #{new_val}"
-          send "#{attr}=", new_val
-        end
-
-        # Update Jamfy Things
-
-        # TODO: if the Excluded, Pilot, or Target groups changed at the
-        # title level, update the scope of all version-specific policies and patch policies
-
-        # TODO: update everything in jamf if any relevant SSvc settings change.
-
-        # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
-        # e.g. if expiration data changes
-
-        # Does our version script match what jamf sees as the EA?
-        # if not, we might need to (re)accept the version-script EA
-        ea_matches = jamf_ea_matches_version_script?
-
-        # if its true or nil, no need to re-accept
-        # if its false, jamf should eventually need us to re-accept
-        accept_xolo_ea_in_jamf if ea_matches == false
-
-        # even if we already have a version script, the new data should
-        # contain Xolo::ITEM_UPLOADED
-        delete_version_script_file unless new_data[:version_script]
+        # Don't do this until we no longer need to use
+        # @new_data_for_update for comparison with our
+        # 'old' insance values.
+        update_local_instance_values
 
         # save to file last, because saving to TitleEd and Jamf may
         # add or change some data
         save_local_data
 
-        # Now loop thru the versions and do any needed Title Editor updates
-        # if changing between version-script and app-based component criteria
-        vobjs = version_objects
-        vobjs.each do |vo|
-          vo.update_patch_component title_obj: self
-          progress "Title Editor: Re-enabling Patch '#{vo.version} of SoftwareTitle '#{title}'", log: :debug
-          # loop until the enablement goes thru
-          loop do
-            sleep 5
-            vo.ted_patch(refresh: true).enable
-            break
-          rescue StandardError => e
-            log_debug "Title Editor: Caught #{e.class} while Looping while re-enabling  Patch '#{vo.version} of SoftwareTitle '#{title}'"
-            nil
-          end
-        end
-        return if vobjs.empty?
+        # even if we already have a version script, the new data should
+        # contain Xolo::ITEM_UPLOADED. If its nil, we shouldn't
+        # have one at all and should remove the old one.
+        delete_version_script_file unless new_data_for_update[:version_script]
 
-        progress "Title Editor: Re-enabling SoftwareTitle '#{title}'", log: :debug
-        # loop until the enablement goes thru
-        loop do
-          sleep 5
-          ted_title(refresh: true).enable
-          break
-        rescue Windoo::MissingDataError
-          log_debug "Title Editor: Looping while re-enabling SoftwareTitle '#{title}'"
-          nil
-        end
+        # nothing to do below here if we have no versions yet
+        return if versions.pix_empty?
+
+        # loop thru versions and apply changes
+        #
+        # Since @new_data_for_update is no longer valid
+        # for comparisons, the prev. methods should have
+        # set flags indicating anything we need to do to
+        # the versions. E.g.
+        # @need_to_set_version_patch_components
+        # or
+        # @need_to_update_target_group
+        update_versions_for_title_changes
+
+        # changing the ted patches probably disabled the title
+        # so re-enable it
+        reenable_ted_title
+
+        # Do This at the end - after all the versions/patches have been updated.
+        # Jamf won't see the need for re-acceptance until after the title
+        # (and at least one patch) have been re-enabled.
+        #
+        # jamf_ea_matches_version_script is a failsafe:
+        # Does our version script match what jamf sees as the EA?
+        # if not, we might need to (re)accept the version-script EA
+        # if its true or nil, no need to re-accept
+        # if its false, jamf should eventually need us to re-accept
+        #
+        accept_xolo_ea_in_jamf if @need_to_accept_xolo_ea_in_jamf || jamf_ea_matches_version_script? == false
 
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
       end # update
+
+      #
+      # Update our instance attributes with any new data before
+      # saving the changes back out to the file system
+      # @return [void]
+      ###########################
+      def update_local_instance_values
+        # update instance data with new data before writing out to the filesystem.
+        # Do this last so that the instance values can be compared to
+        # @new_data_for_update in the steps above.
+        # Also, those steps might have updated some server-specific attributes
+        # which will be saved to the file system as well.
+        ATTRIBUTES.each do |attr, deets|
+          # make sure these are updated elsewhere if needed,
+          # e.g. modification data.
+          next if deets[:read_only]
+
+          new_val = new_data_for_update[attr]
+          old_val = send(attr)
+          next if new_val == old_val
+
+          log_debug "Updating Xolo Title attribute '#{attr}': '#{old_val}' -> '#{new_val}'"
+          send "#{attr}=", new_val
+        end
+        # update any other server-specific attributes here...
+      end
+
+      # If any title changes require updates to existing versions in either
+      # the title editor, or Jamf, this loops thru the versions and applies
+      # them
+      # @return [void]
+      ############################
+      def update_versions_for_title_changes
+        vobjs = version_objects
+        return if vobjs.empty?
+
+        # Ted Stuff
+        # - swap version-script / app-based component ?
+        # - re-enable all patches
+        # - re-enable the title
+        # Jamf Stuff
+        # - update any policy scopes
+        # - update any policy SSvc settings
+
+        vobjs.each do |vers_obj|
+          update_ted_patch_component_for_version(vers_obj) if @need_to_set_version_patch_components
+          update_policy_scopes_for_version(vers_obj)
+          update_ssvc_for_version(vers_obj)
+        end
+      end
 
       # Save our current data out to our JSON data file
       # This overwrites the existing data.

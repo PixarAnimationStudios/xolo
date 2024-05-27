@@ -36,11 +36,11 @@ module Xolo
       # The value to use when unsetting an option
       NONE = 'none'
 
-      # To override any pilot_groups in the title with 'none'
-      # this is provided as a version-level pilotgroup
-      # ('none' just means no version-level pilot groups, but
+      # To override any scoping groups in the title with 'none'
+      # this is provided as a version-level group
+      # ('none' just means no version-level  groups, but
       # will fall back to the title-level ones)
-      NO_PILOT = 'no-pilot'
+      NO_SCOPED_GROUPS = 'no-scoped-groups'
 
       # Several things use x
       X = 'x'

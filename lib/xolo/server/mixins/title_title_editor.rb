@@ -103,9 +103,9 @@ module Xolo
             ted_title.send "#{ted_attribute}=", new_val
           end
 
-          update_ted_title_requirements ted_title
+          update_ted_title_requirements
 
-          self.ted_id_number = ted_title.softwareTitleId
+          self.ted_id_number ||= ted_title.softwareTitleId
         end
 
         # Add or update the requirements in the TItle Editor title.
@@ -124,25 +124,18 @@ module Xolo
         # TODO: If title switches between version script and app info,
         # all patch components must be updated
         #
-        # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
-        #
         # @return [void]
         ######################
-        def update_ted_title_requirements(ted_title)
+        def update_ted_title_requirements
+          return unless need_to_update_title_requirements?
+
           progress "Title Editor: Setting Requirements for title '#{title}'", log: :debug
 
-          title_has_ea_before_update = !ted_title.extensionAttribute.nil?
+          req_app_name, req_app_bundle_id, req_ea_script = new_data_for_title_requirement
 
-          req_app_name = @new_data_for_update ? @new_data_for_update[:app_name] : app_name
-          req_app_bundle_id = @new_data_for_update ? @new_data_for_update[:app_bundle_id] : app_bundle_id
-          req_ea_script = @new_data_for_update ? @new_data_for_update[:version_script] : version_script
-
-          # now using app-based requirement, tho we might have been already
+          # we are now using an app-based requirement, tho we might have been already
           if req_app_name && req_app_bundle_id
-            # delete existing requirements (which might be ea-based)
-            # and re-add the app-based
             update_ted_title_app_requirements(
-              ted_title,
               req_app_name: req_app_name,
               req_app_bundle_id: req_app_bundle_id
             )
@@ -153,27 +146,43 @@ module Xolo
             # nothing to do if the new data shows ITEM_UPLOADED - it hasn't changed
             return if req_ea_script == Xolo::ITEM_UPLOADED
 
-            # if we're already using an EA, but we are here,
-            # the EA script has changed so just update it
-            # and re-accept
-            if ted_title.requirements.first&.type == 'extensionAttribute'
-              ted_title.extensionAttribute.script = req_ea_script
-              accept_xolo_ea_in_jamf
-              return
-            end
+            # if we're already using an EA, but we are here, the EA script has
+            # changed so just update it
+            return if update_existing_ted_title_ea
 
             # if we are here, we are changing from app-based to EA-based requirement
-            # so delete the current app-based requirements
-            ted_title.requirements.delete_all_criteria
+            update_ted_title_ea_requirements req_ea_script
 
-            # and add the EA and requirement
-            update_ted_title_ea_requirements ted_title, req_ea_script: req_ea_script
-            accept_xolo_ea_in_jamf
           else
-            msg = 'No version_script, nor app_name & app_bundle_id - Cannot create Title Editor Title Requirements'
+            msg = 'No version_script, nor app_name & app_bundle_id - Cannot set Title Editor Title Requirements'
             log_error msg
             raise Xolo::MissingDataError, msg
           end
+        end
+
+        # @return [Boolean] Do we need to update the title requirements?
+        ###########################
+        def need_to_update_title_requirements?
+          # if we have incoming updates, has anything changed that we need to deal with?
+          if new_data_for_update && (new_data_for_update[:app_name] == app_name && \
+               new_data_for_update[:app_bundle_id] ==  app_bundle_id && \
+               new_data_for_update[:version_script] == version_script)
+            log_debug 'Title Editor: No changes to title requirements'
+            return false
+          end
+          @need_to_set_version_patch_components = true
+        end
+
+        # @return [Array<String, nil>] three items, at least one of which will be nil
+        #   - the new requirement app name,
+        #   - the new requirement app bundle id
+        #   - the new requirement EA script (may be Xolo::ITEM_UPLOADED, meaning no change)
+        ###############################
+        def new_data_for_title_requirement
+          req_app_name = new_data_for_update ? new_data_for_update[:app_name] : app_name
+          req_app_bundle_id = new_data_for_update ? new_data_for_update[:app_bundle_id] : app_bundle_id
+          req_ea_script = new_data_for_update ? new_data_for_update[:version_script] : version_script
+          [req_app_name, req_app_bundle_id, req_ea_script]
         end
 
         # Update the Title Editor Title Requirements with app name and bundle id.
@@ -183,7 +192,7 @@ module Xolo
         #
         # @return [void]
         ####################
-        def update_ted_title_app_requirements(ted_title, req_app_name:, req_app_bundle_id:)
+        def update_ted_title_app_requirements(req_app_name:, req_app_bundle_id:)
           progress "Title Editor: Setting App-based Requirement Criteria for title '#{title}'", log: :debug
 
           # delete the current requirements, which might be EA based
@@ -207,18 +216,36 @@ module Xolo
           ted_title.delete_extensionAttribute
         end
 
+        # if we are already using a ted Title EA, but it has changed,
+        # update it and return true
+        # @return [Boolean] do have have (and did we update) an existing TedEA?
+        #########################
+        def update_existing_ted_title_ea
+          if ted_title.requirements.first&.type == 'extensionAttribute'
+            ted_title.extensionAttribute.script = req_ea_script
+            # Accept it... when?
+            # accept_xolo_ea_in_jamf
+            @need_to_accept_xolo_ea_in_jamf = true
+          else
+            false
+          end
+        end
+
         # Update the Title Editor Title EA  and requireents
         # with the current version_script
         #
         # these changes happen immediately on the server
         #
-        # @param ted_title [Windoo::SoftwareTitle] the TEd title we are changing
-        #
         # @param ea_script [String] the code of the script.
         #
         # @return [void]
         ####################
-        def update_ted_title_ea_requirements(ted_title, req_ea_script:)
+        def update_ted_title_ea_requirements(req_ea_script:)
+          # if we are here, we are creating the requirement for the first time,
+          # or changing from app-based to EA-based requirement
+          # so delete the current app-based requirements, if any
+          ted_title.requirements.delete_all_criteria
+
           progress "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'",
                    log: :debug
 
@@ -240,6 +267,33 @@ module Xolo
             operator: 'matches regex',
             value: '.+'
           )
+
+          # Accept it... when?
+          @need_to_accept_xolo_ea_in_jamf = true
+          # accept_xolo_ea_in_jamf
+        end
+
+        # Update the patch compenent criteria for a given
+        # Version Object to match our title requirement critera
+        # and ensure the patch is enabled in Ted.
+        #
+        # @param vers_obj [Xolo::Server::Version] the patch/version we are updating
+        #
+        # @return [void]
+        def update_ted_patch_component_for_version(vers_obj)
+          vers_obj.update_patch_component title_obj: self
+
+          progress "Title Editor: Enabling Patch '#{vers_obj.version} of SoftwareTitle '#{title}'", log: :debug
+          # loop until the enablement goes thru
+          # TODO: make this not infinite
+          loop do
+            sleep 5
+            vo.ted_patch(refresh: true).enable
+            break
+          rescue StandardError => e
+            log_debug "Title Editor: Caught #{e.class} while Looping while re-enabling  Patch '#{vo.version} of SoftwareTitle '#{title}'"
+            nil
+          end
         end
 
         # For a Title to be enabled in the Title Editor, it needs at least a requirement criterion
@@ -255,6 +309,24 @@ module Xolo
         def enable_ted_title
           progress "Title Editor: Enabling SoftwareTitle '#{title}'", log: :debug
           ted_title.enable
+        end
+
+        # Re-enable the title in ted after updating any patches
+        # @return [void]
+        ##############################
+        def reenable_ted_title
+          # re-enable the title itself, we should have at least one enabled version
+          progress "Title Editor: Re-Enabling SoftwareTitle '#{title}'", log: :debug
+          # loop until the enablement goes thru
+          # TODO: make this non-infinite
+          loop do
+            sleep 5
+            ted_title(refresh: true).enable
+            break
+          rescue Windoo::MissingDataError
+            log_debug "Title Editor: Looping while re-enabling SoftwareTitle '#{title}'"
+            nil
+          end
         end
 
         # Delete from the title editor

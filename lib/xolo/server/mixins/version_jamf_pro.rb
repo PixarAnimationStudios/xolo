@@ -222,15 +222,19 @@ module Xolo
           halt 400, msg
         end
 
-        #
+        # Create the normal policies capable of doing the initial
+        # install of this version.
+        # TODO: this kinda assumes that all pkgs are 'standalone',
+        # we might have to deal with them being updates only, in which
+        # case we won't create these.
         #########################
         def create_install_policies_in_jamf
           create_manual_install_policy_in_jamf
           create_auto_install_policy_in_jamf
         end
 
-        # The manual install policy is scoped to pilot groups before release,
-        # then to all computers when released.
+        # The manual install policy is always scoped to all computers, with
+        # exclusions
         #
         # The policy has a custom trigger, or can be installed via self service
         #
@@ -244,12 +248,9 @@ module Xolo
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
 
-          # while in pilot, only pilot groups are targets
-          unless pilot_groups_to_use.pix_empty? # it could be nil
-            pilot_groups_to_use.each do |group|
-              pol.scope.add_target :computer_group, group
-            end
-          end
+          # manual install policy is always available manually install
+          # anywhere except the exclusions.
+          set_policy_to_all_targets(pol)
 
           # exclusions are for always
           set_policy_exclusions pol
@@ -317,8 +318,13 @@ module Xolo
         # but releasing tells us the scope targets: pilots, or targets
         # the auto-install policy object's scope
         # Manual install policies are allways scoped to all targets
+        #
+        #
+        # @param pol [Jamf::Policy, Jamf::PatchPolicy] The policy to update
+        # @param type [Symbol]:pilot, :target, :excluded
+        #
         ############################
-        def set_auto_install_policy_released_targets
+        def update_policy_scope(pol, type:)
           pol = Jamf::Policy.fetch name: jamf_auto_install_policy_name, cnx: jamf_cnx
 
           # clear out any existing targets from pilot
@@ -332,13 +338,55 @@ module Xolo
           pol.save
         end
 
-        # add excluded groups to a [patch] policy object's scope
+        # set target groups in a pilot [patch] policy object's scope
+        # REMEMBER TO SAVE THE POLICY LATER
+        #
         # @param pol [Jamf::Policy]
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
         ############################
-        def set_policy_exclusions(pol)
-          excluded_groups_to_use.each do |group|
-            pol.scope.add_exclusion :computer_group, group
-          end
+        def set_policy_pilots(pol, ttl_obj: nil)
+          ttl_obj ||= title_object
+          pilots = pilot_groups_to_use(ttl_obj: ttl_obj)
+          pilots ||= []
+
+          pol.scope.set_targets :computer_groups, pilots
+        end
+
+        # Set a policy to be scoped to all targets
+        # REMEMBER TO SAVE THE POLICY LATER
+        ############################
+        def set_policy_to_all_targets(pol)
+          pol.scope.set_all_targets
+        end
+
+        # set target groups in a non=pilot [patch] policy object's scope
+        # REMEMBER TO SAVE THE POLICY LATER
+        #
+        # @param pol [Jamf::Policy]
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        ############################
+        def set_policy_targets(pol, ttl_obj: nil)
+          ttl_obj ||= title_object
+          targets = target_groups_to_use(ttl_obj: ttl_obj)
+          targets ||= []
+
+          pol.scope.set_targets :computer_groups, targets
+        end
+
+        # set excluded groups in a [patch] policy object's scope
+        # REMEMBER TO SAVE THE POLICY LATER
+        # @param pol [Jamf::Policy]
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        ############################
+        def set_policy_exclusions(pol, ttl_obj: nil)
+          ttl_obj ||= title_object
+          exclusions = excluded_groups_to_use(ttl_obj: ttl_obj)
+          exclusions ||= []
+
+          pol.scope.set_exclusions :computer_groups, exclusions
         end
 
         # @return [Jamf::PatchTitle::Version] The Jamf::PatchTitle::Version for this
@@ -376,8 +424,8 @@ module Xolo
         #########################
         def create_patch_policy_in_jamf
           # TODO: decide how many patch policies - see comments at top
-          # At least one, one for pilots and then rescoped to all for release
-
+          # Probably one: for pilots initially and then rescoped to all for release
+          #
           # TODO: How to set these, and should they be settable
           # at the Xolo::Title or  Xolo::Version level?
           #
@@ -385,7 +433,6 @@ module Xolo
           # and how we'd use it?
           #
           # patch_unknown_versions... yes?
-          #
           #
           # if not in ssvc:
           # - grace period?
@@ -422,6 +469,93 @@ module Xolo
           set_policy_exclusions ppol
 
           ppol.save
+        end
+
+        # Update all the pilot_group policy scopes for this version when
+        # the Title's default scoping groups have changed
+        #
+        # Nothing to do if the version isn't currently in :pilot status
+        #
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        #########################
+        def update_pilot_scopes_from_title(ttl_obj: nil)
+          return unless status == Xolo::Server::Version::STATUS_PILOT
+
+          update_policy_scopes(ttl_obj: ttl_obj, pilot: true)
+        end
+
+        # Update all the non-pilot policy scopes for this version when
+        # the Title's default scoping groups have changed
+        #
+        # Nothing to do if the version is currently in pending or pilot status
+        #
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        #########################
+        def update_non_pilot_scopes_from_title(ttl_obj: nil)
+          return if [Xolo::Server::Version::STATUS_PENDING, Xolo::Server::Version::STATUS_PILOT].include? status
+
+          update_policy_scopes(ttl_obj: ttl_obj, pilot: false)
+        end
+
+        # Update all the policy scopes for this version when
+        # the Title's default scoping groups have changed
+        #
+        # Nothing to do if the version isn't currently in :pilot status
+        #
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        #
+        # @param pilot [Boolean] are we doing the pilot policies? Defaults to false
+        #
+        #########################
+        def update_policy_scopes(ttl_obj: nil, pilot: false)
+          ttl_obj ||= title_object
+          scope_targets = pilot ? 'pilot' : 'target'
+
+          # manual install policy is always scoped to 'all', both for pilot and release,
+          # but we always enforce the exclusions
+          if Jamf::Policy.all_names.include? jamf_manual_install_policy_name
+            pol = Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
+            set_policy_exclusions pol, ttl_obj: ttl_obj
+            pol.save
+            progress "Jamf: updated excluded groups for Manual Install Policy '#{jamf_manual_install_policy_name}'."
+          else
+            progress "Jamf: WARNING No Manual Install Policy '#{jamf_manual_install_policy_name}', it should be there.",
+                     log: :warn
+          end
+
+          # auto_installs are scoped to pilots or targets, and use the exclusions
+          if Jamf::Policy.all_names.include? jamf_auto_install_policy_name
+            pol = Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
+            if pilot
+              set_policy_pilots(pol, ttl_obj: ttl_obj)
+            else
+              set_policy_targets(pol, ttl_obj: ttl_obj)
+            end
+            set_policy_exclusions pol, ttl_obj: ttl_obj
+            pol.save
+            progress "Jamf: updated #{scope_targets} and excluded groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
+          else
+            progress "Jamf: WARNING No Auto Install Policy '#{jamf_auto_install_policy_name}', it should be there.",
+                     log: :warn
+          end
+
+          # patches are scoped to pilots or targets, and use the exclusions
+          if Jamf::PatchPolicy.all_names.include? jamf_patch_policy_name
+            pol = Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
+            if pilot
+              set_policy_pilots(pol, ttl_obj: ttl_obj)
+            else
+              set_policy_targets(pol, ttl_obj: ttl_obj)
+            end
+            set_policy_exclusions pol, ttl_obj: ttl_obj
+            pol.save
+            progress "Jamf: updated #{scope_targets} and excluded groups for Patch Policy '#{jamf_patch_policy_name}'."
+          else
+            progress "Jamf: WARNING No Patch Policy '#{jamf_patch_policy_name}', it should be there.", log: :warn
+          end
         end
 
         #########################

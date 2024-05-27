@@ -57,10 +57,47 @@ module Xolo
 
         # Instance methods
         #
-        # These are available directly in sinatra routes and views
+        # These are available directly in title objects
         #
         ##############################
         ##############################
+
+        # Apply any changes to Jamf as needed
+        # @return [void]
+        #########################
+        def update_title_in_jamf
+          unless jamf_ted_title_active?
+            log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update."
+            returns
+          end
+
+          # Set all these values so they'll be applied to all versions when we update them next.
+
+          @need_to_update_ssvc = new_data_for_update[:self_service] != self_service
+          @need_to_update_ssvc_category = new_data_for_update[:self_service_category] != self_service_category
+
+          # prob not needed, since the upload is a separate process from the title update
+          @need_to_update_ssvc_icon = new_data_for_update[:self_service_icon] && ew_data_for_update[:self_service_icon] != Xolo::ITEM_UPLOADED
+
+          # Excluded, Pilot, or Target groups changed at the
+          # title level, make note to update the scope of all version-specific policies and patch policies
+          # when we loop thru the versions
+          @need_to_update_pilot_groups = new_data_for_update[:pilot_groups].to_a.sort != pilot_groups.to_a.sort
+          @need_to_update_target_groups = new_data_for_update[:target_groups].to_a.sort != target_groups.to_a.sort
+          @need_to_update_excluded_groups = new_data_for_update[:excluded_groups].to_a.sort != excluded_groups.to_a.sort
+
+          # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
+          # e.g. if expiration data changes
+        end
+
+        # If needed update the scopes of all policies and patch policies
+        # for a given version object, because the defaults have changed
+        # in the title.
+        # @return [void]
+        #####################################
+        def update_policy_scopes_for_version(vers_obj)
+          vers_obj.update_pilot_groups_from_title(ttl_obj: self) if @need_to_update_pilot_groups
+        end
 
         # @return [Jamf::PatchSource] The Jamf Patch Source that is connected to the Title Editor
         #########################
@@ -139,6 +176,7 @@ module Xolo
               name: display_name,
               source: Xolo::Server.config.ted_patch_source,
               name_id: title,
+              category: Xolo::Server::JAMF_XOLO_CATEGORY,
               cnx: jamf_cnx
             )
 

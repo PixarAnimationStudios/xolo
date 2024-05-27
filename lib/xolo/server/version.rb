@@ -200,67 +200,71 @@ module Xolo
       ######################
       ######################
 
-      # send a message to the log and to the progress stream
-      ##################
-
-      # which pilot groups should we acutally use, since they might be defined in both
-      # the title and here in the version.
-      # If the verison pilot_groups is a non-empty array, use those groups.
-      # If the version pilot_groups is nil or an empty array, use the ones from the title, if any.
-      # if the version pilot_groups is Xolo::NO_PILOT ('no-pilot') then dont
-      #   use any pilot groups even if the title has some defined
+      # @see #groups_to_use
+      #
+      # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+      #   if nil, we'll instantiate it now
+      #
       # @return [Array<String>] the pilot groups to use in policies and patch policies
       ######################
-      def pilot_groups_to_use
-        @pilot_groups_to_use ||=
-          if pilot_groups == Xolo::NO_PILOT
-            []
-
-          # this catches nil and empty arrays
-          elsif pilot_groups.pix_empty?
-            title_object.pilot_groups
-
-          elsif pilot_groups.is_a? Array
-            pilot_groups
-
-          else
-            []
-          end
+      def pilot_groups_to_use(ttl_obj: nil)
+        ttl_obj ||= title_object
+        @pilot_groups_to_use ||= groups_to_use ttl_obj.pilot_groups, pilot_groups
       end
 
-      # which excluded groups should we acutally use, since they might be defined in both
-      # the title and here in the version.
+      # @see #groups_to_use
       #
-      # - Always use a merger of those defined in the title and the version.
+      # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+      #   if nil, we'll instantiate it now
+      #
+      # @return [Array<String>] the excluded groups to use in policies and patch policies for this version
+      ######################
+      def excluded_groups_to_use(ttl_obj: nil)
+        ttl_obj ||= title_object
+        @excluded_groups_to_use ||= groups_to_use ttl_obj.excluded_groups, excluded_groups
+      end
+
+      # @see #groups_to_use
+      #
+      # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+      #   if nil, we'll instantiate it now
       #
       # @return [Array<String>] the excluded groups to use in policies and patch policies
       ######################
-      def excluded_groups_to_use
-        @excluded_groups_to_use ||= (excluded_groups + title_object.excluded_groups).uniq
+      def target_groups_to_use(ttl_obj: nil)
+        ttl_obj ||= title_object
+        @target_groups_to_use ||= groups_to_use ttl_obj.target_groups, target_groups
+        return unless @target_groups_to_use.include? Xolo::Admin::Title::TARGET_ALL
+
+        @target_groups_to_use = [Xolo::Admin::Title::TARGET_ALL]
       end
 
-      # which target groups should we acutally use, since they might be defined in both
-      # the title and here in the version.
+      # Given some scope-groups defined in the title and the version, which should we use?
       #
-      # - ignore the version-specific groups if the title group(s) is 'all'
-      # - Always use a merger of those defined in the title and the version.
+      # Version-specific will always override title-defaults, like so
       #
-      # @return [Array<String>] the excluded groups to use in policies and patch policies
+      # If the verison_groups is a non-empty array, use those groups.
+      # If the version_groups is nil or an empty array, use the ones from the title, if any.
+      # if the version_groups is Xolo::NO_SCOPED_GROUPS ('no-scoped-groups') then dont
+      #   use any groups even if the title has some defined
+      #
+      # @return [Array<String>] the excluded groups to use in policies and patch policies for this version
       ######################
-      def target_groups_to_use
-        # TODO: nothing if title 'all'
-        @target_groups_to_use ||= (target_groups + title_object.target_groups).uniq
+      def groups_to_use(title_groups, version_groups)
+        if version_groups == Xolo::NO_SCOPED_GROUPS
+          []
+
+        # this catches nil and empty arrays
+        elsif version_groups.pix_empty?
+          title_groups
+
+        elsif version_groups.is_a? Array
+          version_groups
+
+        else
+          []
+        end
       end
-
-      # @return [Xolo::Server::Title] the Title object that holds this version
-      ###########################
-      # def title_object
-      #   return @title_object if @title_object
-
-      #   @title_object = Xolo::Server::Title.load title
-      #   @title_object.session = session
-      #   @title_object
-      # end
 
       # @return [Hash]
       ###################
@@ -292,14 +296,9 @@ module Xolo
       # This might have been set already if we were instantiated via our title
       # @return [Xolo::Server::Title] the title for this version
       ################
-      def title_object
+      def title_object(refresh: false)
+        @title_object = nil if refresh
         @title_object ||= server_app_instance.instantiate_title title
-        # return @title_object if @title_object
-
-        # @title_object = Xolo::Server::Title.load title
-        # @title_object.server_app_instance = server_app_instance
-        # @title_object.session = session
-        # @title_object
       end
 
       # @return [Windoo::Connection] a single Title Editor connection to use for
