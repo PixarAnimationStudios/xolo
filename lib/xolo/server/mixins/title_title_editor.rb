@@ -291,7 +291,7 @@ module Xolo
             vo.ted_patch(refresh: true).enable
             break
           rescue StandardError => e
-            log_debug "Title Editor: Caught #{e.class} while Looping while re-enabling  Patch '#{vo.version} of SoftwareTitle '#{title}'"
+            log_debug "Title Editor: Caught #{e.class} while Looping while re-enabling  Patch '#{vo.version} of SoftwareTitle '#{title}': #{e}"
             nil
           end
         end

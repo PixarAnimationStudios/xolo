@@ -231,12 +231,12 @@ module Xolo
       #
       # @return [Array<String>] the excluded groups to use in policies and patch policies
       ######################
-      def target_groups_to_use(ttl_obj: nil)
+      def release_groups_to_use(ttl_obj: nil)
         ttl_obj ||= title_object
-        @target_groups_to_use ||= groups_to_use ttl_obj.target_groups, target_groups
-        return unless @target_groups_to_use.include? Xolo::Admin::Title::TARGET_ALL
+        @release_groups_to_use ||= groups_to_use ttl_obj.release_groups, release_groups
 
-        @target_groups_to_use = [Xolo::Admin::Title::TARGET_ALL]
+        @release_groups_to_use = [Xolo::TARGET_ALL] if @release_groups_to_use.include? Xolo::TARGET_ALL
+        @release_groups_to_use
       end
 
       # Given some scope-groups defined in the title and the version, which should we use?
@@ -377,6 +377,8 @@ module Xolo
         enable_ted_patch
 
         create_in_jamf
+
+        self.status = STATUS_PILOT
 
         # save to file again now, because saving to TitleEd and Jamf will
         # add some data

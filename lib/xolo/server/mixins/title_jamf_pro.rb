@@ -77,26 +77,17 @@ module Xolo
           @need_to_update_ssvc_category = new_data_for_update[:self_service_category] != self_service_category
 
           # prob not needed, since the upload is a separate process from the title update
-          @need_to_update_ssvc_icon = new_data_for_update[:self_service_icon] && ew_data_for_update[:self_service_icon] != Xolo::ITEM_UPLOADED
+          @need_to_update_ssvc_icon = new_data_for_update[:self_service_icon] && new_data_for_update[:self_service_icon] != Xolo::ITEM_UPLOADED
 
           # Excluded, Pilot, or Target groups changed at the
           # title level, make note to update the scope of all version-specific policies and patch policies
           # when we loop thru the versions
           @need_to_update_pilot_groups = new_data_for_update[:pilot_groups].to_a.sort != pilot_groups.to_a.sort
-          @need_to_update_target_groups = new_data_for_update[:target_groups].to_a.sort != target_groups.to_a.sort
+          @need_to_update_release_groups = new_data_for_update[:release_groups].to_a.sort != release_groups.to_a.sort
           @need_to_update_excluded_groups = new_data_for_update[:excluded_groups].to_a.sort != excluded_groups.to_a.sort
 
           # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
           # e.g. if expiration data changes
-        end
-
-        # If needed update the scopes of all policies and patch policies
-        # for a given version object, because the defaults have changed
-        # in the title.
-        # @return [void]
-        #####################################
-        def update_policy_scopes_for_version(vers_obj)
-          vers_obj.update_pilot_groups_from_title(ttl_obj: self) if @need_to_update_pilot_groups
         end
 
         # @return [Jamf::PatchSource] The Jamf Patch Source that is connected to the Title Editor
@@ -255,14 +246,15 @@ module Xolo
           progress "Jamf: version-script ExtAttr for this title '#{ted_ea_key}' will be auto-accepted when Jamf sees the changes in the Title Editor"
 
           @auto_accept_ea_thread = Thread.new do
-            log_debug 'Jamf: Starting auto_accept_ea_thread for '
+            log_debug "Jamf: Starting auto_accept_ea_thread for #{title}"
             start_time = Time.now
             max_time = start_time + 3600
+            start_time = start_time.strftime '%F %T'
             did_it = false
 
             while Time.now < max_time
               sleep 30
-              log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time.strftime '%F %T'}"
+              log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time}"
               next unless jamf_ea_needs_acceptance?
 
               jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
@@ -376,9 +368,11 @@ module Xolo
           jamf_active_ted_titles.include? title
         end
 
+        # @param refresh [Boolean] re-fetch the patch title from Jamf?
         # @return [Jamf::PatchTitle] The Jamf Patch Title for this Xolo Title
         ########################
-        def jamf_patch_title
+        def jamf_patch_title(refresh: false)
+          @jamf_patch_title = nil if refresh
           return @jamf_patch_title if @jamf_patch_title
 
           unless jamf_ted_title_active?

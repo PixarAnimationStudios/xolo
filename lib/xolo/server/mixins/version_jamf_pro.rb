@@ -58,21 +58,14 @@ module Xolo
         # changes
         JAMF_POLICY_NAME_AUTO_INSTALL_SFX = '-auto-install'
 
-        # FOR NOW, only one patch pol. scope will be changed
-        # at release....
-
-        # The patch policy that updates pilot installs
-        # is the full prefix with this suffix:
-        # JAMF_PILOT_PATCH_POLICY_SFX = '-pilot-update'
-
-        # The patch policy that updates all installs
-        # is the full prefix with this suffix:
-        # JAMF_RELEASE_PATCH_POLICY_SFX = '-release-update'
-
+        # POLICIES, PATCH POLICIES, SCOPING
+        #############################
+        #
+        #
         # POLICIES
         # Each version gets two policies for initial installation
         # - one for auto-installs 'xolo-autoinstall-<title>-<version>'
-        #   - scoped to pilot-groups first, then  target-groups when released
+        #   - scoped to pilot-groups first, then  release-groups when released
         #     - xolo server maintains the scope as needed
         #   - never in self service
         #
@@ -87,10 +80,9 @@ module Xolo
         # don't name them with xolo-ish names
         #
         # PATCH POLICIES
-        # Each version gets one ... or more patch policies ??
+        # Each version gets one patch policy
         #
-        # The primary patch policy is first scoped to any pilot
-        # groups.
+        # The patch policy is first scoped to  pilot groups.
         #
         # When the version is released, the scope is changed to All
         #
@@ -98,11 +90,12 @@ module Xolo
         # machines - those that have a lower version installed and meet other
         # conditions.
         #
-        # But....
+        # But.... questions...
         #
         #  Should it act like d3, and auto-install updates always?
         # def. for auto-install groups... but how about for the general
-        # populace, like those who installed initially via SSvc??
+        # populace, like those who installed initially via SSvc?? Should it
+        # auto-update, or notify them to do it in SSvc?
         #
         # If d3-like behaviour:
         # - it auto-installs for anyone who has any version installed
@@ -113,6 +106,7 @@ module Xolo
         # NOTE: Other patch policies can be created manually for other purposes, just
         # don't name them with xolo-ish names
         #
+        #####################
         #
         # install live
         #  => xolo install title
@@ -121,7 +115,7 @@ module Xolo
         # the xolo server maintains the trigger
         #################
         #
-        # install pilot:
+        # install pilot
         #  => xolo install title version
         #
         # runs 'jamf policy -trigger xolo-install-<title>-<version>'
@@ -197,8 +191,6 @@ module Xolo
           title_object.activate_patch_title_in_jamf
 
           activate_patch_version_in_jamf
-
-          create_patch_policy_in_jamf
         end
 
         # Create the Jamf::Package object for this version if needed
@@ -312,32 +304,6 @@ module Xolo
           pol.save
         end
 
-        # When a version is released, or the title or version is updated,
-        # update the target groups to
-        # TODO: use this method for any updates, not just releasing
-        # but releasing tells us the scope targets: pilots, or targets
-        # the auto-install policy object's scope
-        # Manual install policies are allways scoped to all targets
-        #
-        #
-        # @param pol [Jamf::Policy, Jamf::PatchPolicy] The policy to update
-        # @param type [Symbol]:pilot, :target, :excluded
-        #
-        ############################
-        def update_policy_scope(pol, type:)
-          pol = Jamf::Policy.fetch name: jamf_auto_install_policy_name, cnx: jamf_cnx
-
-          # clear out any existing targets from pilot
-          pol.scope.set_targets :computer_groups, []
-
-          if title_object.target_groups.include? Xolo::Server::Title::TARGET_ALL
-            pol.scope.all_targets = true
-          else
-            title_object.target_groups.each { |group| pol.scope.add_target :computer_group, group }
-          end
-          pol.save
-        end
-
         # set target groups in a pilot [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
         #
@@ -345,7 +311,7 @@ module Xolo
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         ############################
-        def set_policy_pilots(pol, ttl_obj: nil)
+        def set_policy_pilot_groups(pol, ttl_obj: nil)
           ttl_obj ||= title_object
           pilots = pilot_groups_to_use(ttl_obj: ttl_obj)
           pilots ||= []
@@ -367,9 +333,9 @@ module Xolo
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         ############################
-        def set_policy_targets(pol, ttl_obj: nil)
+        def set_policy_release_groups(pol, ttl_obj: nil)
           ttl_obj ||= title_object
-          targets = target_groups_to_use(ttl_obj: ttl_obj)
+          targets = release_groups_to_use(ttl_obj: ttl_obj)
           targets ||= []
 
           pol.scope.set_targets :computer_groups, targets
@@ -408,14 +374,66 @@ module Xolo
           raise Xolo::NoSuchItemError, msg
         end
 
-        # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
-        # This 'activates' the version in Jamf Patch, and must happen before
-        # patch policies can be created
+        # Wait until the version is visible from the title editor
+        # then assign the pkg to it in Jamf Patch,
+        # and create the patch policy.
+        #
+        # Do this in a thread so the xadm user doesn't wait up to ?? minutes.
+        #
         # @return [void]
         #########################
         def activate_patch_version_in_jamf
-          progress "Jamf: Activating Version '#{version}' of Title '#{title_object.display_name}' by assigning package '#{jamf_pkg_name}'",
+          # don't do this if there's already one running for this instance
+          if @activate_patch_version_thread&.alive?
+            log_debug "Jamf: activate_patch_version_thread already running. Caller: #{caller_locations.first}"
+            return
+          end
+
+          progress "Jamf: Will assign Jamf pkg '#{jamf_pkg_name}' and create the patch policy when this version becomes visible to Jamf Pro from the Title Editor.",
                    log: :debug
+
+          @activate_patch_version_thread = Thread.new do
+            log_debug "Jamf: Starting activate_patch_version_thread waiting for version #{version} of title #{title} to become visible from the title editor"
+            start_time = Time.now
+            max_time = start_time + 3600
+            start_time = start_time.strftime '%F %T'
+            did_it = false
+
+            while Time.now < max_time
+              sleep 30
+              log_debug "Jamf: checking for version #{version} of title #{title} to become visible from the title editor since #{start_time}"
+              next unless title_object.jamf_patch_title(refresh: true).versions.key? version
+
+              did_it = true
+              break
+            end
+
+            if did_it
+              assign_pkg_to_patch_in_jamf
+              create_patch_policy_in_jamf
+            else
+              log_error "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate.",
+                        alert: true
+            end
+          end # thread
+        end
+
+        # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
+        # This 'activates' the version in Jamf Patch, and must happen before
+        # patch policies can be created
+        #
+        # Jamf::PatchTitle::Version objects are contained in the matching
+        # Jamf::PatchTitle, and to make or save changes, we have to fetch the title,
+        # update the version, and save the title.
+        #
+        # NOTE: This can't happen until Jamf see's the version in the title editor
+        # otherwise you'll get an error. The methods that call this should ensure
+        # the version is visible.
+        #
+        # @return [void]
+        ########################################
+        def assign_pkg_to_patch_in_jamf
+          log_debug "Jamf: Assigning package '#{jamf_pkg_name}' to version '#{version}' of title '#{title}'"
 
           jamf_patch_version.package = jamf_pkg_name
           title_object.jamf_patch_title.save
@@ -444,10 +462,7 @@ module Xolo
           # - notifications?  Message and Subject? SSvc only, Notif Ctr?
           # - deadline and grace period message and subbject
 
-          progress "Jamf: Creating Pilot Patch Policy for Version '#{version}' of Title '#{title_object.display_name}'.",
-                   log: :debug
-
-          log_debug "jamf_cnx is: #{jamf_cnx}"
+          log_debug "Jamf: Creating Pilot Patch Policy for Version '#{version}' of Title '#{title}'."
 
           ppol = Jamf::PatchPolicy.create(
             cnx: jamf_cnx,
@@ -457,110 +472,142 @@ module Xolo
             patch_unknown: true
           )
 
-          log_debug "jamf_cnx is STILL: #{jamf_cnx}"
-
-          unless pilot_groups_to_use.pix_empty?
-            pilot_groups_to_use.each do |group|
-              ppol.scope.add_target :computer_group, group
-            end
-          end
+          # when first creating a patch policy, its status is always
+          # 'pilot' so the scope targets are the pilot groups, if any.
+          # When the version is released, the patch policy will be
+          # rescoped to all targets (limited by eligibility)
+          ppol.scope.set_targets :computer_groups, pilot_groups_to_use
 
           # exclusions are for always
           set_policy_exclusions ppol
 
+          ppol.enable
+
           ppol.save
         end
 
-        # Update all the pilot_group policy scopes for this version when
-        # the Title's default scoping groups have changed
+        # @return [Jamf::Policy] The manual-install-policy for this version, if it exists
+        ##########################
+        def jamf_manual_install_policy
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
+            Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
+          else
+            progress "Jamf: WARNING No Manual Install Policy '#{jamf_manual_install_policy_name}', it should be there.",
+                     log: :warn
+            nil
+          end
+        end
+
+        # @return [Jamf::Policy] The auto-install-policy for this version, if it exists
+        ##########################
+        def jamf_auto_install_policy
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
+            Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
+          else
+            progress "Jamf: WARNING No Auto-Install Policy '#{jamf_auto_install_policy_name}', it should be there.",
+                     log: :warn
+            nil
+          end
+        end
+
+        # @return [Jamf::PatchPolicy] The auto-install-policy for this version, if it exists
+        ##########################
+        def jamf_patch_policy
+          if Jamf::PatchPolicy.all_names.include? jamf_patch_policy_name
+            Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
+          else
+            progress "Jamf: WARNING No Patch Policy '#{jamf_patch_policy_name}', it should be there.", log: :warn
+            nil
+          end
+        end
+
+        # Update all the pilot_groups policy scopes for this version when
+        # either the title or version has changed them
         #
         # Nothing to do if the version isn't currently in :pilot status
         #
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         #########################
-        def update_pilot_scopes_from_title(ttl_obj: nil)
+        def update_pilot_groups(ttl_obj: nil)
+          # nothing unless we're in pilot
           return unless status == Xolo::Server::Version::STATUS_PILOT
 
-          update_policy_scopes(ttl_obj: ttl_obj, pilot: true)
+          # - no changes to the manual install policy: scope-target is all
+
+          # - update the auto install policy
+          pol = jamf_auto_install_policy
+          if pol
+            set_policy_pilot_groups(pol, ttl_obj: ttl_obj)
+            pol.save
+            progress "Jamf: updated pilot groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
+          end
+
+          # - update the patch policy
+          pol = jamf_patch_policy
+          return unless pol
+
+          set_policy_pilot_groups(pol, ttl_obj: ttl_obj)
+          pol.save
+          progress "Jamf: updated pilot groups for Patch Policy '#{jamf_patch_policy_name}'."
         end
 
-        # Update all the non-pilot policy scopes for this version when
-        # the Title's default scoping groups have changed
+        # Update all the release_groups policy scopes for this version when
+        # either the title or version has changed them
         #
         # Nothing to do if the version is currently in pending or pilot status
         #
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         #########################
-        def update_non_pilot_scopes_from_title(ttl_obj: nil)
+        def update_release_groups(ttl_obj: nil)
           return if [Xolo::Server::Version::STATUS_PENDING, Xolo::Server::Version::STATUS_PILOT].include? status
 
-          update_policy_scopes(ttl_obj: ttl_obj, pilot: false)
+          # - no changes to the manual install policy: scope-target is all
+
+          # - update the auto-install policy
+          pol = jamf_auto_install_policy
+          return unless pol
+
+          set_policy_release_groups(pol, ttl_obj: ttl_obj)
+          pol.save
+          progress "Jamf: updated release groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
+
+          # - no changes to the patch policy: scope-target is all once released
         end
 
-        # Update all the policy scopes for this version when
-        # the Title's default scoping groups have changed
+        # Update all the excluded_groups policy scopes for this version when
+        # either the title or version has changed them
         #
-        # Nothing to do if the version isn't currently in :pilot status
+        # Applies regardless of status
         #
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
-        #
-        # @param pilot [Boolean] are we doing the pilot policies? Defaults to false
-        #
         #########################
-        def update_policy_scopes(ttl_obj: nil, pilot: false)
-          ttl_obj ||= title_object
-          scope_targets = pilot ? 'pilot' : 'target'
-
-          # manual install policy is always scoped to 'all', both for pilot and release,
-          # but we always enforce the exclusions
-          if Jamf::Policy.all_names.include? jamf_manual_install_policy_name
-            pol = Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
-            set_policy_exclusions pol, ttl_obj: ttl_obj
+        def update_excluded_groups(ttl_obj: nil)
+          # - update the manual install policy
+          pol = jamf_manual_install_policy
+          if pol
+            set_policy_exclusions(pol, ttl_obj: ttl_obj)
             pol.save
-            progress "Jamf: updated excluded groups for Manual Install Policy '#{jamf_manual_install_policy_name}'."
-          else
-            progress "Jamf: WARNING No Manual Install Policy '#{jamf_manual_install_policy_name}', it should be there.",
-                     log: :warn
+            progress "Jamf: updated excluded groups for Manual Install Policy '#{jamf_auto_install_policy_name}'."
           end
 
-          # auto_installs are scoped to pilots or targets, and use the exclusions
-          if Jamf::Policy.all_names.include? jamf_auto_install_policy_name
-            pol = Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
-            if pilot
-              set_policy_pilots(pol, ttl_obj: ttl_obj)
-            else
-              set_policy_targets(pol, ttl_obj: ttl_obj)
-            end
-            set_policy_exclusions pol, ttl_obj: ttl_obj
+          # - update the auto install policy
+          pol = jamf_auto_install_policy
+          if pol
+            set_policy_exclusions(pol, ttl_obj: ttl_obj)
             pol.save
-            progress "Jamf: updated #{scope_targets} and excluded groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
-          else
-            progress "Jamf: WARNING No Auto Install Policy '#{jamf_auto_install_policy_name}', it should be there.",
-                     log: :warn
+            progress "Jamf: updated excluded groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
           end
+          # - update the patch policy
 
-          # patches are scoped to pilots or targets, and use the exclusions
-          if Jamf::PatchPolicy.all_names.include? jamf_patch_policy_name
-            pol = Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
-            if pilot
-              set_policy_pilots(pol, ttl_obj: ttl_obj)
-            else
-              set_policy_targets(pol, ttl_obj: ttl_obj)
-            end
-            set_policy_exclusions pol, ttl_obj: ttl_obj
-            pol.save
-            progress "Jamf: updated #{scope_targets} and excluded groups for Patch Policy '#{jamf_patch_policy_name}'."
-          else
-            progress "Jamf: WARNING No Patch Policy '#{jamf_patch_policy_name}', it should be there.", log: :warn
-          end
-        end
+          pol = jamf_patch_policy
+          return unless pol
 
-        #########################
-        def update_patch_policy_for_release
-          # TODO
+          set_policy_exclusions(pol, ttl_obj: ttl_obj)
+          pol.save
+          progress "Jamf: updated exccluded groups for Patch Policy '#{jamf_patch_policy_name}'."
         end
 
         # Delete an entire version from Jamf Pro

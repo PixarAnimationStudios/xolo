@@ -293,18 +293,18 @@ module Xolo
       #   groups, or 'all', or 'none'
       #
       # @return [Array<String>] The valid value
-      def validate_target_groups(val)
+      def validate_release_groups(val)
         val = [val] unless val.is_a? Array
         if  val.include? Xolo::NONE
           return []
-        elsif val.include? Xolo::Admin::Title::TARGET_ALL
-          return [Xolo::Admin::Title::TARGET_ALL]
+        elsif val.include? Xolo::TARGET_ALL
+          return [Xolo::TARGET_ALL]
         end
 
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:target_groups][:invalid_msg]
+        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:release_groups][:invalid_msg]
       end
 
       # validate an array  of jamf groups to use as exclusions.
@@ -764,13 +764,13 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_no_all_in_ssvc(opts)
-        return unless opts[:target_groups].to_a.include?(Xolo::Admin::Title::TARGET_ALL) && opts[:self_service]
+        return unless opts[:release_groups].to_a.include?(Xolo::TARGET_ALL) && opts[:self_service]
 
         msg =
           if walkthru?
-            "Cannot be in Self Service when Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'"
+            "Cannot be in Self Service when Target Group is '#{Xolo::TARGET_ALL}'"
           else
-            "--self-service cannot be used when --target-groups contains '#{Xolo::Admin::Title::TARGET_ALL}'"
+            "--self-service cannot be used when --target-groups contains '#{Xolo::TARGET_ALL}'"
           end
         raise_consistency_error msg
       end
@@ -782,13 +782,13 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_no_all_in_ssvc(opts)
-        return unless opts[:target_groups].to_a.include?(Xolo::Admin::Title::TARGET_ALL) && opts[:self_service]
+        return unless opts[:release_groups].to_a.include?(Xolo::TARGET_ALL) && opts[:self_service]
 
         msg =
           if walkthru?
-            "Cannot be in Self Service when Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'"
+            "Cannot be in Self Service when Target Group is '#{Xolo::TARGET_ALL}'"
           else
-            "--self-service cannot be used when --target-groups contains '#{Xolo::Admin::Title::TARGET_ALL}'"
+            "--self-service cannot be used when --target-groups contains '#{Xolo::TARGET_ALL}'"
           end
         raise_consistency_error msg
       end

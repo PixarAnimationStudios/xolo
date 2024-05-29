@@ -462,24 +462,31 @@ module Xolo
       # If any title changes require updates to existing versions in either
       # the title editor, or Jamf, this loops thru the versions and applies
       # them
+      #
+      # Ted Stuff
+      # - swap version-script / app-based component if needed
+      # - re-enable all patches
+      # - re-enable the title
+      # Jamf Stuff
+      # - update any policy scopes
+      # - update any policy SSvc settings
+      #
       # @return [void]
       ############################
       def update_versions_for_title_changes
         vobjs = version_objects
         return if vobjs.empty?
 
-        # Ted Stuff
-        # - swap version-script / app-based component ?
-        # - re-enable all patches
-        # - re-enable the title
-        # Jamf Stuff
-        # - update any policy scopes
-        # - update any policy SSvc settings
-
         vobjs.each do |vers_obj|
           update_ted_patch_component_for_version(vers_obj) if @need_to_set_version_patch_components
-          update_policy_scopes_for_version(vers_obj)
-          update_ssvc_for_version(vers_obj)
+
+          vers_obj.update_pilot_groups(ttl_obj: self) if @need_to_update_pilot_groups
+          vers_obj.update_release_groups(ttl_obj: self)  if @need_to_update_release_groups
+          vers_obj.update_excluded_groups(ttl_obj: self) if @need_to_update_excluded_groups
+
+          # turn self service on or off
+          vers_obj.update_ssvc(ttl_obj: self) if @need_to_update_ssvc
+          vers_obj.update_ssvc_category(ttl_obj: self) if @need_to_update_ssvc_category
         end
       end
 

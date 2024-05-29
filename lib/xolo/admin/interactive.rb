@@ -178,9 +178,9 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def ssvc_na
-        tgt_all = walkthru_cmd_opts[:target_groups]&.include?(Xolo::Admin::Title::TARGET_ALL)
+        tgt_all = walkthru_cmd_opts[:release_groups]&.include?(Xolo::TARGET_ALL)
 
-        "N/A if Target Group is '#{Xolo::Admin::Title::TARGET_ALL}'" if tgt_all
+        "N/A if Target Group is '#{Xolo::TARGET_ALL}'" if tgt_all
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.

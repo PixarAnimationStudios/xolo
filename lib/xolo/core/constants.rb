@@ -82,6 +82,10 @@ module Xolo
       # Installer packages must have one of these extensions
       OK_PKG_EXTS = [DOT_PKG, DOT_ZIP]
 
+      # The value to use when all computers are the release-targets
+      # and for all manual-install policies
+      TARGET_ALL = 'all'
+
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self

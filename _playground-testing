@@ -1,0 +1,76 @@
+
+
+#### TESTING xoloadmin/xadm
+
+export GEM_PATH="/Users/chrisl/personal-gems/all:/Users/chrisl/personal-gems/2.7.0:/Users/chrisl/personal-gems/3.0.0:/Users/chrisl/personal-gems/3.1.0:/usr/local/pixar/lib/ruby/gems/pixar:/usr/local/pixar/lib/ruby/gems/site_ruby"
+
+# delete a title
+xadm delete-title xolo-test
+
+# add a title w/ app name and bundle id
+#######################################
+xadm add-title xolo-test \
+  --display-name Xolo\ Testing \
+  --description 'A simple app for testing package/patch deployment with Xolo.' \
+  --publisher 'Pixar Animation Studios' \
+  --target-groups 'Dogcows Macs - Workstations' \
+  --excluded-groups 'chrisltest, func-avid, func-protools' \
+  --expiration 45 \
+  --expiration-paths '/tmp/foochrisl' \
+  --expiration-paths '/tmp/foochrisl2' \
+  --self-service \
+  --self-service-category testing \
+  --self-service-icon '/Library/Admin/images/dante.png' \
+  --app-bundle-id 'com.pixar.xolotest' \
+  --app-name 'XoloTest.app'
+
+
+# pkg up xolo test - update version in plist and this command
+# pkgbuild --root /Users/chrisl/git/xolo-titles/xolo-test/pkg-root /Users/chrisl/git/xolo-titles/xolo-test/xolo-test.pkg --identifier xom.pixar.xolotest --version 0.0.2
+
+# add a version and upload the pkg  - to be signed on the server
+ xadm add-version xolo-test 0.0.1 \
+   --standalone \
+   --pkg-to-upload /Users/chrisl/git/xolo-titles/xolo-test/xolo-test-001.pkg  \
+   --publish-date $(date +%F) \
+   --min-os 10.6 \
+   --pilot-groups chrisltest-smartgroup
+
+
+# Add a title with a version script
+#####################################
+# vers=$( < /Users/chrisl/git/xolo-titles/chrisltest/pkgroot/Library/Admin/chrisltest-xolo/current-version )
+# pkgbuild --version $vers --identifier com.pixar.chrisltest-xolo --root /Users/chrisl/git/xolo-titles/chrisltest/pkgroot  /Users/chrisl/git/xolo-titles/chrisltest/chrisltest-xolo-$vers.pkg
+
+xadm add-title chrisltest \
+  --display-name "ChrisL's Test App" \
+  --description 'Another simple app for testing package/patch deployment with Xolo.' \
+  --publisher 'Pixar Animation Studios' \
+  --target-groups 'Dogcows Macs - Workstations' \
+  --excluded-groups 'chrisltest, func-avid, func-protools' \
+  --self-service \
+  --self-service-category testing \
+  --self-service-icon '/Library/Admin/images/dante.png' \
+  --version-script  '/Users/chrisl/git/xolo-titles/chrisltest/xolo-test-version-script'
+
+# Add a version
+ xadm add-version chrisltest 1.2.3 \
+   --standalone \
+   --pkg-to-upload '/Users/chrisl/git/xolo-titles/chrisltest/chrisltest-xolo-1.2.3.pkg'  \
+   --publish-date $(date +%F) \
+   --min-os 11.0 \
+   --pilot-groups chrisltest-smartgroup
+
+# add a second version
+ xadm add-version chrisltest 1.2.4 \
+   --standalone \
+   --pkg-to-upload '/Users/chrisl/git/xolo-titles/chrisltest/chrisltest-xolo-1.2.4.pkg'  \
+   --publish-date $(date +%F) \
+   --min-os 11.1 \
+   --pilot-groups chrisltest-smartgroup
+
+# Update the title, which should update the versions if we changed any scoping or
+# requirements/components
+
+
+# release a version
