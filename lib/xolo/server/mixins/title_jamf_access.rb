@@ -34,7 +34,7 @@ module Xolo
       # This is mixed in to Xolo::Server::Title
       # to define Title-related access to the Jamf Pro server
       #
-      module TitleJamfPro
+      module TitleJamfAccess
 
         # Constants
         #

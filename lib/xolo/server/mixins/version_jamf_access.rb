@@ -34,7 +34,7 @@ module Xolo
       # This is mixed in to Xolo::Server::Version
       # to define Version-related access to the Jamf Pro server
       #
-      module VersionJamfPro
+      module VersionJamfAccess
 
         # Constants
         #

@@ -34,7 +34,7 @@ module Xolo
       # This is mixed in to Xolo::Server::Title
       # to define Title-related access to the Title Editor server
       #
-      module TitleTitleEditor
+      module TitleTedAccess
 
         # Module methods
         #
@@ -63,7 +63,7 @@ module Xolo
         ##########################
         def create_title_in_ted
           progress "Title Editor: Creating SoftwareTitle '#{title}'", log: :info
-          new_ted_title = Windoo::SoftwareTitle.create(
+          @ted_title = Windoo::SoftwareTitle.create(
             id: title,
             name: display_name,
             publisher: publisher,
@@ -73,9 +73,9 @@ module Xolo
             cnx: ted_cnx
           )
 
-          update_ted_title_requirements new_ted_title
+          update_ted_title_requirements
 
-          self.ted_id_number = new_ted_title.softwareTitleId
+          self.ted_id_number = ted_title.softwareTitleId
         end
 
         # Update title in the title editor
@@ -148,10 +148,10 @@ module Xolo
 
             # if we're already using an EA, but we are here, the EA script has
             # changed so just update it
-            return if update_existing_ted_title_ea
+            return if update_existing_ted_title_ea(req_ea_script: req_ea_script)
 
-            # if we are here, we are changing from app-based to EA-based requirement
-            update_ted_title_ea_requirements req_ea_script
+            # if we are here, we are createing the initial EA or changing from app-based to EA-based requirement
+            update_ted_title_ea_requirements req_ea_script: req_ea_script
 
           else
             msg = 'No version_script, nor app_name & app_bundle_id - Cannot set Title Editor Title Requirements'
@@ -220,7 +220,7 @@ module Xolo
         # update it and return true
         # @return [Boolean] do have have (and did we update) an existing TedEA?
         #########################
-        def update_existing_ted_title_ea
+        def update_existing_ted_title_ea(req_ea_script:)
           if ted_title.requirements.first&.type == 'extensionAttribute'
             ted_title.extensionAttribute.script = req_ea_script
             # Accept it... when?
