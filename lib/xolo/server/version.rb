@@ -45,8 +45,8 @@ module Xolo
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
 
-      include Xolo::Server::Mixins::VersionJamfPro
-      include Xolo::Server::Mixins::VersionTitleEditor
+      include Xolo::Server::Mixins::VersionJamfAccess
+      include Xolo::Server::Mixins::VersionTedAccess
 
       # Constants
       ######################
@@ -208,8 +208,10 @@ module Xolo
       # @return [Array<String>] the pilot groups to use in policies and patch policies
       ######################
       def pilot_groups_to_use(ttl_obj: nil)
+        return @pilot_groups_to_use if @pilot_groups_to_use
+
         ttl_obj ||= title_object
-        @pilot_groups_to_use ||= groups_to_use ttl_obj.pilot_groups, pilot_groups
+        @pilot_groups_to_use = groups_to_use ttl_obj.pilot_groups, pilot_groups
       end
 
       # @see #groups_to_use
@@ -220,8 +222,18 @@ module Xolo
       # @return [Array<String>] the excluded groups to use in policies and patch policies for this version
       ######################
       def excluded_groups_to_use(ttl_obj: nil)
+        return @excluded_groups_to_use if @excluded_groups_to_use
+
         ttl_obj ||= title_object
-        @excluded_groups_to_use ||= groups_to_use ttl_obj.excluded_groups, excluded_groups
+        # log_debug "sending excluded_groups to 'groups_to_use' method: #{excluded_groups} #{excluded_groups.class}"
+        @excluded_groups_to_use = groups_to_use ttl_obj.excluded_groups, excluded_groups
+
+        # always exclude Xolo::Server.config.forced_exclusion if defined
+        if Xolo::Server.config.forced_exclusion
+          @excluded_groups_to_use << Xolo::Server.config.forced_exclusion
+          log_debug "Appended Xolo::Server.config.forced_exclusion '#{Xolo::Server.config.forced_exclusion}' to excluded groups"
+        end
+        @excluded_groups_to_use
       end
 
       # @see #groups_to_use
@@ -232,9 +244,10 @@ module Xolo
       # @return [Array<String>] the excluded groups to use in policies and patch policies
       ######################
       def release_groups_to_use(ttl_obj: nil)
-        ttl_obj ||= title_object
-        @release_groups_to_use ||= groups_to_use ttl_obj.release_groups, release_groups
+        return @release_groups_to_use if @release_groups_to_use
 
+        ttl_obj ||= title_object
+        @release_groups_to_use = groups_to_use ttl_obj.release_groups, release_groups
         @release_groups_to_use = [Xolo::TARGET_ALL] if @release_groups_to_use.include? Xolo::TARGET_ALL
         @release_groups_to_use
       end
@@ -245,24 +258,34 @@ module Xolo
       #
       # If the verison_groups is a non-empty array, use those groups.
       # If the version_groups is nil or an empty array, use the ones from the title, if any.
-      # if the version_groups is Xolo::NO_SCOPED_GROUPS ('no-scoped-groups') then dont
+      # if the version_groups contains Xolo::NO_SCOPED_GROUPS ('no-scoped-groups') then dont
       #   use any groups even if the title has some defined
       #
-      # @return [Array<String>] the excluded groups to use in policies and patch policies for this version
+      # IMPORTANT: never return the actual groups we are given, otherwise the ones
+      # inside the title or version objects will be mucked with by subsequent operations.
+      #
+      # @param title_groups [Array<String>] the groups defined in the title object
+      #
+      # @param title_groups [Array<String>] the groups defined in the version object
+      #
+      # @return [Array<String>] the groups to use in policies and patch policies for this version
       ######################
       def groups_to_use(title_groups, version_groups)
-        if version_groups == Xolo::NO_SCOPED_GROUPS
-          []
+        grps = []
 
-        # this catches nil and empty arrays
+        # log_debug "Method groups_to_use: comparing title groups #{title_groups} (#{title_groups.class}) to version groups #{version_groups} (#{version_groups.class})"
+
+        if version_groups.include? Xolo::NO_SCOPED_GROUPS
+          grps
+
         elsif version_groups.pix_empty?
-          title_groups
+          grps += title_groups
 
         elsif version_groups.is_a? Array
-          version_groups
+          grps += version_groups
 
         else
-          []
+          grps
         end
       end
 
@@ -415,7 +438,7 @@ module Xolo
         update_patch_in_ted
         enable_ted_patch
 
-        # TODO:  update in Jamf if needed
+        # TODO:  update in Jamf if needed = e.g. scoping
 
         # update local data before saving back to file
         ATTRIBUTES.each do |attr, deets|

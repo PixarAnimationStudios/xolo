@@ -44,8 +44,8 @@ module Xolo
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
 
-      include Xolo::Server::Mixins::TitleJamfPro
-      include Xolo::Server::Mixins::TitleTitleEditor
+      include Xolo::Server::Mixins::TitleJamfAccess
+      include Xolo::Server::Mixins::TitleTedAccess
 
       # Constants
       ######################

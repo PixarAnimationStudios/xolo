@@ -56,9 +56,15 @@ module Xolo
         ######################
         ######################
         def initialize(data_hash)
+          # log_debug "Instantiating a #{self.class}..."
+
           self.class::ATTRIBUTES.each do |attr, deets|
             val = data_hash[attr]
-            next if val.pix_empty?
+
+            # log_debug "Initializing, setting ATTR '#{attr}' => '#{val}' (#{val.class})"
+
+            # anything not nil, esp empty arrays, needs to be set
+            next if val.nil?
 
             # convert timestamps to Time objects if needed,
             # All the other values shouldn't need converting
@@ -80,8 +86,11 @@ module Xolo
         #####################
         def to_h
           hash = {}
-          self.class::ATTRIBUTES.each_key do |attr|
+          self.class::ATTRIBUTES.each do |attr, deets|
             hash[attr] = send attr
+
+            # ensure multi values are arrays, even if they are empty
+            hash[attr] = [hash[attr]].compact if deets[:multi] && !hash[attr].is_a?(Array)
           end
           hash
         end

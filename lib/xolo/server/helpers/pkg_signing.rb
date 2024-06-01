@@ -66,17 +66,31 @@ module Xolo
         # @param pkg [Pathname] Path to a .pkg to see if it's signed.
         # @return [Boolean] should we sign it?
         def need_to_sign?(pkg)
-          return false unless Xolo::Server.config.sign_pkgs
-          return false if pkg.extname == Xolo::DOT_ZIP
+          log_debug "Checking need to sign uploaded pkg '#{pkg}'"
+          unless Xolo::Server.config.sign_pkgs
+            log_debug "No need to sign '#{pkg.basename}': xolo server is not configured to sign pkgs."
+            return false
+          end
+          if pkg.extname == Xolo::DOT_ZIP
+            log_debug "No need to sign '#{pkg.basename}': It is a compressed .pkg bundle. TODO: maybe support signing these?"
+            return false
+          end
 
-          pkg_signed?(pkg)
+          !pkg_signed?(pkg)
         end
 
-        # @param pkg [Pathname] Path to a .pkg to see if it's signed.
+        # @param pkg [Pathname] Path to a .pkg to see if it's already signed.
         # @return [Boolean] is then pkg at the given pathname signed?
         #########################
         def pkg_signed?(pkg)
-          system "/usr/sbin/pkgutil --check-signature #{Shellwords.escape pkg.to_s} &>/dev/null"
+          check_output = `/usr/sbin/pkgutil --check-signature #{Shellwords.escape pkg.to_s}`
+          already_signed = $CHILD_STATUS.success?
+          if already_signed
+            log_debug "No need to sign '#{pkg.basename}': It is already signed."
+          else
+            log_debug "About to sign '#{pkg.basename}'"
+          end
+          already_signed
         end
 
         # Sign a package
@@ -108,7 +122,7 @@ module Xolo
         # TODO: Be DRY with the keychain stuff in Xolo::Admin::Credentials
         #############################
         def unlock_signing_keychain
-          log_debug "Unlocking the signing keychain'"
+          log_debug 'Unlocking the signing keychain'
 
           pw = Xolo::Server.config.pkg_signing_keychain_pw
           # first escape backslashes

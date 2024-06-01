@@ -76,7 +76,7 @@ module Xolo
         #################################
         get '/titles' do
           log_debug "Admin #{session[:admin]} is fetching all titles"
-          body all_title_instances.map(&:to_h)
+          body all_title_objects.map(&:to_h)
         end
 
         # get all the data for a single title

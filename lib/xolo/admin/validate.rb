@@ -299,6 +299,8 @@ module Xolo
           return []
         elsif val.include? Xolo::TARGET_ALL
           return [Xolo::TARGET_ALL]
+        elsif val.include? Xolo::NO_SCOPED_GROUPS
+          return [Xolo::NO_SCOPED_GROUPS]
         end
 
         bad_grps = bad_jamf_groups(val)
@@ -321,6 +323,7 @@ module Xolo
       def validate_excluded_groups(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? Xolo::NONE
+        return [Xolo::NO_SCOPED_GROUPS] if val.include? Xolo::NO_SCOPED_GROUPS
 
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
@@ -328,7 +331,6 @@ module Xolo
         raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:excluded_groups][:invalid_msg]
       end
 
-      # TODO: Implement this for xadm via the xolo server
       # @param grp_ary [Array<String>] Jamf groups to validate
       # @return [Array<String>] Jamf groups that do not exist.
       def bad_jamf_groups(group_ary)
@@ -551,6 +553,7 @@ module Xolo
       def validate_pilot_groups(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? Xolo::NONE
+        return [Xolo::NO_SCOPED_GROUPS] if val.include? Xolo::NO_SCOPED_GROUPS
 
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?

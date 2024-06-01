@@ -67,6 +67,10 @@ module Xolo
 
     EXECUTABLE_FILENAME = 'xadm'
 
+    # if a streaming line contains this text, we bail out instead of
+    # continuing any processing
+    STREAMING_OUTPUT_ERROR = 'ERROR'
+
     # Module Methods
     ##########################
     ##########################

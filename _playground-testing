@@ -46,7 +46,8 @@ xadm add-title chrisltest \
   --display-name "ChrisL's Test App" \
   --description 'Another simple app for testing package/patch deployment with Xolo.' \
   --publisher 'Pixar Animation Studios' \
-  --target-groups 'Dogcows Macs - Workstations' \
+  --pilot-groups chrisltest-smartgroup \
+  --release-groups 'Dogcows Macs - Workstations' \
   --excluded-groups 'chrisltest, func-avid, func-protools' \
   --self-service \
   --self-service-category testing \
@@ -59,7 +60,7 @@ xadm add-title chrisltest \
    --pkg-to-upload '/Users/chrisl/git/xolo-titles/chrisltest/chrisltest-xolo-1.2.3.pkg'  \
    --publish-date $(date +%F) \
    --min-os 11.0 \
-   --pilot-groups chrisltest-smartgroup
+   --release-groups 'no-scoped-groups'
 
 # add a second version
  xadm add-version chrisltest 1.2.4 \
@@ -67,10 +68,11 @@ xadm add-title chrisltest \
    --pkg-to-upload '/Users/chrisl/git/xolo-titles/chrisltest/chrisltest-xolo-1.2.4.pkg'  \
    --publish-date $(date +%F) \
    --min-os 11.1 \
-   --pilot-groups chrisltest-smartgroup
+   --pilot-groups config-test
 
 # Update the title, which should update the versions if we changed any scoping or
 # requirements/components
+
 
 
 # release a version

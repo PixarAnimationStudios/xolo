@@ -114,7 +114,7 @@ module Xolo
           if need_to_sign?(tempfile)
             sign_uploaded_pkg(tempfile, staged_pkg)
           else
-            log_debug "Jamf; Package file is already signed, copying tempfile to '#{staged_pkg.basename}'"
+            log_debug "Uploaded .pkg file doesn't need signing, copying tempfile to '#{staged_pkg.basename}'"
             tempfile.pix_cp staged_pkg
           end
 

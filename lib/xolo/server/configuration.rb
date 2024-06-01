@@ -108,13 +108,12 @@ module Xolo
       # Attributes
       #####################################
 
-      # The attribute keys we maintain, and their default values
+      # The attribute keys we maintain, and their definitions
       KEYS = {
 
         # @!attribute ssl_cert
         #   @return [String] A command, path, or value for the SSL Cert.
         ssl_cert: {
-          default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
@@ -139,7 +138,6 @@ module Xolo
         # @!attribute ssl_key
         #   @return [String] A command, path, or value for the SSL Cert private key.
         ssl_key: {
-          default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
@@ -207,7 +205,6 @@ module Xolo
         #      Xolo server admins of a problem that would otherwise go unnoticed.
         #
         alert_tool: {
-          default: nil,
           desc: <<~ENDDESC
             Server errors that happen as part of xadm actions should be reported to the xadm user.
             But sometimes an error might happen on the server that's outside of the scope of a xadm session.
@@ -226,7 +223,6 @@ module Xolo
         # @!attribute pkg_signing_keychain_pw
         #   @return [String]  A command, path, or value for the password to unlock the pkg_signing_keychain
         pkg_signing_keychain_pw: {
-          default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
@@ -249,7 +245,6 @@ module Xolo
         # @!attribute pkg_signing_identity
         #   @return [String] The name of the package signing identity to use
         pkg_signing_identity: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The 'identity' (name) of the package-signing certificate inside the keychain.
@@ -265,7 +260,6 @@ module Xolo
         # @!attribute jamf_hostname
         #   @return [String] The hostname of the Jamf Pro server we are connecting to
         jamf_hostname: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The hostname of the Jamf Pro server used by xolo.
@@ -326,7 +320,6 @@ module Xolo
         # @!attribute jamf_api_user
         #   @return [String] The username to use when connecting to the Jamf Pro API
         jamf_api_user: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The username of the Jamf account for connecting to the Jamf Pro APIs.
@@ -337,7 +330,6 @@ module Xolo
         # @!attribute jamf_api_pw
         #   @return [String]  A command, path, or value for the password for the Jamf Pro API user
         jamf_api_pw: {
-          default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
@@ -371,7 +363,6 @@ module Xolo
         # @!attribute admin_jamf_group
         #   @return [String] The name of a Jamf account-group containing users of 'xadm'
         admin_jamf_group: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The name of a Jamf account-group (not a User group) that allows the use of 'xadm'
@@ -384,7 +375,6 @@ module Xolo
         #   @return [Pathname] The path to an executable that can upload .pkg files for use by
         #      the Jamf Pro server. The API doesn't provide this ability.
         upload_tool: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
@@ -416,13 +406,28 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute forced_exclusion
+        #   @return [String] The name of a single Jamf Pro computer groups that will ALWAYS be excluded
+        #      and will never see any titles or versions in Xolo.
+        forced_exclusion: {
+          desc: <<~ENDDESC
+            If you have any jamf computers who should never even know that xolo exists, and should never have any software installed via xolo, put them into a group and put that groups name here.
+
+            And example would be a group of machines that should have a very minimalist management footprint,
+            only enforcing basic security settings and nothing else.
+
+            This group, if defined, will be in the exclusions of all policies and patch policies maintained by Xolo.
+
+            NOTE: These machines are still managed, and software can still be installed via Jamf, but outside of Xolo, if desired.
+          ENDDESC
+        },
+
         # Title Editor
         ####################
 
         # @!attribute ted_patch_source
         #   @return [String] The name of the Patch Source in Jamf Pro that points at the Title Editor.
         ted_patch_source: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The name in Jamf Pro of the Title Editor as an External Patch Source
@@ -432,7 +437,6 @@ module Xolo
         # @!attribute ted_hostname
         #   @return [String] The hostname of the Jamf Title Editor server we are connecting to
         ted_hostname: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The hostname of the Title Editor server used by xolo.
@@ -463,7 +467,6 @@ module Xolo
         # @!attribute ted_api_user
         #   @return [String]  The username to use when connecting to the Jamf Title Editor API
         ted_api_user: {
-          default: nil,
           required: true,
           desc: <<~ENDDESC
             The username of the Title Editor account for connecting to the Title Editor API.
@@ -474,7 +477,6 @@ module Xolo
         # @!attribute ted_api_pw
         #   @return [String] A command, path, or value for the password for the Jamf Title Editor API user
         ted_api_pw: {
-          default: nil,
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,

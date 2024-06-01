@@ -398,40 +398,6 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute released_by
-          #   @return [String] The login of the admin who piloted this version in Xolo.
-          #     This is when the Title Editor, or other Patch Source, tells Jamf Pro that
-          #     this new version is available and can be piloted.
-          piloted_by: {
-            label: 'Piloted By',
-            type: :string,
-            cli: false,
-            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
-            desc: <<~ENDDESC
-              The login of the admin who piloted this version in Xolo.
-              This is when the Title Editor, or other Patch Source, tells Jamf Pro that
-              this new version is available. Versions should be piloted before they are
-              released.
-            ENDDESC
-          },
-
-          # @!attribute release_date
-          #   @return [Time] The timestamp this version was released in Xolo.
-          #     This is when the Title Editor, or other Patch Source, tells Jamf Pro that
-          #     this new version is available and can be piloted.
-          pilot_date: {
-            label: 'Pilot Date',
-            type: :time,
-            cli: false,
-            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
-            desc: <<~ENDDESC
-              The timestamp when this version was piloted in Xolo.
-              This is when the Title Editor, or other Patch Source, tells Jamf Pro that
-              this new version is available. Versions should be piloted before they are
-              released.
-            ENDDESC
-          },
-
           # @!attribute deployed_by
           #   @return [String] The login of the admin who released this version in Xolo.
           #     This is when the Xolo sets the status of this version to 'released', making it
