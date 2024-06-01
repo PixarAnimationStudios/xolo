@@ -143,8 +143,14 @@ module Xolo
         @streaming_cnx = nil if host
         return @streaming_cnx if @streaming_cnx
 
-        # every time we get a chunk, just print it to stdout
-        req_opts = { on_data: proc { |chunk, _size, _env| puts chunk } }
+        # this proc every time we get a chunk, just print it to stdout
+        # and make note if any of them conain an error
+        streaming_proc = proc do |chunk, _size, _env|
+          puts chunk
+          @streaming_error ||= chunk.include? STREAMING_OUTPUT_ERROR
+        end
+
+        req_opts = { on_data: streaming_proc }
 
         @streaming_cnx = Faraday.new(server_url(host: host), request: req_opts) do |cnx|
           cnx.options[:timeout] = TIMEOUT

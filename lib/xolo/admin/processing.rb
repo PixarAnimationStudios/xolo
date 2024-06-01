@@ -514,7 +514,13 @@ module Xolo
         add_progress_history_entry url_path
         return if quiet?
 
+        # if any line of the contains 'ERROR' we can skip
+        # any post-stream processing.
+        @streaming_error = false
+
         streaming_cnx.get url_path
+
+        raise Xolo::ServerError, 'There was an error while streaming the server progress.' if @streaming_error
       end
 
     end # module processing
