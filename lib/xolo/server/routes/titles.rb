@@ -120,15 +120,13 @@ module Xolo
           end
         end
 
-        # Add or update the version-script for a title
+        # Handle upload for self-service icon for a title
         #
         # @return [Hash] A response hash
         #################################
-        post '/titles/:title/version_script' do
-          log_info "Admin #{session[:admin]} is updating the version script for title '#{params[:title]}'"
-          halt_on_missing_title params[:title]
-
-          title = instantiate_title params[:title]
+        post '/titles/:title/ssvc-icon' do
+          process_incoming_ssvc_icon
+          body({ result: :uploaded })
         end
 
       end # Titles

@@ -81,13 +81,14 @@ module Xolo
       def parse_global_cli
         # set this so its available inside the optimist options block
         executable_file = Xolo::Admin::EXECUTABLE_FILENAME
+        usage_line = usage
 
         Optimist.options do
           banner 'Name:'
           banner "  #{executable_file}, A command-line tool for managing Software Titles and Versions in Xolo."
 
           banner "\nUsage:"
-          banner "  #{usage}"
+          banner "  #{usage_line}"
 
           banner "\nGlobal Options:"
 

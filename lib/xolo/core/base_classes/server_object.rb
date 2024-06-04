@@ -32,7 +32,7 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with Titles and Versions/Patches in the
-      # Xolo Server and the Admin modules.
+      # Xolo Server and Admin modules.
       #
       class ServerObject
 

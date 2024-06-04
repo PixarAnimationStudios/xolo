@@ -63,6 +63,16 @@ module Xolo
       #
       VERSIONS_DIRNAME = 'versions'
 
+      JAMF_PKG_NOTES_VERS_PH = 'XOLO-VERSION-HERE'
+      JAMF_PKG_NOTES_TITLE_PH = 'XOLO-TITLE-HERE'
+
+      # The 'Notes' of a jamf pkg are the Xolo Title Description, with this prepended
+      JAMF_PKG_NOTES_PREFIX = <<~ENDNOTES
+        This package is maintained by 'xolo', to install version '#{JAMF_PKG_NOTES_VERS_PH}' of title '#{JAMF_PKG_NOTES_TITLE_PH}'. The description in Xolo is:
+
+
+      ENDNOTES
+
       # Class Methods
       ######################
       ######################
@@ -165,6 +175,12 @@ module Xolo
       # The Jamf::Package object has this jamf id
       attr_reader :jamf_pkg_id
 
+      # when applying updates, the new data is stored
+      # here so it can be accessed by update-methods
+      # and compared to the current instanace values
+      # both for updating the title, and the versions
+      attr_reader :new_data_for_update
+
       # Constructor
       ######################
       ######################
@@ -211,7 +227,9 @@ module Xolo
         return @pilot_groups_to_use if @pilot_groups_to_use
 
         ttl_obj ||= title_object
-        @pilot_groups_to_use = groups_to_use ttl_obj.pilot_groups, pilot_groups
+        pgrps = new_data_for_update ? new_data_for_update[:pilot_groups] : pilot_groups
+
+        @pilot_groups_to_use = groups_to_use ttl_obj.pilot_groups, pgrps
       end
 
       # @see #groups_to_use
@@ -225,8 +243,10 @@ module Xolo
         return @excluded_groups_to_use if @excluded_groups_to_use
 
         ttl_obj ||= title_object
+        egrps = new_data_for_update ? new_data_for_update[:excluded_groups] : excluded_groups
+
         # log_debug "sending excluded_groups to 'groups_to_use' method: #{excluded_groups} #{excluded_groups.class}"
-        @excluded_groups_to_use = groups_to_use ttl_obj.excluded_groups, excluded_groups
+        @excluded_groups_to_use = groups_to_use ttl_obj.excluded_groups, egrps
 
         # always exclude Xolo::Server.config.forced_exclusion if defined
         if Xolo::Server.config.forced_exclusion
@@ -247,7 +267,9 @@ module Xolo
         return @release_groups_to_use if @release_groups_to_use
 
         ttl_obj ||= title_object
-        @release_groups_to_use = groups_to_use ttl_obj.release_groups, release_groups
+        rgrps = new_data_for_update ? new_data_for_update[:release_groups] : release_groups
+
+        @release_groups_to_use = groups_to_use ttl_obj.release_groups, rgrps
         @release_groups_to_use = [Xolo::TARGET_ALL] if @release_groups_to_use.include? Xolo::TARGET_ALL
         @release_groups_to_use
       end
@@ -421,7 +443,6 @@ module Xolo
       # Update a this version, updating to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #
-      #
       # TODO: allow specification of version_order, probably by accepting a value
       # for the 'previous_version'?
       #
@@ -435,28 +456,42 @@ module Xolo
         self.modification_date = Time.now
         self.modified_by = admin
 
+        # update ted before jamf
         update_patch_in_ted
         enable_ted_patch
-
-        # TODO:  update in Jamf if needed = e.g. scoping
-
-        # update local data before saving back to file
-        ATTRIBUTES.each do |attr, deets|
-          next if deets[:read_only]
-
-          new_val = @new_data_for_update[attr]
-          old_val = send(attr)
-          next if new_val == old_val
-
-          log_debug "Updating Xolo attribute '#{attr}': #{old_val} -> #{new_val}"
-          send "#{attr}=", new_val
-        end
+        update_version_in_jamf
+        update_local_instance_values
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data
         save_local_data
 
-        # TODO: upload any new pkg
+        # new pkg uploads happen in a separate process
+      end
+
+      # Update our instance attributes with any new data before
+      # saving the changes back out to the file system
+      # @return [void]
+      ###########################
+      def update_local_instance_values
+        # update instance data with new data before writing out to the filesystem.
+        # Do this last so that the instance values can be compared to
+        # @new_data_for_update in the steps above.
+        # Also, those steps might have updated some server-specific attributes
+        # which will be saved to the file system as well.
+        ATTRIBUTES.each do |attr, deets|
+          # make sure these are updated elsewhere if needed,
+          # e.g. modification data.
+          next if deets[:read_only]
+
+          new_val = new_data_for_update[attr]
+          old_val = send(attr)
+          next if new_val == old_val
+
+          log_debug "Updating Xolo Version attribute '#{attr}': '#{old_val}' -> '#{new_val}'"
+          send "#{attr}=", new_val
+        end
+        # update any other server-specific attributes here...
       end
 
       # Save our current data out to our JSON data file

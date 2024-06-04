@@ -51,7 +51,7 @@ module Xolo
       # DELETE .../<title> to delete a title and its version
       SERVER_ROUTE = '/titles'
 
-      UPLOAD_ICON_ROUTE = '/upload/ssvc-icon'
+      UPLOAD_ICON_ROUTE = 'ssvc-icon'
 
       # Class Methods
       #############################
@@ -198,7 +198,9 @@ module Xolo
         mimetype = `/usr/bin/file --brief --mime-type #{Shellwords.escape self_service_icon.expand_path.to_s}`.chomp
         upfile = Faraday::Multipart::FilePart.new(self_service_icon.expand_path.to_s, mimetype)
         content = { file: upfile }
-        route = "#{UPLOAD_ICON_ROUTE}/#{title}"
+        # route =  "#{UPLOAD_ICON_ROUTE}/#{title}"
+        route = "#{SERVER_ROUTE}/#{title}/#{UPLOAD_ICON_ROUTE}"
+
         upload_cnx.post(route) { |req| req.body = content }
       end
 

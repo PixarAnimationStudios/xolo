@@ -63,6 +63,9 @@ module Xolo
         ##############################
 
         # Apply any changes to Jamf as needed
+        # Mostly this just sets flags indicating what needs to be updated in the
+        # various version-related things in jamf - policies, self service, etc.
+        #
         # @return [void]
         #########################
         def update_title_in_jamf

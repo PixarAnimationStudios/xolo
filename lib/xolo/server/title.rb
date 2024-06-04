@@ -374,15 +374,13 @@ module Xolo
         # for methods to compare the incoming new data
         # with the existing instance data
         @new_data_for_update = new_data
-
         log_info "Updating title '#{title}' for admin '#{admin}'"
 
         self.modification_date = Time.now
         self.modified_by = admin
 
-        # Do this before doing things in Jamf
+        # Do ted before doing things in Jamf
         update_title_in_ted
-
         update_title_in_jamf
 
         # Don't do this until we no longer need to use
@@ -433,7 +431,6 @@ module Xolo
         # and the local data will be updated again then
       end # update
 
-      #
       # Update our instance attributes with any new data before
       # saving the changes back out to the file system
       # @return [void]
@@ -463,6 +460,8 @@ module Xolo
       # the title editor, or Jamf, this loops thru the versions and applies
       # them
       #
+      # This should happen after the incoming changes have been applied to this instance
+      #
       # Ted Stuff
       # - swap version-script / app-based component if needed
       # - re-enable all patches
@@ -486,7 +485,9 @@ module Xolo
 
           # turn self service on or off
           vers_obj.update_ssvc(ttl_obj: self) if @need_to_update_ssvc
-          vers_obj.update_ssvc_category(ttl_obj: self) if @need_to_update_ssvc_category
+
+          # update ssvc category if needed, and if self_services is on
+          vers_obj.update_ssvc_category(ttl_obj: self) if @need_to_update_ssvc_category && self_service
         end
       end
 
@@ -560,6 +561,21 @@ module Xolo
         # attr.
         self.self_service_icon = Xolo::ITEM_UPLOADED
         save_local_data
+      end
+
+      # If we have any versions, and we are using self service,
+      # update all relevant policies with a newly-uploaded icon
+      #
+      # @return [void]
+      ###################################
+      def update_ssvc_icon_in_version_policies
+        return unless self_service
+        return if version_order.pix_empty?
+
+        icon_file = ssvc_icon_file
+        return unless icon_file
+
+        version_objects.each { |vo| vo.update_ssvc_icon(ttl_obj: self) }
       end
 
       # Delete the version script file

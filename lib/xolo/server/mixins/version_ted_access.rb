@@ -82,7 +82,9 @@ module Xolo
           self.ted_id_number = new_patch.patchId
         end
 
-        # Update version/patch in the title editor
+        # Update version/patch in the title editor directly.
+        # This never called when updating versions via changes to
+        # the title - that process calls the sub-methods directly.
         #
         # @return [void]
         ##########################
@@ -93,7 +95,7 @@ module Xolo
             ted_attribute = deets[:ted_attribute]
             next unless ted_attribute
 
-            new_val = @new_data_for_update[attr]
+            new_val = new_data_for_update[attr]
             old_val = send(attr)
             next if new_val == old_val
 
@@ -105,8 +107,6 @@ module Xolo
           update_patch_killapps
           update_patch_capabilites
           update_patch_component
-
-          self.ted_id_number = ted_patch.patchId
         end
 
         # Update any killapps for this version in the title editor.
@@ -114,7 +114,7 @@ module Xolo
         # @return [void]
         ##########################
         def update_patch_killapps
-          kapps = @new_data_for_update ? @new_data_for_update[:killapps] : killapps
+          kapps = new_data_for_update ? new_data_for_update[:killapps] : killapps
           return unless kapps
 
           # delete the existing
@@ -152,7 +152,7 @@ module Xolo
           ted_patch.capabilities.delete_all_criteria
 
           # min os
-          min = @new_data_for_update ? @new_data_for_update[:min_os] : min_os
+          min = new_data_for_update ? new_data_for_update[:min_os] : min_os
 
           progress "Title Editor: setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
                    log: :debug
@@ -164,7 +164,7 @@ module Xolo
           )
 
           # max os
-          max = @new_data_for_update ? @new_data_for_update[:max_os] : max_os
+          max = new_data_for_update ? new_data_for_update[:max_os] : max_os
 
           return unless max
 
@@ -179,6 +179,7 @@ module Xolo
 
         # Update the component criteria for this version in the title editor.
         #
+        #
         # This is a collection of criteria that define which computers
         # have this version installed
         #
@@ -191,6 +192,9 @@ module Xolo
         # @return [void]
         ##########################
         def update_patch_component(title_obj: nil)
+          # if we weren't passed one, instantiate it now
+          title_obj ||= title_object
+
           log_debug "Title Editor: updating component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
 
           # delete the existing component, and its criteria
@@ -199,9 +203,6 @@ module Xolo
           # create a new one
           ted_patch.add_component name: title, version: version
           comp = ted_patch.component
-
-          # if we weren't passed one, instantiate it now
-          title_obj ||= title_object
 
           # Are we using the 'version_script' (aka the EA for the title)
           if title_obj.version_script
@@ -217,7 +218,7 @@ module Xolo
         # @return [void]
         ##############################
         def update_ea_component(comp, title_obj)
-          progress "Title Editor: setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
+          progress "Title Editor: Setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
                    log: :debug
 
           comp.criteria.add_criterion(
@@ -231,7 +232,7 @@ module Xolo
         # @return [void]
         ##############################
         def update_app_component(comp, title_obj)
-          progress "Title Editor: setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
+          progress "Title Editor: Setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
                    log: :debug
 
           comp.criteria.add_criterion(
@@ -266,7 +267,7 @@ module Xolo
         # @return [void]
         ##############################
         def enable_ted_patch
-          progress "Title Editor: Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :debug
+          progress "Title Editor: (re)Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :debug
           ted_patch.enable
 
           # Once we have an enabled patch, the title should also be enabled,

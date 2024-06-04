@@ -205,13 +205,34 @@ module Xolo
             name: jamf_pkg_name,
             filename: jamf_pkg_file,
             reboot_required: reboot,
-            category: Xolo::Server::JAMF_XOLO_CATEGORY
+            category: Xolo::Server::JAMF_XOLO_CATEGORY,
+            notes: jamf_pkg_notes
           )
+          # TODO: Implement max_os, either here, or by maintaining a smart group?
+          # I really which jamf would improve how package objects handle
+          # OS requirements, building in the concept of min/max
+          pkg.os_requirements = ">=#{min_os}"
+
           @jamf_pkg_id = pkg.save
         rescue StandardError => e
           msg = "Jamf: Failed to create Jamf::Package '#{jamf_pkg_name}': #{e.class}: #{e}"
           log_error msg
           halt 400, msg
+        end
+
+        # @return [String] the 'notes' text for the Jamf::Package object for this version
+        #############################
+        def jamf_pkg_notes
+          pkg_notes = Xolo::Server::Version::JAMF_PKG_NOTES_PREFIX.sub(
+            Xolo::Server::Version::JAMF_PKG_NOTES_VERS_PH,
+            version
+          )
+          pkg_notes.sub!(
+            Xolo::Server::Version::JAMF_PKG_NOTES_TITLE_PH,
+            title
+          )
+          pkg_notes << title_object.description
+          pkg_notes
         end
 
         # Create the normal policies capable of doing the initial
@@ -254,6 +275,7 @@ module Xolo
             pol.add_self_service_category title_object.self_service_category
             pol.self_service_description = title_object.description
             pol.self_service_display_name = title_object.display_name
+            pol.self_service_install_button_text = 'Install'
           end
 
           pol.enable
@@ -433,7 +455,7 @@ module Xolo
         # @return [void]
         ########################################
         def assign_pkg_to_patch_in_jamf
-          log_debug "Jamf: Assigning package '#{jamf_pkg_name}' to version '#{version}' of title '#{title}'"
+          log_debug "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'"
 
           jamf_patch_version.package = jamf_pkg_name
           title_object.jamf_patch_title.save
@@ -492,8 +514,10 @@ module Xolo
           if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
             Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
           else
-            progress "Jamf: WARNING No Manual Install Policy '#{jamf_manual_install_policy_name}', it should be there.",
-                     log: :warn
+            progress(
+              "Jamf: WARNING No Manual Install Policy '#{jamf_manual_install_policy_name}', it should be there.",
+              log: :warn
+            )
             nil
           end
         end
@@ -504,8 +528,10 @@ module Xolo
           if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
             Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
           else
-            progress "Jamf: WARNING No Auto-Install Policy '#{jamf_auto_install_policy_name}', it should be there.",
-                     log: :warn
+            progress(
+              "Jamf: WARNING No Auto-Install Policy '#{jamf_auto_install_policy_name}', it should be there.",
+              log: :warn
+            )
             nil
           end
         end
@@ -513,12 +539,113 @@ module Xolo
         # @return [Jamf::PatchPolicy] The auto-install-policy for this version, if it exists
         ##########################
         def jamf_patch_policy
-          if Jamf::PatchPolicy.all_names.include? jamf_patch_policy_name
+          if Jamf::PatchPolicy.all_names(cnx: jamf_cnx).include? jamf_patch_policy_name
             Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
           else
-            progress "Jamf: WARNING No Patch Policy '#{jamf_patch_policy_name}', it should be there.", log: :warn
+            progress(
+              "Jamf: WARNING No Patch Policy '#{jamf_patch_policy_name}', it should be there.",
+              log: :warn
+            )
             nil
           end
+        end
+
+        # Apply edits to the Xolo version to Jamf as needed
+        # This includes scope changes in policies, changes to pkg 'reboot' setting
+        # and changes to pkg 'os_requirements'
+        # Uploading a new .pkg installer happen separately
+        #########################################
+        def update_version_in_jamf
+          unless new_data_for_update[:pilot_groups].sort == pilot_groups.sort
+            # pilots
+            update_pilot_groups ttl_obj: title_object
+          end
+
+          unless new_data_for_update[:release_groups].sort == release_groups.sort
+            # release
+            update_release_groups ttl_obj: title_object
+          end
+
+          unless new_data_for_update[:excluded_groups].sort == excluded_groups.sort
+            # excludes
+            update_excluded_groups ttl_obj: title_object
+          end
+
+          unless new_data_for_update[:reboot] == reboot
+            # reboot
+            update_jamf_pkg_reboot
+          end
+
+          return if new_data_for_update[:min_os] == min_os
+
+          update_jamf_pkg_min_os
+        end
+
+        # update the reboot setting for the Jamf::Package
+        # @return [void]
+        ##########################
+        def update_jamf_pkg_reboot
+          pkg = jamf_package
+          unless pkg
+            progress(
+              "ERROR: Jamf: No package object defined in for version '#{version}' of title '#{title}'.",
+              log: :error
+            )
+            return
+          end
+          pkg.reboot_required = reboot
+          pkg.save
+          progress "Jamf: Updated reboot setting for Jamf::Package '#{jamf_pkg_name}'", log: :debug
+        end
+
+        # update the min_os setting for the Jamf::Package
+        # @return [void]
+        ##########################
+        def update_jamf_pkg_min_os
+          pkg = jamf_package
+          unless pkg
+            progress(
+              "ERROR: Jamf: No package object defined in for version '#{version}' of title '#{title}'.",
+              log: :error
+            )
+            return
+          end
+          pkg.os_requirements = ">=#{min_os}"
+          pkg.save
+          progress "Jamf: Updated os_requirement for Jamf::Package '#{jamf_pkg_name}'", log: :debug
+        end
+
+        # TODO: handle missing pkg in jamf
+        # @return [Jamf::Package] the Package object associated with this version
+        ######################
+        def jamf_package
+          return unless jamf_pkg_id
+          return unless Jamf::Package.all_ids(cnx: jamf_cnx).include? jamf_pkg_id
+
+          Jamf::Package.fetch id: jamf_pkg_id, cnx: jamf_cnx
+        end
+
+        # Update the SSvc Icon for the policies used by this version
+        #
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        #
+        # @return [void]
+        ###############################
+        def update_ssvc_icon(ttl_obj: nil)
+          ttl_obj ||= title_object
+          # update manual install policy
+
+          log_debug "Jamf: Updating SSvc Icon for Manual Install Policy '#{jamf_manual_install_policy_name}'"
+          pol = jamf_manual_install_policy
+          return unless pol
+
+          pol.upload :icon, ttl_obj.ssvc_icon_file
+          progress "Jamf: Updated Icon for Manual Install Policy '#{jamf_manual_install_policy_name}'",
+                   log: :debug
+
+          # TODO: When we figure out if we want patch policies to use
+          # ssvc - they will need to be updated also
         end
 
         # Update all the pilot_groups policy scopes for this version when
@@ -610,30 +737,95 @@ module Xolo
           progress "Jamf: updated exccluded groups for Patch Policy '#{jamf_patch_policy_name}'."
         end
 
+        # Update whether or not we are in self service, based on the setting in our title
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        #########################
+        def update_ssvc(ttl_obj: nil)
+          ttl_obj ||= title_object
+
+          # Update the manual install policy
+          pol = jamf_manual_install_policy
+          return unless pol
+
+          if ttl_obj.self_service
+            pol.add_to_self_service
+            pol.self_service_install_button_text = 'Install'
+            msg = "Jamf: Enabled Self Service for Manual Install Policy '#{jamf_manual_install_policy_name}'."
+          else
+            pol.remove_from_self_service
+            msg = "Jamf: Disabled Self Service for Manual Install Policy '#{jamf_manual_install_policy_name}'."
+          end
+          pol.save
+          progress msg, log: :debug
+
+          # TODO: if we decide to use ssvc in patch policies, enable the code below.
+
+          # update the patch policy
+
+          # pol = jamf_patch_policy
+          # return unless pol
+
+          # if ttl_obj.self_service
+          #   pol.add_to_self_service
+          #   msg = "Jamf: Enabled Self Service for Patch Policy '#{jamf_patch_policy_name}'."
+          # else
+          #   pol.remove_from_self_service
+          #   msg = "Jamf: Disabled Self Service for Patch Policy '#{jamf_patch_policy_name}'."
+          # end
+          # pol.save
+          # progress msg, log: :debug
+        end
+
+        # Update our self service category, based on the setting in our title
+        # TODO: Allow multiple categories, and 'featuring' ?
+        #
+        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
+        #   if nil, we'll instantiate it now
+        #########################
+        def update_ssvc_category(ttl_obj: nil)
+          ttl_obj ||= title_object
+
+          # Update the manual install policy
+          pol = jamf_manual_install_policy
+          return unless pol
+
+          old_cats = pol.self_service_categories.map { |c| c[:name] }
+          old_cats.each { |c| pol.remove_self_service_category c }
+          pol.add_self_service_category ttl_obj.self_service_category
+          pol.save
+          progress(
+            "Jamf: Updated Self Service Category to '#{ttl_obj.self_service_category}' for Manual Install Policy '#{jamf_manual_install_policy_name}'.",
+            log: :debug
+          )
+
+          # TODO: if we decide to use ssvc in patch policies, enable the code below.
+
+          # update the patch policy
+
+          # pol = jamf_patch_policy
+          # return unless pol
+
+          # old_cats = pol.self_service_categories.map { |c| c[:name] }
+          # old_cats.each { |c| pol.remove_self_service_category c }
+          # pol.add_self_service_category ttl_obj.self_service_category
+          # pol.save
+          # progress  "Jamf: Updated Self Service Category to '#{ttl_obj.self_service_category}' for Patch Policy '#{jamf_patch_policy_name}'.",
+          #           log: :debug
+        end
+
         # Delete an entire version from Jamf Pro
         #########################
         def delete_version_from_jamf
           log_debug "Deleting Version '#{version}' from Jamf"
 
-          # Delete manual install policy
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
-            log_debug "Jamf: Starting deletion of Policy '#{jamf_manual_install_policy_name}'"
-            Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx).delete
-            progress "Jamf: Deleted Policy '#{jamf_manual_install_policy_name}'", log: :debug
-          end
+          pols = [jamf_manual_install_policy, jamf_auto_install_policy, jamf_patch_policy]
+          pols.each do |pol|
+            next unless pol
 
-          # Delete auto install policy
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
-            log_debug "Jamf: Starting deletion of Policy '#{jamf_auto_install_policy_name}'"
-            Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx).delete
-            progress "Jamf: Deleted Policy '#{jamf_auto_install_policy_name}'", log: :debug
-          end
-
-          # Delete patch policy(s)
-          if Jamf::PatchPolicy.all_names(cnx: jamf_cnx).include? jamf_patch_policy_name
-            log_debug "Jamf: Starting deletion of PatchPolicy '#{jamf_patch_policy_name}'"
-            Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx).delete
-            progress "Jamf: Deleted PatchPolicy '#{jamf_patch_policy_name}'", log: :debug
+            log_debug "Jamf: Starting deletion of #{pol.class} '#{pol.name}'"
+            pol.delete
+            progress "Jamf: Deleted #{pol.class} '#{pol.name}'", log: :info
           end
 
           # Delete package object

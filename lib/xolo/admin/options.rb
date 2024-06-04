@@ -118,8 +118,8 @@ module Xolo
       LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
       EDIT_VERSION_CMD = 'edit-version'
-      PILOT_VERSION_CMD = 'pilot-version'
-      RELEASE_VERSION_CMD = 'release-version'
+      # PILOT_VERSION_CMD = 'pilot-version'
+      RELEASE_VERSION_CMD = 'release'
       DELETE_VERSION_CMD = 'delete-version'
 
       INFO_CMD = 'info' # info on a title or version
@@ -250,7 +250,7 @@ module Xolo
         },
 
         ADD_VERSION_CMD => {
-          desc: 'Add a new version to a title',
+          desc: 'Add a new version to a title, making it available for piloting',
           display: "#{ADD_VERSION_CMD} title version",
           opts: Xolo::Admin::Version.cli_opts,
           walkthru_header: "Adding Version '#{TARGET_VERSION_PLACEHOLDER}' to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
@@ -272,17 +272,8 @@ module Xolo
           confirmation: true
         },
 
-        PILOT_VERSION_CMD => {
-          desc: 'Make the version available for piloting',
-          display: "#{PILOT_VERSION_CMD} title version",
-          opts: {},
-          target: :version,
-          streamed_response: true,
-          confirmation: true
-        },
-
         RELEASE_VERSION_CMD => {
-          desc: 'Make the version available for general installation.',
+          desc: "Make the version 'live' and available for general installation.",
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version,
@@ -377,8 +368,7 @@ module Xolo
       # For these commands, the title or version must exist
       MUST_EXIST_COMMANDS = [
         EDIT_TITLE_CMD, EDIT_VERSION_CMD,
-        DELETE_TITLE_CMD, DELETE_VERSION_CMD,
-        PILOT_VERSION_CMD, RELEASE_VERSION_CMD
+        DELETE_TITLE_CMD, DELETE_VERSION_CMD, RELEASE_VERSION_CMD
       ].freeze
 
       # Module methods

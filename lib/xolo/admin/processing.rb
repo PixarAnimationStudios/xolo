@@ -181,17 +181,6 @@ module Xolo
 
         title.upload_self_service_icon(upload_cnx)
 
-        # upload_thr = Thread.new { title.upload_self_service_icon(upload_cnx) }
-
-        # # check the thread every second, but only update the terminal every 10 secs
-        # count = 0
-        # while upload_thr.alive?
-
-        #   speak "... #{Time.now.strftime '%F %T'} Upload in progress" if (count % 10).zero?
-        #   sleep 1
-        #   count += 1
-        # end
-
         speak 'Self-service icon uploaded. Will be added to Self Service policies as needed'
       rescue StandardError => e
         handle_server_error e
@@ -308,15 +297,23 @@ module Xolo
       # @return [void]
       ###############################
       def edit_version
-        # TODO: confirmation before editing
+        return unless confirmed? "Edit Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+
         opts_to_process.title = cli_cmd.title
         opts_to_process.version = cli_cmd.version
         vers = Xolo::Admin::Version.new opts_to_process
 
-        vers.update server_cnx
+        response_data = vers.update server_cnx
+
+        if debug?
+          puts "response_data: #{response_data}"
+          puts
+        end
+
+        display_progress response_data[:progress_stream_url_path]
 
         # Upload the pkg, if any?
-        vers.upload_pkg(upload_cnx) if vers.pkg_to_upload.is_a? Pathname
+        upload_pkg(vers)
 
         speak "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e

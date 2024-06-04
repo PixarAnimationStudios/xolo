@@ -35,9 +35,6 @@ module Xolo
     # objects.
     class Version < Xolo::Core::BaseClasses::Version
 
-      # Server route for uploading packages
-      UPLOAD_PKG_ROUTE = '/upload/pkg'
-
       # This is the server path for dealing with titles
       # POST to add a new one
       # GET to get a list of versions for a title
@@ -45,6 +42,9 @@ module Xolo
       # PUT .../<version> to update a version with new data
       # DELETE .../<version> to delete a version from the title
       SERVER_ROUTE = "/titles/#{Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER}/versions"
+
+      # Server route for uploading packages
+      UPLOAD_PKG_ROUTE = 'pkg'
 
       # Class Methods
       #############################
@@ -129,7 +129,7 @@ module Xolo
 
       # Add this version to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response from the server
       ####################
       def add(cnx)
         resp = cnx.post self.class.server_route(title), to_h
@@ -138,7 +138,7 @@ module Xolo
 
       # Update this version to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response from the server
       ####################
       def update(cnx)
         resp = cnx.put self.class.server_route(title, version), to_h
@@ -147,7 +147,7 @@ module Xolo
 
       # Delete this title from the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [void]
+      # @return [Hash] the response from the server
       ####################
       def delete(cnx)
         self.class.delete title, version, cnx
@@ -165,14 +165,17 @@ module Xolo
       def upload_pkg(upload_cnx)
         return unless pkg_to_upload.is_a? Pathname
 
-        route = "#{UPLOAD_PKG_ROUTE}/#{title}/#{version}"
+        # route = "#{UPLOAD_PKG_ROUTE}/#{title}/#{version}"
+        route = "#{self.class.server_route(title, version)}/#{UPLOAD_PKG_ROUTE}"
 
         # TODO: Update this to the more modern correct class
-        upfile = Faraday::UploadIO.new(
-          pkg_to_upload.to_s,
-          'application/octet-stream',
-          pkg_to_upload.basename.to_s
-        )
+        # upfile = Faraday::UploadIO.new(
+        #   pkg_to_upload.to_s,
+        #   'application/octet-stream',
+        #   pkg_to_upload.basename.to_s
+        # )
+
+        upfile = Faraday::Multipart::FilePart.new(pkg_to_upload.expand_path.to_s, 'application/octet-stream')
 
         content = { file: upfile }
         upload_cnx.post(route) { |req| req.body = content }

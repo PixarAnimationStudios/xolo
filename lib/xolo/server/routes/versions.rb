@@ -98,25 +98,18 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         put '/titles/:title/versions/:version' do
-          log_info "Admin #{session[:admin]} is updating version '#{params[:version]}' of title '#{params[:title]}'"
-          halt_on_missing_version params[:title], params[:version]
-
-          vers = instantiate_version title: params[:title], version: params[:version]
-
-          unless vers.title == params[:title] && vers.version == params[:version]
-            msg = "JSON payload title and version '#{vers.title}/#{vers.version}' does not match  URL parameter '#{params[:title]}/#{params[:version]}'"
-            log_debug msg
-            halt 400, { error: msg }
-          end
-
           request.body.rewind
           new_data = parse_json(request.body.read)
           log_debug "Incoming update version data: #{new_data}"
 
-          vers.update new_data
+          halt_on_missing_title params[:title]
+          halt_on_missing_version params[:title], params[:version]
 
-          resp_content = { title: vers.title, version: vers.version, result: 'updated' }
-          body resp_content
+          vers = instantiate_version title: params[:title], version: params[:version]
+
+          with_streaming do
+            vers.update new_data
+          end
         end
 
         # Delete an existing version
@@ -138,6 +131,13 @@ module Xolo
           with_streaming do
             vers.delete
           end
+        end
+
+        # param with the uploaded file must be :file
+        ######################
+        post '/titles/:title/versions/:version/pkg' do
+          process_incoming_pkg
+          body({ result: :uploaded })
         end
 
       end # Titles
