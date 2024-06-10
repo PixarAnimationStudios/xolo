@@ -32,8 +32,15 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with Titles and Versions/Patches in the
-      # Xolo Server and Admin modules.
+      # Xolo Server, Admin, and Client modules.
       #
+      # The base class for "xolo objects stored on the xolo server", i.e.
+      # Titles and Versions/Patches.
+      #
+      # This class holds stuff common to both no matter where or how they are used.
+      #
+      # See also {Xolo::Core::BaseClasses::Title} and {Xolo::Core::BaseClasses::Version}
+      #############################
       class ServerObject
 
         # Mixins

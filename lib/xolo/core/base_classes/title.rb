@@ -32,11 +32,14 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with Titles in the
-      # Xolo Server and the Admin modules.
+      # Xolo Server, Admin, and Client modules.
       #
-      # These are simpler objects than Windoo::SoftwareTitle instances.
-      # The Xolo server will translate between the two.
+      # This class holds the common aspects of Xolo Titles as used
+      # on the Xolo server, in the Xolo Admin CLI app 'xadm', and the
+      # client app 'xolo' - most importately it defines which data they
+      # exchange.
       #
+      ############################
       class Title < Xolo::Core::BaseClasses::ServerObject
 
         # Mixins
@@ -53,26 +56,32 @@ module Xolo
 
         # Attributes of Titles.
         #
-        # This hash defines the attributes of all Xolo titles - which should
+        # This hash defines the common attributes of all Xolo titles - which should
         # be available in all subclasses, both on the server, in xadm, and via the
         # client.
         #
         # Each of those subclasses might define (and store or calculate) other
-        # values as needed.
+        # attributes as needed.
+        #
+        # Importantly, the attributes defined here are those that are transfered
+        # between xadm and the server as JSON data, and then used to instantiate the
+        # title in the local context. They are also stored in the JSON file deployed
+        # to clients containing all currently known titles and versions.
         #
         # In this hash, each key is the name of an attribute, and the values are
         # hashes defining the details of that attribute.
         #
         # Since they are used by all subclasses, the details may include info used
         # by one subclass but not another. For example, these attributes are
-        # used to create/define CLI & walkthru options for xadm
+        # used to create/define CLI & walkthru options for xadm, the settings for
+        # which are ignored on the server.
         #
-        # The info below also applies to Xolo:Core::BaseClasses::Version.
+        # The info below also applies to {Xolo:Core::BaseClasses::Version::ATTRIBUTES}, q.v.
         #
         # Title attributes have these details:
         #
         # - label: [String] to be displayed in admin interaction, walkthru, help msgs
-        #    or error messages. e.g. 'Display Name'
+        #    or error messages. e.g. 'Display Name' for the attribute display_name
         #
         # - required: [Boolean] Must be provided when making a new title, cannot be
         #   deleted from existing titles. (but can be changed if not immutable)
@@ -104,11 +113,11 @@ module Xolo
         #
         # - validate: [Boolean, Symbol] how to validate & convert values for this attribute.
         #
-        #   - If true (not just truthy) call method named 'validate_<key>' in  Xolo::Admin::Validate
+        #   - If true (not just truthy) call method named 'validate_<key>' in {Xolo::Admin::Validate}
         #     passing in the value to validate.
         #     e.g. Xolo::Admin::Validate.validate_display_name(new_display_name)
         #
-        #   - If a Symbol, it's an arbitrary method to call on the Xolo::Admin::Validate module
+        #   - If a Symbol, it's an arbitrary method to call on the {Xolo::Admin::Validate} module
         #     e.g. :non_empty_array will validate the value using
         #     Xolo::Admin::Validate.non_empty_array(some_array_value)
         #
@@ -118,18 +127,18 @@ module Xolo
         #   :time
         #
         #   NOTE: We are not using Optimist's validation & auto-conversion of these types, they
-        #   all come from the CLI as strings, and the matching methods in Xolo::Admin::Validate
+        #   all come from the CLI as strings, and the matching method in {Xolo::Admin::Validate}
         #   is used to validate and convert the values.
         #   The YARD docs for each attribute indicate the Class of the value in the
         #   Title object after CLI processing.
         #
-        # - invalid_msg: [String] custom message to display when the value fails validation.
+        # - invalid_msg: [String] Custom message to display when the value fails validation.
         #
         # - desc: [String] Helpful text explaining what the attribute is, and what its CLI option means.
         #   Displayed during walkthru, in help messages, and in some err messages.
         #
-        # - walkthru_na: [Symbol] The name of a method to call (usually defined in Xolo::Admin::Interactive)
-        #   when building the walk thru menu item for this option.
+        # - walkthru_na: [Symbol] The name of a method to call (usually defined in
+        #   {Xolo::Admin::Interactive}) when building the walk thru menu item for this option.
         #   If it returns a string, it is an explanation of wny this option
         #   is not available at the moment, and the item is not selectable. If it returns nil, the
         #   item is displayed and handled as normal.
@@ -141,8 +150,8 @@ module Xolo
         #   Title Editor Title, this is the name of that attribute in the Windoo::SoftwareTitle
         #
         # - readline: [Symbol] If set, use readline to get the value from the user during walkthru.
-        #   If the symbol is :get_files, a custom method that uses readline with shell-style auto-
-        #   complete to get one or more file paths.
+        #   If the symbol is :get_files, a custom method is called that  uses readline with shell-style
+        #   auto-complete to get one or more file paths.
         #   Any other symbol is the name of a method to call, which will return an array of possible
         #   values for the option, which will be used for readline-based auto-completion.
         #
@@ -152,7 +161,7 @@ module Xolo
         # - read_only: [Boolean] defaults to false. When true, the server maintains this value, and
         #   its only readable via xadm.
         #
-        # - hide_from_info: [Boolean] when true, do not show this attribute in the 'info' output
+        # - hide_from_info: [Boolean] when true, do not show this attribute in the 'info' xadm output
         #   NOTE: it will still be available when --json is given with the info command.
         #
         ATTRIBUTES = {

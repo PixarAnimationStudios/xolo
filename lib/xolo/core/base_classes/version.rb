@@ -32,11 +32,14 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with Versions/Patches in the
-      # Xolo Server and the Admin modules.
+      # Xolo Server, Admin, and Client modules.
       #
-      # These are simpler objects than Windoo::SoftwareTitle instances.
-      # The Xolo server will translate between the two.
+      # This class holds the common aspects of Xolo Versinos as used
+      # on the Xolo server, in the Xolo Admin CLI app 'xadm', and the
+      # client app 'xolo' - most importately it defines which data they
+      # exchange.
       #
+      ############################
       class Version < Xolo::Core::BaseClasses::ServerObject
 
         # Mixins
@@ -83,8 +86,23 @@ module Xolo
         ######################
 
         # Attributes of Versions
-        # See the definition for Xolo::Core::BaseClasses::Title::ATTRIBUTES
+        # See the definition for {Xolo::Core::BaseClasses::Title::ATTRIBUTES}
         ATTRIBUTES = {
+
+          # @!attribute title
+          #   @return [String] The title to which this version belongs
+          title: {
+            label: 'title',
+            read_only: true,
+            immutable: true,
+            cli: false,
+            type: :string,
+            validate: true,
+            invalid_msg: 'Not a valid version! Cannot already exist in this title.',
+            desc: <<~ENDDESC
+              A unique version string identifying this version in this title, e.g. '12.34.5'.
+            ENDDESC
+          },
 
           # @!attribute version
           #   @return [String] The version-string for this version.
@@ -97,21 +115,6 @@ module Xolo
             validate: true,
             invalid_msg: 'Not a valid version! Cannot already exist in this title.',
             ted_attribute: :version,
-            desc: <<~ENDDESC
-              A unique version string identifying this version in this title, e.g. '12.34.5'.
-            ENDDESC
-          },
-
-          # @!attribute title
-          #   @return [String] The title to which this version belongs
-          title: {
-            label: 'title',
-            read_only: true,
-            immutable: true,
-            cli: false,
-            type: :string,
-            validate: true,
-            invalid_msg: 'Not a valid version! Cannot already exist in this title.',
             desc: <<~ENDDESC
               A unique version string identifying this version in this title, e.g. '12.34.5'.
             ENDDESC

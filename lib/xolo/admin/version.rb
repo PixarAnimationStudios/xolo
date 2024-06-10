@@ -29,8 +29,8 @@ module Xolo
 
   module Admin
 
-    # A title used by xadm.
-    # This add cli and walkthru UI, as well as
+    # A version/patch as used by xadm.
+    # This adds cli and walkthru UI, as well as
     # an interface to the Xolo Server for Title
     # objects.
     class Version < Xolo::Core::BaseClasses::Version

@@ -465,6 +465,11 @@ module Xolo
       end
 
       # Upload a file to the test upload route
+      #
+      # @param pkg_to_upload [Pathname] a local file to upload
+      #
+      # @return [void]
+      #
       ############################
       def upload_test_file(pkg_to_upload)
         route = '/upload/test'
