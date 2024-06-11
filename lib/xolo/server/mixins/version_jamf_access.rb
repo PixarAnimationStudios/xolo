@@ -61,15 +61,26 @@ module Xolo
         # POLICIES, PATCH POLICIES, SCOPING
         #############################
         #
+        # SMART GROUPS
+        # For each title there will be a smart group containing all macs that have any version
+        # of the title installed. The smart group will be named 'xolo-<title>-installed'
+        #
+        # It will be used as an exclusion for the auto-initial-installation policy for each version
+        # since if the title is installed at all, any installation is not 'initial' but an update, and
+        # will be handled by the Patch Policy.
+        #
+        # Since there is one per title, it's name is stored in the title object's #jamf_installed_smart_group_name
+        # attribute, and the title object has has the method for creating it.
+        # It will be created when the first version is added to the title.
         #
         # POLICIES
         # Each version gets two policies for initial installation
-        # - one for auto-installs 'xolo-autoinstall-<title>-<version>'
+        # - one for auto-installs 'xolo-<title>-<version>-auto-install'
         #   - scoped to pilot-groups first, then  release-groups when released
         #     - xolo server maintains the scope as needed
         #   - never in self service
         #
-        # - one for manual installs 'xolo-install-<title>-<version>'
+        # - one for manual installs 'xolo-<title>-<version>-manual-install'
         #   and self-service installs
         #   - scope to all (with exclusions) with this trigger
         #     - xolo-install-<target>-<version>

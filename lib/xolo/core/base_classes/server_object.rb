@@ -87,7 +87,12 @@ module Xolo
         ######################
         ######################
 
-        # Convert to a Hash for sending between xadm and the Xolo Server
+        # Convert to a Hash for sending between xadm and the Xolo Server,
+        # or installing on clients.
+        #
+        # Only the values defined in ATTRIBUTES are sent, because all other
+        # other attributes are meant only for the local context, i.e.
+        # on the server, via xadm, or via 'xolo'.
         #
         # @return [String] The attributes of this title as JSON
         #####################
@@ -106,7 +111,7 @@ module Xolo
         # or storage on the server.
         #
         # Always make it 'pretty', i.e.  human readable, since it often
-        # gets stored in files
+        # gets stored in files that humans will look at
         #
         # @return [String] The attributes of this title as JSON
         #####################
