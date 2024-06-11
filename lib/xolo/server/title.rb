@@ -81,12 +81,29 @@ module Xolo
       # In the TitleEditor, the version script is
       # stored as an Extension Attribute - each title can
       # only have one.
-      # and it needs a 'key', which is used to indicate the
-      # EA in various criteria, and is the EA name in Jamf/
+      # and it needs a 'key', which is the name used to indicate the
+      # EA in various criteria, and is the EA name in Jamf Patch.
       # The key is this value as a prefix on the title
-      # so for title 'foobar', it is 'xolo-version-ea-foobar'
+      # so for title 'foobar', it is 'xolo-foobar'
       # That value is also used as the display name
-      TITLE_EDITOR_EA_KEY_PREFIX = 'xolo-version-ea-'
+      TITLE_EDITOR_EA_KEY_PREFIX = 'xolo-'
+
+      # The EA from the title editor, which is used in Jamf Patch
+      # cannot, unfortunately, be used as a criterion in normal
+      # smart groups or advanced searches.
+      # Since we need a smart group containing all macs with any
+      # version of the title installed, we need a second copy of the
+      # EA as a 'normal' EA.
+      #
+      # (That group is used as an exclusion to any auto-install initial-
+      # install policies, so that those policies don't stomp on the matching
+      # Patch Policies)
+      #
+      # The 'duplicate' EA is named the same as the Titled Editor key
+      # (see TITLE_EDITOR_EA_KEY_PREFIX) with this suffix added.
+      # So for the Title Editor key 'xolo-<title>', we'll also have
+      # a matching normal EA called 'xolo-<title>-installed-version'
+      JAMF_EA_NAME_SUFFIX = '-installed-version'
 
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
@@ -118,6 +135,13 @@ module Xolo
       #####################
       def self.ted_ea_key(title)
         "#{TITLE_EDITOR_EA_KEY_PREFIX}#{title}"
+      end
+
+      # @return [String] The display name of a version script as a normal
+      #   EA in Jamf, which can be used in Smart Groups and Adv Searches.
+      #####################
+      def self.jamf_ea_name(title)
+        "#{ted_ea_key(title)}#{JAMF_EA_NAME_SUFFIX}"
       end
 
       # The title dir for a given title on the server,
@@ -184,22 +208,38 @@ module Xolo
       ######################
       ######################
 
+      # For each title there will be a smart group containing all macs
+      # that have any version of the title installed. The smart group
+      # will be named 'xolo-<title>-installed'
+      #
+      # It will be used as an exclusion for the auto-initial-installation
+      # policy for each version since if the title is installed at all,
+      # any installation is not 'initial' but an update, and will be
+      # handled by the Patch Policy.
+      #
+      # Since there is one per title, it's name is stored here
+      #
+      # @return [String] the name of the smart group
+      attr_reader :jamf_installed_smart_group_name
+
       # The instance of Xolo::Server::App that instantiated this
       # title object. This is how we access things that are available in routes
       # and helpers, like the single Jamf and TEd
       # connections for this App instance.
+      # @return [Xolo::Server::App] our Sinatra server app
       attr_accessor :server_app_instance
 
       # The sinatra session that instantiates this title
       #  attr_writer :session
 
-      # The Windoo::SoftwareTitle#softwareTitleId
+      # @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
 
       # when applying updates, the new data is stored
       # here so it can be accessed by update-methods
       # and compared to the current instanace values
       # both for updating the title, and the versions
+      # @return [Hash] The new data to apply as an update
       attr_reader :new_data_for_update
 
       # version_order is defined in ATTRIBUTES
@@ -216,6 +256,7 @@ module Xolo
         super
         @ted_id_number ||= data_hash[:ted_id_number]
         @version_order ||= []
+        @jamf_installed_smart_group_name = "xolo-#{data_hash[:title]}-installed"
       end
 
       # Instance Methods
@@ -317,7 +358,14 @@ module Xolo
       #   in the title editor as the ExtAttr for this title
       #####################
       def ted_ea_key
-        self.class.ted_ea_key title
+        @ted_ea_key ||= self.class.ted_ea_key title
+      end
+
+      # @return [String] The display name of a version script as a normal
+      #   EA in Jamf, which can be used in Smart Groups and Adv Searches.
+      #####################
+      def jamf_ea_name
+        @jamf_ea_name ||= self.class.jamf_ea_name title
       end
 
       # instantiate a version if this title

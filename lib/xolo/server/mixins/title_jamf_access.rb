@@ -62,6 +62,69 @@ module Xolo
         ##############################
         ##############################
 
+        # Create the smartgroup in jamf that contains all macs
+        # with any version of this title installed.
+        #
+        # @return [void]
+        #####################################
+        def create_installed_smart_group_in_jamf
+          grp = Jamf::ComputerGroup.create(
+            name: jamf_installed_smart_group_name,
+            type: :smart,
+            cnx: jamf_cnx
+          )
+          crta =
+            if app_bundle_id
+              crtn_1 = Jamf::Criteriable::Criterion.new(
+                and_or: :and,
+                name: 'Application Title',
+                search_type: 'is',
+                value: app_name
+              )
+
+              crtn_2 = Jamf::Criteriable::Criterion.new(
+                and_or: :or,
+                name: 'Application Bundle ID',
+                search_type: 'is',
+                value: app_bundle_id
+              )
+              Jamf::Criteriable::Criteria.new [crtn_1, crtn_2]
+            else
+              crtn = Jamf::Criteriable::Criterion.new(
+                and_or: :and,
+                name: jamf_ea_name,
+                search_type: 'is not',
+                value: Xolo::BLANK
+              )
+              Jamf::Criteriable::Criteria.new [crtn]
+            end
+
+          grp.criteria = crta
+          grp.save
+        end
+
+        # Create or update a 'normal' EA that matches the Patch EA for this title,
+        # so that it can be used in smart groups and adv. searches.
+        #
+        # @return [void]
+        ################################
+        def set_normal_ea_in_jamf
+          ea =
+            if Jamf::ComputerExtensionAttribute.all_names.include? jamf_ea_name
+              Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx)
+            else
+              Jamf::ComputerExtensionAttribute.create(
+                name: jamf_ea_name,
+                description: "The version of xolo title '#{title}' installed on the machine",
+                data_type: :string,
+                enabled: true,
+                cnx: jamf_cnx
+              )
+            end
+          ea.script = version_script_contents
+          ea.save
+        end
+
         # Apply any changes to Jamf as needed
         # Mostly this just sets flags indicating what needs to be updated in the
         # various version-related things in jamf - policies, self service, etc.
@@ -179,11 +242,11 @@ module Xolo
           msg = "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
           progress msg, log: :info
 
-          ea_matches = jamf_ea_matches_version_script?
+          ea_matches = jamf_patch_ea_matches_version_script?
           return if ea_matches.nil?
 
           # only call this if we expect jamf to tell us to accept the EA
-          accept_xolo_ea_in_jamf
+          accept_xolo_patch_ea_in_jamf
         end
 
         # This method should only be called when we *expect* to need to accept the EA -
@@ -210,7 +273,7 @@ module Xolo
         #
         # @return [void]
         ############################
-        def accept_xolo_ea_in_jamf
+        def accept_xolo_patch_ea_in_jamf
           # return with warning if we aren't auto-accepting
           unless Xolo::Server.config.jamf_auto_accept_xolo_eas
             progress "Jamf: IMPORTANT: the version-script ExtAttr for this title '#{ted_ea_key}' must be accepted manually in Jamf Pro",
@@ -229,17 +292,17 @@ module Xolo
             }
           ENDPATCHDATA
 
-          if jamf_ea_needs_acceptance?
+          if jamf_patch_ea_needs_acceptance?
             jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
             progress "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :debug
             return
           end
 
-          auto_accept_ea_in_thread patchdata
+          auto_accept_patch_ea_in_thread patchdata
         end
 
         #####################
-        def auto_accept_ea_in_thread(patchdata)
+        def auto_accept_patch_ea_in_thread(patchdata)
           # don't do this if there's already one running for this instance
           if @auto_accept_ea_thread&.alive?
             log_debug "Jamf: auto_accept_ea_thread already running. Caller: #{caller_locations.first}"
@@ -258,7 +321,7 @@ module Xolo
             while Time.now < max_time
               sleep 30
               log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time}"
-              next unless jamf_ea_needs_acceptance?
+              next unless jamf_patch_ea_needs_acceptance?
 
               jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
               log_info "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'"
@@ -275,8 +338,8 @@ module Xolo
 
         # @return [Boolean] does the Jamf Title currently need its EA to be accepted?
         #################################
-        def jamf_ea_needs_acceptance?
-          ead = jamf_ea_data
+        def jamf_patch_ea_needs_acceptance?
+          ead = jamf_patch_ea_data
           return unless ead
 
           !ead[:accepted]
@@ -298,7 +361,7 @@ module Xolo
         # @return [Boolean, nil] nil if we have no version script,
         #   otherwise, does jamf match our version_script?
         #########################
-        def jamf_ea_matches_version_script?(new_version_script: nil)
+        def jamf_patch_ea_matches_version_script?
           # our current version script - nil if we currently don't have one
           our_version_script = version_script_contents
 
@@ -307,7 +370,7 @@ module Xolo
           return unless our_version_script
 
           # the script in Jamf
-          jea_data = jamf_ea_data
+          jea_data = jamf_patch_ea_data
           j_script = (Base64.decode64(jea_data[:scriptContents]) if jea_data).to_s
 
           # does jamf's script match ours?
@@ -346,7 +409,7 @@ module Xolo
         # @return [Hash] the data from the JPAPI endpoint,
         #   nil if the title has no EA at the moment
         ########################
-        def jamf_ea_data
+        def jamf_patch_ea_data
           jid = jamf_title_id
           return unless jid
 
