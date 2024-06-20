@@ -238,64 +238,9 @@ module Xolo
 
               These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
 
-              Any pilot-groups defined here in the version will override any defined in the title itself, for this version only.
+              When this version is released, the computers in the release_groups defined in the title will automatically have this version installed - and any computers with an older version will have it updated.
 
               When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
-
-              To remove any existing, use '#{Xolo::NONE}'. To remove existing and ignore any defined in the title, use '#{Xolo::NO_SCOPED_GROUPS}'
-            ENDDESC
-          },
-
-          # TODO: make it so that when a xoloadmin says release_groups = all, an optional policy
-          # is run that requests approval for that.  That policy can run a script to do ... anything
-          # but until the approval is granted, the release_groups is an empty array
-          #
-          # @!attribute release_groups
-          #   @return [Array<String>] Jamf groups that will automatically get this title installed or
-          #     updated when released
-          release_groups: {
-            label: 'Release Computer Groups',
-            cli: :t,
-            validate: true,
-            type: :string,
-            multi: true,
-            readline_prompt: 'Group Name',
-            readline: :jamf_computer_group_names,
-            invalid_msg: "Invalid group. Must be an existing Jamf Computer Group,'#{Xolo::NONE}', or '#{Xolo::NO_SCOPED_GROUPS}'.",
-            desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members will automatically have this version of the title installed or updated when it is released.
-
-              Use '#{Xolo::TARGET_ALL}' to auto-install on all computers that aren't excluded.
-
-              Any release-groups defined here in the version will override any defined in the title itself, for this version only.
-
-              NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no release groups.
-
-              When using the --release-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
-
-              To remove any existing, use '#{Xolo::NONE}'. To remove existing and ignore any defined in the title, use '#{Xolo::NO_SCOPED_GROUPS}'
-            ENDDESC
-          },
-
-          # @!attribute excluded_groups
-          #   @return [Array<String>] Jamf groups that are not allowed to install this title
-          excluded_groups: {
-            label: 'Excluded Computer Groups',
-            cli: :x,
-            validate: true,
-            type: :string,
-            multi: true,
-            readline_prompt: 'Group Name',
-            readline: :jamf_computer_group_names,
-            invalid_msg: "Invalid group. Must be an existing Jamf Computer Group,'#{Xolo::NONE}', or '#{Xolo::NO_SCOPED_GROUPS}'.",
-            desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members are not allowed to install this title.1
-
-              When a computer is in one of these groups, the title is not available even if the computer is in a pilot or release group.
-
-              Any excluded-groups defined here in the version will override any defined in the title itself, for this version only.
-
-              If not using --walkthru you can use --excluded-groups multiple times.
 
               To remove any existing, use '#{Xolo::NONE}'. To remove existing and ignore any defined in the title, use '#{Xolo::NO_SCOPED_GROUPS}'
             ENDDESC

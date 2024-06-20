@@ -418,7 +418,7 @@ module Xolo
 
             This group, if defined, will be in the exclusions of all policies and patch policies maintained by Xolo.
 
-            NOTE: These machines are still managed, and software can still be installed via Jamf, but outside of Xolo, if desired.
+            NOTE: These machines are still managed, and software can still be installed via Jamf if desired, but outside of Xolo.
           ENDDESC
         },
 

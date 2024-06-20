@@ -212,15 +212,36 @@ module Xolo
       # that have any version of the title installed. The smart group
       # will be named 'xolo-<title>-installed'
       #
-      # It will be used as an exclusion for the auto-initial-installation
+      # It will be used as an exclusion for the initial auto-installation
       # policy for each version since if the title is installed at all,
       # any installation is not 'initial' but an update, and will be
       # handled by the Patch Policy.
       #
-      # Since there is one per title, it's name is stored here
+      # Since there is one such group per title, it's name is stored here
       #
       # @return [String] the name of the smart group
       attr_reader :jamf_installed_smart_group_name
+
+      # For each title there will be a static group containing macs
+      # that should not any any automatic installs or updates, They
+      # should be 'frozen' at whatever version was installed when they
+      # were added to the group. It will be named 'xolo-<title>-frozen'
+      #
+      # It will be used as an exclusion for the installation
+      # policies and the patch policy for each version.
+      #
+      # Membership is maintained using `xadm freeze <title> <computer> [<computer> ...]`
+      # and `xadm thaw <title> <computer> [<computer> ...]`
+      #
+      # Use `xadm report <title> frozen` to see a list.
+      #
+      # If computer groups are used with freeze/thaw, they are expanded and their members
+      # added/removed individually in the static group
+      #
+      # Since there is one such group per title, it's name is stored here
+      #
+      # @return [String] the name of the smart group
+      attr_reader :jamf_frozen_group_name
 
       # The instance of Xolo::Server::App that instantiated this
       # title object. This is how we access things that are available in routes
@@ -257,6 +278,7 @@ module Xolo
         @ted_id_number ||= data_hash[:ted_id_number]
         @version_order ||= []
         @jamf_installed_smart_group_name = "xolo-#{data_hash[:title]}-installed"
+        @jamf_frozen_group_name = "xolo-#{data_hash[:title]}-frozen"
       end
 
       # Instance Methods
@@ -398,8 +420,7 @@ module Xolo
         log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
         create_title_in_ted
-
-        # Nothing to do in Jamf until the first version is created
+        create_title_in_jamf
 
         # save to file last, because saving to TitleEd and Jamf will
         # add some data

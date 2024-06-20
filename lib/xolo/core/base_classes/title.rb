@@ -308,32 +308,6 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute pilot_groups
-          #   @return [Array<String>] Jamf groups that will automatically get this title installed or updated
-          #     for piloting
-          pilot_groups: {
-            label: 'Pilot Computer Groups',
-            # default: Xolo::NONE,
-            cli: :p,
-            validate: true,
-            type: :string,
-            multi: true,
-            readline_prompt: 'Group Name',
-            readline: :jamf_computer_group_names,
-            invalid_msg: "Invalid pilot group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
-            desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members will automatically have new versions of this title installed or updated for testing before it is released.
-
-              These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
-
-              Pilot groups specified here for the Title are the default for all versions. However you can specify a different set of pilot groups per version and they will override any given here.
-
-              When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
-
-              To remove any existing, use '#{Xolo::NONE}'.
-            ENDDESC
-          },
-
           # TODO: make it so that when a xoloadmin says release_groups = all, an optional policy
           # is run that requests approval for that.  That policy can run a script to do ... anything
           # but until the approval is granted, the release_groups is an empty array
@@ -354,11 +328,11 @@ module Xolo
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid release computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members will automatically have this title installed or updated when new versions are released.
+              One or more Jamf Computer Groups whose members will automatically have this title installed when new versions are released.
 
               Use '#{Xolo::TARGET_ALL}' to auto-install on all computers that aren't excluded.
 
-              Target groups specified here for the Title are the default for all versions. However you can specify a different set of release groups per version and they will override any given here.
+              These groups are a
 
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no release groups.
 

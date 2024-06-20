@@ -114,11 +114,12 @@ module Xolo
       ADD_TITLE_CMD = 'add-title'
       EDIT_TITLE_CMD = 'edit-title'
       DELETE_TITLE_CMD = 'delete-title'
+      FREEZE_TITLE_CMD = 'freeze'
+      THAW_TITLE_CMD = 'thaw'
 
       LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
       EDIT_VERSION_CMD = 'edit-version'
-      # PILOT_VERSION_CMD = 'pilot-version'
       RELEASE_VERSION_CMD = 'release'
       DELETE_VERSION_CMD = 'delete-version'
 
@@ -241,6 +242,24 @@ module Xolo
           confirmation: true
         },
 
+        FREEZE_TITLE_CMD => {
+          desc: 'Prevent one or more computers from updating the currently installed version of a software title.',
+          display: "#{FREEZE_TITLE_CMD} title computer [computer ...]",
+          opts: {},
+          process_method: :freeze,
+          target: :title,
+          confirmation: true
+        },
+
+        THAW_TITLE_CMD => {
+          desc: 'Allow one or more previously frozen computers to update beyond the currently installed version of a software title.',
+          display: "#{THAW_TITLE_CMD} title computer [computer ...]",
+          opts: {},
+          process_method: :thaw,
+          target: :title,
+          confirmation: true
+        },
+
         LIST_VERSIONS_CMD => {
           desc: 'List all versions of a title.',
           display: "#{LIST_VERSIONS_CMD} title",
@@ -308,7 +327,7 @@ module Xolo
 
         REPORT_CMD => {
           desc: 'Report installation data.',
-          display: "#{REPORT_CMD} title [version]",
+          display: "#{REPORT_CMD} title [version | frozen]",
           opts: {},
           target: :title_or_version
         },

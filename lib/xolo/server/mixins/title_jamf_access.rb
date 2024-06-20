@@ -62,67 +62,22 @@ module Xolo
         ##############################
         ##############################
 
-        # Create the smartgroup in jamf that contains all macs
-        # with any version of this title installed.
-        #
-        # @return [void]
-        #####################################
-        def create_installed_smart_group_in_jamf
-          grp = Jamf::ComputerGroup.create(
-            name: jamf_installed_smart_group_name,
-            type: :smart,
-            cnx: jamf_cnx
-          )
-          crta =
-            if app_bundle_id
-              crtn_1 = Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: 'Application Title',
-                search_type: 'is',
-                value: app_name
-              )
-
-              crtn_2 = Jamf::Criteriable::Criterion.new(
-                and_or: :or,
-                name: 'Application Bundle ID',
-                search_type: 'is',
-                value: app_bundle_id
-              )
-              Jamf::Criteriable::Criteria.new [crtn_1, crtn_2]
-            else
-              crtn = Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: jamf_ea_name,
-                search_type: 'is not',
-                value: Xolo::BLANK
-              )
-              Jamf::Criteriable::Criteria.new [crtn]
-            end
-
-          grp.criteria = crta
-          grp.save
-        end
-
-        # Create or update a 'normal' EA that matches the Patch EA for this title,
-        # so that it can be used in smart groups and adv. searches.
+        # Create title-level things in jamf when creating a title.
         #
         # @return [void]
         ################################
-        def set_normal_ea_in_jamf
-          ea =
-            if Jamf::ComputerExtensionAttribute.all_names.include? jamf_ea_name
-              Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx)
-            else
-              Jamf::ComputerExtensionAttribute.create(
-                name: jamf_ea_name,
-                description: "The version of xolo title '#{title}' installed on the machine",
-                data_type: :string,
-                enabled: true,
-                cnx: jamf_cnx
-              )
-            end
-          ea.script = version_script_contents
-          ea.save
+        def create_title_in_jamf
+          update_normal_ea_in_jamf
+          update_installed_smart_group_in_jamf
+
+          # Create the static group that will contain computers
+          # where this title is 'frozen'
+          # To start with it has no members, but will be used in scope exclusions
+          Jamf::ComputerGroup.create(
+            name: jamf_frozen_group_name,
+            type: :static,
+            cnx: jamf_cnx
+          ).save
         end
 
         # Apply any changes to Jamf as needed
@@ -132,11 +87,21 @@ module Xolo
         # @return [void]
         #########################
         def update_title_in_jamf
-          unless jamf_ted_title_active?
-            log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update."
-            returns
-          end
+          # do we have a version_script? if so we maintain a 'normal' EA
+          # this has to happen before updating the installed_smart_group
+          update_normal_ea_in_jamf if version_script
 
+          # this smart group might use the normal-EA or might use app data
+          update_installed_smart_group_in_jamf
+
+          # If we don't use a version script anymore, delete the normal EA
+          # this has to happen after updating the installed_smart_group
+          delete_normal_ea_from_jamf unless version_script
+
+          unless jamf_ted_title_active?
+            log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
+            return
+          end
           # Set all these values so they'll be applied to all versions when we update them next.
 
           @need_to_update_ssvc = new_data_for_update[:self_service] != self_service
@@ -145,7 +110,7 @@ module Xolo
           # prob not needed, since the upload is a separate process from the title update
           @need_to_update_ssvc_icon = new_data_for_update[:self_service_icon] && new_data_for_update[:self_service_icon] != Xolo::ITEM_UPLOADED
 
-          # Excluded, Pilot, or Target groups changed at the
+          # Excluded, Pilot, or Release groups changed at the
           # title level, make note to update the scope of all version-specific policies and patch policies
           # when we loop thru the versions
           @need_to_update_pilot_groups = new_data_for_update[:pilot_groups].to_a.sort != pilot_groups.to_a.sort
@@ -154,6 +119,101 @@ module Xolo
 
           # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
           # e.g. if expiration data changes
+        end
+
+        # Create or update the smartgroup in jamf that contains all macs
+        # with any version of this title installed.
+        #
+        # @return [void]
+        #####################################
+        def update_installed_smart_group_in_jamf
+          grp = jamf_installed_smart_group
+          grp.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_smart_group_criteria)
+          grp.save
+        end
+
+        # The smartgroup in jamf that contains all macs
+        # with any version of this title installed.
+        #
+        # @return [Jamf::ComputerGroup]
+        #####################################
+        def jamf_installed_smart_group
+          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
+            progress "Updating smart group '#{jamf_installed_smart_group_name}'", log: :debug
+
+            Jamf::ComputerGroup.fetch name: jamf_installed_smart_group_name, cnx: jamf_cnx
+          else
+            progress "Creating smart group '#{jamf_installed_smart_group_name}'", log: :debug
+            Jamf::ComputerGroup.create(
+              name: jamf_installed_smart_group_name,
+              type: :smart,
+              cnx: jamf_cnx
+            )
+          end
+        end
+
+        # The criteria for the smart group in Jamf that contains all Macs
+        # with any version of this title installed
+        #
+        # @return [Array<Jamf::Criteriable::Criterion>]
+        ###################################
+        def jamf_installed_smart_group_criteria
+          if app_bundle_id
+            [
+              Jamf::Criteriable::Criterion.new(
+                and_or: :and,
+                name: 'Application Title',
+                search_type: 'is',
+                value: app_name
+              ),
+
+              Jamf::Criteriable::Criterion.new(
+                and_or: :and,
+                name: 'Application Bundle ID',
+                search_type: 'is',
+                value: app_bundle_id
+              )
+            ]
+          else
+            [
+              Jamf::Criteriable::Criterion.new(
+                and_or: :and,
+                name: jamf_ea_name,
+                search_type: 'is not',
+                value: Xolo::BLANK
+              )
+            ]
+          end
+        end
+
+        # Create or update a 'normal' EA that matches the Patch EA for this title,
+        # so that it can be used in smart groups and adv. searches.
+        # (Patch EAs aren't available for use in smart group critera)
+        #
+        # @return [void]
+        ################################
+        def update_normal_ea_in_jamf
+          scr = version_script_contents
+          return unless scr
+
+          ea =
+            if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_ea_name
+              progress "Updating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :debug
+
+              Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx)
+            else
+              progress "Creating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :debug
+
+              Jamf::ComputerExtensionAttribute.create(
+                name: jamf_ea_name,
+                description: "The version of xolo title '#{title}' installed on the machine",
+                data_type: :string,
+                enabled: true,
+                cnx: jamf_cnx
+              )
+            end
+          ea.script = scr
+          ea.save
         end
 
         # @return [Jamf::PatchSource] The Jamf Patch Source that is connected to the Title Editor
@@ -464,8 +524,40 @@ module Xolo
         # Delete an entire title from Jamf Pro
         ########################
         def delete_title_from_jamf
-          # now delete ('unsubscribe') in Jamf Patch Mgmt
+          delete_installed_smart_group_from_jamf
+          delete_normal_ea_from_jamf
           delete_patch_title_from_jamf
+          delete_frozen_group_from_jamf
+        end
+
+        # Delete the 'installed' smart group
+        # @return [void]
+        ######################################
+        def delete_installed_smart_group_from_jamf
+          return unless Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
+
+          progress "Deleting smart group '#{jamf_installed_smart_group_name}'", log: :info
+          Jamf::ComputerGroup.fetch(name: jamf_installed_smart_group_name, cnx: jamf_cnx).delete
+        end
+
+        # Delete the 'frozen' static group
+        # @return [void]
+        ######################################
+        def delete_frozen_group_from_jamf
+          return unless Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
+
+          progress "Deleting static group '#{jamf_frozen_group_name}'", log: :info
+          Jamf::ComputerGroup.fetch(name: jamf_frozen_group_name, cnx: jamf_cnx).delete
+        end
+
+        # Delete the 'normal' computer ext attr matching the Patch EA
+        # @return [void]
+        ######################################
+        def delete_normal_ea_from_jamf
+          return unless Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_ea_name
+
+          progress "Deleting regular extension attribute '#{jamf_ea_name}'", log: :info
+          Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx).delete
         end
 
         # Delete the patch title

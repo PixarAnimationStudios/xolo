@@ -216,99 +216,63 @@ module Xolo
       ######################
       ######################
 
-      # @see #groups_to_use
+      # The scope target groups to use in policies and patch policies.
+      # This is defined in each version, and inherited when new versions are created.
       #
-      # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
-      #   if nil, we'll instantiate it now
-      #
-      # @return [Array<String>] the pilot groups to use in policies and patch policies
+      # @return [Array<String>] the pilot groups to use
       ######################
-      def pilot_groups_to_use(ttl_obj: nil)
-        return @pilot_groups_to_use if @pilot_groups_to_use
-
-        ttl_obj ||= title_object
-        pgrps = new_data_for_update ? new_data_for_update[:pilot_groups] : pilot_groups
-
-        @pilot_groups_to_use = groups_to_use ttl_obj.pilot_groups, pgrps
+      def pilot_groups_to_use
+        @pilot_groups_to_use ||= new_data_for_update ? new_data_for_update[:pilot_groups] : pilot_groups
       end
 
-      # @see #groups_to_use
+      # The scope excluded groups to use in policies and patch policies for all versions of
+      # this title.
+      #
+      # Excluded groups are defined in the title, applying to all versions, and may be augmented by:
+      # - Xolo::Server.config.forced_exclusion, a group excluded from ALL of xolo, defined
+      #   in the server config.
+      # - The title's jamf_frozen_group_name, if it exists, containing computers that have been
+      #   'frozen' to a single version.
       #
       # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
       #   if nil, we'll instantiate it now
       #
-      # @return [Array<String>] the excluded groups to use in policies and patch policies for this version
+      # @return [Array<String>] the excluded groups to use
       ######################
       def excluded_groups_to_use(ttl_obj: nil)
         return @excluded_groups_to_use if @excluded_groups_to_use
 
         ttl_obj ||= title_object
-        egrps = new_data_for_update ? new_data_for_update[:excluded_groups] : excluded_groups
+        @excluded_groups_to_use = ttl_obj.excluded_groups
 
-        # log_debug "sending excluded_groups to 'groups_to_use' method: #{excluded_groups} #{excluded_groups.class}"
-        @excluded_groups_to_use = groups_to_use ttl_obj.excluded_groups, egrps
+        # if we have a 'frozen' static group, always exclude it
+        if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? ttl_obj.jamf_frozen_group_name
+          @excluded_groups_to_use << ttl_obj.jamf_frozen_group_name
+          log_debug "Appended jamf_frozen_group_name '#{ttl_obj.jamf_frozen_group_name}' to excluded groups"
+        end
 
         # always exclude Xolo::Server.config.forced_exclusion if defined
         if Xolo::Server.config.forced_exclusion
           @excluded_groups_to_use << Xolo::Server.config.forced_exclusion
           log_debug "Appended Xolo::Server.config.forced_exclusion '#{Xolo::Server.config.forced_exclusion}' to excluded groups"
         end
+
         @excluded_groups_to_use
       end
 
-      # @see #groups_to_use
+      # The scope target groups to use in policies and patch policies when the version is released
+      # This is defined in the title and applies to all versions.
       #
       # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
       #   if nil, we'll instantiate it now
       #
-      # @return [Array<String>] the excluded groups to use in policies and patch policies
+      # @return [Array<String>] the target groups to use
       ######################
       def release_groups_to_use(ttl_obj: nil)
         return @release_groups_to_use if @release_groups_to_use
 
         ttl_obj ||= title_object
-        rgrps = new_data_for_update ? new_data_for_update[:release_groups] : release_groups
-
-        @release_groups_to_use = groups_to_use ttl_obj.release_groups, rgrps
-        @release_groups_to_use = [Xolo::TARGET_ALL] if @release_groups_to_use.include? Xolo::TARGET_ALL
-        @release_groups_to_use
-      end
-
-      # Given some scope-groups defined in the title and the version, which should we use?
-      #
-      # Version-specific will always override title-defaults, like so
-      #
-      # If the verison_groups is a non-empty array, use those groups.
-      # If the version_groups is nil or an empty array, use the ones from the title, if any.
-      # if the version_groups contains Xolo::NO_SCOPED_GROUPS ('no-scoped-groups') then dont
-      #   use any groups even if the title has some defined
-      #
-      # IMPORTANT: never return the actual groups we are given, otherwise the ones
-      # inside the title or version objects will be mucked with by subsequent operations.
-      #
-      # @param title_groups [Array<String>] the groups defined in the title object
-      #
-      # @param title_groups [Array<String>] the groups defined in the version object
-      #
-      # @return [Array<String>] the groups to use in policies and patch policies for this version
-      ######################
-      def groups_to_use(title_groups, version_groups)
-        grps = []
-
-        # log_debug "Method groups_to_use: comparing title groups #{title_groups} (#{title_groups.class}) to version groups #{version_groups} (#{version_groups.class})"
-
-        if version_groups.include? Xolo::NO_SCOPED_GROUPS
-          grps
-
-        elsif version_groups.pix_empty?
-          grps += title_groups
-
-        elsif version_groups.is_a? Array
-          grps += version_groups
-
-        else
-          grps
-        end
+        @release_groups_to_use = ttl_obj.release_groups
       end
 
       # @return [Hash]

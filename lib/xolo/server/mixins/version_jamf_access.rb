@@ -75,15 +75,18 @@ module Xolo
         #
         # POLICIES
         # Each version gets two policies for initial installation
-        # - one for auto-installs 'xolo-<title>-<version>-auto-install'
-        #   - scoped to pilot-groups first, then  release-groups when released
-        #     - xolo server maintains the scope as needed
+        #
+        # - one for auto-installs called 'xolo-<title>-<version>-auto-install'
+        #   - xolo server maintains the scope as needed
+        #     - Targeted to pilot-groups first, then  release-groups when released
+        #     - Excluded for excluded groups and frozen-groups
         #   - never in self service
         #
-        # - one for manual installs 'xolo-<title>-<version>-manual-install'
+        # - one for manual installs called 'xolo-<title>-<version>-manual-install'
         #   and self-service installs
-        #   - scope to all (with exclusions) with this trigger
-        #     - xolo-install-<target>-<version>
+        #   - xolo server maintains the scope as needed
+        #     - Targeted to all with this trigger xolo-install-<target>-<version>
+        #     - Excluded for excluded groups and frozen-groups
         #     - the xolo client will determine which is released when
         #       running 'xolo install <title>'
         #
@@ -93,7 +96,8 @@ module Xolo
         # PATCH POLICIES
         # Each version gets one patch policy
         #
-        # The patch policy is first scoped to  pilot groups.
+        # The patch policy is first scoped targeted to pilot groups.
+        # Excluded for excluded groups and frozen-groups
         #
         # When the version is released, the scope is changed to All
         #
