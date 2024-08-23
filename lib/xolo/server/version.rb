@@ -52,8 +52,8 @@ module Xolo
       ######################
       ######################
 
-      # On the server, xolo titles are represented by directories
-      # in this directory, named with the title name.
+      # On the server, xolo versions are represented by JSON files
+      # in the 'versions' directory of the title directory
       #
       # So a title 'foobar' would have a directory
       #    (Xolo::Server::DATA_DIR)/titles/foobar/
