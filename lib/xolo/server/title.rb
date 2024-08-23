@@ -566,7 +566,11 @@ module Xolo
       # @return [void]
       ##########################
       def save_local_data
+        # create the dirs for the title
         title_dir.mkpath
+        vdir = title_dir + Xolo::Server::Version::VERSIONS_DIRNAME
+        vdir.mkpath
+
         save_version_script
 
         # do we have a stored self service icon?

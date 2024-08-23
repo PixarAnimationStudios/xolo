@@ -88,8 +88,8 @@ module Xolo
       # @return [Array<Pathname>] A list of all known versions for a title
       ######################
       def self.version_files(title)
-        version_dir(title).mkpath
-        version_dir(title).children
+        vdir = version_dir(title)
+        vdir.directory? ? vdir.children : []
       end
 
       # @pararm title [String] the title for the version
