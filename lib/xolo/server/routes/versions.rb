@@ -76,6 +76,8 @@ module Xolo
         # @return [Array<String>] the names of existing versions for the title
         #################################
         get '/titles/:title/versions' do
+          halt 404, "No title '#{title}' found." unless Xolo::Server::Title.all_titles.include? params[:title]
+
           log_debug "Admin #{session[:admin]} is listing all versions for title '#{params[:title]}'"
           # body all_versions(params[:title])
           vers_ins = all_version_instances(params[:title])
