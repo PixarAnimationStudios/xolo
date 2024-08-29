@@ -86,6 +86,9 @@ module Xolo
       # and for all manual-install policies
       TARGET_ALL = 'all'
 
+      # The trgger event for the manual policy to update the client data JSON file
+      CLIENT_DATA_MANUAL_POLICY_TRIGGER = 'update-xolo-client-data'
+
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self

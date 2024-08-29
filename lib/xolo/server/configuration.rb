@@ -180,26 +180,6 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute sign_pkgs
-        #   @return [Boolean] Should the server sign any unsigned uploaded pkgs?
-        sign_pkgs: {
-          default: false,
-          desc: <<~ENDDESC
-            When someone uploads a .pkg from xadm, and it isn't signed, should the server
-            sign it before uploading to Jamf's Distribution Point(s)?
-
-            If you set this you true, you must install a keychain containing the signing identity
-            at:
-              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
-
-            and you must set the config values 'pkg_signing_keychain_pw' and 'pkg_signing_identity'
-
-            CAUTION: This has security-related plusses and minuses, such as:
-            - You need to trust your xadm users not to upload a malicious pkg.
-            - You don't need to distribute your signing certificates to a wide group of developers.
-          ENDDESC
-        },
-
         # @!attribute alert_tool
         #   @return [Pathname] The path to an executable that relays messages from stdin to some means of alerting
         #      Xolo server admins of a problem that would otherwise go unnoticed.
@@ -217,6 +197,28 @@ module Xolo
             audiance, be that an email address, a Slack channel - anything you'd like.
 
             Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
+          ENDDESC
+        },
+
+        # @!attribute pkg_signing_identity
+        #   @return [String] The name of the package signing identity to use
+        pkg_signing_identity: {
+          required: true,
+          desc: <<~ENDDESC
+            Xolo needs to be able to sign at least one of the packages it works with: the
+            client-data pkg which installs a JSON file of title and version data on the client machines.
+
+            To sign that package, you must install a keychain containing a valid package-signing identity
+            on the xolo server at:
+
+              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
+
+            The 'identity' (name) of the package-signing certificate inside the keychain must be set here.
+            It usually looks something like:
+
+               Developer ID Installer: My Company (XYZXYZYXZXYZ)
+
+            If desired, you can use this identity to sign other packages as well, see the 'sign_pkgs' config value.
           ENDDESC
         },
 
@@ -242,15 +244,23 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute pkg_signing_identity
-        #   @return [String] The name of the package signing identity to use
-        pkg_signing_identity: {
-          required: true,
+        # @!attribute sign_pkgs
+        #   @return [Boolean] Should the server sign any unsigned uploaded pkgs?
+        sign_pkgs: {
+          default: false,
           desc: <<~ENDDESC
-            The 'identity' (name) of the package-signing certificate inside the keychain.
-            It usually looks something like:
+            When someone uploads a .pkg from xadm, and it isn't signed, should the server
+            sign it before uploading to Jamf's Distribution Point(s)?
 
-            Developer ID Installer: My Company (XYZXYZYXZXYZ)
+            If you set this to true, you must install a keychain containing the signing identity
+            at:
+              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
+
+            and you must set the config values 'pkg_signing_keychain_pw' and 'pkg_signing_identity'
+
+            CAUTION: This has security-related plusses and minuses, such as:
+            - You need to trust your xadm users not to upload a malicious pkg.
+            - You don't need to distribute your signing certificates to a wide group of developers.
           ENDDESC
         },
 
@@ -384,7 +394,7 @@ module Xolo
             It will be run with two arguments:
             - The display name of the Jamf::Package object the .pkg is used with
             - the path to the .pkg file on the Xolo server, which will be uploaded
-              to the Jamf distribution poing
+              to the Jamf distribution point(s).
 
             So if the executable is '/usr/local/bin/jamf-pkg-uploader' then when Xolo recieves a .pkg to be uploaded to Jamf, it will run something like:
 
@@ -400,7 +410,7 @@ module Xolo
 
             An external tool is used here because every Jamf Pro customer has different needs for this,
             e.g. various cloud and file-server distribution points, and Jamf has not provided a
-            supported way to upload packages via the APIs.
+            supported way to upload packages to all possible Dist Points via the APIs.
 
             There are some unsupported methods, and you are welcome to use them in the external tool you provide here.
           ENDDESC
