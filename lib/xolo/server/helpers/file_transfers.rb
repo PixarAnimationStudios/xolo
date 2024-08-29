@@ -147,7 +147,7 @@ module Xolo
           stdouterr, exit_status = Open3.capture2e(cmd)
           return if exit_status.success?
 
-          raise "Uploader tool failed to upload #{pkg_to_upload.basename} to dist point(s): #{stdouterr}"
+          raise "Uploader tool failed to upload #{staged_pkg.basename} to dist point(s): #{stdouterr}"
         end
 
         # Confirm and return the extension of the originally uplaoded file,

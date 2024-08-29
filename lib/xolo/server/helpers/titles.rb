@@ -100,7 +100,7 @@ module Xolo
 
           msg = "Title '#{title}' does not exist."
           log_debug "ERROR: #{msg}"
-          halt 404, { error: msg }
+          halt 404, { status: 404, error: msg }
         end
 
         # Halt 409 if a title already exists

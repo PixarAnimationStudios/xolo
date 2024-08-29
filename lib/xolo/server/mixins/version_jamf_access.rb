@@ -306,7 +306,7 @@ module Xolo
           end
 
           progress 'Jamf: Attaching SelfService icon to policy', log: :debug
-          pol.upload :icon, icon_file if icon_file && title_object.self_service
+          pol.upload :icon, icon_file if icon_file
         end
 
         # The auto install policy is triggered by checkin

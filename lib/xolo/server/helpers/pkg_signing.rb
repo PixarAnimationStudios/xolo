@@ -94,6 +94,7 @@ module Xolo
         end
 
         # Sign a package
+        #
         # @param unsigned_pkg [Pathname] the unsigned pkg to sign
         # @param signed_pkg [Pathname] the destination file to write the signed version of the pkg.
         #

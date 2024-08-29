@@ -27,6 +27,7 @@
 
 # frozen_string_literal: true
 
+require 'pixenv'
 require 'xolo/admin'
 
 # The App
@@ -199,15 +200,17 @@ begin
   # -d must be given as a global opt (before the command)
   # in order to mean --debug
   #
-  db = ARGV.delete '--debug'
-  ARGV.unshift db if db
+  debug = ARGV.delete '--debug'
+  ARGV.unshift debug if debug
 
   app = XoloAdmin.new
   debug = app.global_opts.debug
 
   app.run
 rescue => e
-  # to
   warn "Error: #{e.class}: #{e}"
-  e.backtrace.each { |l| warn "..#{l}" }
+  if debug
+    warn 'Backtrace:'
+    e.backtrace.each { |l| warn "..#{l}" }
+  end
 end
