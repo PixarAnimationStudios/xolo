@@ -502,11 +502,11 @@ module Xolo
         hash = super
 
         # These attrs aren't defined in the ATTRIBUTES
+        # but we want them in the hash and/or JSON
         hash[:jamf_pkg_id] = jamf_pkg_id
         hash[:ted_id_number] = ted_id_number
         hash[:pilot_groups_to_use] = pilot_groups_to_use
-        hash[:release_groups_to_use] = ted_id_number
-        hash[:ted_id_number] = ted_id_number
+        hash[:release_groups_to_use] = release_groups_to_use
 
         hash.sort.to_h
       end
