@@ -400,7 +400,8 @@ module Xolo
       end
 
       # @return [Array<Xolo::Server::Version>] An array of all current version objects
-      #   NOTE: This might not be wise if hundreds of versions.
+      #   NOTE: This might not be wise if hundreds of versions, but automated cleanup should
+      #   help with that.
       ########################
       def version_objects(refresh: false)
         version_order.map { |v| version_object v }

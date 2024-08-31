@@ -35,9 +35,10 @@ module Xolo
       # Xolo Server, Admin, and Client modules.
       #
       # The base class for "xolo objects stored on the xolo server", i.e.
-      # Titles and Versions/Patches.
+      # Titles and Versions/Patches - whether they are being used on the server,
+      # in xadm, or in the client.
       #
-      # This class holds stuff common to both no matter where or how they are used.
+      # This class holds stuff common to all no matter where or how they are used.
       #
       # See also {Xolo::Core::BaseClasses::Title} and {Xolo::Core::BaseClasses::Version}
       #############################
