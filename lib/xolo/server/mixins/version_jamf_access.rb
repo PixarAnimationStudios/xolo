@@ -220,9 +220,10 @@ module Xolo
             name: jamf_pkg_name,
             filename: jamf_pkg_file,
             reboot_required: reboot,
-            category: Xolo::Server::JAMF_XOLO_CATEGORY,
             notes: jamf_pkg_notes
           )
+          pkg.category = Xolo::Server::JAMF_XOLO_CATEGORY
+
           # TODO: Implement max_os, either here, or by maintaining a smart group?
           # I really which jamf would improve how package objects handle
           # OS requirements, building in the concept of min/max
@@ -830,6 +831,17 @@ module Xolo
         end
 
         # Delete an entire version from Jamf Pro
+        # This includes the package, the manual install policy, the auto install policy,
+        # and the patch policy.
+        #
+        # TODO: abandon the package-deletion thread if needed for, e.g. deleting all
+        # the versions of a title. But then - how to let the admin know its done, so they
+        # don't re-add a pkg with the same name?
+        # Also - if we get say 10-15 deletion threads all running at once, will that
+        # be a problem?
+        #
+        # @return [void]
+        #
         #########################
         def delete_version_from_jamf
           log_debug "Deleting Version '#{version}' from Jamf"
