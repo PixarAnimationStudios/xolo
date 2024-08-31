@@ -150,13 +150,16 @@ module Xolo
       # test
       ##########
       get '/test' do
-        log_error "This isn't really an error, but I'm testing the Xolo Server alert_tool", alert: true
-        resp = { status: 'complete' }
-        body resp
+        # log_error "This isn't really an error, but I'm testing the Xolo Server alert_tool", alert: true
+        # resp = { status: 'complete' }
+        # body resp
+
         # with_streaming do
         #   log_debug "progress_stream_file in thread is: #{progress_stream_file}"
         #   a_long_thing_with_streamed_feedback
         # end
+
+        body client_data_hash
       end
 
     end #  Routes
