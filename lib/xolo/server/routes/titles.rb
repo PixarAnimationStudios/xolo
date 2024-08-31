@@ -68,6 +68,7 @@ module Xolo
           log_info "Admin #{session[:admin]} is creating title '#{title.title}'"
           with_streaming do
             title.create
+            update_client_data
           end
         end
 
@@ -104,6 +105,7 @@ module Xolo
           log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
           with_streaming do
             title.update new_data
+            update_client_data
           end
         end
 
@@ -117,6 +119,7 @@ module Xolo
 
           with_streaming do
             title.delete
+            update_client_data
           end
         end
 

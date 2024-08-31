@@ -69,6 +69,7 @@ module Xolo
 
           with_streaming do
             vers.create
+            update_client_data
           end
         end
 
@@ -111,6 +112,7 @@ module Xolo
 
           with_streaming do
             vers.update new_data
+            update_client_data
           end
         end
 
@@ -132,6 +134,7 @@ module Xolo
 
           with_streaming do
             vers.delete
+            update_client_data
           end
         end
 
