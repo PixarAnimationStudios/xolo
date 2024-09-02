@@ -37,6 +37,9 @@ module Xolo
       ##########################
       ##########################
 
+      # Title attributes that are used for 'xadm search'
+      SEARCH_ATTRIBUTES = %i[title display_name description publisher app_name app_bundle_id].freeze
+
       # Module Methods
       ##########################
       ##########################
@@ -70,6 +73,65 @@ module Xolo
       #########################
       def speak(msg)
         puts msg unless quiet?
+      end
+
+      # Search for a title in Xolo
+      # Looks for the search string (case insensitive) in these attributes:
+      #  - title
+      #  - display_name
+      #  - description
+      #  - publisher
+      #  - app_name
+      #  - app_bundle_id
+      #
+      # will output the results showing those attributes.
+      #
+      # If json? is true, will output the results as a JSON array of hashes
+      # containing the full title object.
+      #
+      # @param search_str [String] the string to search for
+      #
+      # @return [void]
+      ###############################
+      def search_titles
+        search_str = cli_cmd.title
+        titles = Xolo::Admin::Title.all_title_objects(server_cnx)
+        results = []
+        titles.each do |t|
+          SEARCH_ATTRIBUTES.each do |attr|
+            next unless t.send(attr).to_s =~ /#{search_str}/i
+
+            results <<
+              if json?
+                t.to_h
+              else
+                # [t.title, t.display_name, t.publisher, t.app_name, "#{t.app_bundle_id}\n=> #{t.description}"]
+                titleout = +"\nTitle: #{t.title}, Display: '#{t.display_name}', Publisher: #{t.publisher}"
+                titleout << "\nApp: #{t.app_name}, BundleID: #{t.app_bundle_id}" if t.app_name
+                titleout << "\nDescription:"
+                titleout << "\n#{t.description}"
+                titleout
+              end # json?
+
+            break
+          end # SEARCH_ATTRIBUTES.each
+        end # titles.each
+
+        # results is now an array of hashes, each hash has the keys from SEARCH_ATTRIBUTES
+
+        if json?
+          puts JSON.pretty_generate(results)
+          return
+        end
+
+        # report_title = "All titles matching '#{search_str}'"
+        # header = %w[Title Display Publisher AppName BundleID]
+        # show_text generate_report(results, header_row: header, title: report_title)
+
+        puts "# All titles matching '#{search_str}'"
+        puts results.join("\n")
+      rescue StandardError => e
+        handle_server_error e
       end
 
       # update the adm config file using the values from 'xadm config'
