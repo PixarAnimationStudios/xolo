@@ -51,7 +51,7 @@ module Xolo
         # @return [Array<String>]
         ############
         def all_titles
-          @all_titles ||= Xolo::Server::Title.all_titles
+          Xolo::Server::Title.all_titles
         end
 
         # A an array of all server titles as Title objects

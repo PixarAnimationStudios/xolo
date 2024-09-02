@@ -312,7 +312,7 @@ module Xolo
           # is run that requests approval for that.  That policy can run a script to do ... anything
           # but until the approval is granted, the release_groups is an empty array
           #
-          # Whenever one of the groups liseed is Xolo::TARGET_ALL ('all') then all other groups are
+          # Whenever one of the groups listed is Xolo::TARGET_ALL ('all') then all other groups are
           # ignored or deleted and the array contains only 'all'
           #
           # @!attribute release_groups
@@ -332,13 +332,13 @@ module Xolo
 
               Use '#{Xolo::TARGET_ALL}' to auto-install on all computers that aren't excluded.
 
-              These groups are a
-
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no release groups.
 
               When using the --release-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
               To remove any existing, use '#{Xolo::NONE}'.
+
+              NOTE: When a version is in 'pilot' mode, before it is released, these groups are ignored, but instead a set of 'pilot' groups is defined for each version.
             ENDDESC
           },
 
@@ -358,11 +358,11 @@ module Xolo
 
               When a computer is in one of these groups, the title is not available even if the computer is in a pilot or release group.
 
-              Excluded groups specified here for the Title are the default for all versions. However you can specify a different set of excluded groups per version and they will override any given here.
-
               When using the --excluded-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
               To remove any existing, use '#{Xolo::NONE}'.
+
+              NOTE: Regardless of the excluded groups set here, if the server has defined a 'forced_exclusion' in its config, that group is always excluded from all xolo titles. Also, computers that are 'frozen' for a title are excluded.
             ENDDESC
           },
 

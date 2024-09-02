@@ -42,6 +42,10 @@ module Xolo
       # will fall back to the title-level ones)
       NO_SCOPED_GROUPS = 'no-scoped-groups'
 
+      OK = 'OK'
+
+      ERROR = 'ERROR'
+
       # Several things use x
       X = 'x'
 

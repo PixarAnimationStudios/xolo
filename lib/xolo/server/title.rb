@@ -223,7 +223,7 @@ module Xolo
       attr_reader :jamf_installed_smart_group_name
 
       # For each title there will be a static group containing macs
-      # that should not any any automatic installs or updates, They
+      # that should not get any automatic installs or updates, They
       # should be 'frozen' at whatever version was installed when they
       # were added to the group. It will be named 'xolo-<title>-frozen'
       #
@@ -669,7 +669,10 @@ module Xolo
       ##########################
       def delete
         progress "Deleting all versions of #{title}...", log: :debug
-        version_objects.each do |vers|
+        # Delete them in reverse order (oldest first) so the jamf server doesn't
+        # see each older version as being 'released' again as newer
+        # ones are deleted.
+        version_objects.reverse.each do |vers|
           vers.delete update_title: false
         end
 

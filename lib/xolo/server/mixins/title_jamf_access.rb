@@ -73,6 +73,7 @@ module Xolo
           # Create the static group that will contain computers
           # where this title is 'frozen'
           # To start with it has no members, but will be used in scope exclusions
+          progress "Creating static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
           Jamf::ComputerGroup.create(
             name: jamf_frozen_group_name,
             type: :static,
@@ -198,11 +199,11 @@ module Xolo
 
           ea =
             if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_ea_name
-              progress "Updating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :debug
+              progress "Updating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :info
 
               Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx)
             else
-              progress "Creating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :debug
+              progress "Creating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :info
 
               Jamf::ComputerExtensionAttribute.create(
                 name: jamf_ea_name,

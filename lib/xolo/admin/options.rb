@@ -27,15 +27,33 @@ module Xolo
 
   module Admin
 
-    # module for defining and parsing the CLI and Interactive options
-    # for xadm
+    # A module for defining the CLI and Interactive options for xadm.
+    #
+    # The general structure of xadm commands is:
+    #   xadm [global options] command [command options] [command arguments]
+    # in that order.
+    #
+    # The global options are things that affect the overall behavior of xadm,
+    # like --walkthru, --quiet, --json, and --debug.
+    #
+    # The command is the action to be taken, like 'add-title', 'edit-version',
+    # 'list-titles', etc.
+    #
+    # The command options are specific to the command, and are defined in the
+    # COMMANDS hash below.
+    #
+    # The command arguments are the things the command operates on, like the
+    # title name, or the title name and version.
+    #
     module Options
 
       # Constants
       #########################
       #########################
 
-      # See the definition for Xolo::Core::BaseClasses::Title::ATTRIBUTES
+      # These options affect the overall behavior of xadm. They must come
+      # before the command.
+      #
       # NOTE: Optimist automatically provides --version -v and --help -h
       GLOBAL_OPTIONS = {
         walkthru: {
@@ -320,10 +338,11 @@ module Xolo
         },
 
         SEARCH_CMD => {
-          desc: 'Search for titles in Xolo.',
+          desc: 'Search for titles in Xolo. Matches text in the title, display name, publisher, app name, bundle ID, or description.',
           display: "#{SEARCH_CMD} title",
           opts: {},
-          target: :title
+          target: :title,
+          process_method: :search_titles
         },
 
         INFO_CMD => {
@@ -396,7 +415,8 @@ module Xolo
       # For these commands, the title or version must exist
       MUST_EXIST_COMMANDS = [
         EDIT_TITLE_CMD, EDIT_VERSION_CMD,
-        DELETE_TITLE_CMD, DELETE_VERSION_CMD, RELEASE_VERSION_CMD
+        DELETE_TITLE_CMD, DELETE_VERSION_CMD, RELEASE_VERSION_CMD,
+        FREEZE_TITLE_CMD, THAW_TITLE_CMD, LIST_FROZEN_CMD
       ].freeze
 
       # Module methods

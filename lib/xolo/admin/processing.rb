@@ -158,6 +158,11 @@ module Xolo
           return
         end
 
+        if titles.empty?
+          puts "# No Titles in Xolo! Add one with 'xadm add title <title>'"
+          return
+        end
+
         report_title = 'All titles in Xolo'
         header = %w[Title Created By SSvc? Curr Latest]
         data = titles.map do |t|
@@ -188,7 +193,7 @@ module Xolo
         response_data = new_title.add(server_cnx)
 
         if debug?
-          puts "response_data: #{response_data}"
+          puts "DEBUG: response_data: #{response_data}"
           puts
         end
 
@@ -215,7 +220,7 @@ module Xolo
         response_data = title.update server_cnx
 
         if debug?
-          puts "response_data: #{response_data}"
+          puts "DEBUG: response_data: #{response_data}"
           puts
         end
 
@@ -399,7 +404,7 @@ module Xolo
         response_data = new_vers.add(server_cnx)
 
         if debug?
-          puts "response_data: #{response_data}"
+          puts "DEBUG: response_data: #{response_data}"
           puts
         end
 
@@ -455,7 +460,7 @@ module Xolo
         response_data = vers.update server_cnx
 
         if debug?
-          puts "response_data: #{response_data}"
+          puts "DEBUG: response_data: #{response_data}"
           puts
         end
 
@@ -479,7 +484,7 @@ module Xolo
         response_data = Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
 
         if debug?
-          puts "response_data: #{response_data}"
+          puts "DEBUG: response_data: #{response_data}"
           puts
         end
 
@@ -562,6 +567,11 @@ module Xolo
       # @return [void]
       ############################
       def list_groups
+        if json?
+          puts JSON.pretty_generate(jamf_computer_group_names)
+          return
+        end
+
         list_in_cols 'All Computer Groups in Jamf Pro:', jamf_computer_group_names.sort_by(&:downcase)
       end
 
@@ -570,6 +580,11 @@ module Xolo
       # @return [void]
       ############################
       def list_categories
+        if json?
+          puts JSON.pretty_generate(jamf_category_names)
+          return
+        end
+
         list_in_cols 'All Categories in Jamf Pro:', jamf_category_names.sort_by(&:downcase)
       end
 
