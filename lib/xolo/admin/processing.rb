@@ -525,6 +525,120 @@ module Xolo
         raise Xolo::ServerError, 'There was an error while streaming the server progress.' if @streaming_error
       end
 
+      # Just output lots of local things, for testing
+      #
+      # Comment/uncomment as needed
+      #
+      ########################
+      def do_local_testing
+        ###################
+        # puts
+        # puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
+        # puts 'GLOBAL OPTS:'
+        # puts '----'
+        # global_opts.to_h.each do |k, v|
+        #   puts "..#{k} => #{v}"
+        # end
+
+        ###################
+        # puts
+        # puts "COMMAND: #{cli_cmd.command}"
+
+        ###################
+        # puts
+        # puts "TITLE: #{cli_cmd.title}"
+
+        ###################
+        # puts
+        # puts "VERSION: #{cli_cmd.version}"
+
+        ###################
+        # puts
+        # puts 'CURRENT OPT VALUES:'
+        # puts 'The values the object had before xadm started working on it.'
+        # puts 'If the object is being added, these are the default or inherited values'
+        # puts '----'
+        # current_opt_values.to_h.each do |k, v|
+        #   puts "..#{k} => #{v}"
+        # end
+
+        ###################
+        # puts
+        # puts 'COMMAND OPT VALUES:'
+        # puts 'The command options collected by xadm, merged with the'
+        # puts 'current values, to be applied to the object'
+        # puts '----'
+        # opts = walkthru? ? walkthru_cmd_opts : cli_cmd_opts
+        # opts.to_h.each do |k, v|
+        #   puts "..#{k} => #{v}"
+        # end
+
+        ###################
+        # puts 'CookieJar:'
+        # puts "  Session: #{Xolo::Admin::CookieJar.session_cookie}"
+        # puts "  Expires: #{Xolo::Admin::CookieJar.session_expires}"
+
+        ###################
+        # puts 'getting /state'
+        # resp = server_cnx.get '/state'
+        # puts "#{resp.body}"
+
+        # ###################
+        # puts 'Listing currently known titles:'
+        # all_titles = Xolo::Admin::Title.all_titles server_cnx
+        # puts all_titles
+
+        # # ###############
+        # already_there = all_titles.include? cli_cmd.title
+        # puts "all titles contains our title: #{already_there}"
+        # if already_there
+        #   puts 'deleting the title first'
+        #   resp = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
+        #   puts "Delete Status: #{resp.status}"
+        #   puts 'Delete Body:'
+        #   puts resp.body
+        # end
+
+        # # ###################
+        # process_method = Xolo::Admin::Options::COMMANDS[cli_cmd.command][:process_method]
+        # puts
+        # puts "Processing command opts using method: #{process_method}"
+        # resp = send process_method if process_method
+        # puts "Add Status: #{resp.status}"
+        # puts 'Add Body:'
+        # puts resp.body
+        # puts
+
+        # ##################
+        # puts 're-fetching...'
+        # title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        # puts "title class: #{title.class}"
+        # puts 'title to_h:'
+        # puts title.to_h
+        # puts
+
+        # ##################
+        # puts 'updating...'
+        # title.self_service = false
+        # resp = title.update server_cnx
+        # puts "Update Status: #{resp.status}"
+        # puts 'Update Body:'
+        # puts resp.body
+        # puts
+
+        ###################
+        # puts 'running jamf_package_names'
+        # puts jamf_package_names
+
+        ###################
+        # puts 'running ted_titles'
+        # puts ted_titles
+
+        ##################
+        # puts
+        # puts 'DONE'
+      end # do_local_testing
+
     end # module processing
 
   end # module Admin
