@@ -258,13 +258,95 @@ module Xolo
         response_data = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
 
         if debug?
-          puts "response_data: #{response_data}"
+          puts "DEBUG: response_data: #{response_data}"
           puts
         end
 
         display_progress response_data[:progress_stream_url_path]
 
         speak "Title '#{cli_cmd.title}' has been deleted from Xolo."
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # Freeze one or more computers for a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def freeze
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        response_data = title.freeze ARGV, server_cnx
+
+        if debug?
+          puts "DEBUG: response_data: #{response_data}"
+          puts
+        end
+
+        if json?
+          puts JSON.pretty_generate(response_data)
+          return
+        end
+
+        rpt_title = "Results for freezing Title '#{cli_cmd.title}'"
+        header = %w[Computer Result]
+        report = generate_report(response_data.to_a, header_row: header, title: rpt_title)
+        show_text report
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # list the computers that are frozen for a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def list_frozen
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        frozen_computers = title.frozen server_cnx
+        if debug?
+          puts "DEBUG: response_data: #{frozen_computers}"
+          puts
+        end
+
+        if json?
+          puts JSON.pretty_generate(frozen_computers)
+          return
+        end
+
+        if frozen_computers.empty?
+          puts "# No computers are frozen for Title '#{cli_cmd.title}'"
+          return
+        end
+
+        rpt_title = "Frozen Computers for Title '#{cli_cmd.title}'"
+        header = %w[Computer User]
+        report = generate_report(frozen_computers.to_a, header_row: header, title: rpt_title)
+        show_text report
+      rescue StandardError => e
+        handle_server_error e
+      end
+
+      # Thaw one or more computers for a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def thaw
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        response_data = title.thaw ARGV, server_cnx
+
+        if debug?
+          puts "DEBUG: response_data: #{response_data}"
+          puts
+        end
+
+        if json?
+          puts JSON.pretty_generate(response_data)
+          return
+        end
+
+        rpt_title = "Results for thawing Title '#{cli_cmd.title}'"
+        header = %w[Computer Result]
+        report = generate_report(response_data.to_a, header_row: header, title: rpt_title)
+        show_text report
       rescue StandardError => e
         handle_server_error e
       end
@@ -278,6 +360,11 @@ module Xolo
 
         if json?
           puts JSON.pretty_generate(versions.map(&:to_h))
+          return
+        end
+
+        if versions.empty?
+          puts "# No versions for Title '#{cli_cmd.title}'"
           return
         end
 

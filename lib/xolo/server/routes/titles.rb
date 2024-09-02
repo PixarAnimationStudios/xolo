@@ -132,6 +132,67 @@ module Xolo
           body({ result: :uploaded })
         end
 
+        # Return the members of the 'frozen' static group for a title
+        #
+        # @return [Hash{String => String}] computer name => user name
+        #################################
+        get '/titles/:title/frozen' do
+          log_debug "Admin #{session[:admin]} is fetching frozen computers for title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
+
+          members = {}
+
+          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? title.jamf_frozen_group_name
+            comps = Jamf::ComputerGroup.fetch(name: title.jamf_frozen_group_name, cnx: jamf_cnx).member_names
+            comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
+
+            comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
+          end
+
+          body members
+        end
+
+        # add one or more computers to the 'frozen' static group for a title
+        # Body should be an array of computer names
+        #
+        # @return [Hash] A response hash
+        #################################
+        put '/titles/:title/freeze' do
+          request.body.rewind
+          log_debug "Incoming request body: #{request.body.read}"
+          request.body.rewind
+
+          comps_to_freeze = parse_json(request.body.read)
+          log_debug "Incoming computers to freeze for title #{params[:title]}: #{comps_to_freeze}"
+
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
+
+          result = title.freeze_or_thaw_computers(action: :freeze, computers: comps_to_freeze)
+
+          body result
+        end
+
+        # remove one or more computers from the 'frozen' static group for a title
+        # Body should be an array of computer names
+        #
+        # If any computer name is 'clear_all' then all frozen computers will be thawed
+        #
+        # @return [Hash] A response hash
+        #################################
+        put '/titles/:title/thaw' do
+          request.body.rewind
+          comps_to_thaw = parse_json(request.body.read)
+          log_debug "Incoming computers to thaw for title #{params[:title]}: #{comps_to_thaw}"
+
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
+
+          result = title.freeze_or_thaw_computers(action: :thaw, computers: comps_to_thaw)
+          body result
+        end
+
       end # Titles
 
     end #  Routes

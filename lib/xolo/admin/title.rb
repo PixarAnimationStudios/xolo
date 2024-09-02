@@ -173,6 +173,35 @@ module Xolo
         version_order&.first
       end
 
+      # Freeze the one or more computers for this title
+      # @param computers [Array<String>] the computers to freeze
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash] the response data
+      ####################
+      def freeze(computers, cnx)
+        resp = cnx.put "#{SERVER_ROUTE}/#{title}/freeze", computers
+        resp.body
+      end
+
+      # Thaw the one or more computers for this title
+      # @param computers [Array<String>] the computers to freeze
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash] the response data
+      ####################
+      def thaw(computers, cnx)
+        resp = cnx.put "#{SERVER_ROUTE}/#{title}/thaw", computers
+        resp.body
+      end
+
+      # Fetch the frozen computers for this title
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash{String => String}] computer name => user name
+      ####################
+      def frozen(cnx)
+        resp = cnx.get "#{SERVER_ROUTE}/#{title}/frozen"
+        resp.body
+      end
+
       # Upload an icon for self service.
       # At this point, the self_service_icon attribute
       # should contain the local file path.

@@ -116,6 +116,7 @@ module Xolo
       DELETE_TITLE_CMD = 'delete-title'
       FREEZE_TITLE_CMD = 'freeze'
       THAW_TITLE_CMD = 'thaw'
+      LIST_FROZEN_CMD = 'list-frozen'
 
       LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
@@ -258,6 +259,14 @@ module Xolo
           process_method: :thaw,
           target: :title,
           confirmation: true
+        },
+
+        LIST_FROZEN_CMD => {
+          desc: 'List all computers that are frozen for a title.',
+          display: "#{LIST_FROZEN_CMD} title",
+          opts: {},
+          target: :title,
+          process_method: :list_frozen
         },
 
         LIST_VERSIONS_CMD => {
