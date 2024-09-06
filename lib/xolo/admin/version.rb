@@ -181,6 +181,17 @@ module Xolo
         upload_cnx.post(route) { |req| req.body = content }
       end
 
+      # Get the Patch Report data for this version
+      # It's the JPAPI report data with each hash having a frozen: key added
+      #
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Array<Hash>] Data for each computer with this version of this title installed
+      ##################################
+      def patch_report_data(cnx)
+        resp = cnx.get "#{self.class.server_route(title, version)}/patch_report"
+        resp.body
+      end
+
     end # class Title
 
   end # module Admin

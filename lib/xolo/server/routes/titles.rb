@@ -140,17 +140,7 @@ module Xolo
           log_debug "Admin #{session[:admin]} is fetching frozen computers for title '#{params[:title]}'"
           halt_on_missing_title params[:title]
           title = instantiate_title params[:title]
-
-          members = {}
-
-          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? title.jamf_frozen_group_name
-            comps = Jamf::ComputerGroup.fetch(name: title.jamf_frozen_group_name, cnx: jamf_cnx).member_names
-            comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
-
-            comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
-          end
-
-          body members
+          body title.frozen_computers
         end
 
         # add one or more computers to the 'frozen' static group for a title
@@ -191,6 +181,18 @@ module Xolo
 
           result = title.freeze_or_thaw_computers(action: :thaw, computers: comps_to_thaw)
           body result
+        end
+
+        # Return info about all the computers with a given title installed
+        #
+        # @return [Array<Hash>] The data for all computers with the given title
+        #################################
+        get '/titles/:title/patch_report' do
+          log_debug "Admin #{session[:admin]} is fetching patch report for title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
+
+          body title.patch_report
         end
 
       end # Titles

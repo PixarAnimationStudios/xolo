@@ -658,6 +658,35 @@ module Xolo
           result
         end
 
+        # Return the members of the 'frozen' static group for a title
+        #
+        # @return [Hash{String => String}] computer name => user name
+        #################################
+        def frozen_computers
+          members = {}
+
+          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
+            comps = Jamf::ComputerGroup.fetch(name: jamf_frozen_group_name, cnx: jamf_cnx).member_names
+            comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
+
+            comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
+          end
+
+          members
+        end
+
+        # Get the patch report for this title.
+        # It's the JPAPI report data with each hash having a frozen: key added
+        #
+        # @return [Arrah<Hash>] Data for each computer with any version of this title installed
+        ######################
+        def patch_report
+          frozen_comps = frozen_computers.keys
+          report = jamf_cnx.jp_get patch_report_rsrc
+          report.each { |h| h[:frozen] = frozen_comps.include? h[:computerName] }
+          report
+        end
+
       end # TitleJamfPro
 
     end # Mixins

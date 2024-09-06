@@ -876,6 +876,13 @@ module Xolo
           progress msg, log: :debug
         end
 
+        # Get the patch report for this version
+        # @return [Arrah<Hash>] Data for each computer with this version of this title installed
+        ######################
+        def patch_report
+          title_object.patch_report.select { |c| c[:version] == version }
+        end
+
       end # JamfPro
 
     end # Helpers

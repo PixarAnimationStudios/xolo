@@ -113,6 +113,31 @@ module Xolo
       # appended, e.g. '.png'
       SELF_SERVICE_ICON_FILENAME = 'self-service-icon'
 
+      # The JPAPI endpoint for Patch Titles.
+      #
+      # ruby-jss still uses the Classic API for Patch Titles, and won't
+      # by migrated to JPAPI until Jamf fully implements all aspects of
+      # patch management to JPAPI. As of this writing, that's not the case.
+      # But, the JPAPI endpoint for Patch Title Reporting returns more
+      # detailed data than the Classic API, so we use it here, and will
+      # keep using it as we move forward.
+      #
+      # This is the top-level endpoint for all patch titles,
+      # see JPAPI_PATCH_REPORT_RSRC for the reporting endpoint below it.
+      #
+      # TODO: Remove this and update relevant methods when ruby-jss
+      # is updated to use JPAPI for Patch Titles..
+      JPAPI_PATCH_TITLE_RSRC = 'v2/patch-software-title-configurations'
+
+      # The JPAPI endpoint for patch reporting.
+      # The JPAPI_PATCH_TITLE_RSRC is appended with "/<id>/#{JPAPI_PATCH_REPORT_RSRC}"
+      # to get the URL for the patch report for a specific title.
+      #
+      # TODO: Remove this and update relevant methods when ruby-jss
+      # is updated to use JPAPI for Patch Titles..
+      #
+      JPAPI_PATCH_REPORT_RSRC = 'v2/patch-software-title-configurations//patch-report'
+
       # Class Methods
       ######################
       ######################
@@ -405,6 +430,12 @@ module Xolo
       ########################
       def version_objects(refresh: false)
         version_order.map { |v| version_object v }
+      end
+
+      # @return [String] The URL path for the patch report for this title
+      #############################
+      def patch_report_rsrc
+        @patch_report_rsrc ||= "#{JPAPI_PATCH_TITLE_RSRC}/#{jamf_title_id}/#{JPAPI_PATCH_REPORT_RSRC}"
       end
 
       # Save a new title, adding to the
