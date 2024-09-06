@@ -299,8 +299,6 @@ module Xolo
           return []
         elsif val.include? Xolo::TARGET_ALL
           return [Xolo::TARGET_ALL]
-        elsif val.include? Xolo::NO_SCOPED_GROUPS
-          return [Xolo::NO_SCOPED_GROUPS]
         end
 
         bad_grps = bad_jamf_groups(val)
@@ -323,7 +321,6 @@ module Xolo
       def validate_excluded_groups(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? Xolo::NONE
-        return [Xolo::NO_SCOPED_GROUPS] if val.include? Xolo::NO_SCOPED_GROUPS
 
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
@@ -553,7 +550,6 @@ module Xolo
       def validate_pilot_groups(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? Xolo::NONE
-        return [Xolo::NO_SCOPED_GROUPS] if val.include? Xolo::NO_SCOPED_GROUPS
 
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
