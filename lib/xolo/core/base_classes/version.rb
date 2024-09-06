@@ -232,7 +232,7 @@ module Xolo
             multi: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
-            invalid_msg: "Invalid group. Must be an existing Jamf Computer Group,'#{Xolo::NONE}', or '#{Xolo::NO_SCOPED_GROUPS}'.",
+            invalid_msg: "Invalid group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members will automatically have this version installed or updated for testing before it is released.
 
@@ -242,7 +242,9 @@ module Xolo
 
               When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
-              To remove any existing, use '#{Xolo::NONE}'. To remove existing and ignore any defined in the title, use '#{Xolo::NO_SCOPED_GROUPS}'
+              When adding a new version, the pilot groups from the previous version will be inherited if you don't specify any. To make the new version have no pilot groups use '#{Xolo::NONE}'.
+
+              NOTE: Any non-excluded computer can be used for piloting at any time by manually installing the yet-to-be-released version using `sudo xolo install <title> <version>`.  The members of the pilot groups are just the ones that will have it auto-installed.
             ENDDESC
           },
 

@@ -416,9 +416,8 @@ module Xolo
             walkthru_na: :ssvc_na,
             desc: <<~ENDDESC
               Make this title available in Self Service.
-              If there are any defined target groups, the title will only be available to computers in those groups.
               It will never be available to excluded computers.
-              Self Service is not available for titles with the target 'all'.
+              Self Service is not available for titles with the release_group 'all'.
             ENDDESC
           },
 
@@ -434,8 +433,6 @@ module Xolo
             invalid_msg: 'Invalid category. Must exist in Jamf Pro.',
             desc: <<~ENDDESC
               The Category in which to display this title in Self Service.
-              Ignored if not in Self Service.
-
               REQUIRED if self_service is true, ignored otherwise
             ENDDESC
           },

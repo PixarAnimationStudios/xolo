@@ -80,10 +80,6 @@ module Xolo
 
         # Update title in the title editor
         #
-        # TODO: If title switches between version script and app info,
-        #   all patch components must be updated
-        #
-        #
         # @param new_data [Hash] The new data sent from xadm
         # @return [void]
         ##########################
@@ -117,12 +113,14 @@ module Xolo
         #
         # If the Xolo Title as a version_script defined, it returns
         # either an empty value, or the version installed on the client
-        # it is added to the Title Editor title and used both as the
+        # It is added to the Title Editor title as the Ext Attr and used both as the
         # requirement criterion (not empty) and as a Patch Component
         # criterion for versions (the value contains the version)
         #
+        #
         # TODO: If title switches between version script and app info,
-        # all patch components must be updated
+        #   all patch components must be updated. This is true if
+        #   need_to_update_title_requirements? is true.
         #
         # @return [void]
         ######################
