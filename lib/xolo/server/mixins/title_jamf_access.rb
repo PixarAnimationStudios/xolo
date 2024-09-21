@@ -179,7 +179,7 @@ module Xolo
             [
               Jamf::Criteriable::Criterion.new(
                 and_or: :and,
-                name: jamf_ea_name,
+                name: jamf_normal_ea_name,
                 search_type: 'is not',
                 value: Xolo::BLANK
               )
@@ -198,15 +198,17 @@ module Xolo
           return unless scr
 
           ea =
-            if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_ea_name
-              progress "Updating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :info
+            if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
+              progress "Updating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
+                       log: :info
 
-              Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx)
+              Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
             else
-              progress "Creating regular extension attribute '#{jamf_ea_name}' for use in smart group", log: :info
+              progress "Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
+                       log: :info
 
               Jamf::ComputerExtensionAttribute.create(
-                name: jamf_ea_name,
+                name: jamf_normal_ea_name,
                 description: "The version of xolo title '#{title}' installed on the machine",
                 data_type: :string,
                 enabled: true,
@@ -215,6 +217,25 @@ module Xolo
             end
           ea.script = scr
           ea.save
+        end
+
+        # Do we need to accept the xolo ea in jamf?
+        #
+        # True if @need_to_accept_xolo_ea_in_jamf is true
+        # or if we have a version script now, and it differs from the jamf normal EA script.
+        #
+        # False if we don't have a version script now, or if we do and it is the same as the
+        # jamf ea script.
+        #
+        # @return [Boolean]
+        #########################
+        def need_to_accept_xolo_ea_in_jamf?
+          return true if @need_to_accept_xolo_ea_in_jamf
+
+          our_version_script = version_script_contents
+          return false if our_version_script.pix_empty?
+
+          jamf_patch_ea_contents.chomp == our_version_script.chomp
         end
 
         # @return [Jamf::PatchSource] The Jamf Patch Source that is connected to the Title Editor
@@ -396,7 +417,13 @@ module Xolo
           end # thread
         end
 
-        # @return [Boolean] does the Jamf Title currently need its EA to be accepted?
+        # Does the Jamf Title currently need its EA to be accepted, according to Jamf Pro?
+        #
+        # NOTE: Jamf might not see the need for this immediately, so we set
+        # @need_to_accept_xolo_ea_in_jamf and define #need_to_accept_xolo_ea_in_jamf?
+        # and use them to determine if we should wait for this to become true.
+        #
+        # @return [Boolean]
         #################################
         def jamf_patch_ea_needs_acceptance?
           ead = jamf_patch_ea_data
@@ -414,7 +441,7 @@ module Xolo
         # if configured to do so automatically.
         #
         # This method just tells us the current situation about our version script
-        # vs the Jamf EA.
+        # vs the Jamf Patch EA.
         #
         # @param new_version_script [String, nil] If updating, this is the new incoming version script.
         #
@@ -429,12 +456,8 @@ module Xolo
           # when jamf catches up with the title editor.
           return unless our_version_script
 
-          # the script in Jamf
-          jea_data = jamf_patch_ea_data
-          j_script = (Base64.decode64(jea_data[:scriptContents]) if jea_data).to_s
-
           # does jamf's script match ours?
-          our_version_script.chomp == j_script.chomp
+          our_version_script.chomp == jamf_patch_ea_contents.chomp
         end
 
         # The version_script as a Jamf Extension Attribute,
@@ -476,6 +499,25 @@ module Xolo
           jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jid}/extension-attributes").first
         end
 
+        # the script contents of the Jamf Patch EA that comes from our version_script
+        # @return [String, nil] nil if there is none, or the title isn't active yet
+        ##############################
+        def jamf_patch_ea_contents
+          jea_data = jamf_patch_ea_data
+          return unless jea_data && jea_data[:scriptContents]
+
+          Base64.decode64 jea_data[:scriptContents]
+        end
+
+        # the script contents of the Normal Jamf EA that comes from our version_script
+        # @return [String, nil] nil if there is none
+        ##############################
+        def jamf_normal_ea_contents
+          return unless Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include?(jamf_normal_ea_name)
+
+          Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx).script
+        end
+
         # The titles active in Jamf Patch Management from the Title Editor
         # This takes into account that other Patch Sources may have titles with the
         # same 'name_id' (the xolo 'title')
@@ -513,6 +555,8 @@ module Xolo
               source_id: jamf_ted_patch_source.id,
               cnx: jamf_cnx
             )
+        rescue Jamf::NoSuchItemError
+          nil
         end
 
         # @return [Integer] The Jamf ID of this title, if it is active in Jamf
@@ -554,10 +598,10 @@ module Xolo
         # @return [void]
         ######################################
         def delete_normal_ea_from_jamf
-          return unless Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_ea_name
+          return unless Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
 
-          progress "Deleting regular extension attribute '#{jamf_ea_name}'", log: :info
-          Jamf::ComputerExtensionAttribute.fetch(name: jamf_ea_name, cnx: jamf_cnx).delete
+          progress "Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
+          Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx).delete
         end
 
         # Delete the patch title

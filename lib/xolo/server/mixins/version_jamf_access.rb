@@ -440,7 +440,12 @@ module Xolo
             while Time.now < max_time
               sleep 30
               log_debug "Jamf: checking for version #{version} of title #{title} to become visible from the title editor since #{start_time}"
-              next unless title_object.jamf_patch_title(refresh: true).versions.key? version
+
+              # check for the existence of the jamf_patch_title every time, since it might have gone away
+              # if the title was deleted while this was happening.
+              unless title_object.jamf_patch_title(refresh: true) && title_object.jamf_patch_title.versions.key?(version)
+                next
+              end
 
               did_it = true
               break

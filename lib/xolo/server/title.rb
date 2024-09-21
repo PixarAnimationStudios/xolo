@@ -103,7 +103,7 @@ module Xolo
       # (see TITLE_EDITOR_EA_KEY_PREFIX) with this suffix added.
       # So for the Title Editor key 'xolo-<title>', we'll also have
       # a matching normal EA called 'xolo-<title>-installed-version'
-      JAMF_EA_NAME_SUFFIX = '-installed-version'
+      JAMF_NORMAL_EA_NAME_SUFFIX = '-installed-version'
 
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
@@ -165,8 +165,8 @@ module Xolo
       # @return [String] The display name of a version script as a normal
       #   EA in Jamf, which can be used in Smart Groups and Adv Searches.
       #####################
-      def self.jamf_ea_name(title)
-        "#{ted_ea_key(title)}#{JAMF_EA_NAME_SUFFIX}"
+      def self.jamf_normal_ea_name(title)
+        "#{ted_ea_key(title)}#{JAMF_NORMAL_EA_NAME_SUFFIX}"
       end
 
       # The title dir for a given title on the server,
@@ -380,11 +380,11 @@ module Xolo
       # @return [String] The string contents of the version_script, if any
       ####################
       def version_script_contents
-        # the value will be
+        # the value of curr_script will be
         # - nil (no script used),
         # - a script, that will replace any existing,
         # - or Xolo::ITEM_UPLOADED, meaning use the one we have saved on disk
-
+        #
         # if we have incoming data, that's what we care about
         # otherwise we use our current value
         curr_script = @new_data_for_update ? @new_data_for_update[:version_script] : version_script
@@ -411,8 +411,8 @@ module Xolo
       # @return [String] The display name of a version script as a normal
       #   EA in Jamf, which can be used in Smart Groups and Adv Searches.
       #####################
-      def jamf_ea_name
-        @jamf_ea_name ||= self.class.jamf_ea_name title
+      def jamf_normal_ea_name
+        @jamf_normal_ea_name ||= self.class.jamf_normal_ea_name title
       end
 
       # instantiate a version if this title
@@ -526,8 +526,7 @@ module Xolo
         # if its true or nil, no need to re-accept
         # if its false, jamf should eventually need us to re-accept
         #
-        accept_xolo_ea_in_jamf if @need_to_accept_xolo_ea_in_jamf || jamf_ea_matches_version_script? == false
-
+        accept_xolo_ea_in_jamf if need_to_accept_xolo_ea_in_jamf?
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
       end # update
