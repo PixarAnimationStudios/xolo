@@ -574,10 +574,7 @@ module Xolo
       # @return [void]
       ############################
       def update_versions_for_title_changes
-        vobjs = version_objects
-        return if vobjs.empty?
-
-        vobjs.each do |vers_obj|
+        version_objects.each do |vers_obj|
           update_ted_patch_component_for_version(vers_obj) if @need_to_set_version_patch_components
 
           vers_obj.update_pilot_groups(ttl_obj: self) if @need_to_update_pilot_groups
