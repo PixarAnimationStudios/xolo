@@ -111,11 +111,9 @@ module Xolo
           # prob not needed, since the upload is a separate process from the title update
           @need_to_update_ssvc_icon = new_data_for_update[:self_service_icon] && new_data_for_update[:self_service_icon] != Xolo::ITEM_UPLOADED
 
-          # Excluded, Pilot, or Release groups changed at the
+          # Excluded, or Release groups changed at the
           # title level, make note to update the scope of all version-specific policies and patch policies
           # when we loop thru the versions
-
-          @need_to_update_pilot_groups = new_data_for_update[:pilot_groups].to_a.sort != pilot_groups.to_a.sort
 
           @need_to_update_release_groups = new_data_for_update[:release_groups].to_a.sort != release_groups.to_a.sort
           @need_to_update_excluded_groups = new_data_for_update[:excluded_groups].to_a.sort != excluded_groups.to_a.sort

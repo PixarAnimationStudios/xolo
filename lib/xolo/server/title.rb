@@ -577,7 +577,6 @@ module Xolo
         version_objects.each do |vers_obj|
           update_ted_patch_component_for_version(vers_obj) if @need_to_set_version_patch_components
 
-          vers_obj.update_pilot_groups(ttl_obj: self) if @need_to_update_pilot_groups
           vers_obj.update_release_groups(ttl_obj: self)  if @need_to_update_release_groups
           vers_obj.update_excluded_groups(ttl_obj: self) if @need_to_update_excluded_groups
 
