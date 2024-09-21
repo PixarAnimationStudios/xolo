@@ -73,9 +73,40 @@ module Xolo
             cnx: ted_cnx
           )
 
-          update_ted_title_requirements
+          create_ted_title_requirements
 
           self.ted_id_number = ted_title.softwareTitleId
+        end
+
+        # Create the requirements for a new title in the Title Editor
+        # Either app-based or EA-based, depending on the data in the Xolo Title.
+        #
+        # Requirements are criteria indicating that this title (any version)
+        # is installed on a client machine.
+        #
+        # If the Xolo Title has app_name and app_bundle_id defined,
+        # they are used as the requirement criteria and the Patch component criteria.
+        #
+        # If the Xolo Title as a version_script defined, it returns
+        # either an empty value, or the version installed on the client
+        # It is added to the Title Editor title as the Ext Attr and used both as the
+        # requirement criterion ( the value is not empty) and as a Patch Component
+        # criterion for versions (the value contains the version).
+        #
+        # @return [void]
+        def create_ted_title_requirements
+          progress "Title Editor: Setting Requirements for new title '#{title}'", log: :debug
+
+          # if we have app-based requirements, set them
+          if app_name && app_bundle_id
+            update_ted_title_app_requirements(
+              req_app_name: app_name,
+              req_app_bundle_id: app_bundle_id
+            )
+          else
+            # if we have a version_script, set it
+            update_ted_title_ea_requirements req_ea_script: version_script
+          end
         end
 
         # Update title in the title editor
@@ -104,27 +135,16 @@ module Xolo
           self.ted_id_number ||= ted_title.softwareTitleId
         end
 
-        # Add or update the requirements in the TItle Editor title.
-        # Requirements are criteria indicating that this title (any version)
-        # is installed on a client machine.
+        # Update the requirements in the TItle Editor title.
         #
-        # If the Xolo Title has app_name and app_bundle_id defined,
-        # they are used as the criteria.
+        # If we switch from app-based to EA-based requirements, or vice versa,
+        # all the patch components need to be updated.
         #
-        # If the Xolo Title as a version_script defined, it returns
-        # either an empty value, or the version installed on the client
-        # It is added to the Title Editor title as the Ext Attr and used both as the
-        # requirement criterion (not empty) and as a Patch Component
-        # criterion for versions (the value contains the version)
-        #
-        #
-        # TODO: If title switches between version script and app info,
-        #   all patch components must be updated. This is true if
-        #   need_to_update_title_requirements? is true.
         #
         # @return [void]
         ######################
         def update_ted_title_requirements
+          return unless new_data_for_update
           return unless need_to_update_title_requirements?
 
           progress "Title Editor: Setting Requirements for title '#{title}'", log: :debug
@@ -159,16 +179,22 @@ module Xolo
         end
 
         # @return [Boolean] Do we need to update the title requirements?
+        #   True if the app name, bundle id, or version script have changed
         ###########################
         def need_to_update_title_requirements?
-          # if we have incoming updates, has anything changed that we need to deal with?
-          if new_data_for_update && (new_data_for_update[:app_name] == app_name && \
-               new_data_for_update[:app_bundle_id] ==  app_bundle_id && \
-               new_data_for_update[:version_script] == version_script)
+          if new_data_for_update[:app_name] == app_name && \
+             new_data_for_update[:app_bundle_id] ==  app_bundle_id && \
+             new_data_for_update[:version_script] == version_script
             log_debug 'Title Editor: No changes to title requirements'
             return false
           end
-          @need_to_set_version_patch_components = true
+          true
+        end
+
+        # @return [Boolean] do we need to update the app-based requirements and patch components?
+        ###########################
+        def need_to_update_app_basaed_criteria?
+          new_data_for_update[:app_name] != app_name || new_data_for_update[:app_bundle_id] != app_bundle_id
         end
 
         # @return [Array<String, nil>] three items, at least one of which will be nil
@@ -221,8 +247,6 @@ module Xolo
         def update_existing_ted_title_ea(req_ea_script:)
           if ted_title.requirements.first&.type == 'extensionAttribute'
             ted_title.extensionAttribute.script = req_ea_script
-            # Accept it... when?
-            # accept_xolo_ea_in_jamf
             @need_to_accept_xolo_ea_in_jamf = true
           else
             false
@@ -244,8 +268,8 @@ module Xolo
           # so delete the current app-based requirements, if any
           ted_title.requirements.delete_all_criteria
 
-          progress "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'",
-                   log: :debug
+          msg = "Title Editor: Setting ExtensionAttribute version_script and Requirement Criteria for title '#{title}'"
+          progress msg, log: :debug
 
           # delete and recreate the EA
           ted_title.delete_extensionAttribute
