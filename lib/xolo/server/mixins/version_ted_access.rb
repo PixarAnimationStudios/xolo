@@ -184,9 +184,8 @@ module Xolo
         # have this version installed
         #
         # TODO: allow xadm to define more complex critera?
-        # TODO: If title switches between version script and app info, all patch components must be updated
         #
-        # @param title [Xolo::Server::Title] an existing title object for this version, so  when the title
+        # @param title_obj [Xolo::Server::Title] an existing title object for this version, so  when the title
         #   loops thru calling this method, we don't keep re-instantiating it
         #
         # @return [void]
