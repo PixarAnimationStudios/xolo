@@ -567,7 +567,7 @@ module Xolo
         def delete_patch_title_from_jamf
           return unless jamf_ted_title_active?
 
-          progress "Jamf: Deleting (unsubscribing) title '#{display_name}'  (#{title}}) in Jamf Patch Management",
+          progress "Jamf: Deleting (unsubscribing) title '#{display_name}' (#{title}}) in Jamf Patch Management",
                    log: :info
 
           # NOTE: jamf api user must have 'delete computer ext. attribs' permmissions
@@ -579,7 +579,7 @@ module Xolo
         # @param action [Symbol] :freeze or :thaw
         #
         # @param computers [Array<String>, String] The computer name[s] to freeze or thaw. To thaw
-        #   all computers pass Xolo::TARGET_ALL
+        #   all computers pass Xolo::TARGET_ALL (freeze all is not allowed)
         #
         # @return [Hash] Keys are computer names, values are Xolo::OK or an error message
         #################################
