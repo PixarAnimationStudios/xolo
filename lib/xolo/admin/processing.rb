@@ -159,7 +159,7 @@ module Xolo
         end
 
         if titles.empty?
-          puts "# No Titles in Xolo! Add one with 'xadm add title <title>'"
+          puts "# No Titles in Xolo! Add one with 'xadm add-title <title>'"
           return
         end
 
