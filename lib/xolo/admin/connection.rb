@@ -78,6 +78,7 @@ module Xolo
         # so in the future we just call server_cnx with no hostname to get the same
         # connection object
         resp = server_cnx.post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+
         return if resp.success?
 
         case resp.status
@@ -86,6 +87,8 @@ module Xolo
         else
           raise Xolo::ServerError, "#{resp.status}: #{resp.body}"
         end
+      rescue Faraday::UnauthorizedError => e
+        raise Xolo::AuthenticationError, 'Invalid username or password'
       end
 
       # @pararm host [String] an alternate hostname to use, defaults to config.hostname

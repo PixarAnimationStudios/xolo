@@ -30,6 +30,7 @@ module Xolo
   module Admin
 
     # Personal credentials for users of 'xadm', stored in the login keychain
+    #
     module Credentials
 
       # Constants
@@ -38,6 +39,9 @@ module Xolo
 
       # The security command
       SEC_COMMAND = '/usr/bin/security'
+
+      # exit status when the login keychain can't be accessed because we aren't in a GUI session
+      SEC_STATUS_NO_GUI_ERROR = 36
 
       # exit status when the keychain password provided is incorrect
       SEC_STATUS_AUTH_ERROR = 51
@@ -51,7 +55,7 @@ module Xolo
       # the Service for the generic 'Xolo::Admin::Credentials' keychain entry
       XOLO_CREDS_SVC = 'com.pixar.xolo.password'
 
-      # the Label for the generic 'Xolo::Admin::Credentialss' keychain entry
+      # the Label for the generic 'Xolo::Admin::Credentials' keychain entry
       XOLO_CREDS_LBL = '"Xolo Admin Password"'
 
       # Module methods
@@ -67,6 +71,8 @@ module Xolo
       ##########################
       ##########################
 
+      # If the keychain is not accessible, prompt for the password
+      #
       # @return [String] Get the admin's password from the login keychain
       #
       ##############################################
@@ -78,6 +84,16 @@ module Xolo
         cmd << XOLO_CREDS_LBL
         cmd << '-w'
         run_security(cmd.map { |i| security_escape i }.join(' '))
+
+      # If we can't access the keychain, prompt for the password. This is usually
+      # when we're running in a non-GUI session, e.g. via ssh.
+      rescue Xolo::Core::Exceptions::KeychainError
+        raise unless @security_exit_status.exitstatus == SEC_STATUS_NO_GUI_ERROR
+
+        question = "Keychain not accessible.\nPlease enter the xolo admin password for #{ENV['USER']}: "
+        highline_cli.ask(question) do |q|
+          q.echo = false
+        end
       end
 
       # Store an item in the default keychain
@@ -140,7 +156,6 @@ module Xolo
       def run_security(cmd)
         output = Xolo::BLANK
         errs = Xolo::BLANK
-        exit_status = nil
 
         Open3.popen3("#{SEC_COMMAND} -i") do |stdin, stdout, stderr, wait_thr|
           # pid = wait_thr.pid # pid of the started process.
@@ -150,12 +165,12 @@ module Xolo
           output = stdout.read
           errs = stderr.read
 
-          exit_status = wait_thr.value # Process::Status object returned.
+          @security_exit_status = wait_thr.value # Process::Status object returned.
         end
         # exit 44 is 'The specified item could not be found in the keychain'
-        return output.chomp if exit_status.success?
+        return output.chomp if @security_exit_status.success?
 
-        case exit_status.exitstatus
+        case @security_exit_status.exitstatus
         when SEC_STATUS_AUTH_ERROR
           raise Xolo::KeychainError, 'Problem accessing login keychain. Is it locked?'
 
@@ -168,7 +183,7 @@ module Xolo
           errnum = Regexp.last_match(1)
           desc = errnum ? security_error_desc(errnum) : errs
           desc ||= errs
-          raise Xolo::KeychainError, "#{desc.gsub("\n", '; ')}; exit status #{exit_status.exitstatus}"
+          raise Xolo::KeychainError, "#{desc.gsub("\n", '; ')}; exit status #{@security_exit_status.exitstatus}"
         end # case
       end # run_security
 
