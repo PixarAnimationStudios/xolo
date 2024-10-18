@@ -73,7 +73,7 @@ module Xolo
           # Create the static group that will contain computers
           # where this title is 'frozen'
           # To start with it has no members, but will be used in scope exclusions
-          progress "Creating static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
+          progress "Jamf: Creating static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
           Jamf::ComputerGroup.create(
             name: jamf_frozen_group_name,
             type: :static,
@@ -140,11 +140,11 @@ module Xolo
         #####################################
         def jamf_installed_smart_group
           if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
-            progress "Updating smart group '#{jamf_installed_smart_group_name}'", log: :debug
+            progress "Jamf: Updating smart group '#{jamf_installed_smart_group_name}'", log: :debug
 
             Jamf::ComputerGroup.fetch name: jamf_installed_smart_group_name, cnx: jamf_cnx
           else
-            progress "Creating smart group '#{jamf_installed_smart_group_name}'", log: :debug
+            progress "Jamf: Creating smart group '#{jamf_installed_smart_group_name}'", log: :debug
             Jamf::ComputerGroup.create(
               name: jamf_installed_smart_group_name,
               type: :smart,
