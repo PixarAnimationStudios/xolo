@@ -349,9 +349,8 @@ module Xolo
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         ############################
-        def set_policy_pilot_groups(pol, ttl_obj: nil)
-          ttl_obj ||= title_object
-          pilots = pilot_groups_to_use(ttl_obj: ttl_obj)
+        def set_policy_pilot_groups(pol)
+          pilots = pilot_groups_to_use
           pilots ||= []
 
           pol.scope.set_targets :computer_groups, pilots
@@ -577,17 +576,17 @@ module Xolo
         # Uploading a new .pkg installer happen separately
         #########################################
         def update_version_in_jamf
-          unless new_data_for_update[:pilot_groups].sort == pilot_groups.sort
+          unless new_data_for_update[:pilot_groups] && new_data_for_update[:pilot_groups].sort == pilot_groups.sort
             # pilots
-            update_pilot_groups ttl_obj: title_object
+            update_pilot_groups
           end
 
-          unless new_data_for_update[:release_groups].sort == release_groups.sort
+          unless new_data_for_update[:release_groups] && new_data_for_update[:release_groups].sort == release_groups.sort
             # release
             update_release_groups ttl_obj: title_object
           end
 
-          unless new_data_for_update[:excluded_groups].sort == excluded_groups.sort
+          unless new_data_for_update[:excluded_groups] && new_data_for_update[:excluded_groups].sort == excluded_groups.sort
             # excludes
             update_excluded_groups ttl_obj: title_object
           end
@@ -677,7 +676,7 @@ module Xolo
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         #########################
-        def update_pilot_groups(ttl_obj: nil)
+        def update_pilot_groups
           # nothing unless we're in pilot
           return unless status == Xolo::Server::Version::STATUS_PILOT
 
@@ -686,7 +685,7 @@ module Xolo
           # - update the auto install policy
           pol = jamf_auto_install_policy
           if pol
-            set_policy_pilot_groups(pol, ttl_obj: ttl_obj)
+            set_policy_pilot_groups(pol)
             pol.save
             progress "Jamf: updated pilot groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
           end
@@ -695,7 +694,7 @@ module Xolo
           pol = jamf_patch_policy
           return unless pol
 
-          set_policy_pilot_groups(pol, ttl_obj: ttl_obj)
+          set_policy_pilot_groups(pol)
           pol.save
           progress "Jamf: updated pilot groups for Patch Policy '#{jamf_patch_policy_name}'."
         end
