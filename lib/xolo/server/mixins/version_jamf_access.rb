@@ -733,6 +733,8 @@ module Xolo
         #   if nil, we'll instantiate it now
         #########################
         def update_excluded_groups(ttl_obj: nil)
+          log_debug "Updating Excluded Groups for Version '#{version}' of Title '#{title}'"
+
           # - update the manual install policy
           pol = jamf_manual_install_policy
           if pol
