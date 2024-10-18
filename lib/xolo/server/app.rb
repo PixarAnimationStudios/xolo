@@ -113,6 +113,9 @@ module Xolo
         setup_ssl
         Xolo::Server.start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
+
+        # Disable warnings in logs about known scope bug in Jamf Classic API
+        Jamf::Scopable::Scope.do_not_warn_about_policy_scope_bugs
       end
 
       ##########################
