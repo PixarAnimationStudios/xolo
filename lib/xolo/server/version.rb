@@ -243,19 +243,23 @@ module Xolo
         return @excluded_groups_to_use if @excluded_groups_to_use
 
         ttl_obj ||= title_object
-        @excluded_groups_to_use = ttl_obj.excluded_groups
+        # Use .dup so we don't modify the original
+        @excluded_groups_to_use = ttl_obj.excluded_groups.dup
 
         # if we have a 'frozen' static group, always exclude it
         if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? ttl_obj.jamf_frozen_group_name
           @excluded_groups_to_use << ttl_obj.jamf_frozen_group_name
-          log_debug "Appended jamf_frozen_group_name '#{ttl_obj.jamf_frozen_group_name}' to excluded groups"
+          log_debug "Appended jamf_frozen_group_name '#{ttl_obj.jamf_frozen_group_name}' to @excluded_groups_to_use"
         end
 
         # always exclude Xolo::Server.config.forced_exclusion if defined
         if Xolo::Server.config.forced_exclusion
           @excluded_groups_to_use << Xolo::Server.config.forced_exclusion
-          log_debug "Appended Xolo::Server.config.forced_exclusion '#{Xolo::Server.config.forced_exclusion}' to excluded groups"
+          log_debug "Appended Xolo::Server.config.forced_exclusion '#{Xolo::Server.config.forced_exclusion}' to @excluded_groups_to_use"
         end
+
+        @excluded_groups_to_use.uniq!
+        log_debug "Excluded groups to use: #{@excluded_groups_to_use.join ', '}"
 
         @excluded_groups_to_use
       end
