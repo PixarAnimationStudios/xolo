@@ -119,6 +119,7 @@ module Xolo
       # Validate the command options acquired from the command line.
       # Walkthru will validate them individually as they are entered.
       #
+      ##########################
       def validate_cli_cmd_opts
         cmd = cli_cmd.command
         opts_defs = Xolo::Admin::Options::COMMANDS[cmd][:opts]
@@ -179,6 +180,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [String] The valid value
+      ##########################
       def validate_title(val)
         val = val.to_s.strip
 
@@ -215,6 +217,7 @@ module Xolo
       #
       #
       # @return [String] The valid value
+      ##########################
       def validate_title_display_name(val)
         val = val.to_s.strip
         return val if val =~ /\A\S.+\S\z/
@@ -227,6 +230,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Boolean, String] The validity, or the valid value
+      ##########################
       def validate_title_desc(val)
         val = val.to_s.strip
         return val if val.length >= 20
@@ -239,6 +243,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [String] The valid value
+      ##########################
       def validate_publisher(val)
         val = val.to_s.strip
         return val if val.length >= 3
@@ -251,6 +256,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [String] The valid value
+      ##########################
       def validate_app_name(val)
         val = val.to_s.strip
         return val if val.end_with? Xolo::DOTAPP
@@ -263,6 +269,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [String] The valid value
+      ##########################
       def validate_app_bundle_id(val)
         val = val.to_s.strip
         return val if val.include? Xolo::DOT
@@ -275,6 +282,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Pathname] The valid value
+      ##########################
       def validate_version_script(val)
         val = Pathname.new val.to_s.strip
         return val if val.file? && val.readable? && val.read.start_with?('#!')
@@ -293,6 +301,7 @@ module Xolo
       #   groups, or 'all', or 'none'
       #
       # @return [Array<String>] The valid value
+      ##########################
       def validate_release_groups(val)
         val = [val] unless val.is_a? Array
         if  val.include? Xolo::NONE
@@ -318,6 +327,7 @@ module Xolo
       #   groups, or 'none'
       #
       # @return [Array<String>] The valid value
+      ##########################
       def validate_excluded_groups(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? Xolo::NONE
@@ -330,6 +340,7 @@ module Xolo
 
       # @param grp_ary [Array<String>] Jamf groups to validate
       # @return [Array<String>] Jamf groups that do not exist.
+      ##########################
       def bad_jamf_groups(group_ary)
         group_ary = [group_ary] unless group_ary.is_a? Array
 
@@ -341,6 +352,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Integer] The valid value
+      ##########################
       def validate_expiration(val)
         val = val.to_s
         val = val.to_i if val.pix_integer?
@@ -356,6 +368,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Array<String>] The valid array
+      ##########################
       def validate_expiration_paths(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? [Xolo::NONE]
@@ -379,6 +392,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Boolean] The  valid value
+      ##########################
       def validate_boolean(val)
         val.to_s =~ TRUE_RE ? true : false
       end
@@ -388,6 +402,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Boolean, String] The validity, or the valid value
+      ##########################
       def validate_self_service_category(val)
         val = val.to_s
 
@@ -402,6 +417,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Pathname] The valid value
+      ##########################
       def validate_self_service_icon(val)
         val = Pathname.new val.to_s.strip
         if val.file? && val.readable?
@@ -418,6 +434,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Pathname] The valid value
+      ##########################
       def validate_pkg_to_upload(val)
         val = Pathname.new val.to_s.strip
         return val if val.file? && val.readable? && (Xolo::OK_PKG_EXTS.include? val.extname)
@@ -429,12 +446,13 @@ module Xolo
       #
       ##################################################
 
-      # validate a Xolo Version. Must be 2+ chars long, only lowercase
+      # TODO: validate a Xolo Version. Must be 2+ chars long, only lowercase
       # alpha-numerics & dashes
       #
       # @param val [Object] The value to validate
       #
       # @return [String] The valid value
+      ##########################
       def validate_version(val)
         ###
       end
@@ -442,6 +460,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Date] The valid value
+      ##########################
       def validate_publish_date(val)
         val = Time.parse val.to_s
         # TODO: ? Ensure this date is >= the prev. version and <= the next
@@ -455,6 +474,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Gem::Version] The valid value
+      ##########################
       def validate_min_os(val)
         return val
 
@@ -466,6 +486,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Gem::Version] The valid value
+      ##########################
       def validate_max_os(val)
         val = Gem::Version.new val.to_s
         # TODO: internal consistency - make sure this is >= max_os
@@ -479,6 +500,7 @@ module Xolo
       # @param val [Object] The value to validate
       #
       # @return [Array<Array<String>>] The valid value
+      ##########################
       def validate_killapps(val)
         val = [val] unless val.is_a? Array
         return Xolo::X if val == [Xolo::X]
@@ -499,6 +521,7 @@ module Xolo
       #
       # @param ka [String] the string to expand if needed
       # @return [String] the original string, or the expanded version
+      ##########################
       def expand_use_title(ka)
         return ka unless ka == Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP
 
@@ -518,6 +541,7 @@ module Xolo
       # Validate an individual killapp string
       # @param ka [String] the string to expand if needed
       # @return [String] the validated value
+      ##########################
       def validate_single_killapp(ka)
         name, bundle_id = ka.split(Xolo::SEMICOLON_SEP_RE)
         raise_invalid_data_error name, 'App name required before semicolon' unless name
@@ -547,6 +571,7 @@ module Xolo
       #   groups, or 'none'
       #
       # @return [Array<String>] The valid value
+      ##########################
       def validate_pilot_groups(val)
         val = [val] unless val.is_a? Array
         return [] if val.include? Xolo::NONE
