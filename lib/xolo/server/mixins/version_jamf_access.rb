@@ -889,6 +889,68 @@ module Xolo
           title_object.patch_report.select { |c| c[:version] == version }
         end
 
+        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
+        ################
+        def jamf_gui_url
+          @jamf_gui_url ||= title_object.jamf_gui_url
+        end
+
+        # @return [String] the URL for the Package that installs this version in Jamf Pro
+        ######################
+        def jamf_package_url
+          return @jamf_package_url if @jamf_package_url
+          return unless jamf_pkg_id
+
+          @jamf_package_url = "#{jamf_gui_url}/packages.html?id=#{jamf_pkg_id}&o=r"
+        end
+
+        # @return [String] the URL for the Jamf Pro Policy that does auto-installs of this version
+        ######################
+        def jamf_auto_install_policy_url
+          return @jamf_auto_install_policy_url if @jamf_auto_install_policy_url
+
+          pol_id = Jamf::Policy.map_all(
+            :name,
+            to: :id,
+            cnx: jamf_cnx
+          )[jamf_auto_install_policy_name]
+          return unless pol_id
+
+          @jamf_auto_install_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
+        end
+
+        # @return [String] the URL for the Jamf Pro Policy that does manual installs of this version
+        ######################
+        def jamf_manual_install_policy_url
+          return @jamf_manual_install_policy_url if @jamf_manual_install_policy_url
+
+          pol_id = Jamf::Policy.map_all(
+            :name,
+            to: :id,
+            cnx: jamf_cnx
+          )[jamf_manual_install_policy_name]
+          return unless pol_id
+
+          @jamf_manual_install_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
+        end
+
+        # @return [String] the URL for the Jamf Pro Patch Policy that updates to this version
+        ######################
+        def jamf_patch_policy_url
+          return @jamf_patch_policy_url if @jamf_patch_policy_url
+
+          title_id = title_object.jamf_title_id
+
+          pol_id = Jamf::PatchPolicy.map_all(
+            :name,
+            to: :id,
+            cnx: jamf_cnx
+          )[jamf_patch_policy_name]
+          return unless pol_id
+
+          @jamf_manual_install_policy_url = "#{jamf_gui_url}/patchDeployment.html?softwareTitleId=#{title_id}&id=#{pol_id}&o=r"
+        end
+
       end # JamfPro
 
     end # Helpers

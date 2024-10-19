@@ -154,6 +154,15 @@ module Xolo
         # already returns resp.body
       end
 
+      # Fetch a hash of URLs for the GUI pages for this title
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash{String => String}] page_name => url
+      ####################
+      def gui_urls(cnx)
+        resp = cnx.get "#{self.class.server_route(title, version)}/urls"
+        resp.body
+      end
+
       # Upload a .pkg (or zipped bundle pkg) for this version
       # At this point, the jamf_pkg_file attribute
       # will containt the local file path.

@@ -730,6 +730,74 @@ module Xolo
           report
         end
 
+        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
+        ################
+        def jamf_gui_url
+          return @jamf_gui_url if @jamf_gui_url
+
+          host = Xolo::Server.config.jamf_gui_hostname
+          host ||= Xolo::Server.config.jamf_hostname
+          port = Xolo::Server.config.jamf_gui_port
+          port ||= Xolo::Server.config.jamf_port
+
+          @jamf_gui_url = "https://#{host}:#{port}"
+        end
+
+        # @return [String] the URL for the Frozen static group in Jamf Pro
+        ######################
+        def jamf_frozen_group_url
+          return @jamf_frozen_group_url if @jamf_frozen_group_url
+
+          gr_id = Jamf::ComputerGroup.map_all(
+            :name,
+            to: :id,
+            cnx: jamf_cnx
+          )[jamf_frozen_group_name]
+          return unless gr_id
+
+          @jamf_frozen_group_url = "#{jamf_gui_url}/staticComputerGroups.html?id=#{gr_id}&o=r"
+        end
+
+        # @return [String] the URL for the Frozen statig group in Jamf Pro
+        ######################
+        def jamf_installed_group_url
+          return @jamf_installed_group_url if @jamf_installed_group_url
+
+          gr_id = Jamf::ComputerGroup.map_all(
+            :name,
+            to: :id,
+            cnx: jamf_cnx
+          )[jamf_installed_smart_group_name]
+          return unless gr_id
+
+          @jamf_installed_group_url = "#{jamf_gui_url}/smartComputerGroups.html?id=#{gr_id}&o=r"
+        end
+
+        # @return [String] the URL for the Patch Title in Jamf Pro
+        #####################
+        def jamf_patch_title_url
+          @jamf_patch_title_url ||= "#{jamf_gui_url}/view/computers/patch/#{jamf_title_id}"
+        end
+
+        # @return [String] the URL for the Patch EA in Jamf Pro
+        ######################
+        def jamf_patch_ea_url
+          return @jamf_patch_ea_url if @jamf_patch_ea_url
+
+          @jamf_patch_ea_url = "#{jamf_patch_title_url}?tab=extension"
+        end
+
+        # @return [String] the URL for the Normal EA in Jamf Pro
+        ######################
+        def jamf_normal_ea_url
+          return @jamf_normal_ea_url if @jamf_normal_ea_url
+
+          ea_id = Jamf::ComputerExtensionAttribute.map_all(:name, to: :id, cnx: jamf_cnx)[jamf_normal_ea_name]
+          return unless ea_id
+
+          @jamf_normal_ea_url = "#{jamf_gui_url}/computerExtensionAttributes.html?id=#{ea_id}&o=r"
+        end
+
       end # TitleJamfPro
 
     end # Mixins

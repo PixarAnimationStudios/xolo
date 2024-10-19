@@ -507,10 +507,13 @@ module Xolo
       ###############################
       def show_title_info
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+
         if json?
           puts title.to_json
           return
         end
+
+        urls = title.gui_urls(server_cnx)
 
         puts "# Info for Title '#{cli_cmd.title}'"
         puts '###################################'
@@ -522,6 +525,11 @@ module Xolo
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap
         end
+
+        puts '#'
+        puts '# Web App GUI URLs'
+        puts '###################################'
+        urls.each { |pagename, url| puts "#{pagename}: #{url}" }
       end
 
       # Show details about a title in xolo
@@ -536,6 +544,8 @@ module Xolo
           return
         end
 
+        urls = vers.gui_urls(server_cnx)
+
         puts "# Info for Version #{cli_cmd.version} of Title '#{cli_cmd.title}'"
         puts '##################################################'
 
@@ -546,6 +556,11 @@ module Xolo
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap
         end
+
+        puts '#'
+        puts '# Web App GUI URLs'
+        puts '###################################'
+        urls.each { |pagename, url| puts "#{pagename}: #{url}" }
       rescue Faraday::ResourceNotFound
         puts "No Such Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
       end

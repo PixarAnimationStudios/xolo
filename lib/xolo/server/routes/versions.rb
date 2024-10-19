@@ -157,6 +157,25 @@ module Xolo
           body vers.patch_report
         end
 
+        # Return URLs for all the UI pages for a version
+        #
+        # @return [Hash] The URLs for all the UI pages for a version
+        #################################
+        get '/titles/:title/versions/:version/urls' do
+          log_debug "Admin #{session[:admin]} is fetching GUI URLS for version #{params[:version]} of title '#{params[:title]}'"
+
+          halt_on_missing_version params[:title], params[:version]
+          vers = instantiate_version title: params[:title], version: params[:version]
+          data = {
+            jamf_auto_install_policy_url: vers.jamf_auto_install_policy_url,
+            jamf_manual_install_policy_url: vers.jamf_manual_install_policy_url,
+            jamf_patch_policy_url: vers.jamf_patch_policy_url,
+            jamf_package_url: vers.jamf_package_url,
+            ted_patch_url: vers.ted_patch_url
+          }
+          body data
+        end
+
       end # Versions
 
     end #  Routes

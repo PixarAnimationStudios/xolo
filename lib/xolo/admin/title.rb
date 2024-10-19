@@ -202,6 +202,15 @@ module Xolo
         resp.body
       end
 
+      # Fetch a hash of URLs for the GUI pages for this title
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash{String => String}] page_name => url
+      ####################
+      def gui_urls(cnx)
+        resp = cnx.get "#{SERVER_ROUTE}/#{title}/urls"
+        resp.body
+      end
+
       # Upload an icon for self service.
       # At this point, the self_service_icon attribute
       # should contain the local file path.
