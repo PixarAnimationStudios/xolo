@@ -167,11 +167,11 @@ module Xolo
           halt_on_missing_version params[:title], params[:version]
           vers = instantiate_version title: params[:title], version: params[:version]
           data = {
+            ted_patch_url: vers.ted_patch_url,
             jamf_auto_install_policy_url: vers.jamf_auto_install_policy_url,
             jamf_manual_install_policy_url: vers.jamf_manual_install_policy_url,
             jamf_patch_policy_url: vers.jamf_patch_policy_url,
-            jamf_package_url: vers.jamf_package_url,
-            ted_patch_url: vers.ted_patch_url
+            jamf_package_url: vers.jamf_package_url
           }
           body data
         end
