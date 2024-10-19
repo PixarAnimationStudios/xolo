@@ -783,6 +783,7 @@ module Xolo
         ######################
         def jamf_patch_ea_url
           return @jamf_patch_ea_url if @jamf_patch_ea_url
+          return unless version_script
 
           @jamf_patch_ea_url = "#{jamf_patch_title_url}?tab=extension"
         end
@@ -791,6 +792,7 @@ module Xolo
         ######################
         def jamf_normal_ea_url
           return @jamf_normal_ea_url if @jamf_normal_ea_url
+          return unless version_script
 
           ea_id = Jamf::ComputerExtensionAttribute.map_all(:name, to: :id, cnx: jamf_cnx)[jamf_normal_ea_name]
           return unless ea_id

@@ -204,13 +204,17 @@ module Xolo
           halt_on_missing_title params[:title]
           title = instantiate_title params[:title]
           data = {
+            ted_title_url: title.ted_title_url,
             jamf_patch_title_url: title.jamf_patch_title_url,
             jamf_installed_group_url: title.jamf_installed_group_url,
-            jamf_frozen_group_url: title.jamf_frozen_group_url,
-            jamf_patch_ea_url: title.jamf_patch_ea_url,
-            jamf_normal_ea_url: title.jamf_normal_ea_url,
-            ted_title_url: title.ted_title_url
+            jamf_frozen_group_url: title.jamf_frozen_group_url
           }
+
+          if title.version_script
+            data[:jamf_patch_ea_url] = title.jamf_patch_ea_url
+            data[:jamf_normal_ea_url] = title.jamf_normal_ea_url
+          end
+
           body data
         end
 
