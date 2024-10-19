@@ -362,6 +362,12 @@ module Xolo
           ted_id_number
         end
 
+        # @return [String] the URL for the title in the Title Editor
+        #####################
+        def ted_title_url
+          "https://#{Xolo::Server.config.ted_hostname}/softwaretitles/#{ted_id_number}"
+        end
+
       end # TitleEditorTitle
 
     end # Mixins

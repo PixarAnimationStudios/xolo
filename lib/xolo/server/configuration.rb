@@ -272,7 +272,7 @@ module Xolo
         jamf_hostname: {
           required: true,
           desc: <<~ENDDESC
-            The hostname of the Jamf Pro server used by xolo.
+            The hostname of the Jamf Pro server used by xolo for API access.
           ENDDESC
         },
 
@@ -282,6 +282,28 @@ module Xolo
           default: Jamf::Connection::HTTPS_SSL_PORT,
           desc: <<~ENDDESC
             The port number of the Jamf Pro server used by xolo.
+            The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN}
+            and #{Jamf::Connection::ON_PREM_SSL_PORT} otherwise.
+          ENDDESC
+        },
+
+        # @!attribute jamf_gui_hostname
+        #   @return [String] The hostname of the Jamf Pro server used for links to the GUI webapp
+        jamf_gui_hostname: {
+          required: true,
+          desc: <<~ENDDESC
+            The hostname of the Jamf Pro server used for links to the GUI webapp, if
+            different from the jamf_hostname.
+          ENDDESC
+        },
+
+        # @!attribute jamf_gui_port
+        #   @return [Integer] The port number of the Jamf Pro server used for links to the GUI webapp
+        jamf_gui_port: {
+          default: Jamf::Connection::HTTPS_SSL_PORT,
+          desc: <<~ENDDESC
+            The port number of the Jamf Pro server used for links to the GUI webapp, if
+            different from the jamf_port.
             The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN}
             and #{Jamf::Connection::ON_PREM_SSL_PORT} otherwise.
           ENDDESC

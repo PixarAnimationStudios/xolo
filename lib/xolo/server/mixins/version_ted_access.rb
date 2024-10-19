@@ -293,9 +293,15 @@ module Xolo
           ted_id_number
         end
 
-      end # TitleEditor
+        # @return [String] the URL for the Title Editor Web App page for this patch
+        ###################################
+        def ted_patch_url
+          "https://#{Xolo::Server.config.ted_hostname}/patches/#{ted_id_number}"
+        end
 
-    end # Helpers
+      end # VersionTedAccess
+
+    end # Mixins
 
   end # Server
 

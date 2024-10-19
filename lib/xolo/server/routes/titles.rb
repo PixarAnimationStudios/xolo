@@ -195,6 +195,25 @@ module Xolo
           body title.patch_report
         end
 
+        # Return URLs for all the UI pages for a title
+        #
+        # @return [Hash] The URLs for all the UI pages for a title
+        #################################
+        get '/titles/:title/urls' do
+          log_debug "Admin #{session[:admin]} is fetching GUI URLS for title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
+          data = {
+            jamf_patch_title_url: title.jamf_patch_title_url,
+            jamf_installed_group_url: title.jamf_installed_group_url,
+            jamf_frozen_group_url: title.jamf_frozen_group_url,
+            jamf_patch_ea_url: title.jamf_patch_ea_url,
+            jamf_normal_ea_url: title.jamf_normal_ea_url,
+            ted_title_url: title.ted_title_url
+          }
+          body data
+        end
+
       end # Titles
 
     end #  Routes

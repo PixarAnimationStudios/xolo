@@ -92,7 +92,7 @@ module Xolo
           # @!attribute title
           #   @return [String] The title to which this version belongs
           title: {
-            label: 'title',
+            label: 'Title',
             read_only: true,
             immutable: true,
             cli: false,
@@ -288,18 +288,6 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute deployable
-          #   @return [Boolean] Is this title deployable?
-          deployable: {
-            label: 'Deployable',
-            type: :boolean,
-            cli: false,
-            read_only: true, # maintained by the server, not directly by xadm
-            desc: <<~ENDDESC
-              Is this version deployable? It have an installer package uploaded.
-            ENDDESC
-          },
-
           # @!attribute created_by
           #   @return [String] The login of the admin who created this version.
           created_by: {
@@ -320,7 +308,7 @@ module Xolo
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
-              The date this version was created.
+              When this version was created.
             ENDDESC
           },
 
@@ -344,7 +332,7 @@ module Xolo
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
-              The date this version was last modified.
+              When this version was last modified.
             ENDDESC
           },
 
@@ -374,7 +362,7 @@ module Xolo
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
-              The timestamp when this version was released in Xolo.
+              When this version was released in Xolo.
               This is when the Xolo sets the status of this version to 'released', making it
               no longer 'in pilot' and the one to be installed or updated by default.
             ENDDESC
