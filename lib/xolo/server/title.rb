@@ -283,7 +283,7 @@ module Xolo
 
       # when applying updates, the new data is stored
       # here so it can be accessed by update-methods
-      # and compared to the current instanace values
+      # and compared to the current instance values
       # both for updating the title, and the versions
       # @return [Hash] The new data to apply as an update
       attr_reader :new_data_for_update

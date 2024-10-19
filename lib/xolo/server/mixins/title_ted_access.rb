@@ -121,7 +121,7 @@ module Xolo
             ted_attribute = deets[:ted_attribute]
             next unless ted_attribute
 
-            new_val = @new_data_for_update[attr]
+            new_val = new_data_for_update[attr]
             old_val = send(attr)
             next if new_val == old_val
 
