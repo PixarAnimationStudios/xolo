@@ -90,14 +90,14 @@ module Xolo
         def update_title_in_jamf
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_smart_group
-          update_normal_ea_in_jamf if version_script
+          update_normal_ea_in_jamf if new_data_for_update[:version_script]
 
           # this smart group might use the normal-EA or might use app data
           update_installed_smart_group_in_jamf
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_smart_group
-          delete_normal_ea_from_jamf unless version_script
+          delete_normal_ea_from_jamf unless new_data_for_update[:version_script]
 
           unless jamf_ted_title_active?
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
@@ -159,7 +159,18 @@ module Xolo
         # @return [Array<Jamf::Criteriable::Criterion>]
         ###################################
         def jamf_installed_smart_group_criteria
-          if app_bundle_id
+          have_vers_script = new_data_for_update ? new_data_for_update[:version_script] : version_script
+
+          if have_vers_script
+            [
+              Jamf::Criteriable::Criterion.new(
+                and_or: :and,
+                name: jamf_normal_ea_name,
+                search_type: 'is not',
+                value: Xolo::BLANK
+              )
+            ]
+          else
             [
               Jamf::Criteriable::Criterion.new(
                 and_or: :and,
@@ -173,15 +184,6 @@ module Xolo
                 name: 'Application Bundle ID',
                 search_type: 'is',
                 value: app_bundle_id
-              )
-            ]
-          else
-            [
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: jamf_normal_ea_name,
-                search_type: 'is not',
-                value: Xolo::BLANK
               )
             ]
           end
