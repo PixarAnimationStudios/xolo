@@ -284,8 +284,8 @@ module Xolo
           # exclusions are for always
           set_policy_exclusions pol
 
-          if title_object.self_service
-            pilot_groups_to_use.pix_empty?
+          # but pilots only show up in ssvc if they have any defined pilot grtoups.
+          if title_object.self_service && !pilot_groups_to_use.pix_empty?
             progress 'Jamf: Adding to SelfService, will only be visible to appropriate groups.', log: :debug
             pol.add_to_self_service
             pol.add_self_service_category title_object.self_service_category
@@ -330,11 +330,14 @@ module Xolo
           pol.set_trigger_event :custom, Xolo::BLANK
 
           # while in pilot, only pilot groups are targets
-          unless pilot_groups_to_use.pix_empty? # it could be nil
-            pilot_groups_to_use.each do |group|
-              pol.scope.add_target :computer_group, group
-            end
-          end
+          set_policy_pilot_groups pol
+
+          # unless pilot_groups_to_use.pix_empty? # it could be nil
+          #   pilot_groups_to_use.each do |group|
+          #     pol.scope.add_target :computer_group, group
+          #   end
+          # end
+
           # exclusions are for always
           set_policy_exclusions pol
 
@@ -352,6 +355,7 @@ module Xolo
         def set_policy_pilot_groups(pol)
           pilots = pilot_groups_to_use
           pilots ||= []
+          log_debug "Jamf: updating pilot scope targets for #{pol.class} '#{pol.name}' to: #{pilots.join ', '}"
 
           pol.scope.set_targets :computer_groups, pilots
         end
@@ -360,6 +364,7 @@ module Xolo
         # REMEMBER TO SAVE THE POLICY LATER
         ############################
         def set_policy_to_all_targets(pol)
+          log_debug "Jamf: updating scope target for #{pol.class} '#{pol.name}' to all computers"
           pol.scope.set_all_targets
         end
 
@@ -375,6 +380,8 @@ module Xolo
           targets = release_groups_to_use(ttl_obj: ttl_obj)
           targets ||= []
 
+          log_debug "Jamf: updating release scope targets for #{pol.class} '#{pol.name}' to: #{targets.join ', '}"
+
           pol.scope.set_targets :computer_groups, targets
         end
 
@@ -388,6 +395,14 @@ module Xolo
           ttl_obj ||= title_object
           exclusions = excluded_groups_to_use(ttl_obj: ttl_obj)
           exclusions ||= []
+          # the initial-install policies must also exclude any mac with the title
+          # already installed
+          if pol.is_a? Jamf::Policy
+            exclusions << ttl_obj.jamf_installed_smart_group_name
+            log_debug "Jamf: excluding computers with the title installed from the initial-install policy '#{pol.name}'"
+          end
+
+          log_debug "Jamf: updating exclusions for #{pol.class} '#{pol.name}' to: #{exclusions.join ', '}"
 
           pol.scope.set_exclusions :computer_groups, exclusions
         end

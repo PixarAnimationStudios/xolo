@@ -234,6 +234,10 @@ module Xolo
       # - The title's jamf_frozen_group_name, if it exists, containing computers that have been
       #   'frozen' to a single version.
       #
+      # For initial install policies, the smart group of macs with any version installed
+      # (jamf_installed_smart_group_name) "xolo-<title>-installed" is also excluded, because
+      # otherwise the initial-install policies would stomp on the patch policies.
+      #
       # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
       #   if nil, we'll instantiate it now
       #
