@@ -103,7 +103,10 @@ module Xolo
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
             return
           end
+
           # Set all these values so they'll be applied to all versions when we update them next.
+
+          @need_to_set_version_patch_components = new_data_for_update[:app_bundle_id] != app_bundle_id || new_data_for_update[:app_name] != app_name
 
           @need_to_update_ssvc = new_data_for_update[:self_service] != self_service
           @need_to_update_ssvc_category = new_data_for_update[:self_service_category] != self_service_category
@@ -204,20 +207,27 @@ module Xolo
         # so that it can be used in smart groups and adv. searches.
         # (Patch EAs aren't available for use in smart group critera)
         #
+        # If we have one already but are deleting it, that happens elsewhere
+        #
         # @return [void]
         ################################
         def update_normal_ea_in_jamf
+          # this is our incoming or already-existing EA script
           scr = version_script_contents
+          # nothing to do if its nil
           return unless scr
+
+          # nothing to do if it hasn't changed.
+          return if version_script == @new_data_for_update&.dig(:version_script)
 
           ea =
             if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
-              progress "Updating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
+              progress "Jamf: Updating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
                        log: :info
 
               Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
             else
-              progress "Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
+              progress "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
                        log: :info
 
               Jamf::ComputerExtensionAttribute.create(

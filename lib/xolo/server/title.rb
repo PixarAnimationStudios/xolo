@@ -526,7 +526,7 @@ module Xolo
         # if its true or nil, no need to re-accept
         # if its false, jamf should eventually need us to re-accept
         #
-        accept_xolo_ea_in_jamf if need_to_accept_xolo_ea_in_jamf?
+        accept_xolo_patch_ea_in_jamf if need_to_accept_xolo_ea_in_jamf?
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
       end # update
@@ -584,6 +584,8 @@ module Xolo
 
           # update ssvc category if needed, and if self_services is on
           vers_obj.update_ssvc_category(ttl_obj: self) if @need_to_update_ssvc_category && self_service
+
+          vers_obj.enable_ted_patch
         end
       end
 

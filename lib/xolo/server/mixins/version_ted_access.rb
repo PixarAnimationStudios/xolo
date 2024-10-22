@@ -204,12 +204,16 @@ module Xolo
           comp = ted_patch.component
 
           # Are we using the 'version_script' (aka the EA for the title)
-          if title_obj.version_script
+          have_vers_script = title_obj.new_data_for_update ? title_obj.new_data_for_update[:version_script] : title_obj.version_script
+
+          if have_vers_script
+            log_debug "Title Editor: Using EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
             update_ea_component(comp, title_obj)
 
           # If not, we are using the app name and bundle ID
           # and version
           else
+            log_debug "Title Editor: Using App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
             update_app_component(comp, title_obj)
           end
         end
