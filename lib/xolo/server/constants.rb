@@ -54,6 +54,11 @@ module Xolo
       # that means the stream is done, and no more lines will be sent.
       PROGRESS_COMPLETE = 'PROGRESS_COMPLETE'
 
+      # The max time (in seconds) to wait for a the Jamf server to
+      # see a change in the Title Editor, e.g.
+      # a new version appearing or an EA needing acceptance.
+      MAX_JAMF_WAIT_FOR_TITLE_EDITOR = 3600
+
     end # module Constants
 
   end #  Server
