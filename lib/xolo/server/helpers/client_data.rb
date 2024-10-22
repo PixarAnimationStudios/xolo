@@ -113,6 +113,8 @@ module Xolo
         # @return [void]
         #####################
         def update_client_data
+          log_info 'Jamf: Updating client-data package'
+
           # shorter name
           mutex = Xolo::Server::Helpers::ClientData.client_data_mutex
 
