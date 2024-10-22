@@ -408,12 +408,18 @@ module Xolo
           @auto_accept_ea_thread = Thread.new do
             log_debug "Jamf: Starting auto_accept_ea_thread for #{title}"
             start_time = Time.now
-            max_time = start_time + 3600
+            max_time = start_time + Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
+
             start_time = start_time.strftime '%F %T'
             did_it = false
 
             while Time.now < max_time
               sleep 30
+
+              # refresh out jamf connection cuz it might expire if this takes a while, esp if using
+              # an APIClient
+              jamf_cnx(refresh: true) if jamf_cnx.token.secs_remaining < 90
+
               log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time}"
               next unless jamf_patch_ea_needs_acceptance?
 

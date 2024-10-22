@@ -85,7 +85,12 @@ module Xolo
         # TODO: allow using APIClients
         #
         # @return [Jamf::Connection] A connection object
-        def jamf_cnx
+        def jamf_cnx(refresh: false)
+          if refresh
+            @jamf_cnx = nil
+            log_debug 'Jamf: Refreshing Jamf connection'
+          end
+
           return @jamf_cnx if @jamf_cnx
 
           @jamf_cnx = Jamf::Connection.new(
