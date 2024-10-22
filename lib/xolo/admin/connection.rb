@@ -194,30 +194,6 @@ module Xolo
         end
       end
 
-      # Handle errors from the Xolo Server
-      #
-      #######################
-      def handle_server_error(err)
-        case err
-        when Faraday::Error
-          begin
-            jsonerr = parse_json err.response_body
-            errmsg = "#{jsonerr[:error]} [#{err.response_status}]"
-
-          # if we got a faraday error, but it didn't contain
-          # JSON, return just the error body, or the error itself
-          rescue StandardError
-            msg = err.response_body if err.respond_to?(:response_body)
-            msg ||= err.to_s
-            errmsg = "#{err.class}: #{msg}"
-          end # begin
-          raise err.class, errmsg
-
-        else
-          raise err
-        end # case
-      end
-
     end # module Connection
 
   end # module Admin

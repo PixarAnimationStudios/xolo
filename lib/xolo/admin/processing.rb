@@ -131,7 +131,7 @@ module Xolo
         puts "# All titles matching '#{search_str}'"
         puts results.join("\n")
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # update the adm config file using the values from 'xadm config'
@@ -177,7 +177,7 @@ module Xolo
         end
         show_text generate_report(data, header_row: header, title: report_title)
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Add a title to Xolo
@@ -204,7 +204,7 @@ module Xolo
 
         speak "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Edit/Update a title in Xolo
@@ -231,7 +231,7 @@ module Xolo
 
         speak "Title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Upload the ssvc icon, if any?
@@ -250,7 +250,7 @@ module Xolo
 
         speak 'Self-service icon uploaded. Will be added to Self Service policies as needed'
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Delete a title in Xolo
@@ -271,7 +271,7 @@ module Xolo
 
         speak "Title '#{cli_cmd.title}' has been deleted from Xolo."
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Freeze one or more computers for a title in Xolo
@@ -297,7 +297,7 @@ module Xolo
         report = generate_report(response_data.to_a, header_row: header, title: rpt_title)
         show_text report
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # list the computers that are frozen for a title in Xolo
@@ -327,7 +327,7 @@ module Xolo
         report = generate_report(frozen_computers.to_a, header_row: header, title: rpt_title)
         show_text report
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Thaw one or more computers for a title in Xolo
@@ -353,7 +353,7 @@ module Xolo
         report = generate_report(response_data.to_a, header_row: header, title: rpt_title)
         show_text report
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # List all versions of a title in Xolo
@@ -387,7 +387,7 @@ module Xolo
         end
         show_text generate_report(data, header_row: header, title: report_title)
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Add a version to a title to Xolo
@@ -413,7 +413,7 @@ module Xolo
         # Upload the pkg, if any?
         upload_pkg(new_vers)
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Upload a pkg in a thread with indeterminate progress feedback
@@ -471,7 +471,7 @@ module Xolo
 
         speak "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Delete a title in Xolo
@@ -490,7 +490,7 @@ module Xolo
 
         display_progress response_data[:progress_stream_url_path]
       rescue StandardError => e
-        handle_server_error e
+        handle_processing_error e
       end
 
       # Show details about a title or version in xolo
@@ -527,9 +527,11 @@ module Xolo
         end
 
         puts '#'
-        puts '# Web App GUI URLs'
+        puts '# Web App URLs'
         puts '###################################'
         urls.each { |pagename, url| puts "#{pagename}: #{url}" }
+      rescue StandardError => e
+        handle_processing_error e
       end
 
       # Show details about a title in xolo
@@ -558,11 +560,13 @@ module Xolo
         end
 
         puts '#'
-        puts '# Web App GUI URLs'
+        puts '# Web App URLs'
         puts '###################################'
         urls.each { |pagename, url| puts "#{pagename}: #{url}" }
-      rescue Faraday::ResourceNotFound
-        puts "No Such Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+        # rescue Faraday::ResourceNotFound
+        # puts "No Such Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+      rescue StandardError => e
+        handle_processing_error e
       end
 
       # Show info about the server status
@@ -702,6 +706,31 @@ module Xolo
         streaming_cnx.get url_path
 
         raise Xolo::ServerError, 'There was an error while streaming the server progress.' if @streaming_error
+      end
+
+      # Handle errors while processing xadm commands
+      #
+      #######################
+      def handle_processing_error(err)
+        # puts "Err: #{err.class} #{err}"
+        case err
+        when Faraday::Error
+          begin
+            jsonerr = parse_json err.response_body
+            errmsg = "#{jsonerr[:error]} [#{err.response_status}]"
+
+          # if we got a faraday error, but it didn't contain
+          # JSON, return just the error body, or the error itself
+          rescue StandardError
+            msg = err.response_body if err.respond_to?(:response_body)
+            msg ||= err.to_s
+            errmsg = "#{err.class}: #{msg}"
+          end # begin
+          raise err.class, errmsg
+
+        else
+          raise err
+        end # case
       end
 
       # Just output lots of local things, for testing
