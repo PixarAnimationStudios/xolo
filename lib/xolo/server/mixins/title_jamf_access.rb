@@ -160,6 +160,9 @@ module Xolo
         # The criteria for the smart group in Jamf that contains all Macs
         # with any version of this title installed
         #
+        # If we have, or are about to update to, a version_script (EA) then use it,
+        # otherwise use the app_name and app_bundle_id.
+        #
         # @return [Array<Jamf::Criteriable::Criterion>]
         ###################################
         def jamf_installed_smart_group_criteria
@@ -174,20 +177,24 @@ module Xolo
                 value: Xolo::BLANK
               )
             ]
+
           else
+            aname = new_data_for_update ? new_data_for_update[:app_name] : app_name
+            abundle = new_data_for_update ? new_data_for_update[:app_bundle_id] : app_bundle_id
+
             [
               Jamf::Criteriable::Criterion.new(
                 and_or: :and,
                 name: 'Application Title',
                 search_type: 'is',
-                value: app_name
+                value: aname
               ),
 
               Jamf::Criteriable::Criterion.new(
                 and_or: :and,
                 name: 'Application Bundle ID',
                 search_type: 'is',
-                value: app_bundle_id
+                value: abundle
               )
             ]
           end
@@ -241,7 +248,7 @@ module Xolo
           our_version_script = version_script_contents
           return false if our_version_script.pix_empty?
 
-          jamf_patch_ea_contents.chomp == our_version_script.chomp
+          jamf_patch_ea_contents.chomp != our_version_script.chomp
         end
 
         # @return [Jamf::PatchSource] The Jamf Patch Source that is connected to the Title Editor
@@ -606,7 +613,7 @@ module Xolo
         def delete_normal_ea_from_jamf
           return unless Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
 
-          progress "Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
+          progress "Jamf: Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
           Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx).delete
         end
 
