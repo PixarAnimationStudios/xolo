@@ -347,8 +347,8 @@ module Xolo
       # @return [Jamf::Connection] a single Jamf Pro API connection to use for
       #   the life of this instance
       #############################
-      def jamf_cnx
-        server_app_instance.jamf_cnx
+      def jamf_cnx(refresh: false)
+        server_app_instance.jamf_cnx refresh: refresh
       end
 
       # The title dir for this title on the server
