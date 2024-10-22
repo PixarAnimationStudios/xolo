@@ -131,6 +131,10 @@ module Xolo
           grp = jamf_installed_smart_group
           grp.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_smart_group_criteria)
           grp.save
+          # give the Jamf server time to see the change, so that, e.g. we can delete the
+          # EA it might have been using.
+          log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
+          sleep 10
         end
 
         # The smartgroup in jamf that contains all macs
