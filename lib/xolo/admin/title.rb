@@ -132,7 +132,7 @@ module Xolo
         return unless version_script
         return if version_script == Xolo::ITEM_UPLOADED
 
-        @version_script = version_script.read
+        @version_script = version_script.read if version_script.respond_to?(:read)
       end
 
       # Instance Methods
