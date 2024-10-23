@@ -51,7 +51,7 @@ module Xolo
     # Lines that don't start with a known attribute name followed by a colon are ignored.
     # If an attribute is defined more than once, the last one wins.
     #
-    # See {CONF_KEYS} for the available attributes, and how they are converted to the appropriate
+    # See {KEYS} for the available attributes, and how they are converted to the appropriate
     # Ruby class when loaded.
     #
     # At any point, the attributes can read or ne changed using standard Ruby getter/setter methods
@@ -241,6 +241,43 @@ module Xolo
             Otherwise the value is used as the password.
 
             Be careful of security concerns when passwords are stored in files.
+          ENDDESC
+        },
+
+        # @!attribute release_to_all_jamf_group
+        #   @return [String] The name of a Jamf Pro account-group that is allowed to set release_groups to 'all'
+        release_to_all_jamf_group: {
+          required: false,
+          desc: <<~ENDDESC
+            The name of a Jamf account-group (not a User group) whose members may set release_groups to 'all'.
+
+            When this is set, and someone not in this group tries to set a title's release_groups to 'all', they will get a message telling them to contact the person or group named in 'release_to_all_contact' to get approval.
+
+            To approve the request, one of the members of the group must run 'xadm edit-title <title> --release-groups all'.
+
+            Leave this unset to allow anyone using xadm to set release_groups to 'all' without approval.
+          ENDDESC
+        },
+
+        # @!attribute release_to_all_contact info
+        #   @return [String] A string containing contact info for the release_to_all_jamf_group
+        release_to_all_contact: {
+          required: false,
+          desc: <<~ENDDESC
+            When release_to_all_jamf_group is set, and someone not in that group tries to set a title's release_groups to 'all', they are told to use this contact info to get approval.
+
+            This string could be an email address, a chat channel, a phone number, etc.
+
+            Examples:
+              - 'jamf-admins@myschool.edu'
+              - 'the IT deployment team in the #deployment channel on Slack'
+              - 'Bob Parr at 555-555-5555'
+
+            It is presented in text along the lines of:
+
+               Please contact <value> to set release_groups to 'all', letting us know why you think the title should be deployed to all computers.
+
+            This value is required if release_to_all_jamf_group is set.
           ENDDESC
         },
 

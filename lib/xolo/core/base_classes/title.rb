@@ -308,10 +308,6 @@ module Xolo
             ENDDESC
           },
 
-          # TODO: make it so that when a xoloadmin says release_groups = all, an optional policy
-          # is run that requests approval for that.  That policy can run a script to do ... anything
-          # but until the approval is granted, the release_groups is an empty array
-          #
           # Whenever one of the groups listed is Xolo::TARGET_ALL ('all') then all other groups are
           # ignored or deleted and the array contains only 'all'
           #
@@ -330,7 +326,7 @@ module Xolo
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members will automatically have this title installed when new versions are released.
 
-              Use '#{Xolo::TARGET_ALL}' to auto-install on all computers that aren't excluded.
+              If your Xolo administrators allow it, you can use '#{Xolo::TARGET_ALL}' to auto-install on all computers that aren't excluded. If not, you'll be told how to request setting release groups to '#{Xolo::TARGET_ALL}'.
 
               NOTE: Titles can always be installed manually (via command line or Self Service) on non-excluded computers. It's OK to have no release groups.
 
@@ -338,7 +334,7 @@ module Xolo
 
               To remove any existing, use '#{Xolo::NONE}'.
 
-              NOTE: When a version is in 'pilot' mode, before it is released, these groups are ignored, but instead a set of 'pilot' groups is defined for each version.
+              NOTE: When a version is in 'pilot' mode, before it is released, these groups are ignored, but instead a set of 'pilot' groups is defined for each version - and those groups will have that version auto-installed.
             ENDDESC
           },
 
@@ -415,8 +411,13 @@ module Xolo
             default: false,
             walkthru_na: :ssvc_na,
             desc: <<~ENDDESC
-              Make this title available in Self Service.
+              Make this title available in Self Service. Only the currently released version will be available.
+
+              While in pilot, a version is installed via its auto-install policy,
+              or 'sudo xolo install <title> <version>' or updated via its Patch Policy.
+
               It will never be available to excluded computers.
+
               Self Service is not available for titles with the release_group 'all'.
             ENDDESC
           },

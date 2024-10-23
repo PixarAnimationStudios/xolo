@@ -40,7 +40,7 @@ module Xolo
         #    register Xolo::Server::<Module>
         # Doing it this way allows us to split the code into a logical
         # file structure, without re-opening the Sinatra::Base server app,
-        # and let xeitwork do the requiring of those files
+        # and let zeitwork do the requiring of those files
         extend Sinatra::Extension
 
         # when this module is included
@@ -80,7 +80,17 @@ module Xolo
           body({ admin: admin, authenticated: true })
         end
 
-      end
+        # check if the current admin is allowed to set a title's release groups to 'all'
+        ###################
+        get '/auth/release_to_all_allowed' do
+          data = {
+            allowed: allowed_to_release_to_all?(session[:admin]),
+            msg: "Please contact #{Xolo::Server.config.release_to_all_contact} to set release groups to '#{Xolo::TARGET_ALL}'. Let us know why you think the title should be deployed to all computers. Until then you can leave the release groups empty, or use actual Jamf groups."
+          }
+          body data
+        end
+
+      end # module auth
 
     end #  Routes
 

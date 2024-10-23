@@ -307,6 +307,8 @@ module Xolo
         if  val.include? Xolo::NONE
           return []
         elsif val.include? Xolo::TARGET_ALL
+          validate_release_to_all_allowed
+
           return [Xolo::TARGET_ALL]
         end
 
@@ -314,6 +316,17 @@ module Xolo
         return val if bad_grps.empty?
 
         raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:release_groups][:invalid_msg]
+      end
+
+      # check if the current admin is allowed to set a title's release groups to 'all'
+      #
+      # @return [void]
+      ##########################
+      def validate_release_to_all_allowed
+        svr_resp = Xolo::Admin::Title.release_to_all_allowed?(server_cnx)
+        return if svr_resp[:allowed]
+
+        raise Xolo::InvalidDataError, svr_resp[:msg]
       end
 
       # validate an array  of jamf groups to use as exclusions.

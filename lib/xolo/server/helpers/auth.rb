@@ -70,17 +70,51 @@ module Xolo
         def member_of_admin_jamf_group?(admin_name)
           groupname = Xolo::Server.config.admin_jamf_group
 
-          # This isn't well implemented in ruby-jss, so use c_get directly
-          jgroup = jamf_cnx.c_get("accounts/groupname/#{groupname}")[:group]
+          user_in_jamf_acct_group?(groupname, admin_name)
+        ensure
+          jamf_cnx&.disconnect
+        end
 
-          log_debug "Checking for admin '#{admin_name}' in group '#{groupname}' via jamf_cnx '#{jamf_cnx.name}'"
-          if jgroup[:ldap_server]
-            Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], admin_name, groupname, cnx: jamf_cnx
+        # is the given username a member of the release_to_all_approval_group?
+        # If not, they are not allowed to set a title's release_groups to 'all'.
+        #
+        # @param admin_name [String] The jamf acct name of the person
+        #
+        # @return [Boolean] Is the admin allowed to set release_groups to all?
+        #####################
+        def allowed_to_release_to_all?(admin_name)
+          log_debug "Checking if '#{admin_name}' is allowed to release to all"
+
+          groupname = Xolo::Server.config.release_to_all_jamf_group
+          if groupname.pix_empty?
+            log_debug 'No release_to_all_jamf_group defined, allowing all admins to release to all'
+            return true
+          end
+
+          if user_in_jamf_acct_group?(groupname, admin_name)
+            log_debug "'#{admin_name}' is allowed to release to all"
+            true
           else
-            jgroup[:members].any? { |m| m[:name] == admin_name }
+            log_debug "'#{admin_name}' is not allowed to release to all"
+            false
           end
         ensure
           jamf_cnx&.disconnect
+        end
+
+        # check to see if a username is a member of a Jamf AccountGroup either from Jamf or from LDAP
+        #
+        def user_in_jamf_acct_group?(groupname, username)
+          # This isn't well implemented in ruby-jss, so use c_get directly
+          jgroup = jamf_cnx.c_get("accounts/groupname/#{groupname}")[:group]
+
+          if jgroup[:ldap_server]
+            Jamf::LdapServer.check_membership jgroup[:ldap_server][:id], username, groupname, cnx: jamf_cnx
+          else
+            jgroup[:members].any? { |m| m[:name] == username }
+          end
+        rescue Jamf::NoSuchItemError
+          false
         end
 
         # Try to authenticate the jamf user trying to log in to xolo

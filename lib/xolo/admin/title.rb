@@ -116,6 +116,15 @@ module Xolo
         resp.body[:version_order].first
       end
 
+      # Is the current admin allowed to set a title's release groups to 'all'?
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Boolean]
+      ####################
+      def self.release_to_all_allowed?(cnx)
+        resp = cnx.get '/auth/release_to_all_allowed'
+        resp.body
+      end
+
       # Attributes
       ######################
       ######################

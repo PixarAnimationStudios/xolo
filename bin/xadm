@@ -70,13 +70,14 @@ class XoloAdmin
     if ARGV.include? '--test'
       # uncomment to test local variables and such, see
       # the do_local_testing method in processing.rb
-      # do_local_testing
+      login test: true
+      do_local_testing
 
       # uncomment to reach out to the server
       # to test all kinds of things - the connection,
       # or any values the server might return
       # see the run_test_route method in processing.rb
-      run_test_route
+      # run_test_route
       return
     end
 
@@ -105,7 +106,7 @@ begin
   ARGV.unshift debug if debug
 
   app = XoloAdmin.new
-  debug = app.global_opts.debug
+  debug ||= app.global_opts.debug
 
   app.run
 rescue => e
