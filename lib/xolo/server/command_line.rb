@@ -68,6 +68,24 @@ module Xolo
             Run xoloserver in debug mode
             This sets the log-level to 'debug' at start-time in production mode.
           ENDDESC
+        },
+
+        show_config: {
+          label: 'Show Config',
+          cli: :c,
+          walkthru: false,
+          desc: <<~ENDDESC
+            Show the current configuration values and exit.
+          ENDDESC
+        },
+
+        config_help: {
+          label: 'Debug',
+          cli: :C,
+          walkthru: false,
+          desc: <<~ENDDESC
+            Show the available configuration keys and their descriptions.
+          ENDDESC
         }
       }.freeze
 

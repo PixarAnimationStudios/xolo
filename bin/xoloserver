@@ -37,6 +37,8 @@ require 'xolo-server'
 #####################
 class XoloServer
 
+  include Xolo::Core::Output
+
   def initialize
     # CLI
     Xolo::Server.parse_cli
@@ -53,8 +55,49 @@ class XoloServer
     # Xolo::Server.config.to_h.each { |k, v| puts "#{k} =>\n  #{v}" }
     # puts '##############################'
 
+    if Xolo::Server.cli_opts[:show_config]
+      Xolo::Server.config.to_h_private.each { |k, v| puts "#{k}: #{v}" }
+      return
+    end
+
+    if Xolo::Server.cli_opts[:config_help]
+      show_config_help
+
+      return
+    end
+
     Xolo::Server::App.run!
   end # run
+
+  #########
+  def show_config_help
+    text = +<<~TEXT
+        Xolo Server Configuration Options
+        #################################
+
+        The Xolo server configuration file is a YAML file located at
+        #{Xolo::Server.config.conf_file}.
+        It contains a Ruby Hash of configuration options, the keys are
+        Symbols and the values are the configuration values.
+
+        Those marked Private are not shown in when the config values are displayed.
+
+        Below are the configuration keys and their descriptions.
+        #################################
+
+    TEXT
+
+    Xolo::Server::Configuration::KEYS.each do |key, deets|
+      text << "Hash Key: #{key}:\n"
+      text << "  Default: #{deets[:default]}\n" if deets[:default]
+      text << "  Required: #{deets[:required]}\n" if deets[:required]
+      text << "  Private: #{deets[:private]}\n" if deets[:private]
+      text << "Description: \n"
+      text << "#{deets[:desc]}\n"
+      text << "---------------------------------\n\n"
+    end
+    show_text text
+  end
 
 end # class XoloServer
 
