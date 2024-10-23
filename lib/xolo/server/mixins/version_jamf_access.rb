@@ -504,8 +504,9 @@ module Xolo
           # TODO: How to set these, and should they be settable
           # at the Xolo::Title or  Xolo::Version level?
           #
-          # allow downgrade?  Yes, if needed but think about how it works
-          # and how we'd use it?
+          # allow downgrade? No, to start with.
+          # When a version is released, IF we are rolling back, then this will be set.
+          # This is to be set only on the current release and only when it was a rollback.
           #
           # patch_unknown_versions... yes?
           #

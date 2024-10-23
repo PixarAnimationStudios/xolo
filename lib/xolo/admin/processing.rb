@@ -190,6 +190,7 @@ module Xolo
         opts_to_process.title = cli_cmd.title
 
         new_title = Xolo::Admin::Title.new opts_to_process
+
         response_data = new_title.add(server_cnx)
 
         if debug?
@@ -739,6 +740,9 @@ module Xolo
       #
       ########################
       def do_local_testing
+        puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
+        puts Xolo::Admin::Title.release_to_all_allowed?(server_cnx)
+
         ###################
         # puts
         # puts '-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+'
