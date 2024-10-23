@@ -467,7 +467,7 @@ module Xolo
       # @return [String] The valid value
       ##########################
       def validate_version(val)
-        ###
+        val
       end
 
       # @param val [Object] The value to validate

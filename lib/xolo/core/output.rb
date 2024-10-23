@@ -23,6 +23,8 @@
 
 # frozen_string_literal: true
 
+require 'io/console'
+
 module Xolo
 
   module Core
