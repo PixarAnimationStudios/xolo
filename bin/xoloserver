@@ -55,18 +55,13 @@ class XoloServer
     # Xolo::Server.config.to_h.each { |k, v| puts "#{k} =>\n  #{v}" }
     # puts '##############################'
 
-    if Xolo::Server.cli_opts[:show_config]
+    if Xolo::Server.config_opts.to_h.empty?
+      Xolo::Server::App.run!
+
+    elsif Xolo::Server.config_opts[:show]
       Xolo::Server.config.to_h_private.each { |k, v| puts "#{k}: #{v}" }
-      return
+
     end
-
-    if Xolo::Server.cli_opts[:config_help]
-      show_config_help
-
-      return
-    end
-
-    Xolo::Server::App.run!
   end # run
 
   #########

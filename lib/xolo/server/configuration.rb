@@ -117,6 +117,7 @@ module Xolo
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
+          type: :string,
           desc: <<~ENDDESC
             The SSL Certificate for the https server in .pem format.
             When the server starts, it will be read from here, and stored in
@@ -141,6 +142,7 @@ module Xolo
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
+          type: :string,
           desc: <<~ENDDESC
             The private key for the SSL Certificate in .pem format.
             When the server starts, it will be read from here, and stored in
@@ -163,6 +165,7 @@ module Xolo
         #   @return [Boolean] Should the server verify SSL certs of incoming clients?
         ssl_verify: {
           default: DFT_SSL_VERIFY,
+          type: :boolean,
           desc: <<~ENDDESC
             Should the server verify the SSL certificates of machines it communicates with?
             Default is #{DFT_SSL_VERIFY}
@@ -173,6 +176,7 @@ module Xolo
         #   @return [Integer] How many days worth of logs to keep
         log_days_to_keep: {
           default: Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP,
+          type: :integer,
           desc: <<~ENDDESC
             The server log is rotated daily. How many days of log files should be kept?
             All logs are kept in the 'logs' directory inside the server's data directory.
@@ -181,19 +185,20 @@ module Xolo
         },
 
         # @!attribute alert_tool
-        #   @return [Pathname] The path to an executable that relays messages from stdin to some means of alerting
-        #      Xolo server admins of a problem that would otherwise go unnoticed.
+        #   @return [String] A command and its options/args that relays messages from stdin to some means
+        #       of alerting Xolo server admins of a problem or event that would otherwise go unnoticed.
         #
         alert_tool: {
+          type: :string,
           desc: <<~ENDDESC
-            Server errors that happen as part of xadm actions should be reported to the xadm user.
-            But sometimes an error might happen on the server that's outside of the scope of a xadm session.
+            Server errors or other events that happen as part of xadm actions should be reported to the xadm user.
+            But sometimes that might happen on the server outside of the scope of a xadm session.
 
-            While these errors will be logged in the log file, you might want them reported to a server
+            While these events will be logged in the log file, you might want them reported to a server
             administrator in real time.
 
-            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error,
-            or other alert message, on standard input and send it somewhere where it'll be seen by an appropriate
+            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error
+            or other alert message on standard input and send it somewhere where it'll be seen by an appropriate
             audiance, be that an email address, a Slack channel - anything you'd like.
 
             Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
@@ -204,6 +209,7 @@ module Xolo
         #   @return [String] The name of the package signing identity to use
         pkg_signing_identity: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             Xolo needs to be able to sign at least one of the packages it works with: the
             client-data pkg which installs a JSON file of title and version data on the client machines.
@@ -228,6 +234,7 @@ module Xolo
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
+          type: :string,
           desc: <<~ENDDESC
             The password to unlock the keychain used for package signing.
 
@@ -248,6 +255,7 @@ module Xolo
         #   @return [String] The name of a Jamf Pro account-group that is allowed to set release_groups to 'all'
         release_to_all_jamf_group: {
           required: false,
+          type: :string,
           desc: <<~ENDDESC
             The name of a Jamf account-group (not a User group) whose members may set release_groups to 'all'.
 
@@ -263,6 +271,7 @@ module Xolo
         #   @return [String] A string containing contact info for the release_to_all_jamf_group
         release_to_all_contact: {
           required: false,
+          type: :string,
           desc: <<~ENDDESC
             When release_to_all_jamf_group is set, and someone not in that group tries to set a title's release_groups to 'all', they are told to use this contact info to get approval.
 
@@ -285,6 +294,7 @@ module Xolo
         #   @return [Boolean] Should the server sign any unsigned uploaded pkgs?
         sign_pkgs: {
           default: false,
+          type: :boolean,
           desc: <<~ENDDESC
             When someone uploads a .pkg from xadm, and it isn't signed, should the server
             sign it before uploading to Jamf's Distribution Point(s)?
@@ -308,6 +318,7 @@ module Xolo
         #   @return [String] The hostname of the Jamf Pro server we are connecting to
         jamf_hostname: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             The hostname of the Jamf Pro server used by xolo for API access.
           ENDDESC
@@ -317,6 +328,7 @@ module Xolo
         #   @return [Integer] The port number of the Jamf Pro server we are connecting to
         jamf_port: {
           default: Jamf::Connection::HTTPS_SSL_PORT,
+          type: :integer,
           desc: <<~ENDDESC
             The port number of the Jamf Pro server used by xolo.
             The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN}
@@ -328,6 +340,7 @@ module Xolo
         #   @return [String] The hostname of the Jamf Pro server used for links to the GUI webapp
         jamf_gui_hostname: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             The hostname of the Jamf Pro server used for links to the GUI webapp, if
             different from the jamf_hostname.
@@ -338,6 +351,7 @@ module Xolo
         #   @return [Integer] The port number of the Jamf Pro server used for links to the GUI webapp
         jamf_gui_port: {
           default: Jamf::Connection::HTTPS_SSL_PORT,
+          type: :integer,
           desc: <<~ENDDESC
             The port number of the Jamf Pro server used for links to the GUI webapp, if
             different from the jamf_port.
@@ -350,6 +364,7 @@ module Xolo
         #   @return [String] The SSL version to use when connecting to the Jamd Pro API
         jamf_ssl_version: {
           default: Jamf::Connection::DFT_SSL_VERSION,
+          type: :string,
           desc: <<~ENDDESC
             The SSL version to use for the connection to the Jamf server.
             The default is #{Jamf::Connection::DFT_SSL_VERSION}.
@@ -360,6 +375,7 @@ module Xolo
         #   @return [Boolean] Should we verify the SSL certificate of the Jamf Pro API?
         jamf_verify_cert: {
           default: true,
+          type: :boolean,
           desc: <<~ENDDESC
             Should we verify the SSL certificate used by the Jamf Pro server?
             The default is true.
@@ -370,6 +386,7 @@ module Xolo
         #   @return [Integer] The timeout, in seconds, for establishing http connections to the Jamf Pro API
         jamf_open_timeout: {
           default: Jamf::Connection::DFT_OPEN_TIMEOUT,
+          type: :integer,
           desc: <<~ENDDESC
             The timeout, in seconds, for establishing a connection to the Jamf Pro server.
             The default is #{Jamf::Connection::DFT_OPEN_TIMEOUT}.
@@ -380,6 +397,7 @@ module Xolo
         #   @return [Integer] The timeout, in seconds, for a response from the Jamf Pro API
         jamf_timeout: {
           default: Jamf::Connection::DFT_TIMEOUT,
+          type: :integer,
           desc: <<~ENDDESC
             The timeout, in seconds, for getting a response to a request made to the Jamf Pro server.
             The default is #{Jamf::Connection::DFT_TIMEOUT}.
@@ -390,6 +408,7 @@ module Xolo
         #   @return [String] The username to use when connecting to the Jamf Pro API
         jamf_api_user: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             The username of the Jamf account for connecting to the Jamf Pro APIs.
             TODO: Document the permissions needed by this account.
@@ -402,6 +421,7 @@ module Xolo
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
+          type: :string,
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
@@ -421,7 +441,7 @@ module Xolo
         # @!attribute jamf_auto_accept_xolo_eas
         #   @return [Boolean] should we auto-accept the Jamf patch title eas?
         jamf_auto_accept_xolo_eas: {
-          default: Jamf::Connection::DFT_TIMEOUT,
+          type: :boolean,
           desc: <<~ENDDESC
             For titles fully maintained by Xolo, should we auto-accept the Patch Title Extension Attributes
             that come from the uploaded version_script from xadm?
@@ -433,6 +453,7 @@ module Xolo
         #   @return [String] The name of a Jamf account-group containing users of 'xadm'
         admin_jamf_group: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             The name of a Jamf account-group (not a User group) that allows the use of 'xadm'
             to create and maintain titles and versions.
@@ -441,10 +462,11 @@ module Xolo
         },
 
         # @!attribute upload_tool
-        #   @return [Pathname] The path to an executable that can upload .pkg files for use by
+        #   @return [String] The path to an executable that can upload .pkg files for use by
         #      the Jamf Pro server. The API doesn't provide this ability.
         upload_tool: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
 
@@ -479,6 +501,7 @@ module Xolo
         #   @return [String] The name of a single Jamf Pro computer groups that will ALWAYS be excluded
         #      and will never see any titles or versions in Xolo.
         forced_exclusion: {
+          type: :string,
           desc: <<~ENDDESC
             If you have any jamf computers who should never even know that xolo exists, and should never have any software installed via xolo, put them into a group and put that groups name here.
 
@@ -497,6 +520,7 @@ module Xolo
         # @!attribute ted_patch_source
         #   @return [String] The name of the Patch Source in Jamf Pro that points at the Title Editor.
         ted_patch_source: {
+          type: :string,
           required: true,
           desc: <<~ENDDESC
             The name in Jamf Pro of the Title Editor as an External Patch Source
@@ -506,6 +530,7 @@ module Xolo
         # @!attribute ted_hostname
         #   @return [String] The hostname of the Jamf Title Editor server we are connecting to
         ted_hostname: {
+          type: :string,
           required: true,
           desc: <<~ENDDESC
             The hostname of the Title Editor server used by xolo.
@@ -517,6 +542,7 @@ module Xolo
         #      the Jamf Title Editor API
         ted_open_timeout: {
           default: Windoo::Connection::DFT_OPEN_TIMEOUT,
+          type: :integer,
           desc: <<~ENDDESC
             The timeout, in seconds, for establishing a connection to the Title Editor server.
             The default is #{Windoo::Connection::DFT_OPEN_TIMEOUT}.
@@ -527,6 +553,7 @@ module Xolo
         #   @return [Integer] The timeout, in seconds, for a response from the Jamf Title Editor API
         ted_timeout: {
           default: Windoo::Connection::DFT_TIMEOUT,
+          type: :integer,
           desc: <<~ENDDESC
             The timeout, in seconds, for getting a response to a request made to the Title Editor server.
             The default is #{Windoo::Connection::DFT_TIMEOUT}.
@@ -537,6 +564,7 @@ module Xolo
         #   @return [String]  The username to use when connecting to the Jamf Title Editor API
         ted_api_user: {
           required: true,
+          type: :string,
           desc: <<~ENDDESC
             The username of the Title Editor account for connecting to the Title Editor API.
             TODO: Document the permissions needed by this account.
@@ -549,6 +577,7 @@ module Xolo
           required: true,
           load_method: :data_from_command_file_or_string,
           private: true,
+          type: :string,
           desc: <<~ENDDESC
             The password for the username that connects to the Title Editor API.
 

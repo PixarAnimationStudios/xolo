@@ -46,6 +46,10 @@ module Xolo
       #### Constants
       #########################
 
+      CONFIG_CMD = 'config'
+
+      SUBCOMMANDS = [CONFIG_CMD].freeze
+
       CLI_OPTIONS = {
         production: {
           label: 'Production',
@@ -68,25 +72,36 @@ module Xolo
             Run xoloserver in debug mode
             This sets the log-level to 'debug' at start-time in production mode.
           ENDDESC
-        },
+        } # ,
 
-        show_config: {
-          label: 'Show Config',
-          cli: :c,
-          walkthru: false,
-          desc: <<~ENDDESC
-            Show the current configuration values and exit.
-          ENDDESC
-        },
+        # show_config: {
+        #   label: 'Show Config',
+        #   cli: :s,
+        #   walkthru: false,
+        #   desc: <<~ENDDESC
+        #     Show the current configuration values.
+        #   ENDDESC
+        # },
 
-        config_help: {
-          label: 'Debug',
-          cli: :C,
-          walkthru: false,
-          desc: <<~ENDDESC
-            Show the available configuration keys and their descriptions.
-          ENDDESC
-        }
+        # config_help: {
+        #   label: 'Debug',
+        #   cli: :C,
+        #   walkthru: false,
+        #   desc: <<~ENDDESC
+        #     Show the available configuration keys and their descriptions.
+        #   ENDDESC
+        # },
+
+        # config: {
+        #   label: 'Config',
+        #   cli: :c,
+        #   walkthru: false,
+        #   desc: <<~ENDDESC
+        #     Set a configuration key to a value.
+        #     Usage: xoloserver --config key=value
+        #     To see the available keys and their descriptions, use the --config-help option.
+        #   ENDDESC
+        # }
       }.freeze
 
       # CLI usage message
@@ -99,10 +114,37 @@ module Xolo
         @cli_opts ||= OpenStruct.new
       end
 
+      # An OStruct to hold the config subcommand options
+      def config_opts
+        @config_opts ||= OpenStruct.new
+      end
+
       # Use optimist to parse ARGV.
       ################################################
       def parse_cli
-        parsed_opts = Optimist.options do
+        parsed_opts = parse_global_opts
+
+        # save the global opts hash from optimist into our OpenStruct
+        parsed_opts.each { |k, v| cli_opts[k] = v }
+
+        # if there are subcommands, parse them
+        return if ARGV.empty?
+
+        subcommand = ARGV.shift
+        case subcommand
+        when CONFIG_CMD
+          parse_config_opts
+        else
+          Optimist.die "Unknown subcommand: #{subcommand}"
+        end
+      end
+
+      # Parse the main/global options
+      ################################################
+      def parse_global_opts
+        Optimist.options do
+          stop_on SUBCOMMANDS
+
           banner 'Name:'
           banner "  #{Xolo::Server::EXECUTABLE_FILENAME}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
 
@@ -126,9 +168,34 @@ module Xolo
             opt opt_key, deets[:desc], short: deets[:cli]
           end
         end # Optimist.options
+      end
+
+      # Parse the config subcommand options
+      ################################################
+      def parse_config_opts
+        if ARGV.empty?
+          config_opts[:show] = true
+          return
+        end
+
+        parsed_config_opts = Optimist.options do
+          banner 'Show or set the server configuration.'
+          banner ''
+          banner "\nUsage: #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --<setting> value ..."
+          banner "\nWith no options, show the current configuration values."
+
+          # add a blank line between each of the cli options in the help output
+          # NOTE: chrisl added this to the optimist.rb included in this project.
+          insert_blanks
+
+          Xolo::Server::Configuration::KEYS.each do |key, deets|
+            # puts "defining: #{key} "
+            opt key, deets[:desc], default: deets[:default], type: deets[:type], short: :none
+          end # KEYS.each
+        end # Optimist.options
 
         # save the global opts hash from optimist into our OpenStruct
-        parsed_opts.each { |k, v| cli_opts[k] = v }
+        parsed_config_opts.each { |k, v| config_opts[k] = v }
       end
 
     end # module CommandLine
