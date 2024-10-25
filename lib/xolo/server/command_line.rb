@@ -190,7 +190,9 @@ module Xolo
 
           Xolo::Server::Configuration::KEYS.each do |key, deets|
             # puts "defining: #{key} "
-            opt key, deets[:desc], default: deets[:default], type: deets[:type], short: :none
+            desc = deets[:desc]
+            desc = "Required if not already set.\n#{desc}" if deets[:required]
+            opt key, desc, default: deets[:default], type: deets[:type], short: :none
           end # KEYS.each
         end # Optimist.options
 
