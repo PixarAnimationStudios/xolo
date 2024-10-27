@@ -119,16 +119,11 @@ module Xolo
           private: true,
           type: :string,
           desc: <<~ENDDESC
-            The SSL Certificate for the https server in .pem format.
-            When the server starts, it will be read from here, and stored in
-            #{SSL_CERT_FILE}
+            The SSL Certificate for the https server in .pem format. When the server starts, it will be read from here, and securely stored in #{SSL_CERT_FILE}.
 
-            If you start this value with a vertical bar '|', everything after the bar
-            is a command to be executed by the server at start-time. The command must
-            return the certificate to standard output.
-            This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
-            If the value is a path to a readable file, the file's contents are used
+            If the value is a path to a readable file, the file's contents are used.
 
             Otherwise the value is used as the certificate.
 
@@ -144,20 +139,15 @@ module Xolo
           private: true,
           type: :string,
           desc: <<~ENDDESC
-            The private key for the SSL Certificate in .pem format.
-            When the server starts, it will be read from here, and stored in
-            #{SSL_KEY_FILE}
+            The private key for the SSL Certificate in .pem format. When the server starts, it will be read from here, and securely stored in #{SSL_KEY_FILE}/
 
-            If you start this value with a vertical bar '|', everything after the bar
-            is a command to be executed by the server at start-time. The command must
-            return the password to standard output.
-            This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
-            If the value is a path to a readable file, the file's contents are used
+            If the value is a path to a readable file, the file's contents are used.
 
-            Otherwise the value is used as the key.
+            Otherwise the value is used as the certificate.
 
-            Be careful of security concerns when keys are stored in files.
+            Be careful of security concerns when certificates are stored in files.
           ENDDESC
         },
 
@@ -168,7 +158,16 @@ module Xolo
           type: :boolean,
           desc: <<~ENDDESC
             Should the server verify the SSL certificates of machines it communicates with?
-            Default is #{DFT_SSL_VERIFY}
+          ENDDESC
+        },
+
+        # @!attribute admin_jamf_group
+        #   @return [String] The name of a Jamf account-group containing users of 'xadm'
+        admin_jamf_group: {
+          required: true,
+          type: :string,
+          desc: <<~ENDDESC
+            The name of a Jamf account-group (not a User group) that allows the use of 'xadm' to create and maintain titles and versions. Users of xadm must be in this group, and provide their valid Jamf credentials.
           ENDDESC
         },
 
@@ -178,30 +177,7 @@ module Xolo
           default: Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP,
           type: :integer,
           desc: <<~ENDDESC
-            The server log is rotated daily. How many days of log files should be kept?
-            All logs are kept in the 'logs' directory inside the server's data directory.
-            Default is #{Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP}
-          ENDDESC
-        },
-
-        # @!attribute alert_tool
-        #   @return [String] A command and its options/args that relays messages from stdin to some means
-        #       of alerting Xolo server admins of a problem or event that would otherwise go unnoticed.
-        #
-        alert_tool: {
-          type: :string,
-          desc: <<~ENDDESC
-            Server errors or other events that happen as part of xadm actions should be reported to the xadm user.
-            But sometimes that might happen on the server outside of the scope of a xadm session.
-
-            While these events will be logged in the log file, you might want them reported to a server
-            administrator in real time.
-
-            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error
-            or other alert message on standard input and send it somewhere where it'll be seen by an appropriate
-            audiance, be that an email address, a Slack channel - anything you'd like.
-
-            Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
+            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}, the current file is named '#{Xolo::Server::LOG_FILE_NAME}'.
           ENDDESC
         },
 
@@ -211,17 +187,12 @@ module Xolo
           required: true,
           type: :string,
           desc: <<~ENDDESC
-            Xolo needs to be able to sign at least one of the packages it works with: the
-            client-data pkg which installs a JSON file of title and version data on the client machines.
+            Xolo needs to be able to sign at least one of the packages it maintains: the client-data pkg which installs a JSON file of title and version data on the client machines.
 
-            To sign that package, you must install a keychain containing a valid package-signing identity
-            on the xolo server at:
+            To sign that, or oher packages, you must install a keychain containing a valid package-signing identity on the xolo server at:
+              #{PKG_SIGNING_KEYCHAIN}
 
-              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
-
-            The 'identity' (name) of the package-signing certificate inside the keychain must be set here.
-            It usually looks something like:
-
+            The 'identity' (name) of the package-signing certificate inside the keychain must be set here. It usually looks something like:
                Developer ID Installer: My Company (XYZXYZYXZXYZ)
 
             If desired, you can use this identity to sign other packages as well, see the 'sign_pkgs' config value.
@@ -238,16 +209,31 @@ module Xolo
           desc: <<~ENDDESC
             The password to unlock the keychain used for package signing.
 
-            If you start this value with a vertical bar '|', everything after the bar
-            is a command to be executed by the server at start-time. The command must
-            return the password to standard output.
-            This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
-            If the value is a path to a readable file, the file's contents are used
+            If the value is a path to a readable file, the file's contents are used.
 
             Otherwise the value is used as the password.
 
             Be careful of security concerns when passwords are stored in files.
+          ENDDESC
+        },
+
+        # @!attribute sign_pkgs
+        #   @return [Boolean] Should the server sign any unsigned uploaded pkgs?
+        sign_pkgs: {
+          type: :boolean,
+          desc: <<~ENDDESC
+            When someone uses xadm to upload a .pkg, and it isn't signed, should the server sign it before uploading to Jamf's Distribution Point(s)?
+
+            If you set this to true, it will use the same keychain and identity as the 'pkg_signing_identity' config value to sign the pkg, using the keychain you installed at:
+              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
+
+            NOTE: While it may seem insecure to allow the server to sign pkgs, consider:
+            - Users of xadm are authenticated and authorized to use the server (see 'admin_jamf_group')
+            - You don't need to distribute your signing certificates to a wide group of individual developers.
+            - While you need to trust your xadm users not to upload a malicious pkg, this would be true
+              even if you deployed the certs to them, so keeping the certs on the server is more secure.
           ENDDESC
         },
 
@@ -261,7 +247,7 @@ module Xolo
 
             When this is set, and someone not in this group tries to set a title's release_groups to 'all', they will get a message telling them to contact the person or group named in 'release_to_all_contact' to get approval.
 
-            To approve the request, one of the members of the group must run 'xadm edit-title <title> --release-groups all'.
+            To approve the request, one of the members of this group must run 'xadm edit-title <title> --release-groups all'.
 
             Leave this unset to allow anyone using xadm to set release_groups to 'all' without approval.
           ENDDESC
@@ -284,30 +270,9 @@ module Xolo
 
             It is presented in text along the lines of:
 
-               Please contact <value> to set release_groups to 'all', letting us know why you think the title should be deployed to all computers.
+               Please contact <value> to set release_groups to 'all', letting us know why you think the title should be automatically deployed to all computers.
 
             This value is required if release_to_all_jamf_group is set.
-          ENDDESC
-        },
-
-        # @!attribute sign_pkgs
-        #   @return [Boolean] Should the server sign any unsigned uploaded pkgs?
-        sign_pkgs: {
-          default: false,
-          type: :boolean,
-          desc: <<~ENDDESC
-            When someone uploads a .pkg from xadm, and it isn't signed, should the server
-            sign it before uploading to Jamf's Distribution Point(s)?
-
-            If you set this to true, you must install a keychain containing the signing identity
-            at:
-              /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
-
-            and you must set the config values 'pkg_signing_keychain_pw' and 'pkg_signing_identity'
-
-            CAUTION: This has security-related plusses and minuses, such as:
-            - You need to trust your xadm users not to upload a malicious pkg.
-            - You don't need to distribute your signing certificates to a wide group of developers.
           ENDDESC
         },
 
@@ -325,14 +290,13 @@ module Xolo
         },
 
         # @!attribute jamf_port
-        #   @return [Integer] The port number of the Jamf Pro server we are connecting to
+        #   @return [Integer] The port number of the Jamf Pro server we are connecting to for API access
         jamf_port: {
           default: Jamf::Connection::HTTPS_SSL_PORT,
           type: :integer,
           desc: <<~ENDDESC
-            The port number of the Jamf Pro server used by xolo.
-            The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN}
-            and #{Jamf::Connection::ON_PREM_SSL_PORT} otherwise.
+            The port number of the Jamf Pro server used by xolo for API access.
+            The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN} and #{Jamf::Connection::ON_PREM_SSL_PORT} otherwise.
           ENDDESC
         },
 
@@ -342,8 +306,7 @@ module Xolo
           required: true,
           type: :string,
           desc: <<~ENDDESC
-            The hostname of the Jamf Pro server used for links to the GUI webapp, if
-            different from the jamf_hostname.
+            The hostname of the Jamf Pro server used for links to the GUI webapp, if different from the jamf_hostname.
           ENDDESC
         },
 
@@ -353,10 +316,9 @@ module Xolo
           default: Jamf::Connection::HTTPS_SSL_PORT,
           type: :integer,
           desc: <<~ENDDESC
-            The port number of the Jamf Pro server used for links to the GUI webapp, if
-            different from the jamf_port.
-            The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN}
-            and #{Jamf::Connection::ON_PREM_SSL_PORT} otherwise.
+            The port number of the Jamf Pro server used for links to the GUI webapp, if different from the jamf_port.
+
+            The default is #{Jamf::Connection::HTTPS_SSL_PORT} if the Jamf Pro hostname ends with #{Jamf::Connection::JAMFCLOUD_DOMAIN} and #{Jamf::Connection::ON_PREM_SSL_PORT} otherwise.
           ENDDESC
         },
 
@@ -366,8 +328,7 @@ module Xolo
           default: Jamf::Connection::DFT_SSL_VERSION,
           type: :string,
           desc: <<~ENDDESC
-            The SSL version to use for the connection to the Jamf server.
-            The default is #{Jamf::Connection::DFT_SSL_VERSION}.
+            The SSL version to use for the connection to the Jamf API.
           ENDDESC
         },
 
@@ -378,7 +339,6 @@ module Xolo
           type: :boolean,
           desc: <<~ENDDESC
             Should we verify the SSL certificate used by the Jamf Pro server?
-            The default is true.
           ENDDESC
         },
 
@@ -425,14 +385,11 @@ module Xolo
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
-            If you start this value with a vertical bar '|', everything after the bar
-            is a command to be executed by the server at start-time. The command must
-            return the password to standard output.
-            This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
-            If the value is a path to a readable file, the file's contents are used
+            If the value is a path to a readable file, the file's contents are used.
 
-            Otherwise the value is used as the password.
+            Otherwise the value is used as the  password.
 
             Be careful of security concerns when passwords are stored in files.
           ENDDESC
@@ -443,21 +400,9 @@ module Xolo
         jamf_auto_accept_xolo_eas: {
           type: :boolean,
           desc: <<~ENDDESC
-            For titles fully maintained by Xolo, should we auto-accept the Patch Title Extension Attributes
-            that come from the uploaded version_script from xadm?
-            Default is false, meaning all Title EAs must be manually accepted in the Jamf Pro Web UI.
-          ENDDESC
-        },
+            For titles fully maintained by Xolo, should we auto-accept the Patch Title Extension Attributes that come from the uploaded version_script from xadm?
 
-        # @!attribute admin_jamf_group
-        #   @return [String] The name of a Jamf account-group containing users of 'xadm'
-        admin_jamf_group: {
-          required: true,
-          type: :string,
-          desc: <<~ENDDESC
-            The name of a Jamf account-group (not a User group) that allows the use of 'xadm'
-            to create and maintain titles and versions.
-            Users of xadm must be in this group, and provide their valid Jamf credentials.
+            Default is false, meaning all Title EAs must be manually accepted in the Jamf Pro Web UI.
           ENDDESC
         },
 
@@ -470,7 +415,7 @@ module Xolo
           desc: <<~ENDDESC
             After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
 
-            This value is the path to an executable that will do that second upload to the distribution point(s).
+            This value is the path to an executable on the xolo server that will do that second upload to the distribution point(s).
 
             It will be run with two arguments:
             - The display name of the Jamf::Package object the .pkg is used with
@@ -489,11 +434,24 @@ module Xolo
 
             After that tool runs, the copy of the .pkg on the server ( '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
 
-            An external tool is used here because every Jamf Pro customer has different needs for this,
-            e.g. various cloud and file-server distribution points, and Jamf has not provided a
-            supported way to upload packages to all possible Dist Points via the APIs.
+            An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points, and Jamf has not provided asupported way to upload packages to all possible Dist Points via the APIs.
 
-            There are some unsupported methods, and you are welcome to use them in the external tool you provide here.
+            There are some unsupported methods, and you are welcome to use them in the external tool you provide here.  As Jamf supports API-based package uploads, xolo will be updated to use them.
+          ENDDESC
+        },
+
+        # @!attribute alert_tool
+        #   @return [String] A command and its options/args that relays messages from stdin to some means
+        #       of alerting Xolo server admins of a problem or event that would otherwise go unnoticed.
+        #
+        alert_tool: {
+          type: :string,
+          desc: <<~ENDDESC
+            Server errors or other events that happen as part of xadm actions are reported to the xadm user. But sometimes such events happen outside of the scope of a xadm session. While these events will be logged, you might want them reported to a server administrator in real time.
+
+            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
+
+            Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
           ENDDESC
         },
 
@@ -503,10 +461,9 @@ module Xolo
         forced_exclusion: {
           type: :string,
           desc: <<~ENDDESC
-            If you have any jamf computers who should never even know that xolo exists, and should never have any software installed via xolo, put them into a group and put that groups name here.
+            If you have any jamf computers who should never even know that xolo exists, and should never have any software installed via xolo, put them into a group and put that group's name here.
 
-            And example would be a group of machines that should have a very minimalist management footprint,
-            only enforcing basic security settings and nothing else.
+            An example would be a group of machines that should have a very minimalist management footprint, only enforcing basic security settings and nothing else.
 
             This group, if defined, will be in the exclusions of all policies and patch policies maintained by Xolo.
 
@@ -523,7 +480,7 @@ module Xolo
           type: :string,
           required: true,
           desc: <<~ENDDESC
-            The name in Jamf Pro of the Title Editor as an External Patch Source
+            The name in Jamf Pro of the Title Editor as an External Patch Source.
           ENDDESC
         },
 
@@ -545,7 +502,6 @@ module Xolo
           type: :integer,
           desc: <<~ENDDESC
             The timeout, in seconds, for establishing a connection to the Title Editor server.
-            The default is #{Windoo::Connection::DFT_OPEN_TIMEOUT}.
           ENDDESC
         },
 
@@ -556,7 +512,6 @@ module Xolo
           type: :integer,
           desc: <<~ENDDESC
             The timeout, in seconds, for getting a response to a request made to the Title Editor server.
-            The default is #{Windoo::Connection::DFT_TIMEOUT}.
           ENDDESC
         },
 
@@ -581,12 +536,9 @@ module Xolo
           desc: <<~ENDDESC
             The password for the username that connects to the Title Editor API.
 
-            If you start this value with a vertical bar '|', everything after the bar
-            is a command to be executed by the server at start-time. The command must
-            return the password to standard output.
-            This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
-            If the value is a path to a readable file, the file's contents are used
+            If the value is a path to a readable file, the file's contents are used.
 
             Otherwise the value is used as the password.
 
