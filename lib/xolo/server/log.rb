@@ -48,7 +48,8 @@ module Xolo
       end
 
       LOG_DIR = Xolo::Server::DATA_DIR + 'logs'
-      LOG_FILE = LOG_DIR + 'xoloserver.log'
+      LOG_FILE_NAME = 'xoloserver.log'
+      LOG_FILE = LOG_DIR + LOG_FILE_NAME
 
       # TODO: log rotation
       DFT_LOG_DAYS_TO_KEEP = 14

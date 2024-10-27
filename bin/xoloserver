@@ -59,39 +59,22 @@ class XoloServer
       Xolo::Server::App.run!
 
     elsif Xolo::Server.config_opts[:show]
-      Xolo::Server.config.to_h_private.each { |k, v| puts "#{k}: #{v}" }
-
+      show_config
     end
   end # run
 
   #########
-  def show_config_help
-    text = +<<~TEXT
-        Xolo Server Configuration Options
-        #################################
+  def show_config
+    puts '# Current Xolo Server Settings:'
+    puts '#################################'
+    max_key = Xolo::Server::Configuration::KEYS.keys.max_by(&:length)
+    # puts "Max Key: #{max_key}"
+    max_key_len = max_key.length + 2
+    # puts "Max Key Length: #{max_key_len}"
 
-        The Xolo server configuration file is a YAML file located at
-        #{Xolo::Server.config.conf_file}.
-        It contains a Ruby Hash of configuration options, the keys are
-        Symbols and the values are the configuration values.
-
-        Those marked Private are not shown in when the config values are displayed.
-
-        Below are the configuration keys and their descriptions.
-        #################################
-
-    TEXT
-
-    Xolo::Server::Configuration::KEYS.each do |key, deets|
-      text << "Hash Key: #{key}:\n"
-      text << "  Default: #{deets[:default]}\n" if deets[:default]
-      text << "  Required: #{deets[:required]}\n" if deets[:required]
-      text << "  Private: #{deets[:private]}\n" if deets[:private]
-      text << "Description: \n"
-      text << "#{deets[:desc]}\n"
-      text << "---------------------------------\n\n"
+    Xolo::Server.config.raw_data.each do |k, v|
+      printf "%-#{max_key_len}s %s\n", "#{k}: ", v
     end
-    show_text text
   end
 
 end # class XoloServer

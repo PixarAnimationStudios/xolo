@@ -179,10 +179,32 @@ module Xolo
         end
 
         parsed_config_opts = Optimist.options do
-          banner 'Show or set the server configuration.'
-          banner ''
-          banner "\nUsage: #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --<setting> value ..."
-          banner "\nWith no options, show the current configuration values."
+          synopsis <<~SYNOPSIS
+            Xolo Server Configuration
+            #################################
+
+            The Xolo server configuration file is a YAML file located at
+              #{Xolo::Server.config.conf_file}"
+            It contains a Ruby Hash of configuration options, the keys are Symbols and the values are the configuration values.
+
+            Usage:
+              #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} [config_key ... | --config-key=value ... | --help]"
+
+            With no options or args, show the current configuration as stored in the config file.
+
+            With any config keys as arguments, e.g. 'key_name', show the value(s) after the server loads the config.
+            For some keys, the config file contains a command or file path from which to read the actual value.
+            Use this to see the actual value used by the server. E.g. if the file's jamf_api_pw key contains
+            '|/path/to/secrets/tool jamf-pw', this will display the value used: 'PassWd4jamf-pw'
+
+            With config keys as options, update config file, setting specified key to the value.
+            You must restart the server to apply changes.
+            NOTE: keys with the form key_name are set with --key-name
+
+            Notes:
+            Those marked Private (see #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --help) are not shown when the
+            config values are displayed to users of xadm, instead they see '#{Xolo::Server::Configuration::PRIVATE}'
+          SYNOPSIS
 
           # add a blank line between each of the cli options in the help output
           # NOTE: chrisl added this to the optimist.rb included in this project.
@@ -190,8 +212,12 @@ module Xolo
 
           Xolo::Server::Configuration::KEYS.each do |key, deets|
             # puts "defining: #{key} "
-            desc = deets[:desc]
-            desc = "Required if not already set.\n#{desc}" if deets[:required]
+
+            moinfo = deets[:required] ? 'Required if not already set ' : ''
+            moinfo = "#{moinfo}[Private]" if deets[:private]
+            moinfo = "#{moinfo.strip}\n" unless moinfo.empty?
+
+            desc = "#{moinfo}#{deets[:desc]}"
             opt key, desc, default: deets[:default], type: deets[:type], short: :none
           end # KEYS.each
         end # Optimist.options
