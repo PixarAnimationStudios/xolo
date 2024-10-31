@@ -89,6 +89,9 @@ module Xolo
       ##########
 
       CONF_FILENAME = 'config.yaml'
+      BACKUP_FILE_TIMESTAMP_FORMAT = '%Y%m%d%H%M%S.%N'
+      BACKUP_FILE_EXPIRATION_DAYS = 30
+      BACKUP_FILE_EXPIRATION_SECS = 120 # BACKUP_FILE_EXPIRATION_DAYS * 24 * 60 * 60
 
       SSL_DIR = Xolo::Server::DATA_DIR + 'ssl'
       SSL_CERT_FILENAME = 'cert.pem'
@@ -243,7 +246,7 @@ module Xolo
           required: false,
           type: :string,
           desc: <<~ENDDESC
-            The name of a Jamf account-group (not a User group) whose members may set release_groups to 'all'.
+            The name of a Jamf account-group (not a User group) whose members may set a title's release_groups to 'all'.
 
             When this is set, and someone not in this group tries to set a title's release_groups to 'all', they will get a message telling them to contact the person or group named in 'release_to_all_contact' to get approval.
 
@@ -556,6 +559,45 @@ module Xolo
       #######################
       def conf_file
         @conf_file ||= Xolo::Server::DATA_DIR + CONF_FILENAME
+      end
+
+      ###############
+      def save_to_file(data: nil)
+        backup_conf_file
+        super
+        clean_old_backups
+      end
+
+      ################
+      def backup_conf_file
+        return unless conf_file.file?
+
+        backup_file_dir.mkpath unless backup_file_dir.directory?
+
+        backup_file_name = "#{conf_file.basename}.#{Time.now.strftime BACKUP_FILE_TIMESTAMP_FORMAT}"
+        backup_file = backup_file_dir + backup_file_name
+        conf_file.pix_cp backup_file
+      end
+
+      ################
+      def backup_file_dir
+        @backup_file_dir ||= Xolo::Server::BACKUPS_DIR + 'config'
+      end
+
+      # remove all backups older than BACKUP_FILE_EXPIRATION_DAYS, except the most recent
+      ################
+      def clean_old_backups
+        return unless backup_file_dir.directory?
+
+        newest_file = backup_file_dir.children.max_by(&:mtime)
+        oldest_ok_time = Time.now - BACKUP_FILE_EXPIRATION_SECS
+
+        backup_file_dir.each_child do |file|
+          next unless file.file?
+          next if file == newest_file
+
+          file.unlink if file.mtime < oldest_ok_time
+        end
       end
 
       # @return [Pathname] The directory where the Xolo server stores data

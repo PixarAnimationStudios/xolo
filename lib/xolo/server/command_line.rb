@@ -23,7 +23,6 @@
 
 # frozen_string_literal: true
 
-require 'ostruct'
 require 'optimist_with_insert_blanks'
 
 module Xolo
@@ -57,8 +56,7 @@ module Xolo
           walkthru: false,
           desc: <<~ENDDESC
             Run xoloserver in production mode.
-            This sets various server settings to production mode, including
-            setting the log-level to 'info' at start-time, unless  -d is also given.
+            This sets various server settings to production mode, including setting the log-level to 'info' at start-time, unless  -d is also given.
 
             By default the server starts in development mode, and the log level is 'debug'
           ENDDESC
@@ -69,67 +67,37 @@ module Xolo
           cli: :d,
           walkthru: false,
           desc: <<~ENDDESC
-            Run xoloserver in debug mode
-            This sets the log-level to 'debug' at start-time in production mode.
+            Run xoloserver in debug mode. This sets the log-level to 'debug' at start-time in production mode.
           ENDDESC
-        } # ,
-
-        # show_config: {
-        #   label: 'Show Config',
-        #   cli: :s,
-        #   walkthru: false,
-        #   desc: <<~ENDDESC
-        #     Show the current configuration values.
-        #   ENDDESC
-        # },
-
-        # config_help: {
-        #   label: 'Debug',
-        #   cli: :C,
-        #   walkthru: false,
-        #   desc: <<~ENDDESC
-        #     Show the available configuration keys and their descriptions.
-        #   ENDDESC
-        # },
-
-        # config: {
-        #   label: 'Config',
-        #   cli: :c,
-        #   walkthru: false,
-        #   desc: <<~ENDDESC
-        #     Set a configuration key to a value.
-        #     Usage: xoloserver --config key=value
-        #     To see the available keys and their descriptions, use the --config-help option.
-        #   ENDDESC
-        # }
+        }
       }.freeze
 
       # CLI usage message
+      ################################################
       def usage
-        @usage ||= "#{Xolo::Server::EXECUTABLE_FILENAME} [--production --debug]"
+        @usage ||= "#{Xolo::Server::EXECUTABLE_FILENAME} --production --debug --help --version [config --help options args]"
       end
 
       # An OStruct to hold the CLI options
+      ################################################
       def cli_opts
-        @cli_opts ||= OpenStruct.new
+        @cli_opts ||= {}
       end
 
       # An OStruct to hold the config subcommand options
+      ################################################
       def config_opts
-        @config_opts ||= OpenStruct.new
+        @config_opts ||= {}
       end
 
       # Use optimist to parse ARGV.
       ################################################
       def parse_cli
-        parsed_opts = parse_global_opts
-
-        # save the global opts hash from optimist into our OpenStruct
-        parsed_opts.each { |k, v| cli_opts[k] = v }
-
-        # if there are subcommands, parse them
+        # get the global options
+        parse_global_opts
         return if ARGV.empty?
 
+        # if there are subcommands, parse them
         subcommand = ARGV.shift
         case subcommand
         when CONFIG_CMD
@@ -142,22 +110,23 @@ module Xolo
       # Parse the main/global options
       ################################################
       def parse_global_opts
-        Optimist.options do
+        usg = usage
+        @cli_opts = Optimist.options do
           stop_on SUBCOMMANDS
+          version "Xolo version: #{Xolo::VERSION}"
+          synopsis <<~SYNOPSIS
+            Name:
+             #{Xolo::Server::EXECUTABLE_FILENAME}, The server for 'xolo', a tool for managing Patch Titles and Versions in Jamf Pro
 
-          banner 'Name:'
-          banner "  #{Xolo::Server::EXECUTABLE_FILENAME}, The server for 'xolo', a tool for managing Software Titles and Versions in Jamf Pro."
+            Usage:
+              #{usg}
 
-          banner "\nUsage:"
-          banner "  #{usage}"
-
-          banner "\nOptions:"
+            See '#{Xolo::Server::EXECUTABLE_FILENAME} config --help' for configuration options.
+          SYNOPSIS
 
           # add a blank line between each of the cli options in the help output
           # NOTE: chrisl added this to the optimist.rb included in this project.
           insert_blanks
-
-          version Xolo::VERSION
 
           # The global opts
           ## manually set :version and :help here, or they appear at the bottom of the help
@@ -178,37 +147,67 @@ module Xolo
           return
         end
 
-        parsed_config_opts = Optimist.options do
-          synopsis <<~SYNOPSIS
-            Xolo Server Configuration
-            #################################
+        @config_opts = Optimist.options do
+          synopsis <<~ENDSYNOPSIS
+            NAME
+                #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} - Manage the server configuration file
 
-            The Xolo server configuration file is a YAML file located at
-              #{Xolo::Server.config.conf_file}"
-            It contains a Ruby Hash of configuration options, the keys are Symbols and the values are the configuration values.
+            SYNOPSIS
+                #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} [--show] [--expand] [config_key ...]
 
-            Usage:
-              #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} [config_key ... | --config-key=value ... | --help]"
+                #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --set --config-key=value ...
 
-            With no options or args, show the current configuration as stored in the config file.
+                #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --help
 
-            With any config keys as arguments, e.g. 'key_name', show the value(s) after the server loads the config.
-            For some keys, the config file contains a command or file path from which to read the actual value.
-            Use this to see the actual value used by the server. E.g. if the file's jamf_api_pw key contains
-            '|/path/to/secrets/tool jamf-pw', this will display the value used: 'PassWd4jamf-pw'
 
-            With config keys as options, update config file, setting specified key to the value.
-            You must restart the server to apply changes.
-            NOTE: keys with the form key_name are set with --key-name
+            DESCRIPTION
+                The Xolo server configuration file is a YAML file located at
+                  #{Xolo::Server.config.conf_file}"
 
-            Notes:
-            Those marked Private (see #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --help) are not shown when the
-            config values are displayed to users of xadm, instead they see '#{Xolo::Server::Configuration::PRIVATE}'
-          SYNOPSIS
+                It contains a Ruby Hash of configuration options, the keys are Symbols and the values are the
+                configuration values. While the file can be edited directly, it is recommended to use the
+                'config' subcommand to view and set the values.
+
+                Some sensitive values may be stored in the configuration file as a command or file path from
+                which to read the actual value. Config values starting with a pipe '|' are executed as a command
+                (after removing the pipe) and the value to be used is read from the standard output of the
+                command. Values that are file paths are read from the file at the path. If the stored value
+                doesn't start with a pipe, and is not a valid file path, the value is used as is. Be wary of
+                security issues, permissions, etc when working with these values.
+
+                See '#{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --help' for details on which configuration
+                keys are used this way.
+
+              Showing configuration values:
+                When used without --set, --show is implied. If no config keys are given, all keys are shown.
+                Keys can be given as 'key_name' or 'key-name'.
+
+                Values are shown as stored in the config file. With --expand, the actual value used by the server
+                is shown, after reading from commands or files.
+
+              Setting configuration values:
+                To set configuration values, use --set followed by one or more config keys as options, e.g.
+                --config-key=value. You must restart the server to apply changes.
+
+                NOTE: As of this writing, there is very little validation of the values you set, nor any
+                enforcement of required values. Be careful.
+
+              Help:
+                Using --help shows this help message, and descriptions of all available config_keys as options
+                to --set.
+
+              Private values:
+                Config keys marked Private (see #{Xolo::Server::EXECUTABLE_FILENAME} #{CONFIG_CMD} --help) are
+                not shown when the config values are displayed to users of xadm, instead they see '#{Xolo::Server::Configuration::PRIVATE}'
+          ENDSYNOPSIS
 
           # add a blank line between each of the cli options in the help output
           # NOTE: chrisl added this to the optimist.rb included in this project.
           insert_blanks
+
+          opt :show, 'Show configuration values', short: :none
+          opt :expand, 'Show expanded configuration values', short: :none
+          opt :set, 'Set configuration values', short: :none
 
           Xolo::Server::Configuration::KEYS.each do |key, deets|
             # puts "defining: #{key} "
@@ -222,8 +221,9 @@ module Xolo
           end # KEYS.each
         end # Optimist.options
 
-        # save the global opts hash from optimist into our OpenStruct
-        parsed_config_opts.each { |k, v| config_opts[k] = v }
+        # any other args are the keys to display,
+        # convert them to symbols and store them in the config_opts
+        config_opts[:keys_to_display] = ARGV.map { |k| k.gsub('-', '_').to_sym } unless ARGV.empty?
       end
 
     end # module CommandLine
