@@ -76,15 +76,23 @@ module Xolo
         # for the session and api connection objects
         #
         # @param data [Hash, Array] hash to use with .new
-        # @param title [String] title to use with .load
+        # @param title [String, Xolo::Server::Title] title to use with .load
         # @param version [String] version to use with .load
         #
         # @return [Xolo::Server::Version]
         #################
         def instantiate_version(data = nil, title: nil, version: nil)
+          if title.is_a? Xolo::Server::Title
+            title_obj = title
+            title = title.title
+          else
+            title_obj = nil
+          end
+
           vers =
             if data.is_a? Hash
               Xolo::Server::Version.new data
+
             elsif title && version
               halt_on_missing_title title
               halt_on_missing_version title, version
@@ -94,6 +102,7 @@ module Xolo
               halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
             end
 
+          vers.title_object = title_obj if title_obj
           vers.server_app_instance = self
           vers
         end
