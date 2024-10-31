@@ -37,8 +37,9 @@ require 'xolo-server'
 #####################
 class XoloServer
 
-  include Xolo::Core::Output
+  # include Xolo::Core::Output
 
+  ###########################
   def initialize
     # CLI
     Xolo::Server.parse_cli
@@ -46,35 +47,70 @@ class XoloServer
     Xolo::Server.app_env = Xolo::Server.cli_opts[:production] ? Xolo::Server::APP_ENV_PROD : Xolo::Server::APP_ENV_DEV
   end
 
+  ###########################
   def run
     Process.setproctitle Xolo::Server::EXECUTABLE_FILENAME
 
-    # TESTING
-    # puts '##############################'
-    # puts Gem.ruby
-    # Xolo::Server.config.to_h.each { |k, v| puts "#{k} =>\n  #{v}" }
-    # puts '##############################'
-
-    if Xolo::Server.config_opts.to_h.empty?
+    # Run the Server
+    if Xolo::Server.config_opts.empty?
       Xolo::Server::App.run!
 
-    elsif Xolo::Server.config_opts[:show]
+    # Set config
+    elsif Xolo::Server.config_opts[:set]
+      set_config
+
+    # Show config
+    # always --show unless --set
+    else
       show_config
     end
   end # run
 
-  #########
+  ###########################
   def show_config
     puts '# Current Xolo Server Settings:'
     puts '#################################'
-    max_key = Xolo::Server::Configuration::KEYS.keys.max_by(&:length)
-    # puts "Max Key: #{max_key}"
-    max_key_len = max_key.length + 2
-    # puts "Max Key Length: #{max_key_len}"
 
-    Xolo::Server.config.raw_data.each do |k, v|
+    keys_to_display = Xolo::Server.config_opts[:keys_to_display] || Xolo::Server::Configuration::KEYS.keys
+    max_key_len = keys_to_display.max_by(&:length).length + 2
+
+    # Display the requested keys
+    keys_to_display.each do |k|
+      v = Xolo::Server.config_opts[:expand] ? Xolo::Server.config.send(k) : Xolo::Server.config.raw_data[k]
+      deets = Xolo::Server::Configuration::KEYS[k]
+
+      v =
+        if deets
+          '** required but not set' if deets[:required] && v.pix_empty?
+        else
+          'Unknown Key'
+        end
+
       printf "%-#{max_key_len}s %s\n", "#{k}: ", v
+    end # keys_to_display.each
+  end
+
+  ###########################
+  def set_config
+    # puts 'Config opts:'
+    # Xolo::Server.config_opts.each do |k, v|
+    #   puts "  #{k} (#{k.class}): #{v}"
+    # end
+    # puts '-------------------------------'
+
+    # raw_data is the data as read from the config file, which is the data we want to save back
+    #   after updating the values
+    data_to_save = Xolo::Server.config.raw_data.dup
+
+    Xolo::Server::Configuration::KEYS.each do |k, _v|
+      next unless Xolo::Server.config_opts.key? "#{k}_given".to_sym
+
+      new_val = Xolo::Server.config_opts[k]
+      puts "Setting #{k} to #{new_val}"
+      data_to_save[k] = new_val
     end
+
+    Xolo::Server.config.save_to_file(data: data_to_save)
   end
 
 end # class XoloServer

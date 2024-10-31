@@ -54,13 +54,18 @@ module Xolo
       #   The keys of this Hash are the keys that may be found in the yaml file.
       #   The Hash values here define the value in the YAML file, with these keys:
       #
-      #     required: [Boolean] Is this key/value required in the YAML file?
+      #     required: [Boolean] Is this key/value required in the YAML file? The server
+      #        will not start if a required key is missing.
+      #
+      #     type: [Symbol] The data-type of the value, one of the types supported by
+      #       Optimist: :boolean, :string, :integer, :float, :io, :date
+      #       See https://github.com/ManageIQ/optimist/wiki/Option-Types
       #
       #     default: [Object] If this key doesn't exist in the YAML file, this is the
       #       value used by Xolo.
       #
       #     desc: [String] A full description of what this value is, how it is used,
-      #       possible values, etc. This is presented in help and walkthru.
+      #       possible values, etc. This is presented in help and/or walkthru.
       #
       #     load_method: [Symbol] The name of a method in the Configuration Instance
       #       to which the YAML value will be passed to convert it into the real value
@@ -121,6 +126,15 @@ module Xolo
         #####################################
 
         ###############
+        def to_h
+          data = {}
+          keys.each_key do |key|
+            data[key] = send(key)
+          end
+          data
+        end
+
+        ###############
         def to_h_private
           data = {}
           keys.each do |key, deets|
@@ -134,19 +148,17 @@ module Xolo
           data
         end
 
+        # Save new data (or raw_data) to the config file. We don't save the
+        # actual instance variables, as they may be expanded from
+        # commands or file paths, and its the commands or file paths
+        # we want to save.
+        #
         ###############
-        def to_h
-          data = {}
-          keys.each_key do |key|
-            data[key] = send(key)
-          end
-          data
-        end
-
-        ###############
-        def save_to_file
+        def save_to_file(data: nil)
+          data ||= raw_data
           conf_file.parent.mkpath unless conf_file.parent.directory?
-          conf_file.pix_save YAML.dump(to_h)
+          conf_file.pix_save YAML.dump(data)
+          conf_file.chmod 0o600
         end
 
         # Private Instance Methods

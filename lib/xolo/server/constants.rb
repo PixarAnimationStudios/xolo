@@ -49,6 +49,8 @@ module Xolo
 
       DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
 
+      BACKUPS_DIR = DATA_DIR + 'backups'
+
       # streaming progress from the server.
       # When a line containing only this string shows up in a stream file
       # that means the stream is done, and no more lines will be sent.
