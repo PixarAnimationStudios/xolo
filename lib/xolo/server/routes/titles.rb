@@ -91,22 +91,49 @@ module Xolo
           body title.to_h
         end
 
-        # Replace the data for an existing title with the content of the request
+        # Update a title by
+        # replacing the data for an existing title with the content of the request
         # @return [Hash] A response hash
         #################################
         put '/titles/:title' do
           halt_on_missing_title params[:title]
           halt_on_locked_title params[:title]
+
+          title = instantiate_title params[:title]
+
           request.body.rewind
           new_data = parse_json(request.body.read)
           log_debug "Incoming update title data: #{new_data}"
 
-          halt_on_missing_title params[:title]
-          title = instantiate_title params[:title]
-
           log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
           with_streaming do
             title.update new_data
+            update_client_data
+          end
+        end
+
+        # Release a version of this title
+        #
+        # @return [Hash] A response hash
+        #################################
+        patch '/titles/:title/release/:version' do
+          log_info "Admin #{session[:admin]} is Releasing version #{params[:version]} of title '#{params[:title]}' via PATCH"
+
+          halt_on_missing_title params[:title]
+          halt_on_missing_version params[:title], params[:version]
+          halt_on_locked_title params[:title]
+          halt_on_locked_version params[:title], params[:version]
+
+          title = instantiate_title params[:title]
+
+          if title.released_version == params[:version]
+            msg = "Version '#{params[:version]}' of title '#{params[:title]}' is already released"
+            log_debug "ERROR: #{msg}"
+            halt 409, { error: msg }
+          end
+
+          with_streaming do
+            title.release params[:version]
             update_client_data
           end
         end
