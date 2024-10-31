@@ -45,6 +45,7 @@ module Xolo
       # Mixins
       #############################
       #############################
+      include Comparable
 
       include Xolo::Server::Helpers::JamfPro
       include Xolo::Server::Helpers::TitleEditor
@@ -227,6 +228,21 @@ module Xolo
       # Instance Methods
       ######################
       ######################
+
+      # version comparison
+      #########################
+      def <=>(other)
+        raise Xolo::InvalidDataError, 'Cannot compare with other classes' unless other.is_a? Xolo::Server::Version
+        raise Xolo::InvalidDataError, 'Cannot compare versions of different titles' unless other.title == title
+
+        order_index <=> other.order_index
+      end
+
+      # @return [Integer= The index of this version in the title's version_order array
+      ######################
+      def order_index
+        title_object.version_order.index version
+      end
 
       # The scope target groups to use in policies and patch policies.
       # This is defined in each version, and inherited when new versions are created.

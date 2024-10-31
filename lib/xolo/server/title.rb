@@ -434,7 +434,7 @@ module Xolo
       ########################
       def version_object(version)
         log_debug "Instantiating version #{version} from Title instance #{title}"
-        server_app_instance.instantiate_version(title: title, version: version)
+        server_app_instance.instantiate_version(title: self, version: version)
       end
 
       # @return [Array<Xolo::Server::Version>] An array of all current version objects
