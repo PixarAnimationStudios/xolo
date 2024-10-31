@@ -152,7 +152,7 @@ module Xolo
         #
         # @return [Array<Hash>] The data for all computers with the given version of the title
         #################################
-        get '/titles/:title/versions/:versions/patch_report' do
+        get '/titles/:title/versions/:version/patch_report' do
           log_debug "Admin #{session[:admin]} is fetching patch report for version #{params[:version]} title '#{params[:title]}'"
           halt_on_missing_version params[:title], params[:version]
           vers = instantiate_version title: params[:title], version: params[:version]
