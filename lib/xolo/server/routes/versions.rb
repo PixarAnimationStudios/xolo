@@ -97,6 +97,7 @@ module Xolo
           body vers.to_h
         end
 
+        # Update a version,
         # Replace the data for an existing version with the content of the request
         # @return [Hash] A response hash
         #################################
@@ -107,6 +108,7 @@ module Xolo
 
           halt_on_missing_title params[:title]
           halt_on_missing_version params[:title], params[:version]
+          halt_on_locked_version params[:title], params[:version]
 
           vers = instantiate_version title: params[:title], version: params[:version]
 
@@ -125,6 +127,7 @@ module Xolo
         #################################
         delete '/titles/:title/versions/:version' do
           halt_on_missing_version params[:title], params[:version]
+          halt_on_locked_version params[:title], params[:version]
 
           log_info "Admin #{session[:admin]} is deleting version '#{params[:version]}' of title '#{params[:title]}'"
 

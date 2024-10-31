@@ -100,7 +100,7 @@ module Xolo
 
           msg = "Title '#{title}' does not exist."
           log_debug "ERROR: #{msg}"
-          halt 404, { status: 404, error: msg }
+          halt 404, { error: msg }
         end
 
         # Halt 409 if a title already exists
@@ -111,6 +111,18 @@ module Xolo
           return unless all_titles.include? title
 
           msg = "Title '#{title}' already exists."
+          log_debug "ERROR: #{msg}"
+          halt 409, { error: msg }
+        end
+
+        # Halt 409 if a title is locked
+        # @pararm [String] The title of a Title
+        # @return [void]
+        ##################
+        def halt_on_locked_title(title)
+          return unless Xolo::Server::Title.locked? title
+
+          msg = "Title '#{title}' is being modified by another admin. Try again later."
           log_debug "ERROR: #{msg}"
           halt 409, { error: msg }
         end

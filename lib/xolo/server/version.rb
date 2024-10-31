@@ -31,6 +31,11 @@ module Xolo
 
     # Xolo Version/Patch as used on the Xolo Server
     #
+    # The code in this file mostly deals with the data on the Xolo server itself, and
+    # general methods for manipulating the version.
+    #
+    # Code for interacting with the Title Editor and Jamf Pro are in the helpers and mixins.
+    #
     # NOTE be sure to only instantiate these using the
     # server's 'instantiate_version' method, or else
     # they might not have all the correct innards
@@ -136,6 +141,13 @@ module Xolo
       ###############################
       def self.in_ted?(patch_id, cnx:)
         Windoo::Patch.all_ids(cnx: cnx).include? patch_id
+      end
+
+      # Is a version locked for updates?
+      #############################
+      def self.locked?(title, version)
+        curr_lock = Xolo::Server.object_locks.dig title, :versions, version
+        curr_lock && curr_lock > Time.now
       end
 
       # Attributes
@@ -367,6 +379,7 @@ module Xolo
       # @return [void]
       #########################
       def create
+        lock
         self.creation_date = Time.now
         self.created_by = admin
         self.status = STATUS_PENDING
@@ -402,6 +415,8 @@ module Xolo
         title_object.save_local_data
 
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
+      ensure
+        unlock
       end
 
       # Update a this version, updating to the
@@ -414,6 +429,7 @@ module Xolo
       # @return [void]
       #########################
       def update(new_data)
+        lock
         @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
 
@@ -431,6 +447,8 @@ module Xolo
         save_local_data
 
         # new pkg uploads happen in a separate process
+      ensure
+        unlock
       end
 
       # Update our instance attributes with any new data before
@@ -480,6 +498,7 @@ module Xolo
       # @return [void]
       ##########################
       def delete(update_title: true)
+        lock
         delete_patch_from_ted
         delete_version_from_jamf
 
@@ -494,6 +513,38 @@ module Xolo
         progress 'Deleting version data from the Xolo server', log: :info
         version_data_file.delete
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
+      ensure
+        unlock
+      end
+
+      # Is this version locked for updates?
+      #############################
+      def locked?
+        self.class.locked?(title, version)
+      end
+
+      # Lock this version for updates
+      #############################
+      def lock
+        while locked?
+          log_debug "Waiting for update lock on Version '#{version}' of title '#{title}'..."
+          sleep 0.33
+        end
+        Xolo::Server.object_locks[title] ||= { versions: {} }
+
+        exp = Time.now + Xolo::Server::ObjectLocks::OBJECT_LOCK_LIMIT
+        Xolo::Server.object_locks[title][:versions][version] = exp
+        log_debug "Locked version '#{version}' of title '#{title}' for updates until #{exp}"
+      end
+
+      # Unlock this version for updates
+      #############################
+      def unlock
+        curr_lock = Xolo::Server.object_locks.dig title, :versions, version
+        return unless curr_lock
+
+        Xolo::Server.object_locks[title][:versions].delete version
+        log_debug "Unlocked version '#{version}' of title '#{title}' for updates"
       end
 
       # Add more data to our hash
