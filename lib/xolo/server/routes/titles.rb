@@ -95,6 +95,8 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         put '/titles/:title' do
+          halt_on_missing_title params[:title]
+          halt_on_locked_title params[:title]
           request.body.rewind
           new_data = parse_json(request.body.read)
           log_debug "Incoming update title data: #{new_data}"

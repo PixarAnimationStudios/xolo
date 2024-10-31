@@ -31,9 +31,15 @@ module Xolo
 
     # A Title in Xolo, as used on the server
     #
+    # The code in this file mostly deals with the data on the Xolo server itself, and
+    # general methods for manipulating the title.
+    #
+    # Code for interacting with the Title Editor and Jamf Pro are in the helpers and mixins.
+    #
     # NOTE be sure to only instantiate these using the
     # servers 'instantiate_title' method, or else
     # they might not have all the correct innards
+    #
     class Title < Xolo::Core::BaseClasses::Title
 
       # Mixins
@@ -227,6 +233,13 @@ module Xolo
       ###############################
       def self.in_ted?(title, cnx:)
         Windoo::SoftwareTitle.all_ids(cnx: cnx).include? title
+      end
+
+      # Is a title locked for updates?
+      #############################
+      def self.locked?(title)
+        curr_lock = Xolo::Server.object_locks.dig title, :expires
+        curr_lock && curr_lock > Time.now
       end
 
       # Attributes
@@ -444,6 +457,7 @@ module Xolo
       # @return [void]
       #########################
       def create
+        lock
         self.creation_date = Time.now
         self.created_by = admin
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
@@ -461,6 +475,8 @@ module Xolo
 
         # ssvc icon is uploaded in a separate process, and the
         # title data file will be updated as needed then.
+      ensure
+        unlock
       end
 
       # Update this title, updating to the
@@ -471,6 +487,8 @@ module Xolo
       # @return [void]
       #########################
       def update(new_data)
+        lock
+
         # make the new data availble as needed,
         # for methods to compare the incoming new data
         # with the existing instance data
@@ -527,8 +545,11 @@ module Xolo
         # if its false, jamf should eventually need us to re-accept
         #
         accept_xolo_patch_ea_in_jamf if need_to_accept_xolo_ea_in_jamf?
+
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
+      ensure
+        unlock
       end # update
 
       # Update our instance attributes with any new data before
@@ -560,7 +581,8 @@ module Xolo
       # the title editor, or Jamf, this loops thru the versions and applies
       # them
       #
-      # This should happen after the incoming changes have been applied to this instance
+      # This should happen after the incoming changes have been applied to this
+      # title instance
       #
       # Ted Stuff
       # - swap version-script / app-based component if needed
@@ -696,6 +718,7 @@ module Xolo
       # @return [void]
       ##########################
       def delete
+        lock
         progress "Deleting all versions of #{title}...", log: :debug
         # Delete them in reverse order (oldest first) so the jamf server doesn't
         # see each older version as being 'released' again as newer
@@ -710,6 +733,37 @@ module Xolo
 
         progress "Deleting Xolo server data for title '#{title}'", log: :info
         title_dir.rmtree
+      ensure
+        unlock
+      end
+      # Is this title locked for updates?
+      #############################
+      def locked?
+        self.class.locked?(title)
+      end
+
+      # Lock this title for updates
+      #############################
+      def lock
+        while locked?
+          log_debug "Waiting for update lock on title '#{title}'..."
+          sleep 0.33
+        end
+        Xolo::Server.object_locks[title] ||= { versions: {} }
+
+        exp = Time.now + Xolo::Server::ObjectLocks::OBJECT_LOCK_LIMIT
+        Xolo::Server.object_locks[title][:expires] = exp
+        log_debug "Locked title '#{title}' for updates until #{exp}"
+      end
+
+      # Unlock this v for updates
+      #############################
+      def unlock
+        curr_lock = Xolo::Server.object_locks.dig title, :expires
+        return unless curr_lock
+
+        Xolo::Server.object_locks[title].delete expires
+        log_debug "Unocked title '#{title}' for updates"
       end
 
       # Add more data to our hash

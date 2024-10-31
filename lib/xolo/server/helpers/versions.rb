@@ -125,6 +125,18 @@ module Xolo
           halt 409, resp_body
         end
 
+        # Halt 409 if a version is locked
+        # @pararm [String] The title of a Title
+        # @return [void]
+        ##################
+        def halt_on_locked_version(title, version)
+          return unless Xolo::Server::Version.locked? title, version
+
+          msg = "Version '#{version}' of title '#{title}' is being modified by another admin. Try again later."
+          log_debug "ERROR: #{msg}"
+          halt 409, { error: msg }
+        end
+
       end # TitleEditor
 
     end # Helpers

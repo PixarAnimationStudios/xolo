@@ -59,17 +59,17 @@ require 'sinatra/extension' # see https://sinatrarb.com/contrib/extension
 require 'thin'
 require 'ruby-jss'
 require 'windoo'
+require 'concurrent/hash'
 
-# Define the module for Zeitwerk
 module Xolo
 
   # The Xolo Server is the focal point for a Xolo installation.
   # It centralizes and standardizes all communication between
-  # the parts of Xolo:
+  # the serverside parts of Xolo:
   #
-  # - The Xolo Admin command-line application
-  #   - Used to manage software deployed by xolo either manually
-  #     or via automated scripts
+  # - The Xolo Admin command-line application 'xadm'
+  #   - Used to manage software deployed by Xolo either manually
+  #     or via automated scripts (e.g. Xcode builds)
   #
   # - A Jamf Title Editor server
   #   - Used as the 'external patch source' hosting locally-developed
@@ -86,6 +86,10 @@ module Xolo
   # for the automatic packaging, piloting, and maintenance of titles using
   # tools such as AutoPkg.
   #
+  # The Xolo client tool 'xolo', used on managed Macs, does not communicate
+  # directly with the Xolo server. Instead, it communicates with the Jamf Pro, mostly
+  # by running 'jamf policy' commands.
+  #
   #
   module Server
 
@@ -95,6 +99,7 @@ module Xolo
 
     include Xolo::Server::Constants
     extend Xolo::Server::CommandLine
+    extend Xolo::Server::ObjectLocks
     include Xolo::Server::Log
 
     # Constants
