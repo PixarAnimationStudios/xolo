@@ -736,6 +736,30 @@ module Xolo
       ensure
         unlock
       end
+
+      # Release a version of this title
+      #
+      # @param version [String] the version to release
+      #
+      # @return [void]
+      ##########################
+      def release(version)
+        lock
+        raise "Version '#{version}' of title '#{title}' is already released" if released_version == version
+        raise "No version '#{version}' for title '#{title}'" unless versions.include? version
+
+        log_debug "Releasing version #{version} of title '#{title}'"
+        version_objects.each do |vobj|
+          if vobj.version == version
+            vobj.release
+          elsif vobj
+            vobj.disable
+          end
+        end
+      ensure
+        unlock
+      end
+
       # Is this title locked for updates?
       #############################
       def locked?
