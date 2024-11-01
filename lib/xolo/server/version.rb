@@ -230,6 +230,7 @@ module Xolo
       ######################
 
       # version comparison
+      # @see Comparable
       #########################
       def <=>(other)
         raise Xolo::InvalidDataError, 'Cannot compare with other classes' unless other.is_a? Xolo::Server::Version
@@ -350,7 +351,6 @@ module Xolo
       #   the life of this instance
       #############################
       def ted_cnx
-        # @ted_cnx ||= super
         server_app_instance.ted_cnx
       end
 
@@ -422,24 +422,32 @@ module Xolo
         # add some data
         save_local_data
 
-        # TODO: allow specification of version_order, probably by accepting a value
-        # for the 'previous_version'?
         # prepend our version to the version_order array of the title
         progress "Updating title version_order, prepending '#{version}'", log: :debug
-
-        title_object.version_order.unshift version
-        title_object.save_local_data
+        title_object.prepend_version(version)
 
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
       ensure
         unlock
       end
 
+      # Mark this verion's package as having been uploaded
+      # to the Jamf Pro distribution point(s)
+      #
+      # @return [void]
+      #########################
+      def mark_pkg_uploaded(uploaded_pkg_name)
+        lock
+        jamf_pkg_file = uploaded_pkg_name
+        pkg_to_upload = Xolo::ITEM_UPLOADED
+        save_local_data
+        log_debug "Marked package as uploaded to Jamf Pro for version '#{version}' of title '#{title}'"
+      ensure
+        unlock
+      end
+
       # Update a this version, updating to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
-      #
-      # TODO: allow specification of version_order, probably by accepting a value
-      # for the 'previous_version'?
       #
       # @param new_data [Hash] The new data sent from xadm
       # @return [void]
@@ -519,11 +527,8 @@ module Xolo
         delete_version_from_jamf
 
         # remove from the title's list of versions
-        if update_title
-          title_object.version_order.delete version
-          progress 'Removing version from title data on the Xolo server', log: :debug
-          title_object.save_local_data
-        end
+        progress 'Removing version from title data on the Xolo server', log: :debug
+        title_object.remove_version(version) if update_title
 
         # delete the local data
         progress 'Deleting version data from the Xolo server', log: :info

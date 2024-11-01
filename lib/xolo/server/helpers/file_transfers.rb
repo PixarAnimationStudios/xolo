@@ -91,25 +91,23 @@ module Xolo
         def process_incoming_pkg
           log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
 
-          # the Xolo::Server::Version that owns this pkg
-          version = instantiate_version title: params[:title], version: params[:version]
-
           # the original uploaded filename
           orig_filename = params[:file][:filename]
           log_debug "Incoming pkg file '#{orig_filename}' "
           file_extname = validate_uploaded_pkg(orig_filename)
 
           # Set the jamf_pkg_file, now that we know the extension
-          version.jamf_pkg_file = "#{version.jamf_pkg_name}#{file_extname}"
-          log_debug "Jamf: Package.filename will be '#{version.jamf_pkg_file}'"
+          uploaded_pkg_name = "#{version.jamf_pkg_name}#{file_extname}"
+          log_debug "Jamf: Package.filename will be '#{uploaded_pkg_name}'"
 
           # The tempfile created by Sinatra when the pkg was uploaded from xadm
           tempfile = Pathname.new params[:file][:tempfile].path
 
           # The uploaded tmpfile will be staged here before uploading again to
           # the Jamf Dist Point(s)
-          staged_pkg = Xolo::Server::Title.title_dir(version.title) + version.jamf_pkg_file
-          # remove any old one
+          staged_pkg = Xolo::Server::Title.title_dir(params[:title]) + uploaded_pkg_name
+
+          # remove any old one that might be there
           staged_pkg.delete if staged_pkg.file?
 
           if need_to_sign?(tempfile)
@@ -119,12 +117,14 @@ module Xolo
             tempfile.pix_cp staged_pkg
           end
 
+          # the Xolo::Server::Version that owns this pkg
+          version = instantiate_version title: params[:title], version: params[:version]
+
           # upload the pkg with the uploader tool defined in config
           upload_to_dist_point(version, staged_pkg)
 
           # save/update the local data file, since we've done stuff to update it
-          version.pkg_to_upload = Xolo::ITEM_UPLOADED
-          version.save_local_data
+          version.mark_pkg_uploaded uploaded_pkg_name
 
           # remove the staged pkg. The tmp file will go away on its own.
           staged_pkg.delete
@@ -135,6 +135,10 @@ module Xolo
         end
 
         # upload the pkg with the uploader tool defined in config
+        # @param version [Xolo::Server::Version] The version object
+        # @param staged_pkg [Pathname] The path to the staged pkg
+        #
+        # @return [void]
         ###########################################
         def upload_to_dist_point(version, staged_pkg)
           log_info "Jamf: Uploading #{staged_pkg.basename} to dist point(s)"

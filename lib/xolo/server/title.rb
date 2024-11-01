@@ -428,6 +428,34 @@ module Xolo
         @jamf_normal_ea_name ||= self.class.jamf_normal_ea_name title
       end
 
+      # prepend a new version to the version_order
+      #
+      # @param version [String] the version to prepend
+      #
+      # @return [void]
+      ########################
+      def prepend_version(version)
+        lock
+        version_order.unshift version
+        save_local_data
+      ensure
+        unlock
+      end
+
+      # remove a version from the version_order
+      #
+      # @param version [String] the version to remove
+      #
+      # @return [void]
+      ########################
+      def remove_version(version)
+        lock
+        version_order.delete version
+        save_local_data
+      ensure
+        unlock
+      end
+
       # instantiate a version if this title
       #
       # @return [Xolo::Server::Version]
@@ -666,6 +694,7 @@ module Xolo
       # @return [void]
       ##########################
       def save_ssvc_icon(tempfile, orig_filename)
+        lock
         # here's where we'll store it on the server
         ext_for_file = orig_filename.split(Xolo::DOT).last
         new_basename =  "#{SELF_SERVICE_ICON_FILENAME}.#{ext_for_file}"
@@ -685,6 +714,8 @@ module Xolo
         # attr.
         self.self_service_icon = Xolo::ITEM_UPLOADED
         save_local_data
+      ensure
+        unlock
       end
 
       # If we have any versions, and we are using self service,
