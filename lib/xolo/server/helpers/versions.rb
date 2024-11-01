@@ -63,16 +63,16 @@ module Xolo
           all_versions(title).map { |v| instantiate_version title: title, version: v }
         end
 
-        # Instantiate a Server::Version
+        # Instantiate a Server::Version, with access to the Sinata App instance
         #
         # If given a Hash, use it with .new to instantiate fresh
         #
-        # If given a two-item array of [title, version], use .load
-        # load the title, and then the title's #version_object method
-        # to read the version from disk
+        # If given a title and version, the title may be a String, the title's
+        # title, or a Xolo::Server::Title object. If it's a Xolo::Server::Title
+        # that object will be used as the title_object for the version object.
         #
-        # In all cases, set the server_app_instance, to use for
-        # access from the version object to the Sinatra App instance
+        # In all cases, set the server_app_instance in the new version onject
+        # to use for access from the version object to the Sinatra App instance
         # for the session and api connection objects
         #
         # @param data [Hash, Array] hash to use with .new
@@ -86,7 +86,7 @@ module Xolo
             title_obj = title
             title = title.title
           else
-            title_obj = nil
+            title_obj = instantiate_title title
           end
 
           vers =
@@ -102,7 +102,7 @@ module Xolo
               halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
             end
 
-          vers.title_object = title_obj if title_obj
+          vers.title_object = title_obj
           vers.server_app_instance = self
           vers
         end
