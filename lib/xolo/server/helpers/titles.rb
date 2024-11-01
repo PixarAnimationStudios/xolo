@@ -61,7 +61,8 @@ module Xolo
           all_titles.map { |t| instantiate_title t }
         end
 
-        # Instantiate a Server::Title
+        # Instantiate a Server::Title with access to the Sinatra app instance,
+        #
         # If given a string, use it with .load to read the title from disk
         #
         # If given a Hash, use it with .new to instantiate fresh
