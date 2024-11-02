@@ -47,22 +47,22 @@ module Xolo
 
         # The name of the Jamf::Package object that contains the xolo-client-data
         # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
-        CLIENT_DATA_PACKAGE_NAME = 'xolo-client-data'
+        CLIENT_DATA_PACKAGE_NAME = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}client-data"
 
         # The name of the package file that installs the xolo-client-data JSON file
-        CLIENT_DATA_PACKAGE_FILE = 'xolo-client-data.pkg'
+        CLIENT_DATA_PACKAGE_FILE = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}client-data.pkg"
 
         # The package identifier for the xolo-client-data package
-        CLIENT_DATA_PACKAGE_IDENTIFIER = 'com.pixar.xolo-client-data'
+        CLIENT_DATA_PACKAGE_IDENTIFIER = "com.pixar.#{CLIENT_DATA_PACKAGE_NAME}"
 
         # The name of the Jamf::Policy object that installs the xolo-client-data package
         # automatically on all managed Macs
         # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
-        CLIENT_DATA_AUTO_POLICY_NAME = 'xolo-client-data-auto'
+        CLIENT_DATA_AUTO_POLICY_NAME = "#{CLIENT_DATA_PACKAGE_NAME}-auto"
 
         # The name of the Jamf::Policy object that installs the xolo-client-data package
         # manually on a managed Mac
-        CLIENT_DATA_MANUAL_POLICY_NAME = 'xolo-client-data-manual'
+        CLIENT_DATA_MANUAL_POLICY_NAME = "#{CLIENT_DATA_PACKAGE_NAME}-manual"
 
         # The name of the client-data JSON file in the xolo-client-data package
         # this is the file that is installed onto managed Macs in

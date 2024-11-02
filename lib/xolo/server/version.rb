@@ -211,7 +211,7 @@ module Xolo
         @jamf_pkg_id ||= data_hash[:jamf_pkg_id]
 
         # and these can be generated now
-        @jamf_obj_name_pfx = "#{JAMF_OBJECT_NAME_PFX}#{title}-#{version}"
+        @jamf_obj_name_pfx = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{title}-#{version}"
 
         @jamf_pkg_name ||= @jamf_obj_name_pfx
 
