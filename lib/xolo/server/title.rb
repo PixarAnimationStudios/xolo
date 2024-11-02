@@ -817,7 +817,7 @@ module Xolo
         curr_lock = Xolo::Server.object_locks.dig title, :expires
         return unless curr_lock
 
-        Xolo::Server.object_locks[title].delete expires
+        Xolo::Server.object_locks[title].delete :expires
         log_debug "Unocked title '#{title}' for updates"
       end
 
