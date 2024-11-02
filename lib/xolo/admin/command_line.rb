@@ -194,8 +194,10 @@ module Xolo
         # parse_cmd_opts uses Optimist to get the --options that go
         # with the command and its args.
         # we loop thru them (its a hash) and save them into our
-        # cli_cmd_optsOpenStruct
-        parse_cmd_opts.each { |k, v| cli_cmd_opts[k] = v }
+        # cli_cmd_opts OpenStruct
+        optimist_hash = parse_cmd_opts
+        optimist_hash.each { |k, v| cli_cmd_opts[k] = v }
+
         # Now merge in current_opt_values for anything not given on the cli
         # This is how we inherit values, or apply defaults
         current_opt_values.to_h.each do |k, v|
@@ -256,7 +258,7 @@ module Xolo
           # 'xadm [globalOpts] help command' becomes 'xadm [globalOpts] command --help'
           ARGV.unshift Xolo::Admin::Options::HELP_OPT
         end
-        # if we are here any any part of ARGV is --help, nothing more to do here.
+        # if we are here and any part of ARGV is --help, nothing more to do.
         return if ARGV.include?(Xolo::Admin::Options::HELP_OPT)
 
         # log in now, cuz we need the server to validate the rest of the
@@ -322,6 +324,7 @@ module Xolo
 
       # Parse the options for the command.
       # This returns a hash from Optimist
+      # @return [Hash] the optimist hash
       ##################################################################
       def parse_cmd_opts
         cmd = cli_cmd.command
