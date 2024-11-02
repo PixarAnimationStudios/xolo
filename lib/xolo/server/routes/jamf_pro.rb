@@ -78,14 +78,15 @@ module Xolo
           jcnx&.disconnect
         end
 
-        # A list of all current computer groups
+        # A list of all current computer groups, excluding those starting with xolo-
         ###############
         get '/jamf/computer-group-names' do
           log_debug "Jamf: Fetching Jamf ComputerGroup Names for #{session[:admin]}"
-          jcnx = jamf_cnx
-          body Jamf::ComputerGroup.all_names(cnx: jcnx).sort
+          body Jamf::ComputerGroup.all_names(cnx: jamf_cnx).reject { |g|
+                 g.start_with? Xolo::Server::JAMF_OBJECT_NAME_PFX
+               }.sort
         ensure
-          jcnx&.disconnect
+          jamf_cnx&.disconnect
         end
 
         # A list of all current categories
