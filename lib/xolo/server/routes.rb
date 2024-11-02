@@ -122,7 +122,8 @@ module Xolo
           ruby_jss_version: Jamf::VERSION,
           windoo_version: Windoo::VERSION,
           config: Xolo::Server.config.to_h_private,
-          threads: Xolo::Server.thread_info
+          threads: Xolo::Server.thread_info,
+          object_locks: Xolo::Server.object_locks
         }
 
         body state
