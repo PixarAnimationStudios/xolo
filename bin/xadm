@@ -110,7 +110,7 @@ begin
 
   app.run
 rescue => e
-  warn "Error: #{e.class}: #{e}"
+  warn "Error: #{e.class.name.split('::').last}: #{e}"
   if debug
     warn 'Backtrace:'
     e.backtrace.each { |l| warn "..#{l}" }

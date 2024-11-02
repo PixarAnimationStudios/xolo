@@ -121,6 +121,6 @@ begin
   app = XoloServer.new
   app.run
 rescue => e
-  warn "ERROR #{e.class}: #{e}"
+  warn "ERROR #{e.class.name.split('::').last}: #{e}"
   e.backtrace.each { |l| warn "..#{l}" }
 end
