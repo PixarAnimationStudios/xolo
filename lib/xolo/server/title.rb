@@ -92,7 +92,7 @@ module Xolo
       # The key is this value as a prefix on the title
       # so for title 'foobar', it is 'xolo-foobar'
       # That value is also used as the display name
-      TITLE_EDITOR_EA_KEY_PREFIX = 'xolo-'
+      TITLE_EDITOR_EA_KEY_PREFIX = Xolo::Server::JAMF_OBJECT_NAME_PFX
 
       # The EA from the title editor, which is used in Jamf Patch
       # cannot, unfortunately, be used as a criterion in normal
@@ -315,8 +315,8 @@ module Xolo
         super
         @ted_id_number ||= data_hash[:ted_id_number]
         @version_order ||= []
-        @jamf_installed_smart_group_name = "xolo-#{data_hash[:title]}-installed"
-        @jamf_frozen_group_name = "xolo-#{data_hash[:title]}-frozen"
+        @jamf_installed_smart_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-installed"
+        @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-frozen"
       end
 
       # Instance Methods

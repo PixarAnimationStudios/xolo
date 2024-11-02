@@ -41,12 +41,6 @@ module Xolo
         ##############################
         ##############################
 
-        # Jamf objects are named with this prefix followed by <title>-<version>
-        # See also:  Xolo::Server::Version#jamf_obj_name_pfx
-        # which holds the full prefix for that version, and is used as the
-        # full object name if appropriate (e.g. Package objects)
-        JAMF_OBJECT_NAME_PFX = 'xolo-'
-
         # The policy that does initial installs on-demand
         # (via 'xolo install <title> <version') is named the full
         # prefix plus this suffix.
