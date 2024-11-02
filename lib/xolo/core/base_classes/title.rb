@@ -322,7 +322,7 @@ module Xolo
             multi: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
-            invalid_msg: 'Invalid release computer group(s). Must exist in Jamf.',
+            invalid_msg: 'Invalid release group(s). Must exist in Jamf and not be excluded.',
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members will automatically have this title installed when new versions are released.
 
@@ -332,9 +332,9 @@ module Xolo
 
               When using the --release-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
-              To remove any existing, use '#{Xolo::NONE}'.
+              To remove all existing, use '#{Xolo::NONE}'.
 
-              NOTE: When a version is in 'pilot' mode, before it is released, these groups are ignored, but instead a set of 'pilot' groups is defined for each version - and those groups will have that version auto-installed.
+              NOTE: When a version is in 'pilot', before it is released, these groups are ignored, but instead a set of 'pilot' groups is defined for each version - and those groups will have that version auto-installed.
             ENDDESC
           },
 
@@ -348,7 +348,7 @@ module Xolo
             multi: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
-            invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
+            invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf and not be excluded.',
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members are not allowed to install this title.
 
@@ -356,7 +356,7 @@ module Xolo
 
               When using the --excluded-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
-              To remove any existing, use '#{Xolo::NONE}'.
+              To remove all existing, use '#{Xolo::NONE}'.
 
               NOTE: Regardless of the excluded groups set here, if the server has defined a 'forced_exclusion' in its config, that group is always excluded from all xolo titles. Also, computers that are 'frozen' for a title are excluded.
             ENDDESC
