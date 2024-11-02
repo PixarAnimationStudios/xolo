@@ -90,10 +90,11 @@ module Xolo
         def update_title_in_jamf
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_smart_group
-          update_normal_ea_in_jamf if new_data_for_update[:version_script]
+          update_normal_ea_in_jamf if need_to_update_normal_ea_in_jamf?
 
           # this smart group might use the normal-EA or might use app data
-          update_installed_smart_group_in_jamf
+          # If those have changed, we need to update it.
+          update_installed_smart_group_in_jamf if need_to_update_installed_smart_group_in_jamf?
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_smart_group
@@ -123,6 +124,28 @@ module Xolo
 
           # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
           # e.g. if expiration data changes
+        end
+
+        # do we need to update the normal EA in jamf?
+        # true if our in coming data has a version script that differs from
+        # our saved one
+        #
+        # @return [Boolean]
+        ########################
+        def need_to_update_normal_ea_in_jamf?
+          new_data_for_update[:version_script] != version_script
+        end
+
+        # do we need to update the 'installed' smart group?
+        # true if our incoming data has any changes in the version_script,
+        # app_name, or app_bundle_id
+        #
+        # @return [Boolean]
+        #########################
+        def need_to_update_installed_smart_group_in_jamf?
+          new_data_for_update[:version_script] != version_script ||
+            new_data_for_update[:app_name] != app_name ||
+            new_data_for_update[:app_bundle_id] != app_bundle_id
         end
 
         # Create or update the smartgroup in jamf that contains all macs
