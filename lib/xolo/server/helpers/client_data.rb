@@ -207,7 +207,7 @@ module Xolo
           if pol_name == CLIENT_DATA_AUTO_POLICY_NAME
             pol.set_trigger_event :checkin, true
             pol.set_trigger_event :custom, Xolo::BLANK
-            pol.frequency = :once_per_computer
+            pol.frequency = :daily
           elsif pol_name == CLIENT_DATA_MANUAL_POLICY_NAME
             pol.set_trigger_event :checkin, false
             pol.set_trigger_event :custom, Xolo::CLIENT_DATA_MANUAL_POLICY_TRIGGER
