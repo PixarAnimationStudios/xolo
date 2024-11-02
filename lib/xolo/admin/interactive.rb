@@ -616,7 +616,7 @@ module Xolo
       # Retun a lambda that calls one of our validation methods to validate
       # a walkthru value.
       #
-      # Highlight requires validation lambdas to return a boolean, and uses
+      # Highline requires validation lambdas to return a boolean, and uses
       # a separate lambda for type conversion.
       # Since our validation methods do both, this lambda will put the converted
       # result into the 'last_converted_value' accessor, or capture the error,
