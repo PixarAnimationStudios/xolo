@@ -725,7 +725,7 @@ module Xolo
           rescue StandardError
             msg = err.response_body if err.respond_to?(:response_body)
             msg ||= err.to_s
-            errmsg = "#{err.class}: #{msg}"
+            errmsg = "#{err.class.name.split('::').last}: #{msg}"
           end # begin
           raise err.class, errmsg
 
