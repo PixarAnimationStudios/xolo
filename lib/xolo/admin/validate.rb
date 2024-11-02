@@ -139,9 +139,11 @@ module Xolo
             next
           end
 
-          # if an item is :multi, it is an array. If it has only one item, split it on commas
+          # If an item is :multi, it is an array.
+          # If it has only one item, split it on commas
           # This handles multi items being given multiple times as CLI opts, or
           # as comma-sep values in CLI opts or walkthru.
+          #
           if deets[:multi] && cli_cmd_opts[key].size == 1
             cli_cmd_opts[key] = cli_cmd_opts[key].first.split(Xolo::COMMA_SEP_RE)
           end
@@ -290,12 +292,11 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:version_script][:invalid_msg]
       end
 
-      # validate an array of jamf group names to use as targets.
+      # validate an array of jamf group names to use as targets when released.
       # 'all', or 'none' are also acceptable
       #
-      # NOTE: we will not compare targets to exclusions - we'll just verify
-      # that the jamf groups exist. If a group (or an individual mac) is both a
-      # target and an exclusion, the exclusion wins.
+      # These groups cannot be in the excluded_group - but that validation happens
+      # later in the consistency checks via validate_scope_targets_and_exclusions
       #
       # @param val [Array<String>] The value to validate:  names of jamf comp.
       #   groups, or 'all', or 'none'
@@ -312,10 +313,12 @@ module Xolo
           return [Xolo::TARGET_ALL]
         end
 
+        # non-existant jamf groups
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:release_groups][:invalid_msg]
+        bad_grps = "No Such Groups: #{bad_grps.join(Xolo::COMMA_JOIN)}"
+        raise_invalid_data_error bad_grps, TITLE_ATTRS[:release_groups][:invalid_msg]
       end
 
       # check if the current admin is allowed to set a title's release groups to 'all'
@@ -332,9 +335,7 @@ module Xolo
       # validate an array  of jamf groups to use as exclusions.
       # 'none' is also acceptable
       #
-      # NOTE: we will not compare targets to exclusions - we'll just verify
-      # that the jamf groups exist. If a group (or an individual mac) is both a
-      # target and an exclusion, the exclusion wins.
+      # excluded groups cannot be in the release groups or pilot groups
       #
       # @param val [Array<String>] The value to validate:  names of jamf comp.
       #   groups, or 'none'
@@ -348,7 +349,9 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:excluded_groups][:invalid_msg]
+        bad_grps = "No Such Groups: #{bad_grps.join(Xolo::COMMA_JOIN)}"
+
+        raise_invalid_data_error bad_grps, TITLE_ATTRS[:excluded_groups][:invalid_msg]
       end
 
       # @param grp_ary [Array<String>] Jamf groups to validate
@@ -592,7 +595,9 @@ module Xolo
         bad_grps = bad_jamf_groups(val)
         return val if bad_grps.empty?
 
-        raise_invalid_data_error bad_grps.join(Xolo::COMMA_JOIN), VERSION_ATTRS[:pilot_groups][:invalid_msg]
+        bad_grps = "No Such Groups: #{bad_grps.join(Xolo::COMMA_JOIN)}"
+
+        raise_invalid_data_error bad_grps, VERSION_ATTRS[:pilot_groups][:invalid_msg]
       end
 
       # Try to fetch a known route from the given xolo server
@@ -697,8 +702,8 @@ module Xolo
       #
       # @return [void]
       #######
-      def validate_version_consistency(_opts)
-        true
+      def validate_version_consistency(opts)
+        validate_scope_targets_and_exclusions(opts)
       end
 
       # @param opts [OpenStruct] the current options
@@ -710,6 +715,7 @@ module Xolo
         return if cli_cmd.command == Xolo::Admin::Options::LIST_VERSIONS_CMD
 
         # order of these matters
+        validate_scope_targets_and_exclusions(opts)
         validate_title_consistency_app_and_script(opts)
         validate_title_consistency_app_or_script(opts)
         validate_title_consistency_app_name_and_id(opts)
@@ -717,6 +723,40 @@ module Xolo
         validate_title_consistency_no_all_in_ssvc(opts)
         validate_title_consistency_ssvc_needs_category(opts)
       end # title_consistency(opts)
+
+      # groups that will be scope targets (pilot or release) cannot
+      # also be in the exclusions.
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_scope_targets_and_exclusions(opts)
+        # require 'pp'
+        # puts 'Opts Are:'
+        # pp opts.to_h
+        # pp caller
+
+        if title_command?
+          excls = opts.excluded_groups
+          tgts = opts.release_groups
+          tgt_type = :release
+        elsif version_command?
+          @title_for_version_validation ||= Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+          excls = @title_for_version_validation.excluded_groups
+          tgts = opts.pilot_groups
+          tgt_type = :pilot
+        else
+          excls = nil
+          tgts = nil
+        end
+        return unless excls && tgts
+
+        in_both = excls & tgts
+        return if in_both.empty?
+
+        raise_consistency_error "These groups are in both #{tgt_type}_groups and the title's excluded_groups: '#{in_both.join "', '"}'"
+      end
 
       # if app_name or app_bundle_id is given, can't use --version-script
       #
