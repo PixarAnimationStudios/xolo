@@ -591,8 +591,8 @@ module Xolo
           puts JSON.pretty_generate(jamf_computer_group_names)
           return
         end
-
-        list_in_cols 'All Computer Groups in Jamf Pro:', jamf_computer_group_names.sort_by(&:downcase)
+        header = "Computer Groups in Jamf Pro.\n# Those starting with 'xolo-' are used internally by Xolo and not shown."
+        list_in_cols header, jamf_computer_group_names.sort_by(&:downcase)
       end
 
       # List all the SSVC categories in jamf pro
@@ -605,7 +605,7 @@ module Xolo
           return
         end
 
-        list_in_cols 'All Categories in Jamf Pro:', jamf_category_names.sort_by(&:downcase)
+        list_in_cols 'Categories in Jamf Pro:', jamf_category_names.sort_by(&:downcase)
       end
 
       # get the /test route to do whatever testing it does
