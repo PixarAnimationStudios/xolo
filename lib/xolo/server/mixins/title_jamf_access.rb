@@ -118,12 +118,8 @@ module Xolo
           # Excluded, or Release groups changed at the
           # title level, make note to update the scope of all version-specific policies and patch policies
           # when we loop thru the versions
-
           @need_to_update_release_groups = new_data_for_update[:release_groups].to_a.sort != release_groups.to_a.sort
           @need_to_update_excluded_groups = new_data_for_update[:excluded_groups].to_a.sort != excluded_groups.to_a.sort
-
-          # TODO: EVENTUALLY if needed, send out a new xolo-title-data pkg to all clients
-          # e.g. if expiration data changes
         end
 
         # do we need to update the normal EA in jamf?
