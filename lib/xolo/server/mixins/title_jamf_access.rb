@@ -237,11 +237,12 @@ module Xolo
         def update_normal_ea_in_jamf
           # this is our incoming or already-existing EA script
           scr = version_script_contents
-          # nothing to do if its nil
+
+          # nothing to do if its nil, if we need to delete it, that'll happen later
           return unless scr
 
           # nothing to do if it hasn't changed.
-          return if version_script == @new_data_for_update&.dig(:version_script)
+          return if version_script == new_data_for_update&.dig(:version_script)
 
           ea =
             if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
