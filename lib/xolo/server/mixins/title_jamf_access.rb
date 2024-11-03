@@ -137,14 +137,23 @@ module Xolo
         end
 
         # do we need to update the 'installed' smart group?
-        # true if our incoming data has any changes in the version_script,
-        # app_name, or app_bundle_id
+        # true if our incoming data has any changes in the app_name or app_bundle_id
+        #
+        # If they changed, we need to update no matter what.
+        #
+        # if they are now nil, we switched to a version script
+        #
+        # If they aren't nil but are different, we need to update
+        # the group criteria to reflect that.
+        #
+        # Changes to the version script, if it was in use before, don't
+        # require us to change the smart group
+        #
         #
         # @return [Boolean]
         #########################
         def need_to_update_installed_smart_group_in_jamf?
-          new_data_for_update[:version_script] != version_script ||
-            new_data_for_update[:app_name] != app_name ||
+          new_data_for_update[:app_name] != app_name ||
             new_data_for_update[:app_bundle_id] != app_bundle_id
         end
 
