@@ -400,7 +400,7 @@ module Xolo
         #
         # if we have incoming data, that's what we care about
         # otherwise we use our current value
-        curr_script = @new_data_for_update ? @new_data_for_update[:version_script] : version_script
+        curr_script = new_data_for_update ? new_data_for_update[:version_script] : version_script
         return if curr_script.pix_empty?
 
         curr_script == Xolo::ITEM_UPLOADED ? version_script_file.read : curr_script
@@ -531,7 +531,7 @@ module Xolo
         update_title_in_jamf
 
         # Don't do this until we no longer need to use
-        # @new_data_for_update for comparison with our
+        # new_data_for_update for comparison with our
         # 'old' insance values.
         update_local_instance_values
 
@@ -549,7 +549,7 @@ module Xolo
 
         # loop thru versions and apply changes
         #
-        # Since @new_data_for_update is no longer valid
+        # Since new_data_for_update is no longer valid
         # for comparisons, the prev. methods should have
         # set flags indicating anything we need to do to
         # the versions. E.g.
@@ -587,7 +587,7 @@ module Xolo
       def update_local_instance_values
         # update instance data with new data before writing out to the filesystem.
         # Do this last so that the instance values can be compared to
-        # @new_data_for_update in the steps above.
+        # new_data_for_update in the steps above.
         # Also, those steps might have updated some server-specific attributes
         # which will be saved to the file system as well.
         ATTRIBUTES.each do |attr, deets|
