@@ -489,9 +489,6 @@ module Xolo
         self.creation_date = Time.now
         self.created_by = admin
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
-        self.modification_date = Time.now
-        self.modified_by = admin
-        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
         create_title_in_ted
         create_title_in_jamf
@@ -522,9 +519,6 @@ module Xolo
         # with the existing instance data
         @new_data_for_update = new_data
         log_info "Updating title '#{title}' for admin '#{admin}'"
-
-        self.modification_date = Time.now
-        self.modified_by = admin
 
         # Do ted before doing things in Jamf
         update_title_in_ted
@@ -652,6 +646,10 @@ module Xolo
 
         save_version_script
 
+        self.modification_date = Time.now
+        self.modified_by = admin
+        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+
         # do we have a stored self service icon?
         self.self_service_icon = ssvc_icon_file ? Xolo::ITEM_UPLOADED : nil
 
@@ -774,19 +772,55 @@ module Xolo
       #
       # @return [void]
       ##########################
-      def release(version)
+      def release(version_to_release)
         lock
-        raise "Version '#{version}' of title '#{title}' is already released" if released_version == version
-        raise "No version '#{version}' for title '#{title}'" unless versions.include? version
+        if released_version == version_to_release
+          raise Xolo::InvalidDataError,
+                "Version '#{version}' of title '#{title}' is already released"
+        end
+        unless versions.include? version_to_release
+          raise Xolo::NoSuchItemError,
+                "No version '#{version}' for title '#{title}'"
+        end
 
-        log_debug "Releasing version #{version} of title '#{title}'"
-        version_objects.each do |vobj|
-          if vobj.version == version
-            vobj.release
-          elsif vobj
-            vobj.disable
+        progress "Releasing version #{version_to_release} of title '#{title}'", log: :debug
+
+        # get the Version objects and figure out our starting point, but process
+        # them in reverse order so that we don't have two released versions at once
+        all_versions = version_objects.reverse
+        vobj_to_release = all_versions.find { |v| v.version == version_to_release }
+        vobj_current_release = all_versions.find { |v| v.version == released_version }
+        rolling_back = vobj_to_release < vobj_current_release
+        progress "Rolling back from version #{released_version}", log: :debug if rolling_back
+
+        all_versions.each do |vobj|
+          # This is the one we are releasing
+          if vobj == vobj_to_release
+            vobj.release rollback: rolling_back
+
+            # This one is older than the one we're releasing
+          elsif vobj < vobj_to_release
+            vobj.deprecate if vobj.status == Xolo::Server::Version::STATUS_RELEASED
+            vobj.skip if vobj.status == Xolo::Server::Version::STATUS_PILOT
+
+            # this one is newer than the one we're releasing
+          else
+            # do nothing if its in pilot, even if we're rolling back
+            next if vobj.status == Xolo::Server::Version::STATUS_PILOT
+
+            # this should be redundant with the above?
+            next unless rolling_back
+
+            # if we're here, we're rolling back to something older than this
+            # version, and this version is currently released, deprecated or skipped.
+            # We need to reset it to pilot.
+            vobj.reset_to_pilot
           end
         end
+
+        # update the title
+        released_version = version_to_release
+        save_local_data
       ensure
         unlock
       end
