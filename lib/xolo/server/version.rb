@@ -482,7 +482,7 @@ module Xolo
       def update_local_instance_values
         # update instance data with new data before writing out to the filesystem.
         # Do this last so that the instance values can be compared to
-        # @new_data_for_update in the steps above.
+        # new_data_for_update in the steps above.
         # Also, those steps might have updated some server-specific attributes
         # which will be saved to the file system as well.
         ATTRIBUTES.each do |attr, deets|
