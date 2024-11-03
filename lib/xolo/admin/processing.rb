@@ -106,8 +106,11 @@ module Xolo
                 t.to_h
               else
                 # [t.title, t.display_name, t.publisher, t.app_name, "#{t.app_bundle_id}\n=> #{t.description}"]
-                titleout = +"\nTitle: #{t.title}, Display: '#{t.display_name}', Publisher: #{t.publisher}"
-                titleout << "\nApp: #{t.app_name}, BundleID: #{t.app_bundle_id}" if t.app_name
+                titleout = +'#---------------------------------------'
+                titleout << "\nTitle: #{t.title}"
+                titleout << "\nDisplay Name: '#{t.display_name}"
+                titleout << "\nPublisher: #{t.publisher}"
+                titleout << "\nApp: #{t.app_name}\nBundleID: #{t.app_bundle_id}" if t.app_name
                 titleout << "\nDescription:"
                 titleout << "\n#{t.description}"
                 titleout
@@ -116,8 +119,6 @@ module Xolo
             break
           end # SEARCH_ATTRIBUTES.each
         end # titles.each
-
-        # results is now an array of hashes, each hash has the keys from SEARCH_ATTRIBUTES
 
         if json?
           puts JSON.pretty_generate(results)
@@ -129,7 +130,7 @@ module Xolo
         # show_text generate_report(results, header_row: header, title: report_title)
 
         puts "# All titles matching '#{search_str}'"
-        puts results.join("\n")
+        puts results.join("\n\n")
       rescue StandardError => e
         handle_processing_error e
       end
@@ -164,7 +165,7 @@ module Xolo
         end
 
         report_title = 'All titles in Xolo'
-        header = %w[Title Created By SSvc? Curr Latest]
+        header = %w[Title Created By SSvc? Released Latest]
         data = titles.map do |t|
           [
             t.title,
