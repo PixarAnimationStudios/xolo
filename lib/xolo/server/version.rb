@@ -399,11 +399,7 @@ module Xolo
         self.creation_date = Time.now
         self.created_by = admin
         self.status = STATUS_PENDING
-        # log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
-
-        self.modification_date = Time.now
-        self.modified_by = admin
-        # log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+        log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
 
         # save to file here so that we have something to delete if
         # the next couple steps fail
@@ -457,9 +453,6 @@ module Xolo
         @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
 
-        self.modification_date = Time.now
-        self.modified_by = admin
-
         # update ted before jamf
         update_patch_in_ted
         enable_ted_patch
@@ -471,6 +464,55 @@ module Xolo
         save_local_data
 
         # new pkg uploads happen in a separate process
+      ensure
+        unlock
+      end
+
+      # Release this version, possibly rolling back from a previously newer version
+      #
+      # @return [void]
+      #########################
+      def release(rollback:)
+        lock
+        progress "Jamf: Releasing version '#{version}'"
+
+        # set scope targets of auto-install policy to release-groups
+        msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to release_groups: #{release_groups_to_use.join(', ')}"
+        progress msg, log: :info
+        pol = jamf_auto_install_policy
+        pol.scope.targets = release_groups_to_use
+        pol.save
+
+        # set manual-install policy to self-service if needed
+        if title_object.self_service
+          msg = "Jamf: Version '#{version}': Setting manual-install policy to appear in self-service"
+          progress msg, log: :info
+          pol = jamf_manual_install_policy
+          pol.add_to_self_service
+
+          pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
+          pol.add_self_service_category title_object.self_service_category
+          pol.save
+          pol.upload(:icon, title_object.ssvc_icon_file) if title_object.ssvc_icon_file&.file?
+        end
+
+        # set scope targets of patch policy to all (in patch pols, 'all' means 'all eligible')
+        msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to all eligible computers"
+        progress msg, log: :info
+        ppol = jamf_patch_policy
+        ppol.scope.set_all_targets
+        # if rollback, make sure the patch policy is set to 'allow downgrade'
+        if rollback
+          msg = "Jamf: Version '#{version}': Setting patch policy to allow downgrade"
+          progress msg, log: :info
+        end
+        ppol.allow_downgrade = rollback
+        ppol.save
+
+        # change status to 'released'
+        self.status = STATUS_RELEASED
+
+        save_local_data
       ensure
         unlock
       end
@@ -507,6 +549,10 @@ module Xolo
       ##########################
       def save_local_data
         self.class.version_dir(title).mkpath
+
+        self.modification_date = Time.now
+        self.modified_by = admin
+        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
 
         file = version_data_file
         log_debug "Saving local version data to: #{file}"
