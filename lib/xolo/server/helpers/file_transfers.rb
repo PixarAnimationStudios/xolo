@@ -81,6 +81,8 @@ module Xolo
         rescue StandardError => e
           msg = "#{e.class}: #{e}"
           log_error msg
+          e.backtrace.each { |line| log_error "..#{line}" }
+
           halt 400, { error: msg }
         end
 
@@ -90,6 +92,8 @@ module Xolo
         #############################
         def process_incoming_pkg
           log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
+
+          version = instantiate_version title: params[:title], version: params[:version]
 
           # the original uploaded filename
           orig_filename = params[:file][:filename]
@@ -131,6 +135,7 @@ module Xolo
         rescue StandardError => e
           msg = "#{e.class}: #{e}"
           log_error msg
+          e.backtrace.each { |line| log_error "..#{line}" }
           halt 400, { error: msg }
         end
 

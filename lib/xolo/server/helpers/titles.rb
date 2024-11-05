@@ -85,7 +85,10 @@ module Xolo
               Xolo::Server::Title.load data
 
             else
-              halt 400, 'Invalid data to instantiate a Xolo.Server::Title'
+              msg = 'Invalid data to instantiate a Xolo::Server::Title'
+              log_error msg
+
+              halt 400, { error: msg }
             end
 
           title.server_app_instance = self

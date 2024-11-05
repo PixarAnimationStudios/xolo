@@ -61,6 +61,7 @@ module Xolo
           request.body.rewind
           data = parse_json request.body.read
           log_debug "Incoming new version data: #{data}"
+          log_debug "Incoming new version data: #{data.class}"
 
           vers = instantiate_version(data)
           halt_on_existing_version vers.title, vers.version
