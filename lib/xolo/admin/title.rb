@@ -166,6 +166,15 @@ module Xolo
         resp.body
       end
 
+      # Update this title to the server
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash] the response body from the server
+      ####################
+      def release(cnx, version:)
+        resp = cnx.patch "#{SERVER_ROUTE}/#{title}/release/#{version}", {}
+        resp.body
+      end
+
       # Delete this title from the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response data

@@ -239,10 +239,12 @@ module Xolo
         order_index <=> other.order_index
       end
 
-      # @return [Integer= The index of this version in the title's version_order array
+      # @return [Integer] The index of this version in the title's reversed version_order array.
+      #   We reverse it because the version_order array holds the newest versions first,
+      #   so the index of the newest version is 0, the next newest is 1, etc - we need the opposite of that.
       ######################
       def order_index
-        title_object.version_order.index version
+        title_object.version_order.reverse.index version
       end
 
       # The scope target groups to use in policies and patch policies.
@@ -470,6 +472,8 @@ module Xolo
 
       # Release this version, possibly rolling back from a previously newer version
       #
+      # @param rollback [Boolean] If true, this version is being released as a rollback
+      #
       # @return [void]
       #########################
       def release(rollback:)
@@ -480,21 +484,11 @@ module Xolo
         msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to release_groups: #{release_groups_to_use.join(', ')}"
         progress msg, log: :info
         pol = jamf_auto_install_policy
-        pol.scope.targets = release_groups_to_use
+        pol.scope.set_targets :computer_groups, release_groups_to_use
         pol.save
 
         # set manual-install policy to self-service if needed
-        if title_object.self_service
-          msg = "Jamf: Version '#{version}': Setting manual-install policy to appear in self-service"
-          progress msg, log: :info
-          pol = jamf_manual_install_policy
-          pol.add_to_self_service
-
-          pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
-          pol.add_self_service_category title_object.self_service_category
-          pol.save
-          pol.upload(:icon, title_object.ssvc_icon_file) if title_object.ssvc_icon_file&.file?
-        end
+        add_to_self_service if title_object.self_service
 
         # set scope targets of patch policy to all (in patch pols, 'all' means 'all eligible')
         msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to all eligible computers"
@@ -505,12 +499,123 @@ module Xolo
         if rollback
           msg = "Jamf: Version '#{version}': Setting patch policy to allow downgrade"
           progress msg, log: :info
+          ppol.allow_downgrade = true
+        else
+          ppol.allow_downgrade = false
         end
-        ppol.allow_downgrade = rollback
         ppol.save
 
         # change status to 'released'
         self.status = STATUS_RELEASED
+
+        save_local_data
+      ensure
+        unlock
+      end
+
+      # deprecate this version
+      #
+      # @return [void]
+      #########################
+      def deprecate
+        lock
+        progress "Jamf: Deprecating older released version '#{version}'"
+        disable_policies_for_deprecation_or_skipping :deprecated
+        # change status to 'deprecated'
+        self.status = STATUS_DEPRECATED
+
+        save_local_data
+      ensure
+        unlock
+      end
+
+      # skip this version
+      #
+      # @return [void]
+      #########################
+      def skip
+        lock
+        progress "Jamf: Skipping unreleased version '#{version}'"
+        disable_policies_for_deprecation_or_skipping :skipped
+        # change status to 'skipped'
+        self.status = STATUS_SKIPPED
+
+        save_local_data
+      ensure
+        unlock
+      end
+
+      # Disable the auto-install and patch policies for this version when it
+      # is deprecated or skipped
+      #
+      # Leave the manual install policy active, but remove it from self-service
+      #
+      # @param reason [Symbol] :deprecated or :skipped
+      #
+      # @return [void]
+      #########################
+      def disable_policies_for_deprecation_or_skipping(reason)
+        pol = jamf_auto_install_policy
+        pol.disable
+        pol.save
+        progress "Jamf: Disabled auto-install policy for #{reason} version '#{version}'"
+
+        ppol = jamf_patch_policy
+        ppol.disable
+        # ensure patch policy is NOT set to 'allow downgrade'
+        ppol.allow_downgrade = false
+        ppol.save
+        progress "Jamf: Disabled patch policy for #{reason} version '#{version}'"
+
+        pol = jamf_manual_install_policy
+        return unless pol.in_self_service?
+
+        pol.remove_from_self_service
+        progress "Jamf: Removed #{reason} version '#{version}' from Self Service"
+      end
+
+      # Reset this version to 'pilot' status, since we are rolling back
+      # to a previous version
+      #
+      # @return [void]
+      #########################
+      def reset_to_pilot
+        return if status == STATUS_PILOT
+
+        lock
+        progress "Jamf: Resetting version '#{version}' to pilot status due to rollback of an older version"
+
+        # set scope targets of auto-install policy to pilot-groups and re-enable
+        msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to pilot_groups: #{pilot_groups_to_use.join(', ')}"
+        progress msg, log: :info
+        pol = jamf_auto_install_policy
+        pol.scope.set_targets :computer_groups, pilot_groups_to_use
+        pol.enable
+        pol.save
+
+        # set scope targets of patch policy to pilot-groups and re-enable
+        msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to pilot_groups"
+        progress msg, log: :info
+        ppol = jamf_patch_policy
+        ppol.scope.set_targets :computer_groups, pilot_groups_to_use
+        # ensure patch policy is NOT set to 'allow downgrade'
+        ppol.allow_downgrade = false
+        ppol.enable
+        ppol.save
+
+        # remove the manual install policy from self service, if needed
+        if title_object.self_service
+          pol = jamf_manual_install_policy
+          if pol.in_self_service?
+            msg = "Jamf: Version '#{version}': Removing manual-install policy from Self Service"
+            progress msg, log: :info
+            pol.remove_from_self_service
+            pol.save
+          end
+        end
+
+        # change status to 'pilot'
+        self.status = STATUS_PILOT
 
         save_local_data
       ensure
@@ -552,7 +657,7 @@ module Xolo
 
         self.modification_date = Time.now
         self.modified_by = admin
-        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+        log_debug "Version '#{version}' of Title '#{title}' noting modification by #{modified_by}"
 
         file = version_data_file
         log_debug "Saving local version data to: #{file}"

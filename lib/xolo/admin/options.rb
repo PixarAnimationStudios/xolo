@@ -323,6 +323,7 @@ module Xolo
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version,
+          process_method: :release_version,
           streamed_response: true,
           confirmation: true
         },
