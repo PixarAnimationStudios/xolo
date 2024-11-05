@@ -301,6 +301,10 @@ module Xolo
       # @return [Hash] The new data to apply as an update
       attr_reader :new_data_for_update
 
+      # @return [Integer] The Jamf Pro ID for the self-service icon
+      #   once it has been uploaded
+      attr_accessor :ssvc_icon_id
+
       # version_order is defined in ATTRIBUTES
       alias versions version_order
 
@@ -648,7 +652,7 @@ module Xolo
 
         self.modification_date = Time.now
         self.modified_by = admin
-        log_debug "modification_date: #{modification_date}, modified_by: #{modified_by}"
+        log_debug "Title '#{title}' noting modification by #{modified_by}"
 
         # do we have a stored self service icon?
         self.self_service_icon = ssvc_icon_file ? Xolo::ITEM_UPLOADED : nil
@@ -776,11 +780,11 @@ module Xolo
         lock
         if released_version == version_to_release
           raise Xolo::InvalidDataError,
-                "Version '#{version}' of title '#{title}' is already released"
+                "Version '#{version_to_release}' of title '#{title}' is already released"
         end
         unless versions.include? version_to_release
           raise Xolo::NoSuchItemError,
-                "No version '#{version}' for title '#{title}'"
+                "No version '#{version_to_release}' for title '#{title}'"
         end
 
         progress "Releasing version #{version_to_release} of title '#{title}'", log: :debug
@@ -790,33 +794,38 @@ module Xolo
         all_versions = version_objects.reverse
         vobj_to_release = all_versions.find { |v| v.version == version_to_release }
         vobj_current_release = all_versions.find { |v| v.version == released_version }
-        rolling_back = vobj_to_release < vobj_current_release
-        progress "Rolling back from version #{released_version}", log: :debug if rolling_back
+
+        rollback = vobj_current_release && vobj_to_release < vobj_current_release
+
+        progress "Rolling back from version #{released_version}", log: :debug if rollback
 
         all_versions.each do |vobj|
           # This is the one we are releasing
           if vobj == vobj_to_release
-            vobj.release rollback: rolling_back
+            vobj.release rollback: rollback
 
-            # This one is older than the one we're releasing
+          # This one is older than the one we're releasing
+          # so its either deprecated or skipped
           elsif vobj < vobj_to_release
+            # don't do anything if the status is already deprecated or skipped
             vobj.deprecate if vobj.status == Xolo::Server::Version::STATUS_RELEASED
             vobj.skip if vobj.status == Xolo::Server::Version::STATUS_PILOT
 
-            # this one is newer than the one we're releasing
+          # this one is newer than the one we're releasing
           else
-            # do nothing if its in pilot, even if we're rolling back
+            # do nothing if its in pilot
             next if vobj.status == Xolo::Server::Version::STATUS_PILOT
 
             # this should be redundant with the above?
-            next unless rolling_back
+            next unless rollback
 
             # if we're here, we're rolling back to something older than this
             # version, and this version is currently released, deprecated or skipped.
             # We need to reset it to pilot.
             vobj.reset_to_pilot
-          end
-        end
+
+          end # if vobj == vobj_to_release
+        end # all_versions.each
 
         # update the title
         released_version = version_to_release
@@ -852,7 +861,7 @@ module Xolo
         return unless curr_lock
 
         Xolo::Server.object_locks[title].delete :expires
-        log_debug "Unocked title '#{title}' for updates"
+        log_debug "Unlocked title '#{title}' for updates"
       end
 
       # Add more data to our hash
@@ -860,6 +869,7 @@ module Xolo
       def to_h
         hash = super
         hash[:ted_id_number] = ted_id_number
+        hash[:ssvc_icon_id] = ssvc_icon_id
         hash
       end
 

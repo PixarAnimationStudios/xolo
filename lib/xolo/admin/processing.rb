@@ -495,6 +495,29 @@ module Xolo
         handle_processing_error e
       end
 
+      # Release a version of a title in Xolo
+      #
+      # @return [void]
+      ###############################
+      def release_version
+        return unless confirmed? "Release Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+
+        opts_to_process.title = cli_cmd.title
+
+        title = Xolo::Admin::Title.new opts_to_process
+        response_data = title.release server_cnx, version: cli_cmd.version
+
+        if debug?
+          puts "DEBUG: response_data: #{response_data}"
+          puts
+        end
+
+        display_progress response_data[:progress_stream_url_path]
+        speak "Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' has been released."
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
       # Show details about a title or version in xolo
       #
       # @return [void]

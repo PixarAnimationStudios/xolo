@@ -117,7 +117,7 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         patch '/titles/:title/release/:version' do
-          log_info "Admin #{session[:admin]} is Releasing version #{params[:version]} of title '#{params[:title]}' via PATCH"
+          log_info "Admin #{session[:admin]} is releasing version #{params[:version]} of title '#{params[:title]}' via PATCH"
 
           halt_on_missing_title params[:title]
           halt_on_missing_version params[:title], params[:version]
@@ -132,8 +132,10 @@ module Xolo
             halt 409, { error: msg }
           end
 
+          vers_to_release = params[:version]
+
           with_streaming do
-            title.release params[:version]
+            title.release vers_to_release
             update_client_data
           end
         end

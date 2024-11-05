@@ -278,30 +278,92 @@ module Xolo
           # exclusions are for always
           set_policy_exclusions pol
 
-          # but pilots only show up in ssvc if they have any defined pilot grtoups.
-          if title_object.self_service && !pilot_groups_to_use.pix_empty?
-            progress 'Jamf: Adding to SelfService, will only be visible to appropriate groups.', log: :debug
-            pol.add_to_self_service
-            pol.add_self_service_category title_object.self_service_category
-            pol.self_service_description = title_object.description
-            pol.self_service_display_name = title_object.display_name
-            pol.self_service_install_button_text = 'Install'
-          end
-
           pol.enable
           pol.save
+        end
+
+        # Add the manual install policy to self service
+        # This should only happen when a version is released.
+        #
+        # @return [void]
+        ############################
+        def add_to_self_service
           return unless title_object.self_service
 
-          # TODO: someday it would be nice if jamf lets us use the
-          # API to assign existing icons.
-          icon_file = Xolo::Server::Title.ssvc_icon_file(title)
-          unless icon_file
-            progress 'Jamf: NOTE: no self service icon has been uploaded for this title.'
-            return
+          pol = jamf_manual_install_policy
+          return unless pol
+          return if pol.in_self_service?
+
+          msg = "Jamf: Version '#{version}': Setting manual-install policy to appear in self-service"
+          progress msg, log: :info
+          pol.add_to_self_service
+          pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
+          pol.add_self_service_category title_object.self_service_category
+          pol.self_service_description = title_object.description
+          pol.self_service_display_name = title_object.display_name
+          pol.self_service_install_button_text = 'Install'
+
+          # if the policy already is using the correct icon, we're done
+          return if title_object.ssvc_icon_id && pol.icon.id == title_object.ssvc_icon_id
+
+          # an icon has been uploaded to xolo for this title
+          if title_object.ssvc_icon_file
+
+            # the icon has been uploaded to jamf, we have its id and its valid
+            if title_object.ssvc_icon_id && valid_icon_id?(title_object.ssvc_icon_id)
+              progress "Jamf: Version '#{version}': Attaching Self Service icon to policy", log: :info
+              pol.icon = title_object.ssvc_icon_id
+              need_to_upload_icon_to_jamf = false
+            else
+              need_to_upload_icon_to_jamf = true
+            end
+
+          # no icon has been uploaded to xolo for this title
+          else
+            progress "Jamf: Version '#{version}': NOTE: no Self Service icon has been uploaded to Xolo for this title."
+            need_to_upload_icon_to_jamf = false
           end
 
-          progress 'Jamf: Attaching SelfService icon to policy', log: :debug
-          pol.upload :icon, icon_file if icon_file
+          pol.save
+          upload_icon_to_jamf(pol) if need_to_upload_icon_to_jamf
+        end
+
+        # upload an icon to jamf
+        # @param pol [Jamf::Policy] The policy to upload the icon to
+        # @return [void]
+        ############################
+        def upload_icon_to_jamf(pol)
+          progress "Jamf: Version '#{version}': Uploading Self Service icon to Jamf", log: :info
+          pol.upload :icon, title_object.ssvc_icon_file
+          # a moment for jamf to catch up and assign the icon id
+          sleep 2
+
+          # update the title object with the icon id we just uploaded
+          if title_object.locked?
+            need_to_unlock_title = false
+          else
+            title_object.lock
+            need_to_unlock_title = true
+          end
+
+          icon_id = Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx).icon.id
+          title_object.ssvc_icon_id = icon_id
+          title_object.save_local_data
+        ensure
+          title_object.unlock if need_to_unlock_title
+        end
+
+        # Confirm that an icon's id is valid, if not, we'll re-upload it
+        #
+        # @param icon_id [String, Integer] The id of the icon to check
+        #
+        # @return [Boolean] true if the icon is valid, false if it's not
+        ############################
+        def valid_icon_id?(icon_id)
+          jamf_cnx.jp_get "v1/icon/#{icon_id}"
+          true
+        rescue Jamf::Connection::JamfProAPIError
+          false
         end
 
         # The auto install policy is triggered by checkin
@@ -532,6 +594,8 @@ module Xolo
 
           # exclusions are for always
           set_policy_exclusions ppol
+
+          ppol.allow_downgrade = false
 
           ppol.enable
 
