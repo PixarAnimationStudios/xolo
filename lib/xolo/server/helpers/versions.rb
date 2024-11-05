@@ -75,18 +75,20 @@ module Xolo
         # to use for access from the version object to the Sinatra App instance
         # for the session and api connection objects
         #
-        # @param data [Hash, Array] hash to use with .new
+        # @param data [Hash] hash to use with .new
         # @param title [String, Xolo::Server::Title] title to use with .load
         # @param version [String] version to use with .load
         #
         # @return [Xolo::Server::Version]
         #################
         def instantiate_version(data = nil, title: nil, version: nil)
-          if title.is_a? Xolo::Server::Title
+          title_obj = nil
+
+          if data
+            title = data[:title]
+          elsif title.is_a?(Xolo::Server::Title)
             title_obj = title
-            title = title.title
-          else
-            title_obj = instantiate_title title
+            title = title_obj.title
           end
 
           vers =
@@ -99,10 +101,12 @@ module Xolo
 
               Xolo::Server::Version.load title, version
             else
-              halt 400, 'Invalid data to instantiate a Xolo.Server::Version'
+              msg = 'Invalid data to instantiate a Xolo::Server::Version'
+              log_error msg
+              halt 400, { error: msg }
             end
 
-          vers.title_object = title_obj
+          vers.title_object = title_obj || instantiate_title(title)
           vers.server_app_instance = self
           vers
         end
