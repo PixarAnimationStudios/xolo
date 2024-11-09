@@ -123,10 +123,12 @@ module Xolo
 
             new_val = new_data_for_update[attr]
             old_val = send(attr)
+
+            # nothing to change if the values are the same
             next if new_val == old_val
 
             # These changes happen in real time on the Title Editor server
-            log_debug "Title Editor: Updating title attribute '#{ted_attribute}': #{old_val} -> #{new_val}"
+            progress "Title Editor: Updating title attribute '#{ted_attribute}': #{old_val} -> #{new_val}", Log: :info
             ted_title.send "#{ted_attribute}=", new_val
           end
 
