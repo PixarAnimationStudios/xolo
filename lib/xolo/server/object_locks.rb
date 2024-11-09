@@ -85,7 +85,7 @@ module Xolo
           if !locks[:versions].empty?
             false
 
-            # if there's a title lock expiration time, check it
+          # if there's a title lock expiration time, check it
           elsif locks[:expires]
             if locks[:expires] < now
               log_debug "Removing expired lock on title #{title}"
