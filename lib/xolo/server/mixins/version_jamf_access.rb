@@ -451,9 +451,11 @@ module Xolo
           ttl_obj ||= title_object
           exclusions = excluded_groups_to_use(ttl_obj: ttl_obj)
           exclusions ||= []
+
           # the initial-install policies must also exclude any mac with the title
           # already installed
-          if pol.is_a? Jamf::Policy
+          if pol.is_a? Jamf::Policy && !exclusions.include?(ttl_obj.jamf_installed_smart_group_name)
+            exclusions = exclusions.dup
             exclusions << ttl_obj.jamf_installed_smart_group_name
             log_debug "Jamf: excluding computers with the title installed from the initial-install policy '#{pol.name}'"
           end
