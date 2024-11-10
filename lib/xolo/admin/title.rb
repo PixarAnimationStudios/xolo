@@ -229,6 +229,17 @@ module Xolo
         resp.body
       end
 
+      # The change log is a list of hashes, each with keys:
+      # :time, :admin, :ipaddr, :version (may be nil), :action
+      #
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Array<Hash>] The change log for this title
+      ####################
+      def changelog(cnx)
+        resp = cnx.get "#{SERVER_ROUTE}/#{title}/changelog"
+        resp.body
+      end
+
       # Upload an icon for self service.
       # At this point, the self_service_icon attribute
       # should contain the local file path.

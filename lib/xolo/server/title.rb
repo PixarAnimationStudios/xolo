@@ -50,6 +50,7 @@ module Xolo
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
 
+      include Xolo::Server::Mixins::Changelog
       include Xolo::Server::Mixins::TitleJamfAccess
       include Xolo::Server::Mixins::TitleTedAccess
 
@@ -490,6 +491,7 @@ module Xolo
       #########################
       def create
         lock
+
         self.creation_date = Time.now
         self.created_by = admin
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
@@ -501,6 +503,8 @@ module Xolo
         # add some data
         progress 'Saving title data to Xolo server'
         save_local_data
+
+        log_change old: nil, new: 'Created Title'
 
         # ssvc icon is uploaded in a separate process, and the
         # title data file will be updated as needed then.
@@ -523,6 +527,8 @@ module Xolo
         # with the existing instance data
         @new_data_for_update = new_data
         log_info "Updating title '#{title}' for admin '#{admin}'"
+
+        log_update_changes
 
         # Do ted before doing things in Jamf
         update_title_in_ted
@@ -763,6 +769,8 @@ module Xolo
         delete_title_from_ted
 
         delete_title_from_jamf
+
+        delete_changelog
 
         progress "Deleting Xolo server data for title '#{title}'", log: :info
         title_dir.rmtree

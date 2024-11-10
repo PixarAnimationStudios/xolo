@@ -60,6 +60,7 @@ require 'thin'
 require 'ruby-jss'
 require 'windoo'
 require 'concurrent/hash'
+require 'concurrent/atomic/reentrant_read_write_lock'
 
 module Xolo
 

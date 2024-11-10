@@ -518,6 +518,34 @@ module Xolo
         handle_processing_error e
       end
 
+      # show the change log for a title
+      #
+      # @return [void]
+      ###############################
+      def show_changelog
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        changelog = title.changelog(server_cnx)
+        if json?
+          puts JSON.pretty_generate(changelog)
+          return
+        end
+
+        header = %w[Time Admin IPAddr Version Old New]
+        data = changelog.map do |change|
+          [
+            Time.parse(change[:time]).strftime('%F-%T'),
+            change[:admin],
+            change[:ipaddr],
+            change[:version],
+            change[:old],
+            change[:new]
+          ]
+        end
+        show_text generate_report(data, header_row: header, title: "Changelog for Title '#{cli_cmd.title}'")
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
       # Show details about a title or version in xolo
       #
       # @return [void]

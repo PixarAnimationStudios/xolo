@@ -144,6 +144,7 @@ module Xolo
 
       INFO_CMD = 'info' # info on a title or version
       SEARCH_CMD = 'search' # search for titles
+      CHANGELOG_CMD = 'changelog' # show the changelog for a title
       REPORT_CMD = 'report' # report on installations
       CONFIG_CMD = 'config' # configure xadm
 
@@ -355,10 +356,18 @@ module Xolo
         },
 
         REPORT_CMD => {
-          desc: 'Report installation data.',
+          desc: 'Report installation data',
           display: "#{REPORT_CMD} title [version | frozen]",
           opts: {},
           target: :title_or_version
+        },
+
+        CHANGELOG_CMD => {
+          desc: 'Show the changelog for a title and its versions',
+          display: "#{CHANGELOG_CMD} title",
+          opts: {},
+          target: :title,
+          process_method: :show_changelog
         },
 
         CONFIG_CMD => {
@@ -417,7 +426,7 @@ module Xolo
       MUST_EXIST_COMMANDS = [
         EDIT_TITLE_CMD, EDIT_VERSION_CMD,
         DELETE_TITLE_CMD, DELETE_VERSION_CMD, RELEASE_VERSION_CMD,
-        FREEZE_TITLE_CMD, THAW_TITLE_CMD, LIST_FROZEN_CMD
+        FREEZE_TITLE_CMD, THAW_TITLE_CMD, LIST_FROZEN_CMD, CHANGELOG_CMD
       ].freeze
 
       # Module methods
