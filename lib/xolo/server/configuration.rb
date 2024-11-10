@@ -108,6 +108,10 @@ module Xolo
 
       PRIVATE = '<private>'
 
+      # if this file exists, the server is in developer mode, and some things do or don't happen
+      # see {#developer_mode?}
+      DEV_MODE_FILE = Xolo::Server::DATA_DIR + 'dev_mode'
+
       # Attributes
       #####################################
 
@@ -638,6 +642,21 @@ module Xolo
 
         SSL_CERT_FILE.pix_save data_from_command_or_file(ssl_key)
         @ssl_key_file = SSL_CERT_FILE
+      end
+
+      # @return [Boolean] are we in developer mode? If so, some actions do or don't happen
+      ##################
+      def developer_mode?
+        DEV_MODE_FILE.file?
+      end
+
+      # @return [Hash] a hash of the configuration values, with private values replaced by '<private>'
+      # and server specific values added
+      #
+      def to_h
+        hash = super
+        hash[:developer_mode] = developer_mode?
+        hash
       end
 
     end # class Configuration
