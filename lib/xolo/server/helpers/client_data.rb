@@ -89,6 +89,7 @@ module Xolo
         end
 
         # A mutex for the client data update process
+        # TODO: user Concrrent Ruby instead of Mutex
         #
         # @return [Mutex] the mutex
         #####################
@@ -113,6 +114,9 @@ module Xolo
         # @return [void]
         #####################
         def update_client_data
+          # don't do anything if we are in developer/test mode
+          return if Xolo::Server.config.developer_mode?
+
           log_info 'Jamf: Updating client-data package'
 
           # shorter name

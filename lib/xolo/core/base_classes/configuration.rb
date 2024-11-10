@@ -136,14 +136,9 @@ module Xolo
 
         ###############
         def to_h_private
-          data = {}
+          data = to_h
           keys.each do |key, deets|
-            data[key] =
-              if deets[:private]
-                PRIVATE
-              else
-                send(key)
-              end
+            data[key] = PRIVATE if deets[:private]
           end
           data
         end
