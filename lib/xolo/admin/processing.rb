@@ -530,20 +530,45 @@ module Xolo
           return
         end
 
-        header = %w[Time Admin IPAddr Version Old New]
-        data = changelog.map do |change|
-          [
-            Time.parse(change[:time]).strftime('%F-%T'),
-            change[:admin],
-            change[:ipaddr],
-            change[:version],
-            change[:old],
-            change[:new]
-          ]
+        output = ["# Changelog for Title '#{cli_cmd.title}'"]
+        output << '#' * (output.first.length + 5)
+        changelog.each do |change|
+          vers_or_title = change[:version] ? "Version #{change[:version]}" : 'Title'
+          output << "#{Time.parse(change[:time]).strftime('%F-%T')} #{change[:admin]}@#{change[:ipaddr]} changed #{vers_or_title}"
+
+          if change[:action]
+            val = format_changelog_multiline_value(change[:action], indent: 10)
+            output << "  Action: #{val}"
+
+          else
+            output << "  Attribute: #{change[:attrib]}"
+            from_val = format_changelog_multiline_value(change[:old], indent: 8)
+            output << "  From: #{from_val}"
+            to_val = format_changelog_multiline_value(change[:new], indent: 6)
+            output << "  To: #{to_val}"
+          end
+          output << nil
         end
-        show_text generate_report(data, header_row: header, title: "Changelog for Title '#{cli_cmd.title}'")
+
+        show_text output.join("\n")
       rescue StandardError => e
         handle_processing_error e
+      end
+
+      # format a multi-line value for display in the change log
+      # prepending the proper indentation
+      #
+      # @param value [String] the value to format
+      # @param indent [Integer] the number of spaces to indent all but the first line
+      # @return [String] the formatted value
+      #######################
+      def format_changelog_multiline_value(value, indent:)
+        value = value.to_s
+        return value unless value.include? "\n"
+
+        lines = value.split("\n")
+        lines[1..-1].each { |line| line.prepend ' ' * indent }
+        lines.join("\n")
       end
 
       # Show details about a title or version in xolo

@@ -504,7 +504,7 @@ module Xolo
         progress 'Saving title data to Xolo server'
         save_local_data
 
-        log_change old: nil, new: 'Created Title'
+        log_change action: 'Title Created'
 
         # ssvc icon is uploaded in a separate process, and the
         # title data file will be updated as needed then.
@@ -528,11 +528,14 @@ module Xolo
         @new_data_for_update = new_data
         log_info "Updating title '#{title}' for admin '#{admin}'"
 
-        log_update_changes
-
         # Do ted before doing things in Jamf
         update_title_in_ted
         update_title_in_jamf
+
+        # changelog - do this after updating jamf and ted, but
+        # before update_local_instance_values & saving the local data, so that
+        # new_data_for_update can be compared to the current instance values
+        log_update_changes
 
         # Don't do this until we no longer need to use
         # new_data_for_update for comparison with our

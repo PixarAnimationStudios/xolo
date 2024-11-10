@@ -34,22 +34,41 @@ module Xolo
       # This is mixed in to Xolo::Server::Title and Xolo::Server::Version,
       # for simplified access to a title's changelog
       #
+      # Each title has a changelog file that records changes to the title and its versions.
+      #
+      # The changelog file is a 'jsonlines' file, which is a JSON file containing
+      # a single JSON object per line. See https://jsonlines.org/ for more info.
+      # The reason for using jsonlines is that it is easy to append to the file, rather than
+      # having to read the whole file into memory, parse it, add a new entry, and write it back.
+      #
+      # In this case, each line is a JSON object (ruby Hash) representing a change or an action.
+      #
+      # The keys in the hash are:
+      #   :time - the time the change was made
+      #   :admin - the admin who made the change
+      #   :ipaddr - the hostname or IP address of the admin
+      #   :version - the version number, or nil if the change is to the title
+      #   :attrib - the attribute name, or nil if the change is an action
+      #   :old - the original value, or nil if the change is an action
+      #   :new - the new value, or nil if the change is an action
+      #   :action - a description of the action, or nil if the change is to an attribute
+      #
+      # The changelog file is stored in the title directory in a file named 'changelog.json'.
+      # The file exists for as long as the title exists.
+      # It is backed up when before every event logged to it, in the backup directory in
+      # the server's BACKUPS_DIR.
+      #
+      # When a title is deleted, its changelog file is moved to a backup directory before
+      # the title directory is deleted, and will remain there until manually removed.
+      #
       module Changelog
 
-        # The change log filename for this title and its versions
-        # It is stored in the title dir in a file with this name.
-        # It contains a JSON array of hashes, each hash representing
-        # a change to the title or one of its versions.
-        # the hashes have keys: :time, :admin, :ipaddr, :version (may be nil), :old, :new
-        TITLE_CHANGELOG_FILENAME = 'changelog.json'
+        # Constants
+        #######################
+        #######################
 
-        # When a title is deleted, its changelog is moved to this directory and
-        # renamed to '<title>_changelog.json'
-        # This is so that the changelog can be accessed after the title is deleted.
-        ################
-        def self.backup_file_dir
-          @backup_file_dir ||= Xolo::Server::BACKUPS_DIR + 'changelogs'
-        end
+        # The change log filename
+        TITLE_CHANGELOG_FILENAME = 'changelog.jsonl'
 
         # Module Methods
         #######################
@@ -58,6 +77,14 @@ module Xolo
         # when this module is included
         def self.included(includer)
           Xolo.verbose_include includer, self
+        end
+
+        # When a title is deleted, its changelog is moved to this directory and
+        # renamed to '<title>_changelog.json'
+        # This is so that the changelog can be accessed after the title is deleted.
+        ################
+        def self.backup_file_dir
+          @backup_file_dir ||= Xolo::Server::BACKUPS_DIR + 'changelogs'
         end
 
         # A hash of the read-write locks for each title's changelog file
@@ -89,7 +116,7 @@ module Xolo
         # @return [Pathname] the path to the backup file for this title's changelog
         #######################
         def changelog_backup_file
-          @changelog_backup_file ||= Xolo::Server::Mixins::Changelog.backup_file_dir + "#{title}-changelog.json"
+          @changelog_backup_file ||= Xolo::Server::Mixins::Changelog.backup_file_dir + "#{title}-#{TITLE_CHANGELOG_FILENAME}"
         end
 
         # the read-write lock for a title's changelog file
@@ -114,11 +141,15 @@ module Xolo
         #######################
         def changelog
           log_debug "Reading changelog for #{title}"
+          changelog_data = []
+
           if changelog_file.exist?
-            changelog_lock.with_read_lock { JSON.parse changelog_file.read, symbolize_names: true }
-          else
-            []
+            changelog_lock.with_read_lock do
+              changelog_file.read.lines.each { |l| changelog_data << JSON.parse(l, symbolize_names: true) }
+            end
           end
+
+          changelog_data
         end
 
         # Copy the changelog file to the backup directory
@@ -138,19 +169,36 @@ module Xolo
           changelog_file.pix_cp changelog_backup_file
         end
 
-        # Add a change to the changelog file for a title
+        # Log a change by adding an entry to the changelog file for a title
+        # or one of its versions.
         #
+        # The entry may be for an action, such as 'Title Created',
+        # or for a change to the value of an attribute.
+        #
+        # Either provide all three of :attrib, :old, and :new, or provide :action.
+        # For an action, provide the :action key and a String describing the action.
+        # For a change to an attribute, provide the :attrib key and the :old and :new values.
+        #
+        # @param attrib [Symbol] the attribute name
         # @param old [Object] the original value
         # @param new [Object] the new value
+        # @param action [String] a description of the action
         #
         # @return [void]
         #######################
-        def log_change(old:, new:)
+        def log_change(attrib: nil, old: nil, new: nil, action: nil)
+          raise ArgumentError, 'Must provide attrib:, old: & new: OR action:' if !action && !(attrib && old && new)
+
+          # if action, attrib, old, and new are ignored
+          attrib, old, new = nil if action
+
           change = {
             time: Time.now,
             admin: session[:admin],
-            ipaddr: server_app_instance.request.ip,
+            ipaddr: hostname_from_ip(server_app_instance.request.ip),
             version: respond_to?(:version) ? version : nil,
+            action: action,
+            attrib: attrib,
             old: old,
             new: new
           }
@@ -159,10 +207,28 @@ module Xolo
 
           changelog_lock.with_write_lock do
             backup_changelog
-            all_changes = changelog
-            all_changes << change
-            changelog_file.pix_save JSON.pretty_generate(all_changes)
+            changelog_file.pix_append "#{change.to_json}\n"
           end
+        end
+
+        # get a hostname from an IP address if possible
+        #
+        # @param ip [String] the IP address
+        #
+        # @return [String] the hostname or the IP address if the hostname cannot be found
+        #######################
+        def hostname_from_ip(ip)
+          host = Socket.gethostbyaddr(ip.split('.').map(&:to_i).pack('CCCC')).first
+
+          # also, can use
+          #    require 'resolv'
+          #    Resolv.getname(ip)
+          # in which case the rescue block would
+          # be for Resolv::ResolvError
+
+          host.pix_empty? ? ip : host
+        rescue SocketError
+          ip
         end
 
         # Record all changes during an update of a title or version
@@ -182,7 +248,7 @@ module Xolo
             old_val = "'#{old_val.sort.join("', '")}'" if old_val.is_a? Array
             next if new_val == old_val
 
-            log_change old: old_val, new: new_val
+            log_change attrib: attr, old: old_val, new: new_val
           end
         end
 
@@ -195,17 +261,18 @@ module Xolo
           change = {
             time: Time.now,
             admin: session[:admin],
-            ipaddr: server_app_instance.request.ip,
+            ipaddr: hostname_from_ip(server_app_instance.request.ip),
             version: nil,
+            action: 'Title Deleted',
+            attrib: nil,
             old: nil,
-            new: 'Deleted Title'
+            new: nil
           }
 
           changelog_lock.with_write_lock do
-            all_changes = changelog
-            all_changes << change
-            changelog_file.pix_save JSON.pretty_generate(all_changes)
+            changelog_file.pix_append "#{change.to_json}\n"
 
+            # final backup
             changelog_backup_file.delete if changelog_backup_file.exist?
             changelog_file.rename changelog_backup_file
           end
