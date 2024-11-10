@@ -46,7 +46,7 @@ module Xolo
       # The keys in the hash are:
       #   :time - the time the change was made
       #   :admin - the admin who made the change
-      #   :ipaddr - the hostname or IP address of the admin
+      #   :host - the hostname or IP address of the admin
       #   :version - the version number, or nil if the change is to the title
       #   :attrib - the attribute name, or nil if the change is an action
       #   :old - the original value, or nil if the change is an action
@@ -195,7 +195,7 @@ module Xolo
           change = {
             time: Time.now,
             admin: session[:admin],
-            ipaddr: hostname_from_ip(server_app_instance.request.ip),
+            host: hostname_from_ip(server_app_instance.request.ip),
             version: respond_to?(:version) ? version : nil,
             action: action,
             attrib: attrib,
@@ -261,7 +261,7 @@ module Xolo
           change = {
             time: Time.now,
             admin: session[:admin],
-            ipaddr: hostname_from_ip(server_app_instance.request.ip),
+            host: hostname_from_ip(server_app_instance.request.ip),
             version: nil,
             action: 'Title Deleted',
             attrib: nil,
