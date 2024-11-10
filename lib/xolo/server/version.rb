@@ -426,7 +426,7 @@ module Xolo
         progress "Updating title version_order, prepending '#{version}'", log: :debug
         title_object.prepend_version(version)
 
-        log_change old: nil, new: 'Created Version'
+        log_change action: 'Version Created'
 
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
       ensure
@@ -459,12 +459,16 @@ module Xolo
         @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
 
-        log_update_changes
-
         # update ted before jamf
         update_patch_in_ted
         enable_ted_patch
         update_version_in_jamf
+
+        # changelog - do this after updating jamf and ted, but
+        # before update_local_instance_values & saving the local data, so that
+        # new_data_for_update can be compared to the current instance values
+        log_update_changes
+
         update_local_instance_values
 
         # save to file last, because saving to TitleEd and Jamf will
@@ -690,7 +694,7 @@ module Xolo
         # delete the local data
         progress 'Deleting version data from the Xolo server', log: :info
         version_data_file.delete
-        log_change old: nil, new: 'Deleted Version'
+        log_change action: 'Version Deleted'
 
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
       ensure
