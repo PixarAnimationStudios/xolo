@@ -136,7 +136,7 @@ module Xolo
 
           flush_client_data_policy_logs
         ensure
-          mutex.unlock if mutex.owned?
+          mutex.unlock if mutex&.owned?
         end
 
         # Create the xolo-client-data package in Jamf Pro
