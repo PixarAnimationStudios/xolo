@@ -164,6 +164,8 @@ module Xolo
         # - hide_from_info: [Boolean] when true, do not show this attribute in the 'info' xadm output
         #   NOTE: it will still be available when --json is given with the info command.
         #
+        # - changelog: [Boolean] When true, changes to this attribute is included in the changelog for the title.
+        #
         ATTRIBUTES = {
 
           # @!attribute title
@@ -195,6 +197,7 @@ module Xolo
             type: :string,
             validate: :validate_title_display_name,
             invalid_msg: 'Not a valid display name, must be at least three characters long.',
+            changelog: true,
             desc: <<~ENDDESC
               A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
               Must be at least three characters long.
@@ -209,6 +212,7 @@ module Xolo
             cli: :d,
             type: :string,
             validate: :validate_title_desc,
+            changelog: true,
             multiline: true,
             invalid_msg: <<~ENDINV,
               Not a valid description, must be at least 20 characters.
@@ -237,6 +241,7 @@ module Xolo
             cli: :P,
             type: :string,
             validate: true,
+            changelog: true,
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',
             desc: <<~ENDDESC
               The company or entity that publishes this title, e.g. 'Apple, Inc.' or 'Pixar Animation Studios'.
@@ -251,6 +256,7 @@ module Xolo
             cli: :a,
             validate: true,
             type: :string,
+            changelog: true,
             walkthru_na: :app_name_bundleid_na,
             invalid_msg: "Not a valid App name, must end with '.app'",
             desc: <<~ENDDESC
@@ -272,6 +278,7 @@ module Xolo
             cli: :b,
             validate: true,
             type: :string,
+            changelog: true,
             walkthru_na: :app_name_bundleid_na,
             invalid_msg: '"Not a valid bundle-id, must include at least one dot.',
             desc: <<~ENDDESC
@@ -294,6 +301,7 @@ module Xolo
             validate: true,
             type: :string,
             readline: :get_files,
+            changelog: true,
             walkthru_na: :version_script_na,
             invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
             desc: <<~ENDDESC
@@ -321,6 +329,7 @@ module Xolo
             type: :string,
             multi: true,
             readline_prompt: 'Group Name',
+            changelog: true,
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid release group(s). Must exist in Jamf and not be excluded.',
             desc: <<~ENDDESC
@@ -346,6 +355,7 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
+            changelog: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf and not be excluded.',
@@ -369,6 +379,7 @@ module Xolo
             cli: :e,
             validate: true,
             type: :integer,
+            changelog: true,
             invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. or 0 for no expiration.',
             desc: <<~ENDDESC
               If none of the executables listed as 'Expiration Paths' have been brought to the foreground in this number of days, the title is uninstalled from the computer.
@@ -388,6 +399,7 @@ module Xolo
             multi: true,
             walkthru_na: :expiration_na,
             readline: :get_files,
+            changelog: true,
             readline_prompt: 'Path',
             invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
             desc: <<~ENDDESC
@@ -409,6 +421,7 @@ module Xolo
             type: :boolean,
             validate: :validate_boolean,
             default: false,
+            changelog: true,
             walkthru_na: :ssvc_na,
             desc: <<~ENDDESC
               Make this title available in Self Service. Only the currently released version will be available.
@@ -430,6 +443,7 @@ module Xolo
             validate: true,
             type: :string,
             walkthru_na: :ssvc_na,
+            changelog: true,
             readline: :jamf_category_names,
             invalid_msg: 'Invalid category. Must exist in Jamf Pro.',
             desc: <<~ENDDESC
@@ -450,6 +464,7 @@ module Xolo
             validate: true,
             type: :string,
             readline: :get_files,
+            changelog: true,
             walkthru_na: :ssvc_na,
             invalid_msg: 'Invalid Icon. Must exist locally and be a PNG, JPG, or GIF file.',
             desc: <<~ENDDESC
@@ -526,6 +541,7 @@ module Xolo
             label: 'Released Version',
             type: :string,
             cli: false,
+            changelog: true,
             read_only: true, # maintained by the server, not editable by xadm
             desc: <<~ENDDESC
               The currently released version

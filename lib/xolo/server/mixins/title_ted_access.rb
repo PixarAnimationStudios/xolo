@@ -115,6 +115,8 @@ module Xolo
         # @return [void]
         ##########################
         def update_title_in_ted
+          return unless new_data_for_update
+
           progress "Title Editor: Updating SoftwareTitle '#{title}'", log: :info
 
           Xolo::Server::Title::ATTRIBUTES.each do |attr, deets|
@@ -128,11 +130,13 @@ module Xolo
             next if new_val == old_val
 
             # These changes happen in real time on the Title Editor server
-            progress "Title Editor: Updating title attribute '#{ted_attribute}': #{old_val} -> #{new_val}", Log: :info
+            change_msg = "Title Editor: Updating title attribute '#{ted_attribute}': #{old_val} -> #{new_val}"
+            progress change_msg, log: :info
+
             ted_title.send "#{ted_attribute}=", new_val
           end
 
-          update_ted_title_requirements
+          update_ted_title_requirements if need_to_update_title_requirements?
 
           self.ted_id_number ||= ted_title.softwareTitleId
         end
@@ -146,10 +150,7 @@ module Xolo
         # @return [void]
         ######################
         def update_ted_title_requirements
-          return unless new_data_for_update
-          return unless need_to_update_title_requirements?
-
-          progress "Title Editor: Setting Requirements for title '#{title}'", log: :debug
+          progress "Title Editor: Setting Requirements for title '#{title}'", log: :info
 
           req_app_name, req_app_bundle_id, req_ea_script = new_data_for_title_requirement
 
@@ -184,13 +185,28 @@ module Xolo
         #   True if the app name, bundle id, or version script have changed
         ###########################
         def need_to_update_title_requirements?
-          if new_data_for_update[:app_name] == app_name && \
-             new_data_for_update[:app_bundle_id] ==  app_bundle_id && \
-             new_data_for_update[:version_script] == version_script
-            log_debug 'Title Editor: No changes to title requirements'
-            return false
+          need_to_update = false
+
+          if new_data_for_update[:app_name] != app_name
+            need_to_update = true
+            msg = "Title Editor: App Name: #{app_name} -> #{new_data_for_update[:app_name]}"
+            log_info msg
           end
-          true
+
+          if new_data_for_update[:app_bundle_id] != app_bundle_id
+            need_to_update = true
+            msg = "Title Editor: Bundle ID: #{app_bundle_id} -> #{new_data_for_update[:app_bundle_id]}"
+            log_info msg
+          end
+
+          if new_data_for_update[:version_script] != version_script
+            need_to_update = true
+            action = new_data_for_update[:version_script].pix_empty? ? 'Deleted' : 'Updated'
+            msg = "Title Editor: Version Script: #{action}"
+            log_info msg
+          end
+
+          need_to_update
         end
 
         # @return [Boolean] do we need to update the app-based requirements and patch components?

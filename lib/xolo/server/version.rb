@@ -51,6 +51,7 @@ module Xolo
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
 
+      include Xolo::Server::Mixins::Changelog
       include Xolo::Server::Mixins::VersionJamfAccess
       include Xolo::Server::Mixins::VersionTedAccess
 
@@ -398,6 +399,7 @@ module Xolo
       #########################
       def create
         lock
+
         self.creation_date = Time.now
         self.created_by = admin
         self.status = STATUS_PENDING
@@ -423,6 +425,8 @@ module Xolo
         # prepend our version to the version_order array of the title
         progress "Updating title version_order, prepending '#{version}'", log: :debug
         title_object.prepend_version(version)
+
+        log_change old: nil, new: 'Created Version'
 
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
       ensure
@@ -454,6 +458,8 @@ module Xolo
         lock
         @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
+
+        log_update_changes
 
         # update ted before jamf
         update_patch_in_ted
@@ -684,6 +690,8 @@ module Xolo
         # delete the local data
         progress 'Deleting version data from the Xolo server', log: :info
         version_data_file.delete
+        log_change old: nil, new: 'Deleted Version'
+
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
       ensure
         unlock

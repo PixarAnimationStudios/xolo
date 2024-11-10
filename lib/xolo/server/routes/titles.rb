@@ -68,7 +68,9 @@ module Xolo
           log_info "Admin #{session[:admin]} is creating title '#{title.title}'"
           with_streaming do
             title.create
-            update_client_data
+            # we don't need to update client data when titles are created
+            # because they don't have any versions yet, so there's nothing a
+            # client can do with them.
           end
         end
 
@@ -88,6 +90,7 @@ module Xolo
           halt_on_missing_title params[:title]
 
           title = instantiate_title params[:title]
+
           body title.to_h
         end
 
@@ -247,6 +250,17 @@ module Xolo
           end
 
           body data
+        end
+
+        # Return the changelog for a title
+        #
+        # @return [Array<Hash>] The changelog for a title
+        #################################
+        get '/titles/:title/changelog' do
+          log_debug "Admin #{session[:admin]} is fetching the change log for title '#{params[:title]}'"
+          halt_on_missing_title params[:title]
+          title = instantiate_title params[:title]
+          body title.changelog
         end
 
       end # Titles

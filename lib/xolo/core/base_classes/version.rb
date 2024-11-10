@@ -129,6 +129,7 @@ module Xolo
             required: true,
             cli: :d,
             validate: true,
+            changelog: true,
             ted_attribute: :releaseDate,
             invalid_msg: 'Not a valid date!',
             desc: <<~ENDDESC
@@ -146,6 +147,7 @@ module Xolo
             required: true,
             validate: true,
             default: DEFAULT_MIN_OS,
+            changelog: true,
             ted_attribute: :minimumOperatingSystem,
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
@@ -160,6 +162,7 @@ module Xolo
             cli: :O,
             type: :string,
             validate: true,
+            changelog: true,
             # default: Xolo::NONE,
             invalid_msg: 'Not a valid OS version!',
             desc: <<~ENDDESC
@@ -175,6 +178,7 @@ module Xolo
             type: :boolean,
             validate: :validate_boolean,
             ted_attribute: :reboot,
+            changelog: true,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
             ENDDESC
@@ -188,6 +192,7 @@ module Xolo
             type: :boolean,
             validate: :validate_boolean,
             ted_attribute: :standalone,
+            changelog: true,
             desc: <<~ENDDESC
               The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
             ENDDESC
@@ -201,6 +206,7 @@ module Xolo
             type: :string,
             multi: true,
             validate: true,
+            changelog: true,
             # default: Xolo::NONE,
             invalid_msg: 'Not a valid killapp!',
             desc: <<~ENDDESC
@@ -230,6 +236,7 @@ module Xolo
             validate: true,
             type: :string,
             multi: true,
+            changelog: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
             invalid_msg: "Invalid group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
