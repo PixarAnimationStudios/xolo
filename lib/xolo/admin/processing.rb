@@ -533,8 +533,8 @@ module Xolo
         output = ["# Changelog for Title '#{cli_cmd.title}'"]
         output << '#' * (output.first.length + 5)
         changelog.each do |change|
-          vers_or_title = change[:version] ? "Version #{change[:version]}" : 'Title'
-          output << "#{Time.parse(change[:time]).strftime('%F-%T')} #{change[:admin]}@#{change[:host]} changed #{vers_or_title}"
+          vers_or_title = change[:version] ? "version #{change[:version]}" : 'title'
+          output << "#{Time.parse(change[:time]).strftime('%F %T')} #{change[:admin]}@#{change[:host]} changed #{vers_or_title}"
 
           if change[:action]
             val = format_changelog_multiline_value(change[:action], indent: 10)
