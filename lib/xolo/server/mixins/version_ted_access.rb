@@ -205,6 +205,8 @@ module Xolo
 
           msg = ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
 
+          enable_ted_patch
+
           progress msg, log: :info
         end
 
@@ -256,13 +258,14 @@ module Xolo
         # @return [void]
         ##############################
         def enable_ted_patch
-          progress "Title Editor: (re)Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :debug
+          progress "Title Editor: (re)Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :info
           ted_patch.enable
 
           # Once we have an enabled patch, the title should also be enabled,
           # cuz everything else should be OK to go.
           # Do this thru the title object for logging
-          title_object.enable_ted_title
+          # TODO: remove this once we know it isn't needed (happens in the title object itself)
+          # title_object.enable_ted_title
         end
 
         # Delete from the title editor

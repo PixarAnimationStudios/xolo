@@ -413,6 +413,7 @@ module Xolo
       #########################
       def create
         lock
+        @current_action = :creating
 
         self.creation_date = Time.now
         self.created_by = admin
@@ -470,6 +471,8 @@ module Xolo
       #########################
       def update(new_data)
         lock
+
+        @current_action = :updating
 
         @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
@@ -707,6 +710,8 @@ module Xolo
       ##########################
       def delete(update_title: true)
         lock
+        @current_action = :deleting
+
         delete_patch_from_ted
         delete_version_from_jamf
 

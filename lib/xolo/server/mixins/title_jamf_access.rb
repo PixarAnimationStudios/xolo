@@ -67,18 +67,14 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
-          update_normal_ea_in_jamf
-          update_installed_smart_group_in_jamf
+          set_normal_ea_in_jamf
+          set_installed_smart_group_in_jamf
 
           # Create the static group that will contain computers
           # where this title is 'frozen'
           # To start with it has no members, but will be used in scope exclusions
-          progress "Jamf: Creating static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
-          Jamf::ComputerGroup.create(
-            name: jamf_frozen_group_name,
-            type: :static,
-            cnx: jamf_cnx
-          ).save
+          jamf_frozen_group.save
+          progress "Jamf: Created static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
         end
 
         # Apply any changes to Jamf as needed
@@ -90,57 +86,69 @@ module Xolo
         def update_title_in_jamf
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_smart_group
-          update_normal_ea_in_jamf if need_to_update_normal_ea_in_jamf?
+          set_normal_ea_in_jamf if need_to_update_normal_ea_in_jamf?
 
           # this smart group might use the normal-EA or might use app data
           # If those have changed, we need to update it.
-          update_installed_smart_group_in_jamf if need_to_update_installed_smart_group_in_jamf?
+          set_installed_smart_group_in_jamf if need_to_update_installed_smart_group_in_jamf?
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_smart_group
-          delete_normal_ea_from_jamf unless new_data_for_update[:version_script]
+          delete_normal_ea_from_jamf if changes_for_update.dig(:version_script, :new).pix_empty?
 
-          unless jamf_ted_title_active?
+          if jamf_ted_title_active?
+            update_versions_for_title_changes_in_jamf
+          else
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
-            return
           end
+        end
 
-          # Set all these values so they'll be applied to all versions when we update them next.
+        # If any title changes require updates to existing versions in
+        # Jamf, this loops thru the versions and applies
+        # them
+        #
+        # This should happen after the incoming changes have been applied to this
+        # title instance
+        #
+        # Jamf Stuff
+        # - update any policy scopes
+        # - update any policy SSvc settings
+        #
+        # @return [void]
+        ############################
+        def update_versions_for_title_changes_in_jamf
+          version_objects.each do |vers_obj|
+            vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update.key? :release_groups
+            vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update.key? :excluded_groups
 
-          @need_to_set_version_patch_components = new_data_for_update[:app_bundle_id] != app_bundle_id || new_data_for_update[:app_name] != app_name
+            # turn self service on or off
+            vers_obj.update_ssvc(ttl_obj: self) if changes_for_update.key? :self_service
 
-          @need_to_update_ssvc = new_data_for_update[:self_service] != self_service
-          @need_to_update_ssvc_category = new_data_for_update[:self_service_category] != self_service_category
+            # update ssvc category if needed, and if self_services is on
+            vers_obj.update_ssvc_category(ttl_obj: self) if changes_for_update.key? :self_service_category
 
-          # prob not needed, since the upload is a separate process from the title update
-          @need_to_update_ssvc_icon = new_data_for_update[:self_service_icon] && new_data_for_update[:self_service_icon] != Xolo::ITEM_UPLOADED
-
-          # Excluded, or Release groups changed at the
-          # title level, make note to update the scope of all version-specific policies and patch policies
-          # when we loop thru the versions
-          @need_to_update_release_groups = new_data_for_update[:release_groups].to_a.sort != release_groups.to_a.sort
-          @need_to_update_excluded_groups = new_data_for_update[:excluded_groups].to_a.sort != excluded_groups.to_a.sort
+            # TODO: deal with icon changes: if changes_for_update.key? :self_service_icon
+          end
         end
 
         # do we need to update the normal EA in jamf?
-        # true if our in coming data has a version script that differs from
-        # our saved one
+        # true if our incoming changes include :version_script
+        # and the new value is not empty (in which case we'll delete it)
         #
         # @return [Boolean]
         ########################
         def need_to_update_normal_ea_in_jamf?
-          new_data_for_update[:version_script] != version_script
+          changes_for_update[:version_script] && !changes_for_update[:version_script][:new].pix_empty?
         end
 
         # do we need to update the 'installed' smart group?
-        # true if our incoming data has any changes in the app_name or app_bundle_id
+        # true if our incoming changes include the app_name or app_bundle_id
         #
-        # If they changed, we need to update no matter what.
+        # If they changed at all, we need to update no matter what:
+        #  - if they are now nil, we switched to a version script
         #
-        # if they are now nil, we switched to a version script
-        #
-        # If they aren't nil but are different, we need to update
-        # the group criteria to reflect that.
+        #  - if they aren't nil but are different, we need to update
+        #    the group criteria to reflect that.
         #
         # Changes to the version script, if it was in use before, don't
         # require us to change the smart group
@@ -149,8 +157,7 @@ module Xolo
         # @return [Boolean]
         #########################
         def need_to_update_installed_smart_group_in_jamf?
-          new_data_for_update[:app_name] != app_name ||
-            new_data_for_update[:app_bundle_id] != app_bundle_id
+          changes_for_update[:app_name] || changes_for_update[:app_bundle_id]
         end
 
         # Create or update the smartgroup in jamf that contains all macs
@@ -158,7 +165,7 @@ module Xolo
         #
         # @return [void]
         #####################################
-        def update_installed_smart_group_in_jamf
+        def set_installed_smart_group_in_jamf
           grp = jamf_installed_smart_group
           grp.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_smart_group_criteria)
           grp.save
@@ -166,6 +173,16 @@ module Xolo
           # EA it might have been using.
           log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
           sleep 10
+
+          msg =
+            if @current_action == :updating
+              "Jamf: Updated smart group '#{jamf_installed_smart_group_name}'"
+
+            else
+              "Jamf: Created smart group '#{jamf_installed_smart_group_name}'"
+
+            end
+          progress msg, log: :info
         end
 
         # The smartgroup in jamf that contains all macs
@@ -174,18 +191,16 @@ module Xolo
         # @return [Jamf::ComputerGroup]
         #####################################
         def jamf_installed_smart_group
-          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
-            progress "Jamf: Updating smart group '#{jamf_installed_smart_group_name}'", log: :debug
-
-            Jamf::ComputerGroup.fetch name: jamf_installed_smart_group_name, cnx: jamf_cnx
-          else
-            progress "Jamf: Creating smart group '#{jamf_installed_smart_group_name}'", log: :debug
-            Jamf::ComputerGroup.create(
-              name: jamf_installed_smart_group_name,
-              type: :smart,
-              cnx: jamf_cnx
-            )
-          end
+          @jamf_installed_smart_group ||=
+            if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
+              Jamf::ComputerGroup.fetch name: jamf_installed_smart_group_name, cnx: jamf_cnx
+            else
+              Jamf::ComputerGroup.create(
+                name: jamf_installed_smart_group_name,
+                type: :smart,
+                cnx: jamf_cnx
+              ).save
+            end
         end
 
         # The criteria for the smart group in Jamf that contains all Macs
@@ -197,8 +212,9 @@ module Xolo
         # @return [Array<Jamf::Criteriable::Criterion>]
         ###################################
         def jamf_installed_smart_group_criteria
-          have_vers_script = new_data_for_update ? new_data_for_update[:version_script] : version_script
+          have_vers_script = changes_for_update.dig(:version_script, :new) || version_script
 
+          # If we have a version_script, use the ea
           if have_vers_script
             [
               Jamf::Criteriable::Criterion.new(
@@ -209,9 +225,10 @@ module Xolo
               )
             ]
 
+          # No version script, so we must be using app data
           else
-            aname = new_data_for_update ? new_data_for_update[:app_name] : app_name
-            abundle = new_data_for_update ? new_data_for_update[:app_bundle_id] : app_bundle_id
+            aname = changes_for_update.dig(:app_name, :new) || app_name
+            abundle = changes_for_update.dig(:app_bundle_id, :new) || app_bundle_id
 
             [
               Jamf::Criteriable::Criterion.new(
@@ -239,25 +256,23 @@ module Xolo
         #
         # @return [void]
         ################################
-        def update_normal_ea_in_jamf
+        def set_normal_ea_in_jamf
           # this is our incoming or already-existing EA script
           scr = version_script_contents
 
           # nothing to do if its nil, if we need to delete it, that'll happen later
-          return unless scr
+          return if scr.pix_empty?
 
           # nothing to do if it hasn't changed.
-          return if version_script == new_data_for_update&.dig(:version_script)
+          return if @current_action == :updating && !(changes_for_update.key? :version_script)
 
           ea =
             if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
-              progress "Jamf: Updating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
-                       log: :info
+              msg = "Jamf: Updating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group"
 
               Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
             else
-              progress "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group",
-                       log: :info
+              msg = "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group"
 
               Jamf::ComputerExtensionAttribute.create(
                 name: jamf_normal_ea_name,
@@ -269,6 +284,7 @@ module Xolo
             end
           ea.script = scr
           ea.save
+          progress msg, log: :info
         end
 
         # Do we need to accept the xolo ea in jamf?
@@ -684,20 +700,14 @@ module Xolo
         # @return [Hash] Keys are computer names, values are Xolo::OK or an error message
         #################################
         def freeze_or_thaw_computers(action:, computers:)
-          unless Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
-            halt 404, { status: 404, error: "No Jamf Computer Group '#{jamf_frozen_group_name}'" }
-          end
-
           # convert to an array if it's a single string
           computers = [computers].flatten
 
-          grp = Jamf::ComputerGroup.fetch name: jamf_frozen_group_name, cnx: jamf_cnx
-
           result =
             if action == :thaw
-              thaw_computers(computers: computers, grp: grp)
+              thaw_computers(computers: computers)
             elsif action == :freeze
-              freeze_computers(computers: computers, grp: grp)
+              freeze_computers(computers: computers)
             else
               raise "Unknown action '#{action}', must be :freeze or :thaw"
             end # if action ==
@@ -709,21 +719,39 @@ module Xolo
           result
         end
 
+        # The static in jamf that contains  macs
+        # with this title 'frozen'
+        #
+        # @return [Jamf::ComputerGroup]
+        #####################################
+        def jamf_frozen_group
+          @jamf_frozen_group ||=
+            if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
+              Jamf::ComputerGroup.fetch name: jamf_frozen_group_name, cnx: jamf_cnx
+            else
+              Jamf::ComputerGroup.create(
+                name: jamf_frozen_group_name,
+                type: :static,
+                cnx: jamf_cnx
+              ).save
+            end
+        end
+
         # thaw some computers
         # see #freeze_or_thaw_computers
         ##############
-        def thaw_computers(computers:, grp:)
+        def thaw_computers(computers:)
           result = {}
           if computers.include? Xolo::TARGET_ALL
             log_info "Thawing all computers for title: '#{title}'"
-            grp.clear
+            jamf_frozen_group.clear
             result[Xolo::TARGET_ALL] = Xolo::OK
 
           else
-            grp_members = grp.member_names
+            grp_members = jamf_frozen_group.member_names
             computers.each do |comp|
               if grp_members.include? comp
-                grp.remove_member comp
+                jamf_frozen_group.remove_member comp
                 log_info "Thawed computer '#{comp}' for title '#{title}'"
                 result[comp] = Xolo::OK
               else
@@ -738,10 +766,10 @@ module Xolo
         # freeze some computers
         # see #freeze_or_thaw_computers
         ##############
-        def freeze_computers(computers:, grp:)
+        def freeze_computers(computers:)
           result = {}
           comp_names = Jamf::Computer.all_names cnx: jamf_cnx
-          grp_members = grp.member_names
+          grp_members = jamf_frozen_group.member_names
 
           computers.each do |comp|
             if grp_members.include? comp
@@ -749,7 +777,7 @@ module Xolo
               result[comp] = "#{Xolo::ERROR}: Already frozen"
             elsif comp_names.include? comp
               log_info "Freezing computer '#{comp}' for title '#{title}'"
-              grp.add_member comp
+              jamf_frozen_group.add_member comp
               result[comp] = Xolo::OK
             else
               log_debug "Cannot freeze computer '#{comp}' for title '#{title}', no such computer"
@@ -766,12 +794,10 @@ module Xolo
         def frozen_computers
           members = {}
 
-          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
-            comps = Jamf::ComputerGroup.fetch(name: jamf_frozen_group_name, cnx: jamf_cnx).member_names
-            comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
+          comps = jamf_frozen_group.member_names
+          comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
 
-            comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
-          end
+          comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
 
           members
         end

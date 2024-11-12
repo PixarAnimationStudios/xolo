@@ -98,18 +98,14 @@ module Xolo
           # if we have app-based requirements, set them
           if app_name && app_bundle_id
             set_ted_title_requirement app_name: app_name, app_bundle_id: app_bundle_id
-            msg = "Title Editor: Setting ExtensionAttribute (version_script) based Requirements for new title '#{title}'"
           elsif version_script
             # if we have a version_script, set it
             create_ted_ea version_script
             set_ted_title_requirement ea_name: ted_ea_key
-            msg = "Title Editor: Setting app based Requirements for new title '#{title}'"
           else
             raise Xolo::MissingDataError,
                   'Cannot create Title Editor Title Requirements without app_name & app_bundle_id, or version_script'
           end
-
-          progress msg, log: :info
         end
 
         # Update title in the title editor
@@ -141,9 +137,11 @@ module Xolo
             ted_title.send "#{ted_attribute}=", new_val
           end # Xolo::Server::Title::ATTRIBUTES.each
 
+          # This will also apply the changes to all patch component criteria
           apply_requirement_changes
 
-          ted_title.enable
+          # mucking with the patches often disables the title, make sure its enabled.
+          reenable_ted_title
 
           self.ted_id_number ||= ted_title.softwareTitleId
         end
@@ -237,8 +235,6 @@ module Xolo
         # @return [void]
         ##############################
         def create_ted_ea(script)
-          progress "Title Editor: Creating Extension Attribute from version_script for title '#{title}'", log: :info
-
           # delete and recreate the EA
           ted_title.delete_extensionAttribute
 
@@ -248,9 +244,11 @@ module Xolo
             script: script
           )
           @need_to_accept_xolo_ea_in_jamf = true
+          progress "Title Editor: Created Extension Attribute from version_script for title '#{title}'", log: :info
         end
 
         # Update the EA in the Title Editor
+        # the only thing we update is the script
         #
         # @return [void]
         ##############################
@@ -272,6 +270,10 @@ module Xolo
         # Set the requirements for a title in the Title Editor
         #
         # If the title has an EA script, it is used as the requirement criterion
+        # (the EA should already be created in the Title Editor)
+        #
+        # If the title has app_name and app_bundle_id, they are used as the requirement criteria
+        #
         # @param app_name [String] the name of the app to use in app-based requirements,
         #   must be used with app_bundle_id, cannot be used with ea_name
         #
@@ -303,10 +305,10 @@ module Xolo
             type: 'extensionAttribute',
             name: ea_name,
             operator: 'is not',
-            value: ''
+            value: Xolo::BLANK
           )
 
-          "Title Editor: Setting Extension Attribute (version_script)-based Requirement Criteria for title '#{title}'"
+          "Title Editor: Set Extension Attribute (version_script)-based Requirement for title '#{title}'"
         end
 
         # @return [String] the progress/log message
@@ -324,7 +326,7 @@ module Xolo
             operator: 'is',
             value: app_bundle_id
           )
-          "Title Editor: Setting App-based Requirement Criteria for title '#{title}'"
+          "Title Editor: Set App-based Requirement for title '#{title}'"
         end
 
         # update the patch compotent criteria for all versions
@@ -339,7 +341,6 @@ module Xolo
               app_bundle_id: app_bundle_id,
               ea_name: ea_name
             )
-            vers_obj.ted_patch(refresh: true).enable
           end
         end
 
@@ -354,7 +355,7 @@ module Xolo
         # @return [void]
         ##############################
         def enable_ted_title
-          progress "Title Editor: Enabling SoftwareTitle '#{title}'", log: :debug
+          progress "Title Editor: (Re-)Enabling SoftwareTitle '#{title}'", log: :debug
           ted_title.enable
         end
 

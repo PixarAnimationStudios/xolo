@@ -336,6 +336,8 @@ module Xolo
         super
         @ted_id_number ||= data_hash[:ted_id_number]
         @version_order ||= []
+        @new_data_for_update = {}
+        @changes_for_update = {}
         @jamf_installed_smart_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-installed"
         @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-frozen"
       end
@@ -491,7 +493,7 @@ module Xolo
       #   help with that.
       ########################
       def version_objects(refresh: false)
-        version_order.map { |v| version_object v }
+        @version_objects ||= version_order.map { |v| version_object v }
       end
 
       # @return [String] The URL path for the patch report for this title
@@ -507,6 +509,8 @@ module Xolo
       #########################
       def create
         lock
+
+        @current_action = :creating
 
         self.creation_date = Time.now
         self.created_by = admin
@@ -537,6 +541,8 @@ module Xolo
       #########################
       def update(new_data)
         lock
+
+        @current_action = :updating
 
         # make the new data availble as needed,
         # for methods to compare the incoming new data
@@ -570,24 +576,6 @@ module Xolo
         # contain Xolo::ITEM_UPLOADED. If its nil, we shouldn't
         # have one at all and should remove the old one.
         delete_version_script_file unless new_data_for_update[:version_script]
-
-        # nothing to do below here if we have no versions yet
-        return if versions.pix_empty?
-
-        # loop thru versions and apply changes
-        #
-        # Since new_data_for_update is no longer valid
-        # for comparisons, the prev. methods should have
-        # set flags indicating anything we need to do to
-        # the versions. E.g.
-        # @need_to_set_version_patch_components
-        # or
-        # @need_to_update_target_group
-        update_versions_for_title_changes
-
-        # changing the ted patches probably disabled the title
-        # so re-enable it
-        reenable_ted_title
 
         # Do This at the end - after all the versions/patches have been updated.
         # Jamf won't see the need for re-acceptance until after the title
@@ -636,32 +624,6 @@ module Xolo
           send "#{attr}=", new_val
         end
         # update any other server-specific attributes here...
-      end
-
-      # If any title changes require updates to existing versions in either
-      # the title editor, or Jamf, this loops thru the versions and applies
-      # them
-      #
-      # This should happen after the incoming changes have been applied to this
-      # title instance
-      #
-      # Jamf Stuff
-      # - update any policy scopes
-      # - update any policy SSvc settings
-      #
-      # @return [void]
-      ############################
-      def update_versions_for_title_changes
-        version_objects.each do |vers_obj|
-          vers_obj.update_release_groups(ttl_obj: self)  if @need_to_update_release_groups
-          vers_obj.update_excluded_groups(ttl_obj: self) if @need_to_update_excluded_groups
-
-          # turn self service on or off
-          vers_obj.update_ssvc(ttl_obj: self) if @need_to_update_ssvc
-
-          # update ssvc category if needed, and if self_services is on
-          vers_obj.update_ssvc_category(ttl_obj: self) if @need_to_update_ssvc_category && self_service
-        end
       end
 
       # Save our current data out to our JSON data file
@@ -779,6 +741,8 @@ module Xolo
       ##########################
       def delete
         lock
+        @current_action = :deleting
+
         progress "Deleting all versions of #{title}...", log: :debug
         # Delete them in reverse order (oldest first) so the jamf server doesn't
         # see each older version as being 'released' again as newer
