@@ -195,6 +195,20 @@ module Xolo
       # both for updating the title, and the versions
       attr_reader :new_data_for_update
 
+      # Also when applying updates, this will hold the
+      # changes being made: the differences between
+      # tne current attributs and the new_data_for_update
+      # We'll figure this out at the start of the update
+      # and can use it later to
+      # 1) avoid doing things we don't need to
+      # 2) log the changes in the change log at the very end
+      #
+      # This is a Hash with keys of the attribute names that have changed
+      # the values are Hashes with keys of :old and :new
+      # e.g. { pilot_groups: { old: ['foo'], new: ['bar'] } }
+      # @return [Hash]
+      attr_reader :changes_for_update
+
       # Constructor
       ######################
       ######################
@@ -456,18 +470,22 @@ module Xolo
       #########################
       def update(new_data)
         lock
+
         @new_data_for_update = new_data
         log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
+
+        @changes_for_update = note_changes_for_update_and_log
+
+        # changelog - log the changes now, and
+        # if there is an error, we'll log that too
+        # saying the above changes were not completed and to
+        # look at the server log for details.
+        log_update_changes
 
         # update ted before jamf
         update_patch_in_ted
         enable_ted_patch
         update_version_in_jamf
-
-        # changelog - do this after updating jamf and ted, but
-        # before update_local_instance_values & saving the local data, so that
-        # new_data_for_update can be compared to the current instance values
-        log_update_changes
 
         update_local_instance_values
 
@@ -476,6 +494,11 @@ module Xolo
         save_local_data
 
         # new pkg uploads happen in a separate process
+      rescue StandardError => e
+        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\n See server log for details."
+
+        # re-raise for proper error handling in the server app
+        raise
       ensure
         unlock
       end

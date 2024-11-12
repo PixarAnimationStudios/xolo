@@ -298,6 +298,8 @@ module Xolo
           version_script: {
             label: 'Version Script',
             cli: :v,
+            # while the script is stored in the Title Editor as the extension attribute
+            # its handled differently, so we don't specify a ted_attribute here.
             validate: true,
             type: :string,
             readline: :get_files,

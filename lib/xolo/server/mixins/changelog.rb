@@ -231,12 +231,16 @@ module Xolo
           ip
         end
 
-        # Record all changes during an update of a title or version
+        # At the start of an update, populate the hash for the @changes_for_update attribute
+        # with the changes being made.
         #
-        # @return [void]
-        #######################
-        def log_update_changes
+        # This is run at the start of the update process, and
+        #
+        # @return [Hash] The changes being made
+        def note_changes_for_update_and_log
           return unless new_data_for_update
+
+          changes = {}
 
           self.class::ATTRIBUTES.each do |attr, deets|
             next unless deets[:changelog]
@@ -248,7 +252,34 @@ module Xolo
             old_val = "'#{old_val.sort.join("', '")}'" if old_val.is_a? Array
             next if new_val == old_val
 
-            log_change attrib: attr, old: old_val, new: new_val
+            changes[attr] = { old: old_val, new: new_val }
+          end
+
+          changes
+        end
+
+        # Record all changes during an update of a title or version
+        #
+        # @return [void]
+        #######################
+        def log_update_changes
+          return unless changes_for_update
+
+          # self.class::ATTRIBUTES.each do |attr, deets|
+          #   next unless deets[:changelog]
+
+          #   new_val = deets[:type] == :time ? Time.parse(new_data_for_update[attr]) : new_data_for_update[attr]
+          #   old_val = send attr
+
+          #   new_val = "'#{new_val.sort.join("', '")}'" if new_val.is_a? Array
+          #   old_val = "'#{old_val.sort.join("', '")}'" if old_val.is_a? Array
+          #   next if new_val == old_val
+
+          #   log_change attrib: attr, old: old_val, new: new_val
+          # end
+
+          changes_for_update.each do |attr, vals|
+            log_change attrib: attr, old: vals[:old], new: vals[:new]
           end
         end
 
