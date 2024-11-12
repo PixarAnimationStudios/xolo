@@ -177,77 +177,62 @@ module Xolo
           )
         end
 
-        # Update the component criteria for this version in the title editor.
+        # Set the component criteria for this version in the title editor.
         #
+        # @param app_name [String] the name of the app to use in app-based requirements,
+        #   must be used with app_bundle_id, cannot be used with ea_name
+        #
+        # @param app_bundle_id [String] the bundle id of the app to use in app-based requirements
+        #   must be used with app_name, cannot be used with ea_name
+        #
+        # @param ea_name [String] the name of the EA to use in EA-based requirements (the ted_ea_key)
+        #   Cannot be used with app_name or app_bundle_id
         #
         # This is a collection of criteria that define which computers
         # have this version installed
         #
-        # TODO: allow xadm to define more complex critera?
-        #
-        # @param title_obj [Xolo::Server::Title] an existing title object for this version, so  when the title
-        #   loops thru calling this method, we don't keep re-instantiating it
-        #
         # @return [void]
         ##########################
-        def update_patch_component(title_obj: nil)
-          # if we weren't passed one, instantiate it now
-          title_obj ||= title_object
+        def set_ted_patch_component_criteria(app_name: nil, app_bundle_id: nil, ea_name: nil)
+          unless (app_name && app_bundle_id) || ea_name
+            raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id'
+          end
 
-          log_debug "Title Editor: updating component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
-
-          # delete the existing component, and its criteria
+          # delete any already there and make a new one
           ted_patch.delete_component
-
-          # create a new one
           ted_patch.add_component name: title, version: version
           comp = ted_patch.component
 
-          # Are we using the 'version_script' (aka the EA for the title)
-          have_vers_script = title_obj.new_data_for_update ? title_obj.new_data_for_update[:version_script] : title_obj.version_script
+          msg = ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
 
-          if have_vers_script
-            log_debug "Title Editor: Using EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
-            update_ea_component(comp, title_obj)
-
-          # If not, we are using the app name and bundle ID
-          # and version
-          else
-            log_debug "Title Editor: Using App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
-            update_app_component(comp, title_obj)
-          end
+          progress msg, log: :info
         end
 
-        # @return [void]
+        # @return [String] the progress message
         ##############################
-        def update_ea_component(comp, title_obj)
-          progress "Title Editor: Setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
-                   log: :debug
-
+        def set_ea_component(comp, ea_name)
           comp.criteria.add_criterion(
             type: 'extensionAttribute',
-            name: title_obj.ted_ea_key,
+            name: ea_name,
             operator: 'is',
             value: version
           )
+          "Title Editor: Setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
         end
 
-        # @return [void]
+        # @return [String] the progress message
         ##############################
-        def update_app_component(comp, title_obj)
-          progress "Title Editor: Setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'",
-                   log: :debug
-
+        def set_app_component(comp, app_name, app_bundle_id)
           comp.criteria.add_criterion(
             name: 'Application Title',
             operator: 'is',
-            value: title_obj.app_name
+            value: app_name
           )
 
           comp.criteria.add_criterion(
             name: 'Application Bundle ID',
             operator: 'is',
-            value: title_obj.app_bundle_id
+            value: app_bundle_id
           )
 
           comp.criteria.add_criterion(
@@ -255,6 +240,7 @@ module Xolo
             operator: 'is',
             value: version
           )
+          "Title Editor: Setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
         end
 
         # For a patch to be enabled in the Title Editor, it needs at least a component criterion

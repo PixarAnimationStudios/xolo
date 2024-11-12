@@ -299,8 +299,24 @@ module Xolo
       # here so it can be accessed by update-methods
       # and compared to the current instance values
       # both for updating the title, and the versions
+      #
       # @return [Hash] The new data to apply as an update
       attr_reader :new_data_for_update
+
+      # Also when applying updates, this will hold the
+      # changes being made: the differences between
+      # tne current attributs and the new_data_for_update
+      # We'll figure this out at the start of the update
+      # and can use it later to
+      # 1) avoid doing things we don't need to
+      # 2) log the changes in the change log at the very end
+      #
+      # This is a Hash with keys of the attribute names that have changed
+      # the values are Hashes with keys of :old and :new
+      # e.g. { release_groups: { old: ['foo'], new: ['bar'] } }
+      #
+      # @return [Hash] The changes being made
+      attr_reader :changes_for_update
 
       # @return [Integer] The Jamf Pro ID for the self-service icon
       #   once it has been uploaded
@@ -528,14 +544,18 @@ module Xolo
         @new_data_for_update = new_data
         log_info "Updating title '#{title}' for admin '#{admin}'"
 
+        # before we do anything, figure out what has changed
+        @changes_for_update = note_changes_for_update_and_log
+
+        # changelog - log the changes now, and
+        # if there is an error, we'll log that too
+        # saying the above changes were not completed and to
+        # look at the server log for details.
+        log_update_changes
+
         # Do ted before doing things in Jamf
         update_title_in_ted
         update_title_in_jamf
-
-        # changelog - do this after updating jamf and ted, but
-        # before update_local_instance_values & saving the local data, so that
-        # new_data_for_update can be compared to the current instance values
-        log_update_changes
 
         # Don't do this until we no longer need to use
         # new_data_for_update for comparison with our
@@ -583,6 +603,12 @@ module Xolo
 
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
+        #
+      rescue StandardError => e
+        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\n See server log for details."
+
+        # re-raise for proper error handling in the server app
+        raise
       ensure
         unlock
       end # update
@@ -619,10 +645,6 @@ module Xolo
       # This should happen after the incoming changes have been applied to this
       # title instance
       #
-      # Ted Stuff
-      # - swap version-script / app-based component if needed
-      # - re-enable all patches
-      # - re-enable the title
       # Jamf Stuff
       # - update any policy scopes
       # - update any policy SSvc settings
@@ -631,8 +653,6 @@ module Xolo
       ############################
       def update_versions_for_title_changes
         version_objects.each do |vers_obj|
-          update_ted_patch_component_for_version(vers_obj) if @need_to_set_version_patch_components
-
           vers_obj.update_release_groups(ttl_obj: self)  if @need_to_update_release_groups
           vers_obj.update_excluded_groups(ttl_obj: self) if @need_to_update_excluded_groups
 
@@ -641,8 +661,6 @@ module Xolo
 
           # update ssvc category if needed, and if self_services is on
           vers_obj.update_ssvc_category(ttl_obj: self) if @need_to_update_ssvc_category && self_service
-
-          vers_obj.enable_ted_patch
         end
       end
 
