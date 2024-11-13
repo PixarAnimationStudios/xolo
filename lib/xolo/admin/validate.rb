@@ -482,7 +482,7 @@ module Xolo
         # TODO: ? Ensure this date is >= the prev. version and <= the next
         return val if true
 
-        raise_invalid_data_error val, VERSION_ATTRS[:publish_date][:invalid_msg]
+        raise VERSION_ATTRS[:publish_date][:invalid_msg]
       rescue StandardError => e
         raise_invalid_data_error val, e.to_s
       end
@@ -492,9 +492,9 @@ module Xolo
       # @return [Gem::Version] The valid value
       ##########################
       def validate_min_os(val)
-        return val
+        return val.to_s unless val == Xolo::NONE || val.pix_empty?
 
-        raise_invalid_data_error val, VERSION_ATTRS[:min_os][:invalid_msg]
+        raise VERSION_ATTRS[:min_os][:invalid_msg]
       rescue StandardError => e
         raise_invalid_data_error val, e.to_s
       end
@@ -504,11 +504,9 @@ module Xolo
       # @return [Gem::Version] The valid value
       ##########################
       def validate_max_os(val)
-        val = Gem::Version.new val.to_s
-        # TODO: internal consistency - make sure this is >= max_os
         return val if true
 
-        raise_invalid_data_error val, VERSION_ATTRS[:max_os][:invalid_msg]
+        raise VERSION_ATTRS[:max_os][:invalid_msg]
       rescue StandardError => e
         raise_invalid_data_error val, e.to_s
       end
@@ -704,6 +702,7 @@ module Xolo
       #######
       def validate_version_consistency(opts)
         validate_scope_targets_and_exclusions(opts)
+        validate_min_os_and_max_os(opts)
       end
 
       # @param opts [OpenStruct] the current options
@@ -885,6 +884,32 @@ module Xolo
             'A Self Service Category must be given if Self Service is true.'
           else
             'A --self-service-category must be provided when using --self-service'
+          end
+        raise_consistency_error msg
+      end
+
+      # min_os must be <= max_os
+      # max_os must be >= min_os
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_min_os_and_max_os(opts)
+        # if no max_os, nothing to do
+        return if opts[:max_os].pix_empty?
+
+        min_os = Gem::Version.new opts[:min_os]
+        max_os = Gem::Version.new opts[:max_os]
+
+        # if things look OK, we're done
+        return if min_os <= max_os && max_os >= min_os
+
+        msg =
+          if walkthru?
+            'Minimum OS must be less than or equal to Maximum OS'
+          else
+            '--max-os must be greater than or equal to --min-os'
           end
         raise_consistency_error msg
       end
