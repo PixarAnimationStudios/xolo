@@ -333,45 +333,49 @@ module Xolo
         # set target groups in a pilot [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
         #
-        # @param pol [Jamf::Policy]
-        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
-        #   if nil, we'll instantiate it now
+        # @param pol [Jamf::Policy, Jamf::PatchPolicy]
+        # @return [void]
         ############################
         def set_policy_pilot_groups(pol)
           pilots = pilot_groups_to_use
           pilots ||= []
-          log_debug "Jamf: updating pilot scope targets for #{pol.class} '#{pol.name}' to: #{pilots.join ', '}"
+          log_debug "Jamf: setting pilot scope targets for #{pol.class} '#{pol.name}' to: #{pilots.join ', '}"
 
           pol.scope.set_targets :computer_groups, pilots
         end
 
         # Set a policy to be scoped to all targets
         # REMEMBER TO SAVE THE POLICY LATER
+        #
+        # @param pol [Jamf::Policy, Jamf::PatchPolicy]
+        # @return [void]
         ############################
         def set_policy_to_all_targets(pol)
-          log_debug "Jamf: updating scope target for #{pol.class} '#{pol.name}' to all computers"
+          log_debug "Jamf: setting scope target for #{pol.class} '#{pol.name}' to all computers"
           pol.scope.set_all_targets
         end
 
         # set target groups in a non=pilot [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
         #
-        # @param pol [Jamf::Policy]
+        # @param pol [Jamf::Policy, Jamf::PatchPolicy]
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
+        # @return [void]
         ############################
         def set_policy_release_groups(pol, ttl_obj: nil)
           ttl_obj ||= title_object
           targets = release_groups_to_use(ttl_obj: ttl_obj) || []
 
-          log_debug "Jamf: updating release scope targets for #{pol.class} '#{pol.name}' to: #{targets.join ', '}"
+          log_debug "Jamf: setting release scope targets for #{pol.class} '#{pol.name}' to: #{targets.join ', '}"
 
           pol.scope.set_targets :computer_groups, targets
         end
 
         # set excluded groups in a [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
-        # @param pol [Jamf::Policy]
+        #
+        # @param pol [Jamf::Policy, Jamf::PatchPolicy]
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
         ############################
@@ -383,9 +387,13 @@ module Xolo
           # the initial-install policies must also exclude any mac with the title
           # already installed
           if pol.is_a?(Jamf::Policy) && !exclusions.include?(ttl_obj.jamf_installed_smart_group_name)
-            exclusions = exclusions.dup
-            exclusions << ttl_obj.jamf_installed_smart_group_name
-            log_debug "Jamf: excluding computers with the title installed from the initial-install policy '#{pol.name}'"
+            if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? ttl_obj.jamf_installed_smart_group_name
+              exclusions << ttl_obj.jamf_installed_smart_group_name
+              log_debug "Jamf: excluding computers from the initial-install policy '#{pol.name}' if the title is already installed"
+            else
+              log_error "Jamf: The Smart Group '#{ttl_obj.jamf_installed_smart_group_name}' doesn't exist in Jamf. Please investigate.",
+                        alert: true
+            end
           end
 
           log_debug "Jamf: updating exclusions for #{pol.class} '#{pol.name}' to: #{exclusions.join ', '}"
@@ -632,45 +640,20 @@ module Xolo
         # Uploading a new .pkg installer happen separately
         #########################################
         def update_version_in_jamf
-          unless new_data_for_update[:pilot_groups] && new_data_for_update[:pilot_groups].sort == pilot_groups.sort
-            # pilots
-            update_pilot_groups
-          end
+          update_pilot_groups if changes_for_update.key? :pilot_groups
+          update_release_groups(ttl_obj: title_object) if changes_for_update.key? :release_groups
+          update_excluded_groups(ttl_obj: title_object) if changes_for_update.key? :excluded_groups
 
-          unless new_data_for_update[:release_groups] && new_data_for_update[:release_groups].sort == release_groups.sort
-            # release
-            update_release_groups ttl_obj: title_object
-          end
-
-          unless new_data_for_update[:excluded_groups] && new_data_for_update[:excluded_groups].sort == excluded_groups.sort
-            # excludes
-            update_excluded_groups ttl_obj: title_object
-          end
-
-          unless new_data_for_update[:reboot] == reboot
-            # reboot
-            update_jamf_pkg_reboot
-          end
-
-          return if new_data_for_update[:min_os] == min_os
-
-          update_jamf_pkg_min_os
+          update_jamf_pkg_reboot if changes_for_update.key? :reboot
+          update_jamf_pkg_min_os if changes_for_update.key? :min_os
         end
 
         # update the reboot setting for the Jamf::Package
         # @return [void]
         ##########################
         def update_jamf_pkg_reboot
-          pkg = jamf_package
-          unless pkg
-            progress(
-              "ERROR: Jamf: No package object defined in for version '#{version}' of title '#{title}'.",
-              log: :error
-            )
-            return
-          end
-          pkg.reboot_required = reboot
-          pkg.save
+          jamf_package.reboot_required = reboot
+          jamf_package.save
           progress "Jamf: Updated reboot setting for Jamf::Package '#{jamf_pkg_name}'", log: :debug
         end
 
@@ -678,17 +661,38 @@ module Xolo
         # @return [void]
         ##########################
         def update_jamf_pkg_min_os
-          pkg = jamf_package
-          unless pkg
-            progress(
-              "ERROR: Jamf: No package object defined in for version '#{version}' of title '#{title}'.",
-              log: :error
-            )
-            return
-          end
-          pkg.os_requirements = ">=#{min_os}"
-          pkg.save
+          jamf_package.os_requirements = ">=#{min_os}"
+          jamf_package.save
           progress "Jamf: Updated os_requirement for Jamf::Package '#{jamf_pkg_name}'", log: :debug
+        end
+
+        # Disable the auto-install and patch policies for this version when it
+        # is deprecated or skipped
+        #
+        # Leave the manual install policy active, but remove it from self-service
+        #
+        # @param reason [Symbol] :deprecated or :skipped
+        #
+        # @return [void]
+        #########################
+        def disable_policies_for_deprecation_or_skipping(reason)
+          pol = jamf_auto_install_policy
+          pol.disable
+          pol.save
+          progress "Jamf: Disabled auto-install policy for #{reason} version '#{version}'"
+
+          ppol = jamf_patch_policy
+          ppol.disable
+          # ensure patch policy is NOT set to 'allow downgrade'
+          ppol.allow_downgrade = false
+          ppol.save
+          progress "Jamf: Disabled patch policy for #{reason} version '#{version}'"
+
+          pol = jamf_manual_install_policy
+          return unless pol.in_self_service?
+
+          pol.remove_from_self_service
+          progress "Jamf: Removed #{reason} version '#{version}' from Self Service"
         end
 
         # TODO: handle missing pkg in jamf
@@ -701,6 +705,37 @@ module Xolo
             else
               create_pkg_in_jamf
             end
+        end
+
+        # reset all the policies for this version to pilot
+        #
+        # @return [void]
+        ######################
+        def reset_policies_to_pilot
+          # set scope targets of auto-install policy to pilot-groups and re-enable
+          jamf_auto_install_policy.scope.set_targets :computer_groups, pilot_groups_to_use
+          jamf_auto_install_policy.enable
+          jamf_auto_install_policy.save
+          msg = "Jamf: Version '#{version}': Set scope targets of auto-install policy to pilot_groups: #{pilot_groups_to_use.join(', ')}"
+          progress msg, log: :info
+
+          # set scope targets of patch policy to pilot-groups and re-enable
+          jamf_patch_policy.scope.set_targets :computer_groups, pilot_groups_to_use
+          # ensure patch policy is NOT set to 'allow downgrade'
+          jamf_patch_policy.allow_downgrade = false
+          jamf_patch_policy.enable
+          jamf_patch_policy.save
+          msg = "Jamf: Version '#{version}': Set scope targets of patch policy to pilot_groups"
+          progress msg, log: :info
+
+          # remove the manual install policy from self service, if needed
+          return unless title_object.self_service
+          return unless jamf_manual_install_policy.in_self_service?
+
+          jamf_manual_install_policy.remove_from_self_service
+          jamf_manual_install_policy.save
+          msg = "Jamf: Version '#{version}': Removed manual-install policy from Self Service"
+          progress msg, log: :info
         end
 
         # Update the SSvc Icon for the policies used by this version
@@ -742,15 +777,13 @@ module Xolo
 
           # - update the auto install policy
           pol = jamf_auto_install_policy
-          if pol
-            set_policy_pilot_groups(pol)
-            pol.save
-            progress "Jamf: updated pilot groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
-          end
+
+          set_policy_pilot_groups(pol)
+          pol.save
+          progress "Jamf: updated pilot groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
 
           # - update the patch policy
           pol = jamf_patch_policy
-          return unless pol
 
           set_policy_pilot_groups(pol)
           pol.save
