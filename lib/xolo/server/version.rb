@@ -262,13 +262,15 @@ module Xolo
         title_object.version_order.reverse.index version
       end
 
-      # The scope target groups to use in policies and patch policies.
+      # The scope target groups to use in policies and patch policies during pilot
       # This is defined in each version, and inherited when new versions are created.
       #
       # @return [Array<String>] the pilot groups to use
       ######################
       def pilot_groups_to_use
-        @pilot_groups_to_use ||= new_data_for_update ? new_data_for_update[:pilot_groups] : pilot_groups
+        return @pilot_groups_to_use if @pilot_groups_to_use
+
+        @pilot_groups_to_use = changes_for_update.key?(:pilot_groups) ? changes_for_update[:pilot_groups][:new] : pilot_groups
       end
 
       # The scope excluded groups to use in policies and patch policies for all versions of
@@ -293,19 +295,29 @@ module Xolo
         return @excluded_groups_to_use if @excluded_groups_to_use
 
         ttl_obj ||= title_object
+        # get the excluded groups from the title
         # Use .dup so we don't modify the original
-        @excluded_groups_to_use = ttl_obj.excluded_groups.dup
+        @excluded_groups_to_use = ttl_obj.changes_for_update.key?(:excluded_groups) ? ttl_obj.changes_for_update[:excluded_groups][:new].dup : ttl_obj.excluded_groups.dup
 
-        # if we have a 'frozen' static group, always exclude it
-        if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? ttl_obj.jamf_frozen_group_name
+        all_jamf_group_names = Jamf::ComputerGroup.all_names(cnx: jamf_cnx)
+
+        # always exclude the frozen static group
+        if all_jamf_group_names.include? ttl_obj.jamf_frozen_group_name
           @excluded_groups_to_use << ttl_obj.jamf_frozen_group_name
           log_debug "Appended jamf_frozen_group_name '#{ttl_obj.jamf_frozen_group_name}' to @excluded_groups_to_use"
+        else
+          log_error "Missing Jamf 'frozen' static group '#{ttl_obj.jamf_frozen_group_name}'", alert: true
         end
 
         # always exclude Xolo::Server.config.forced_exclusion if defined
         if Xolo::Server.config.forced_exclusion
-          @excluded_groups_to_use << Xolo::Server.config.forced_exclusion
-          log_debug "Appended Xolo::Server.config.forced_exclusion '#{Xolo::Server.config.forced_exclusion}' to @excluded_groups_to_use"
+          if all_jamf_group_names.include? Xolo::Server.config.forced_exclusion
+            @excluded_groups_to_use << Xolo::Server.config.forced_exclusion
+            log_debug "Appended Xolo::Server.config.forced_exclusion '#{Xolo::Server.config.forced_exclusion}' to @excluded_groups_to_use"
+          else
+            log_error "The forced_exclusion group '#{Xolo::Server.config.forced_exclusion}' in xolo server config does not exist in Jamf",
+                      alert: true
+          end
         end
 
         @excluded_groups_to_use.uniq!
@@ -326,7 +338,7 @@ module Xolo
         return @release_groups_to_use if @release_groups_to_use
 
         ttl_obj ||= title_object
-        @release_groups_to_use = ttl_obj.release_groups
+        @release_groups_to_use = ttl_obj.changes_for_update.key?(:release_groups) ? ttl_obj.changes_for_update[:release_groups][:new] : ttl_obj.release_groups
       end
 
       # @return [Hash]
@@ -471,13 +483,10 @@ module Xolo
       #########################
       def update(new_data)
         lock
-
         @current_action = :updating
-
         @new_data_for_update = new_data
-        log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
-
         @changes_for_update = note_changes_for_update_and_log
+        log_info "Updating version '#{version}' of title '#{title}' for admin '#{admin}'"
 
         # changelog - log the changes now, and
         # if there is an error, we'll log that too
@@ -489,11 +498,7 @@ module Xolo
         update_patch_in_ted
         enable_ted_patch
         update_version_in_jamf
-
         update_local_instance_values
-
-        # save to file last, because saving to TitleEd and Jamf will
-        # add some data
         save_local_data
 
         # new pkg uploads happen in a separate process
@@ -555,9 +560,8 @@ module Xolo
       #########################
       def deprecate
         lock
-        progress "Jamf: Deprecating older released version '#{version}'"
+        progress "Deprecating older released version '#{version}'"
         disable_policies_for_deprecation_or_skipping :deprecated
-        # change status to 'deprecated'
         self.status = STATUS_DEPRECATED
 
         save_local_data
@@ -571,43 +575,13 @@ module Xolo
       #########################
       def skip
         lock
-        progress "Jamf: Skipping unreleased version '#{version}'"
+        progress "Skipping unreleased version '#{version}'"
         disable_policies_for_deprecation_or_skipping :skipped
-        # change status to 'skipped'
         self.status = STATUS_SKIPPED
 
         save_local_data
       ensure
         unlock
-      end
-
-      # Disable the auto-install and patch policies for this version when it
-      # is deprecated or skipped
-      #
-      # Leave the manual install policy active, but remove it from self-service
-      #
-      # @param reason [Symbol] :deprecated or :skipped
-      #
-      # @return [void]
-      #########################
-      def disable_policies_for_deprecation_or_skipping(reason)
-        pol = jamf_auto_install_policy
-        pol.disable
-        pol.save
-        progress "Jamf: Disabled auto-install policy for #{reason} version '#{version}'"
-
-        ppol = jamf_patch_policy
-        ppol.disable
-        # ensure patch policy is NOT set to 'allow downgrade'
-        ppol.allow_downgrade = false
-        ppol.save
-        progress "Jamf: Disabled patch policy for #{reason} version '#{version}'"
-
-        pol = jamf_manual_install_policy
-        return unless pol.in_self_service?
-
-        pol.remove_from_self_service
-        progress "Jamf: Removed #{reason} version '#{version}' from Self Service"
       end
 
       # Reset this version to 'pilot' status, since we are rolling back
@@ -619,40 +593,9 @@ module Xolo
         return if status == STATUS_PILOT
 
         lock
-        progress "Jamf: Resetting version '#{version}' to pilot status due to rollback of an older version"
-
-        # set scope targets of auto-install policy to pilot-groups and re-enable
-        msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to pilot_groups: #{pilot_groups_to_use.join(', ')}"
-        progress msg, log: :info
-        pol = jamf_auto_install_policy
-        pol.scope.set_targets :computer_groups, pilot_groups_to_use
-        pol.enable
-        pol.save
-
-        # set scope targets of patch policy to pilot-groups and re-enable
-        msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to pilot_groups"
-        progress msg, log: :info
-        ppol = jamf_patch_policy
-        ppol.scope.set_targets :computer_groups, pilot_groups_to_use
-        # ensure patch policy is NOT set to 'allow downgrade'
-        ppol.allow_downgrade = false
-        ppol.enable
-        ppol.save
-
-        # remove the manual install policy from self service, if needed
-        if title_object.self_service
-          pol = jamf_manual_install_policy
-          if pol.in_self_service?
-            msg = "Jamf: Version '#{version}': Removing manual-install policy from Self Service"
-            progress msg, log: :info
-            pol.remove_from_self_service
-            pol.save
-          end
-        end
-
-        # change status to 'pilot'
+        progress "Resetting version '#{version}' to pilot status due to rollback of an older version"
+        reset_policies_to_pilot
         self.status = STATUS_PILOT
-
         save_local_data
       ensure
         unlock

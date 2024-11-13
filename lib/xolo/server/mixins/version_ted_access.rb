@@ -75,9 +75,9 @@ module Xolo
           )
           new_patch = ted_title.patches.patch version
 
-          update_patch_killapps
-          update_patch_capabilites
-          update_patch_component
+          set_patch_killapps
+          set_patch_capabilites
+          set_ted_patch_component_criteria ttl_obj: title_object
 
           self.ted_id_number = new_patch.patchId
         end
@@ -104,36 +104,47 @@ module Xolo
             ted_patch.send "#{ted_attribute}=", new_val
           end
 
-          update_patch_killapps
-          update_patch_capabilites
-          update_patch_component
+          set_patch_killapps if changes_for_update[:killapps]
+          set_patch_capabilites if changes_for_update[:min_os] || changes_for_update[:max_os]
+
+          # This should not be needed here - its only affected by changes to the title, and
+          # those are handled by the title object calling the same method
+          #
+          # set_ted_patch_component_criteria ttl_obj: title_object
         end
 
-        # Update any killapps for this version in the title editor.
+        # Set any killapps for this version in the title editor.
         #
         # @return [void]
         ##########################
-        def update_patch_killapps
-          kapps = new_data_for_update ? new_data_for_update[:killapps] : killapps
-          return unless kapps
+        def set_patch_killapps
+          # creating a new patch? Just use the current values
+          if @current_action == :creating
+            kapps = killapps
 
-          # delete the existing
-          progress "Title Editor: updating killApps for Patch '#{version}' of SoftwareTitle '#{title}'", log: :debug
-          ted_patch.killApps.delete_all_killApps
+          elsif @current_action == :updating
+            return unless changes_for_update[:killapps]
 
-          # Add the current ones back in
+            kapps = changes_for_update[:killapps][:new]
+
+            # delete the existing
+            ted_patch.killApps.delete_all_killApps
+          end
+          return if kapps.pix_empty?
+
+          # set the current values
           kapps.each do |ka_str|
             name, bundleid = ka_str.split(Xolo::SEMICOLON_SEP_RE)
-            log_debug "Title Editor: Setting killApp '#{ka_str}' for Patch '#{version}' of SoftwareTitle '#{title}'"
-
             ted_patch.killApps.add_killApp(
               appName: name,
               bundleId: bundleid
             )
+            msg = "Title Editor: Sett killApp '#{ka_str}' for Patch '#{version}' of SoftwareTitle '#{title}'"
+            progress msg, log: :info
           end
         end
 
-        # Update the capabilities for this version in the title editor.
+        # Set the capabilities for this version in the title editor.
         # This is a collection of criteria that define which computers
         # can install this version.
         #
@@ -144,37 +155,49 @@ module Xolo
         #
         # @return [void]
         ##########################
-        def update_patch_capabilites
-          progress "Title Editor: updating capabilities for Patch '#{version}' of SoftwareTitle '#{title}'",
-                   log: :debug
+        def set_patch_capabilites
+          # creating a new patch? Just use the current values
+          if @current_action == :creating
+            min = min_os
+            max = max_os
+            return unless min || max
 
-          # delete the existing
-          ted_patch.capabilities.delete_all_criteria
+          # updating an existing patch? Use the new values if they exist
+          # noting that a nil new value for max_os means its being removed
+          elsif @current_action == :updating
+            return unless changes_for_update.key?(:max_os) || changes_for_update.key?(:min_os)
 
-          # min os
-          min = new_data_for_update ? new_data_for_update[:min_os] : min_os
+            # min gets reset even if it didn't change and it can't be empty.
+            min = changes_for_update.dig(:min_os, :new) || min_os
 
-          progress "Title Editor: setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
-                   log: :debug
+            # if max is changing and its nil, its being removed, so won't be re-added
+            # if its not changing, keep the current value
+            max = changes_for_update.key?(:max_os) ? changes_for_update[:max_os][:new] : max_os
 
+            # delete the existing criteria
+            ted_patch.capabilities.delete_all_criteria
+          else
+            return
+          end
+
+          # min os - one is always required
           ted_patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'greater than or equal',
             value: min
           )
-
-          # max os
-          max = new_data_for_update ? new_data_for_update[:max_os] : max_os
+          msg = "Title Editor: Set min_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{min}'"
+          progress msg, log: :info
 
           return unless max
 
-          progress "Title Editor: setting max_os capability for Patch '#{version}' of SoftwareTitle '#{title}'",
-                   log: :debug
           ted_patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'less than or equal',
             value: max
           )
+          msg = "Title Editor: Set max_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{max}'"
+          progress msg, log: :debug
         end
 
         # Set the component criteria for this version in the title editor.
@@ -193,9 +216,12 @@ module Xolo
         #
         # @return [void]
         ##########################
-        def set_ted_patch_component_criteria(app_name: nil, app_bundle_id: nil, ea_name: nil)
-          unless (app_name && app_bundle_id) || ea_name
-            raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id'
+        def set_ted_patch_component_criteria(app_name: nil, app_bundle_id: nil, ea_name: nil, ttl_obj: nil)
+          if ttl_obj
+            app_name, app_bundle_id, ea_name = get_patch_component_criteria_params(ttl_obj)
+
+          elsif !((app_name && app_bundle_id) || ea_name)
+            raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id, or ttl_obj'
           end
 
           # delete any already there and make a new one
@@ -208,6 +234,32 @@ module Xolo
           enable_ted_patch
 
           progress msg, log: :info
+        end
+
+        # get the param values for patch component criteria from the title object,
+        # which may be setting them via an update
+        #
+        # @param ttl_obj [Xolo::Server::Title] the title object that may have the values
+        # @return [Array] the values for the component criteria
+        ##########################
+        def get_patch_component_criteria_params(ttl_obj)
+          app_name, app_bundle_id, ea_name = nil
+
+          if ttl_obj.changes_for_update
+            if ttl_obj.changes_for_update.dig :app_name, :new
+              app_name = ttl_obj.changes_for_update[:app_name][:new]
+              app_bundle_id = ttl_obj.changes_for_update[:app_bundle_id][:new]
+            else
+              ea_name = ttl_obj.ea_name
+            end
+          elsif ttl_obj.app_name
+            app_name = ttl_obj.app_name
+            app_bundle_id = ttl_obj.app_bundle_id
+          else
+            ea_name = ttl_obj.ea_name
+          end
+
+          [app_name, app_bundle_id, ea_name]
         end
 
         # @return [String] the progress message

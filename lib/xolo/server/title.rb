@@ -543,15 +543,9 @@ module Xolo
         lock
 
         @current_action = :updating
-
-        # make the new data availble as needed,
-        # for methods to compare the incoming new data
-        # with the existing instance data
         @new_data_for_update = new_data
-        log_info "Updating title '#{title}' for admin '#{admin}'"
-
-        # before we do anything, figure out what has changed
         @changes_for_update = note_changes_for_update_and_log
+        log_info "Updating title '#{title}' for admin '#{admin}'"
 
         # changelog - log the changes now, and
         # if there is an error, we'll log that too
@@ -562,14 +556,7 @@ module Xolo
         # Do ted before doing things in Jamf
         update_title_in_ted
         update_title_in_jamf
-
-        # Don't do this until we no longer need to use
-        # new_data_for_update for comparison with our
-        # 'old' insance values.
         update_local_instance_values
-
-        # save to file last, because saving to TitleEd and Jamf may
-        # add or change some data
         save_local_data
 
         # even if we already have a version script, the new data should
@@ -801,7 +788,9 @@ module Xolo
           # so its either deprecated or skipped
           elsif vobj < vobj_to_release
             # don't do anything if the status is already deprecated or skipped
+            # but if its released, we need to deprecate it
             vobj.deprecate if vobj.status == Xolo::Server::Version::STATUS_RELEASED
+            # and skip it if its in pilot
             vobj.skip if vobj.status == Xolo::Server::Version::STATUS_PILOT
 
           # this one is newer than the one we're releasing
