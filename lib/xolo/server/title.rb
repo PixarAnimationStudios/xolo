@@ -289,11 +289,11 @@ module Xolo
       # @return [Xolo::Server::App] our Sinatra server app
       attr_accessor :server_app_instance
 
-      # The sinatra session that instantiates this title
-      #  attr_writer :session
-
       # @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
+
+      # @return [Integer] the jamf id of the Jamf::PatchTitle object for this title
+      attr_accessor :jamf_patch_title_id
 
       # when applying updates, the new data is stored
       # here so it can be accessed by update-methods
@@ -499,7 +499,7 @@ module Xolo
       # @return [String] The URL path for the patch report for this title
       #############################
       def patch_report_rsrc
-        @patch_report_rsrc ||= "#{JPAPI_PATCH_TITLE_RSRC}/#{jamf_title_id}/#{JPAPI_PATCH_REPORT_RSRC}"
+        @patch_report_rsrc ||= "#{JPAPI_PATCH_TITLE_RSRC}/#{jamf_patch_title_id}/#{JPAPI_PATCH_REPORT_RSRC}"
       end
 
       # Save a new title, adding to the
@@ -862,6 +862,7 @@ module Xolo
       def to_h
         hash = super
         hash[:ted_id_number] = ted_id_number
+        hash[:jamf_patch_title_id] = jamf_patch_title_id
         hash[:ssvc_icon_id] = ssvc_icon_id
         hash
       end

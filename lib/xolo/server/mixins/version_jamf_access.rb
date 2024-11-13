@@ -178,9 +178,26 @@ module Xolo
         # These are available directly in sinatra routes and views
         #
         ##############################
-        ##############################
+
+        # Create everything we need in Jamf
+        ############################
+        def create_in_jamf
+          ensure_jamf_xolo_category
+
+          # this will create or fetch the pkg
+          jamf_package
+
+          # these will create or fetch the policies
+          jamf_auto_install_policy
+          jamf_manual_install_policy
+
+          title_object.activate_patch_title_in_jamf
+
+          activate_patch_version_in_jamf
+        end
 
         # ensure the xolo category exists
+        ##############################
         def ensure_jamf_xolo_category
           return if Jamf::Category.all_names(cnx: jamf_cnx).include? Xolo::Server::JAMF_XOLO_CATEGORY
 
@@ -188,27 +205,9 @@ module Xolo
           Jamf::Category.create(name: Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
         end
 
-        # Create everything we need in Jamf
-        ############################
-        def create_in_jamf
-          ensure_jamf_xolo_category
-
-          create_pkg_in_jamf
-
-          create_install_policies_in_jamf
-
-          title_object.activate_patch_title_in_jamf
-
-          activate_patch_version_in_jamf
-        end
-
         # Create the Jamf::Package object for this version if needed
         #########################
         def create_pkg_in_jamf
-          return if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
-
-          progress "Jamf: Creating Jamf::Package '#{jamf_pkg_name}'", log: :info
-
           pkg = Jamf::Package.create(
             cnx: jamf_cnx,
             name: jamf_pkg_name,
@@ -224,6 +223,8 @@ module Xolo
           pkg.os_requirements = ">=#{min_os}"
 
           @jamf_pkg_id = pkg.save
+          progress "Jamf: Created Package object '#{jamf_pkg_name}'", log: :info
+          pkg
         rescue StandardError => e
           msg = "Jamf: Failed to create Jamf::Package '#{jamf_pkg_name}': #{e.class}: #{e}"
           log_error msg
@@ -243,43 +244,6 @@ module Xolo
           )
           pkg_notes << title_object.description
           pkg_notes
-        end
-
-        # Create the normal policies capable of doing the initial
-        # install of this version.
-        # TODO: this kinda assumes that all pkgs are 'standalone',
-        # we might have to deal with them being updates only, in which
-        # case we won't create these.
-        #########################
-        def create_install_policies_in_jamf
-          create_manual_install_policy_in_jamf
-          create_auto_install_policy_in_jamf
-        end
-
-        # The manual install policy is always scoped to all computers, with
-        # exclusions
-        #
-        # The policy has a custom trigger, or can be installed via self service
-        #
-        #########################
-        def create_manual_install_policy_in_jamf
-          progress "Jamf: Creating Jamf Manual Install Policy: #{jamf_manual_install_policy_name}", log: :debug
-          pol = Jamf::Policy.create name: jamf_manual_install_policy_name, cnx: jamf_cnx
-
-          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.add_package jamf_pkg_name
-          pol.set_trigger_event :checkin, false
-          pol.set_trigger_event :custom, jamf_manual_install_trigger
-
-          # manual install policy is always available manually install
-          # anywhere except the exclusions.
-          set_policy_to_all_targets(pol)
-
-          # exclusions are for always
-          set_policy_exclusions pol
-
-          pol.enable
-          pol.save
         end
 
         # Add the manual install policy to self service
@@ -366,41 +330,6 @@ module Xolo
           false
         end
 
-        # The auto install policy is triggered by checkin
-        # but may have narrow scope targets, or may be
-        # targeted to 'all' (after release)
-        # Before release, the targets are those defined in #pilot_groups_to_use
-        #
-        # After release, the targets are changed to those
-        # in title_object#target_group
-        #
-        # This policy is never in self service
-        #########################
-        def create_auto_install_policy_in_jamf
-          progress "Jamf: Creating Jamf Auto Install Policy: #{jamf_auto_install_policy_name}", log: :debug
-          pol = Jamf::Policy.create name: jamf_auto_install_policy_name, cnx: jamf_cnx
-
-          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.add_package jamf_pkg_name
-          pol.set_trigger_event :checkin, true
-          pol.set_trigger_event :custom, Xolo::BLANK
-
-          # while in pilot, only pilot groups are targets
-          set_policy_pilot_groups pol
-
-          # unless pilot_groups_to_use.pix_empty? # it could be nil
-          #   pilot_groups_to_use.each do |group|
-          #     pol.scope.add_target :computer_group, group
-          #   end
-          # end
-
-          # exclusions are for always
-          set_policy_exclusions pol
-
-          pol.enable
-          pol.save
-        end
-
         # set target groups in a pilot [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
         #
@@ -433,8 +362,7 @@ module Xolo
         ############################
         def set_policy_release_groups(pol, ttl_obj: nil)
           ttl_obj ||= title_object
-          targets = release_groups_to_use(ttl_obj: ttl_obj)
-          targets ||= []
+          targets = release_groups_to_use(ttl_obj: ttl_obj) || []
 
           log_debug "Jamf: updating release scope targets for #{pol.class} '#{pol.name}' to: #{targets.join ', '}"
 
@@ -499,8 +427,8 @@ module Xolo
             return
           end
 
-          progress "Jamf: Will assign Jamf pkg '#{jamf_pkg_name}' and create the patch policy when this version becomes visible to Jamf Pro from the Title Editor.",
-                   log: :debug
+          msg = "Jamf: Will assign Jamf pkg '#{jamf_pkg_name}' and create the patch policy when this version becomes visible to Jamf Pro from the Title Editor."
+          progress msg, log: :debug
 
           @activate_patch_version_thread = Thread.new do
             log_debug "Jamf: Starting activate_patch_version_thread waiting for version #{version} of title #{title} to become visible from the title editor"
@@ -554,6 +482,99 @@ module Xolo
           title_object.jamf_patch_title.save
         end
 
+        # @return [Jamf::Policy] The manual-install-policy for this version, if it exists
+        ##########################
+        def jamf_manual_install_policy
+          @jamf_manual_install_policy ||=
+            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
+              Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
+            else
+              create_manual_install_policy_in_jamf
+            end
+        end
+
+        # The manual install policy is always scoped to all computers, with
+        # exclusions
+        #
+        # The policy has a custom trigger, or can be installed via self service
+        #
+        #########################
+        def create_manual_install_policy_in_jamf
+          pol = Jamf::Policy.create name: jamf_manual_install_policy_name, cnx: jamf_cnx
+
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.add_package jamf_pkg_name
+          pol.set_trigger_event :checkin, false
+          pol.set_trigger_event :custom, jamf_manual_install_trigger
+
+          # manual install policy is always available manually install
+          # anywhere except the exclusions.
+          set_policy_to_all_targets(pol)
+
+          # exclusions are for always
+          set_policy_exclusions pol
+
+          pol.enable
+          pol.save
+          progress "Jamf: Created Jamf Manual Install Policy: #{jamf_manual_install_policy_name}", log: :info
+
+          pol
+        end
+
+        # @return [Jamf::Policy] The auto-install-policy for this version, if it exists
+        ##########################
+        def jamf_auto_install_policy
+          @jamf_auto_install_policy ||=
+            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
+              Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
+            else
+              create_auto_install_policy_in_jamf
+            end
+        end
+
+        # The auto install policy is triggered by checkin
+        # but may have narrow scope targets, or may be
+        # targeted to 'all' (after release)
+        # Before release, the targets are those defined in #pilot_groups_to_use
+        #
+        # After release, the targets are changed to those
+        # in title_object#target_group
+        #
+        # This policy is never in self service
+        # @return [Jamf::Policy] the auto install policy for this version
+        #########################
+        def create_auto_install_policy_in_jamf
+          pol = Jamf::Policy.create name: jamf_auto_install_policy_name, cnx: jamf_cnx
+
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.add_package jamf_pkg_name
+          pol.set_trigger_event :checkin, true
+          pol.set_trigger_event :custom, Xolo::BLANK
+
+          # while in pilot, only pilot groups are targets
+          set_policy_pilot_groups pol
+
+          # exclusions are for always
+          set_policy_exclusions pol
+
+          pol.enable
+          pol.save
+          progress "Jamf: Created Jamf Auto Install Policy: #{jamf_auto_install_policy_name}", log: :debug
+          pol
+        end
+
+        # @return [Jamf::PatchPolicy] The auto-install-policy for this version, if it exists
+        ##########################
+        def jamf_patch_policy
+          @jamf_patch_policy ||=
+            if Jamf::PatchPolicy.all_names(cnx: jamf_cnx).include? jamf_patch_policy_name
+              Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
+            else
+              create_patch_policy_in_jamf
+            end
+        end
+
+        # @return [Jamf::PatchPolicy] The xolo patch policy for this version
         #########################
         def create_patch_policy_in_jamf
           # TODO: decide how many patch policies - see comments at top
@@ -578,8 +599,6 @@ module Xolo
           # - notifications?  Message and Subject? SSvc only, Notif Ctr?
           # - deadline and grace period message and subbject
 
-          log_debug "Jamf: Creating Pilot Patch Policy for Version '#{version}' of Title '#{title}'."
-
           ppol = Jamf::PatchPolicy.create(
             cnx: jamf_cnx,
             name: jamf_patch_policy_name,
@@ -602,48 +621,9 @@ module Xolo
           ppol.enable
 
           ppol.save
-        end
+          progress "Jamf: Created Pilot Patch Policy for Version '#{version}' of Title '#{title}'.", log: :info
 
-        # @return [Jamf::Policy] The manual-install-policy for this version, if it exists
-        ##########################
-        def jamf_manual_install_policy
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
-            Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
-          else
-            progress(
-              "Jamf: WARNING No Manual Install Policy '#{jamf_manual_install_policy_name}', it should be there.",
-              log: :warn
-            )
-            nil
-          end
-        end
-
-        # @return [Jamf::Policy] The auto-install-policy for this version, if it exists
-        ##########################
-        def jamf_auto_install_policy
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
-            Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
-          else
-            progress(
-              "Jamf: WARNING No Auto-Install Policy '#{jamf_auto_install_policy_name}', it should be there.",
-              log: :warn
-            )
-            nil
-          end
-        end
-
-        # @return [Jamf::PatchPolicy] The auto-install-policy for this version, if it exists
-        ##########################
-        def jamf_patch_policy
-          if Jamf::PatchPolicy.all_names(cnx: jamf_cnx).include? jamf_patch_policy_name
-            Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
-          else
-            progress(
-              "Jamf: WARNING No Patch Policy '#{jamf_patch_policy_name}', it should be there.",
-              log: :warn
-            )
-            nil
-          end
+          ppol
         end
 
         # Apply edits to the Xolo version to Jamf as needed
@@ -715,10 +695,12 @@ module Xolo
         # @return [Jamf::Package] the Package object associated with this version
         ######################
         def jamf_package
-          return unless jamf_pkg_id
-          return unless Jamf::Package.all_ids(cnx: jamf_cnx).include? jamf_pkg_id
-
-          Jamf::Package.fetch id: jamf_pkg_id, cnx: jamf_cnx
+          @jamf_package ||=
+            if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
+              Jamf::Package.fetch name: jamf_pkg_name, cnx: jamf_cnx
+            else
+              create_pkg_in_jamf
+            end
         end
 
         # Update the SSvc Icon for the policies used by this version
@@ -784,7 +766,7 @@ module Xolo
         #   if nil, we'll instantiate it now
         #########################
         def update_release_groups(ttl_obj: nil)
-          return if [Xolo::Server::Version::STATUS_PENDING, Xolo::Server::Version::STATUS_PILOT].include? status
+          return unless status == Xolo::Server::Version::STATUS_RELEASED
 
           # - no changes to the manual install policy: scope-target is all
 
@@ -794,7 +776,8 @@ module Xolo
 
           set_policy_release_groups(pol, ttl_obj: ttl_obj)
           pol.save
-          progress "Jamf: updated release groups for Auto Install Policy '#{jamf_auto_install_policy_name}'."
+          progress "Jamf: updated release groups for Auto Install Policy '#{jamf_auto_install_policy_name}'.",
+                   log: :info
 
           # - no changes to the patch policy: scope-target is all once released
         end
@@ -1015,7 +998,7 @@ module Xolo
         def jamf_patch_policy_url
           return @jamf_patch_policy_url if @jamf_patch_policy_url
 
-          title_id = title_object.jamf_title_id
+          title_id = title_object.jamf_patch_title_id
 
           pol_id = Jamf::PatchPolicy.map_all(
             :name,
