@@ -67,14 +67,12 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
-          set_normal_ea_in_jamf
-          set_installed_smart_group_in_jamf
+          set_normal_ea_script_in_jamf
+          set_installed_smart_group_criteria_in_jamf
 
-          # Create the static group that will contain computers
-          # where this title is 'frozen'
-          # To start with it has no members, but will be used in scope exclusions
-          jamf_frozen_group.save
-          progress "Jamf: Created static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
+          # Create the static group that will computers where this title is 'frozen'
+          # Just calling this will create it if it doesn't exist.
+          jamf_frozen_group
         end
 
         # Apply any changes to Jamf as needed
@@ -86,11 +84,11 @@ module Xolo
         def update_title_in_jamf
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_smart_group
-          set_normal_ea_in_jamf if need_to_update_normal_ea_in_jamf?
+          set_normal_ea_script_in_jamf if need_to_update_normal_ea_in_jamf?
 
           # this smart group might use the normal-EA or might use app data
           # If those have changed, we need to update it.
-          set_installed_smart_group_in_jamf if need_to_update_installed_smart_group_in_jamf?
+          set_installed_smart_group_criteria_in_jamf if need_to_update_installed_smart_group_in_jamf?
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_smart_group
@@ -120,13 +118,8 @@ module Xolo
           version_objects.each do |vers_obj|
             vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update.key? :release_groups
             vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update.key? :excluded_groups
-
-            # turn self service on or off
             vers_obj.update_ssvc(ttl_obj: self) if changes_for_update.key? :self_service
-
-            # update ssvc category if needed, and if self_services is on
             vers_obj.update_ssvc_category(ttl_obj: self) if changes_for_update.key? :self_service_category
-
             # TODO: deal with icon changes: if changes_for_update.key? :self_service_icon
           end
         end
@@ -165,24 +158,13 @@ module Xolo
         #
         # @return [void]
         #####################################
-        def set_installed_smart_group_in_jamf
-          grp = jamf_installed_smart_group
-          grp.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_smart_group_criteria)
-          grp.save
-          # give the Jamf server time to see the change, so that, e.g. we can delete the
-          # EA it might have been using.
+        def set_installed_smart_group_criteria_in_jamf
+          jamf_installed_smart_group.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_smart_group_criteria)
+          jamf_installed_smart_group.save
+
           log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
           sleep 10
-
-          msg =
-            if @current_action == :updating
-              "Jamf: Updated smart group '#{jamf_installed_smart_group_name}'"
-
-            else
-              "Jamf: Created smart group '#{jamf_installed_smart_group_name}'"
-
-            end
-          progress msg, log: :info
+          progress "Jamf: Set criteria for smart group '#{jamf_installed_smart_group_name}'", log: :info
         end
 
         # The smartgroup in jamf that contains all macs
@@ -191,16 +173,23 @@ module Xolo
         # @return [Jamf::ComputerGroup]
         #####################################
         def jamf_installed_smart_group
-          @jamf_installed_smart_group ||=
-            if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
-              Jamf::ComputerGroup.fetch name: jamf_installed_smart_group_name, cnx: jamf_cnx
-            else
-              Jamf::ComputerGroup.create(
-                name: jamf_installed_smart_group_name,
-                type: :smart,
-                cnx: jamf_cnx
-              ).save
-            end
+          return @jamf_installed_smart_group if @jamf_installed_smart_group
+
+          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_smart_group_name
+            @jamf_installed_smart_group = Jamf::ComputerGroup.fetch(
+              name: jamf_installed_smart_group_name,
+              cnx: jamf_cnx
+            )
+          else
+            @jamf_installed_smart_group = Jamf::ComputerGroup.create(
+              name: jamf_installed_smart_group_name,
+              type: :smart,
+              cnx: jamf_cnx
+            )
+            @jamf_installed_smart_group.save
+            progress "Jamf: Created smart group '#{jamf_installed_smart_group_name}'", log: :info
+          end
+          @jamf_installed_smart_group
         end
 
         # The criteria for the smart group in Jamf that contains all Macs
@@ -256,7 +245,7 @@ module Xolo
         #
         # @return [void]
         ################################
-        def set_normal_ea_in_jamf
+        def set_normal_ea_script_in_jamf
           # this is our incoming or already-existing EA script
           scr = version_script_contents
 
@@ -266,25 +255,35 @@ module Xolo
           # nothing to do if it hasn't changed.
           return if @current_action == :updating && !(changes_for_update.key? :version_script)
 
-          ea =
-            if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
-              msg = "Jamf: Updating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group"
+          jamf_normal_ea.script = scr
+          jamf_normal_ea.save
+          msg = "Jamf: Set regular extension attribute '#{jamf_normal_ea_name}' to use version_script"
 
-              Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
-            else
-              msg = "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group"
-
-              Jamf::ComputerExtensionAttribute.create(
-                name: jamf_normal_ea_name,
-                description: "The version of xolo title '#{title}' installed on the machine",
-                data_type: :string,
-                enabled: true,
-                cnx: jamf_cnx
-              )
-            end
-          ea.script = scr
-          ea.save
           progress msg, log: :info
+        end
+
+        # Create or fetch the 'normal' EA in jamf
+        #
+        # @return [Jamf::ComputerExtensionAttribute]
+        ########################
+        def jamf_normal_ea
+          return @jamf_normal_ea if @jamf_normal_ea
+
+          if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
+            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
+          else
+            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.create(
+              name: jamf_normal_ea_name,
+              description: "The version of xolo title '#{title}' installed on the machine",
+              data_type: :string,
+              enabled: true,
+              cnx: jamf_cnx
+            )
+            @jamf_normal_ea.save
+            msg = "Jamf: Created regular extension attribute '#{jamf_normal_ea_name}' for use in smart group"
+            progress msg, log: :info
+          end
+          @jamf_normal_ea
         end
 
         # Do we need to accept the xolo ea in jamf?
@@ -378,21 +377,10 @@ module Xolo
             raise Xolo::NoSuchItemError, msg
           end
 
-          title_in_jamf_patch =
-            Jamf::PatchTitle.create(
-              name: display_name,
-              source: Xolo::Server.config.ted_patch_source,
-              name_id: title,
-              cnx: jamf_cnx
-            )
-          title_in_jamf_patch.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          title_in_jamf_patch.save
+          # This creates/activates the title if needed
+          jamf_patch_title
 
-          msg = "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
-          progress msg, log: :info
-
-          ea_matches = jamf_patch_ea_matches_version_script?
-          return if ea_matches.nil?
+          return if jamf_patch_ea_matches_version_script?.nil?
 
           # only call this if we expect jamf to tell us to accept the EA
           accept_xolo_patch_ea_in_jamf
@@ -442,7 +430,7 @@ module Xolo
           ENDPATCHDATA
 
           if jamf_patch_ea_needs_acceptance?
-            jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
+            jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_patch_title_id}", patchdata
             progress "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :debug
             return
           end
@@ -478,7 +466,7 @@ module Xolo
               log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time}"
               next unless jamf_patch_ea_needs_acceptance?
 
-              jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_title_id}", patchdata
+              jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_patch_title_id}", patchdata
               log_info "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'"
               did_it = true
               break
@@ -538,7 +526,7 @@ module Xolo
         # once the title as been activated in Jamf.
         #
         # This is a hash of data returned from the JP API endpoint:
-        #    "v2/patch-software-title-configurations/#{jamf_title_id}/extension-attributes"
+        #    "v2/patch-software-title-configurations/#{jamf_patch_title_id}/extension-attributes"
         # which has these keys:
         #
         #   :accepted [Boolean] has it been accepted for the title?
@@ -567,10 +555,9 @@ module Xolo
         #   nil if the title has no EA at the moment
         ########################
         def jamf_patch_ea_data
-          jid = jamf_title_id
-          return unless jid
+          return unless jamf_patch_title_id
 
-          jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jid}/extension-attributes").first
+          jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jamf_patch_title_id}/extension-attributes").first
         end
 
         # the script contents of the Jamf Patch EA that comes from our version_script
@@ -610,33 +597,45 @@ module Xolo
           jamf_active_ted_titles.include? title
         end
 
+        # Create or fetch the patch title object for this xolo title
+        #
         # @param refresh [Boolean] re-fetch the patch title from Jamf?
         # @return [Jamf::PatchTitle] The Jamf Patch Title for this Xolo Title
         ########################
         def jamf_patch_title(refresh: false)
-          @jamf_patch_title = nil if refresh
-          return @jamf_patch_title if @jamf_patch_title
-
           unless jamf_ted_title_active?
             msg = "Jamf: Title '#{title}' is not activated in Jamf Patch Management"
             log_error msg
             raise Xolo::NoSuchItemError, msg
           end
 
-          @jamf_patch_title =
-            Jamf::PatchTitle.fetch(
-              name_id: title,
-              source_id: jamf_ted_patch_source.id,
-              cnx: jamf_cnx
-            )
-        rescue Jamf::NoSuchItemError
-          nil
+          @jamf_patch_title = nil if refresh
+          return @jamf_patch_title if @jamf_patch_title
+
+          if jamf_patch_title_id
+            @jamf_patch_title = Jamf::PatchTitle.fetch(id: jamf_patch_title_id)
+
+          else
+            @jamf_patch_title =
+              Jamf::PatchTitle.create(
+                name: display_name,
+                source: Xolo::Server.config.ted_patch_source,
+                name_id: title,
+                cnx: jamf_cnx
+              )
+            @jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
+            jamf_patch_title_id = @jamf_patch_title.save
+
+            msg = "Jamf: Activated Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
+            progress msg, log: :info
+          end
+          @jamf_patch_title
         end
 
         # @return [Integer] The Jamf ID of this title, if it is active in Jamf
         ##################################
-        def jamf_title_id
-          @jamf_title_id ||= Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
+        def find_jamf_patch_title_id
+          @jamf_patch_title_id ||= Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
         end
 
         # Delete an entire title from Jamf Pro
@@ -709,12 +708,10 @@ module Xolo
             elsif action == :freeze
               freeze_computers(computers: computers)
             else
-              raise "Unknown action '#{action}', must be :freeze or :thaw"
+              raise ArgumentError, "Unknown action '#{action}', must be :freeze or :thaw"
             end # if action ==
 
-          log_debug "grp: #{grp.member_names}"
-
-          grp.save
+          jamf_frozen_group.save
 
           result
         end
@@ -725,16 +722,20 @@ module Xolo
         # @return [Jamf::ComputerGroup]
         #####################################
         def jamf_frozen_group
-          @jamf_frozen_group ||=
-            if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
-              Jamf::ComputerGroup.fetch name: jamf_frozen_group_name, cnx: jamf_cnx
-            else
-              Jamf::ComputerGroup.create(
-                name: jamf_frozen_group_name,
-                type: :static,
-                cnx: jamf_cnx
-              ).save
-            end
+          return @jamf_frozen_group if @jamf_frozen_group
+
+          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
+            @jamf_frozen_group = Jamf::ComputerGroup.fetch name: jamf_frozen_group_name, cnx: jamf_cnx
+          else
+            @jamf_frozen_group = Jamf::ComputerGroup.create(
+              name: jamf_frozen_group_name,
+              type: :static,
+              cnx: jamf_cnx
+            )
+            @jamf_frozen_group.save
+            progress "Jamf: Created static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
+          end
+          @jamf_frozen_group
         end
 
         # thaw some computers
@@ -860,7 +861,7 @@ module Xolo
         # @return [String] the URL for the Patch Title in Jamf Pro
         #####################
         def jamf_patch_title_url
-          @jamf_patch_title_url ||= "#{jamf_gui_url}/view/computers/patch/#{jamf_title_id}"
+          @jamf_patch_title_url ||= "#{jamf_gui_url}/view/computers/patch/#{jamf_patch_title_id}"
         end
 
         # @return [String] the URL for the Patch EA in Jamf Pro
