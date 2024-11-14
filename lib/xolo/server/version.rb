@@ -80,6 +80,8 @@ module Xolo
 
       ENDNOTES
 
+      MAX_PKG_DELETION_THREADS = 10
+
       # Class Methods
       ######################
       ######################
@@ -150,6 +152,32 @@ module Xolo
       def self.locked?(title, version)
         curr_lock = Xolo::Server.object_locks.dig title, :versions, version
         curr_lock && curr_lock > Time.now
+      end
+
+      # See https://ruby-concurrency.github.io/concurrent-ruby/master/file.thread_pools.html
+      # @return [Queue] The package-deletion thread pool
+      ###############################
+      def self.pkg_deletion_pool
+        @pkg_deletion_pool ||= Concurrent::ThreadPoolExecutor.new(
+          name: 'package-deletion',
+          min_threads: 1, # start with 1 thread
+          max_threads: MAX_PKG_DELETION_THREADS, # create at most 10 threads
+          max_queue: 0, # no limit
+          idletime: 60 # seconds thread can remain idle before it is reclaimed, default is 60
+          # fallback_policy: :abort # the default is :abort, which will raise a
+          #   Concurrent::RejectedExecutionError exception and discard the task
+        )
+      end
+
+      # info about the current pkg deletion pool state, for
+      # the /state route
+      # @return [Hash]
+      ###############################
+      def self.pkg_deletion_pool_info
+        {
+          threads: pkg_deletion_pool.length,
+          queued_tasks: pkg_deletion_pool.queue_length
+        }
       end
 
       # Attributes
@@ -270,7 +298,7 @@ module Xolo
       def pilot_groups_to_use
         return @pilot_groups_to_use if @pilot_groups_to_use
 
-        @pilot_groups_to_use = changes_for_update.key?(:pilot_groups) ? changes_for_update[:pilot_groups][:new] : pilot_groups
+        @pilot_groups_to_use = changes_for_update&.key?(:pilot_groups) ? changes_for_update[:pilot_groups][:new] : pilot_groups
       end
 
       # The scope excluded groups to use in policies and patch policies for all versions of
@@ -297,7 +325,7 @@ module Xolo
         ttl_obj ||= title_object
         # get the excluded groups from the title
         # Use .dup so we don't modify the original
-        @excluded_groups_to_use = ttl_obj.changes_for_update.key?(:excluded_groups) ? ttl_obj.changes_for_update[:excluded_groups][:new].dup : ttl_obj.excluded_groups.dup
+        @excluded_groups_to_use = ttl_obj.changes_for_update&.key?(:excluded_groups) ? ttl_obj.changes_for_update[:excluded_groups][:new].dup : ttl_obj.excluded_groups.dup
 
         all_jamf_group_names = Jamf::ComputerGroup.all_names(cnx: jamf_cnx)
 
@@ -338,7 +366,7 @@ module Xolo
         return @release_groups_to_use if @release_groups_to_use
 
         ttl_obj ||= title_object
-        @release_groups_to_use = ttl_obj.changes_for_update.key?(:release_groups) ? ttl_obj.changes_for_update[:release_groups][:new] : ttl_obj.release_groups
+        @release_groups_to_use = ttl_obj.changes_for_update&.key?(:release_groups) ? ttl_obj.changes_for_update[:release_groups][:new] : ttl_obj.release_groups
       end
 
       # @return [Hash]
@@ -659,7 +687,7 @@ module Xolo
         delete_version_from_jamf
 
         # remove from the title's list of versions
-        progress 'Removing version from title data on the Xolo server', log: :debug
+        progress 'Deleting version from title data on the Xolo server', log: :debug
         title_object.remove_version(version) if update_title
 
         # delete the local data
