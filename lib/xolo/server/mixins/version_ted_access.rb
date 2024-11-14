@@ -165,14 +165,14 @@ module Xolo
           # updating an existing patch? Use the new values if they exist
           # noting that a nil new value for max_os means its being removed
           elsif @current_action == :updating
-            return unless changes_for_update.key?(:max_os) || changes_for_update.key?(:min_os)
+            return unless changes_for_update&.key?(:max_os) || changes_for_update&.key?(:min_os)
 
             # min gets reset even if it didn't change and it can't be empty.
             min = changes_for_update.dig(:min_os, :new) || min_os
 
             # if max is changing and its nil, its being removed, so won't be re-added
             # if its not changing, keep the current value
-            max = changes_for_update.key?(:max_os) ? changes_for_update[:max_os][:new] : max_os
+            max = changes_for_update&.key?(:max_os) ? changes_for_update[:max_os][:new] : max_os
 
             # delete the existing criteria
             ted_patch.capabilities.delete_all_criteria

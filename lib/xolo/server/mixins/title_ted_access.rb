@@ -127,7 +127,7 @@ module Xolo
           Xolo::Server::Title::ATTRIBUTES.each do |attr, deets|
             ted_attribute = deets[:ted_attribute]
             next unless ted_attribute
-            next unless changes_for_update.key? attr
+            next unless changes_for_update&.key? attr
 
             new_val = changes_for_update[attr][:new]
             old_val = changes_for_update[attr][:old]
