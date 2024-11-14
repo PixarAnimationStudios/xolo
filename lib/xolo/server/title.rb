@@ -112,6 +112,9 @@ module Xolo
       # a matching normal EA called 'xolo-<title>-installed-version'
       JAMF_NORMAL_EA_NAME_SUFFIX = '-installed-version'
 
+      JAMF_INSTALLED_GROUP_NAME_SUFFIX = '-installed'
+      JAMF_FROZEN_GROUP_NAME_SUFFIX = '-frozen'
+
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
       # have a version to pilot, there's nothing IN jamf.
@@ -335,11 +338,12 @@ module Xolo
       def initialize(data_hash)
         super
         @ted_id_number ||= data_hash[:ted_id_number]
+        @jamf_patch_title_id ||= data_hash[:jamf_patch_title_id]
         @version_order ||= []
         @new_data_for_update = {}
         @changes_for_update = {}
-        @jamf_installed_smart_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-installed"
-        @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-frozen"
+        @jamf_installed_smart_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
+        @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
       end
 
       # Instance Methods
