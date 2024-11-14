@@ -613,7 +613,7 @@ module Xolo
           return @jamf_patch_title if @jamf_patch_title
 
           if jamf_patch_title_id
-            @jamf_patch_title = Jamf::PatchTitle.fetch(id: jamf_patch_title_id)
+            @jamf_patch_title = Jamf::PatchTitle.fetch(id: jamf_patch_title_id, cnx: jamf_cnx)
 
           else
             @jamf_patch_title =
