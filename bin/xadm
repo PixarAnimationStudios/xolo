@@ -70,13 +70,15 @@ class XoloAdmin
     if ARGV.include? '--test'
       # uncomment to test local variables and such, see
       # the do_local_testing method in processing.rb
-      login test: true
       do_local_testing
 
       # uncomment to reach out to the server
       # to test all kinds of things - the connection,
       # or any values the server might return
       # see the run_test_route method in processing.rb
+      # and the test_route method in the server
+      #
+      # login test: true
       # run_test_route
       return
     end
