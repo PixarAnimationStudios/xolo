@@ -116,11 +116,11 @@ module Xolo
         ############################
         def update_versions_for_title_changes_in_jamf
           version_objects.each do |vers_obj|
-            vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update.key? :release_groups
-            vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update.key? :excluded_groups
-            vers_obj.update_ssvc(ttl_obj: self) if changes_for_update.key? :self_service
-            vers_obj.update_ssvc_category(ttl_obj: self) if changes_for_update.key? :self_service_category
-            # TODO: deal with icon changes: if changes_for_update.key? :self_service_icon
+            vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update&.key? :release_groups
+            vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key? :excluded_groups
+            vers_obj.update_ssvc(ttl_obj: self) if changes_for_update&.key? :self_service
+            vers_obj.update_ssvc_category(ttl_obj: self) if changes_for_update&.key? :self_service_category
+            # TODO: deal with icon changes: if changes_for_update&.key? :self_service_icon
           end
         end
 
@@ -253,7 +253,7 @@ module Xolo
           return if scr.pix_empty?
 
           # nothing to do if it hasn't changed.
-          return if @current_action == :updating && !(changes_for_update.key? :version_script)
+          return if @current_action == :updating && !(changes_for_update&.key? :version_script)
 
           jamf_normal_ea.script = scr
           jamf_normal_ea.save

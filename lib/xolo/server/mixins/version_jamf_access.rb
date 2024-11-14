@@ -640,12 +640,12 @@ module Xolo
         # Uploading a new .pkg installer happen separately
         #########################################
         def update_version_in_jamf
-          update_pilot_groups if changes_for_update.key? :pilot_groups
-          update_release_groups(ttl_obj: title_object) if changes_for_update.key? :release_groups
-          update_excluded_groups(ttl_obj: title_object) if changes_for_update.key? :excluded_groups
+          update_pilot_groups if changes_for_update&.key? :pilot_groups
+          update_release_groups(ttl_obj: title_object) if changes_for_update&.key? :release_groups
+          update_excluded_groups(ttl_obj: title_object) if changes_for_update&.key? :excluded_groups
 
-          update_jamf_pkg_reboot if changes_for_update.key? :reboot
-          update_jamf_pkg_min_os if changes_for_update.key? :min_os
+          update_jamf_pkg_reboot if changes_for_update&.key? :reboot
+          update_jamf_pkg_min_os if changes_for_update&.key? :min_os
         end
 
         # update the reboot setting for the Jamf::Package
