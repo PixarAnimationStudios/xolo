@@ -122,8 +122,9 @@ module Xolo
           ruby_jss_version: Jamf::VERSION,
           windoo_version: Windoo::VERSION,
           config: Xolo::Server.config.to_h_private,
-          threads: Xolo::Server.thread_info,
-          object_locks: Xolo::Server.object_locks
+          pkg_deletion_pool: Xolo::Server::Version.pkg_deletion_pool_info,
+          object_locks: Xolo::Server.object_locks,
+          threads: Xolo::Server.thread_info
         }
 
         body state
@@ -135,7 +136,7 @@ module Xolo
       #
       ################
       get '/streamed_progress/' do
-        log_info "Starting progress stream from file: #{params[:stream_file]}"
+        log_debug "Starting progress stream from file: #{params[:stream_file]}"
         @no_json = true
         stream_file = Pathname.new params[:stream_file]
 

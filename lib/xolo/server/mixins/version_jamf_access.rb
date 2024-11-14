@@ -932,12 +932,6 @@ module Xolo
         # This includes the package, the manual install policy, the auto install policy,
         # and the patch policy.
         #
-        # TODO: abandon the package-deletion thread if needed for, e.g. deleting all
-        # the versions of a title. But then - how to let the admin know its done, so they
-        # don't re-add a pkg with the same name?
-        # Also - if we get say 10-15 deletion threads all running at once, will that
-        # be a problem?
-        #
         # @return [void]
         #
         #########################
@@ -958,20 +952,60 @@ module Xolo
           # 15 secs
           return unless Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
 
-          msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}..."
-          progress msg, log: :debug
+          delete_pkg_from_jamf
 
-          # do this in another thread, so we can report the progress while its happening
-          pkg_del_thr = Thread.new { Jamf::Package.fetch(name: jamf_pkg_name, cnx: jamf_cnx).delete }
-          pkg_del_thr.name = "package-deletion-thread-#{session[:xolo_id]}"
-          sleep 15
-          while pkg_del_thr.alive?
-            progress "... #{Time.now.strftime '%F %T'} still deleting, this is slow, sorry."
-            sleep 15
+          # The code below is used when we want real-time progress updates to xadm
+          # while deletion is happening. It's slow, so we're not using it now.
+
+          # msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}..."
+          # progress msg, log: :debug
+
+          # # do this in another thread, so we can report the progress while its happening
+          # pkg_del_thr = Thread.new { Jamf::Package.fetch(name: jamf_pkg_name, cnx: jamf_cnx).delete }
+          # pkg_del_thr.name = "package-deletion-thread-#{session[:xolo_id]}"
+          # sleep 15
+          # while pkg_del_thr.alive?
+          #   progress "... #{Time.now.strftime '%F %T'} still deleting, this is slow, sorry."
+          #   sleep 15
+          # end
+
+          # msg = "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at  #{Time.now.strftime '%F %T'}"
+          # progress msg, log: :debug
+        end
+
+        # Delete the package for this version from Jamf Pro.
+        # Package deletion takes a long time, so we do it in a threadpool
+        # and tell the admin to check the Alert Tool for completion
+        # (if we have an alert tool in place) or to wait at least 5 min before
+        # re-adding the same version.
+        #
+        # @return [void]
+        #########################
+        def delete_pkg_from_jamf
+          pkg_id = Jamf::Package.map_all(:name, to: :id, cnx: jamf_cnx)[jamf_pkg_name]
+          return unless pkg_id
+
+          msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
+          progress msg, log: :info
+
+          warning = +"IMPORTANT: Package deletion is slow. If you plan to re-add this version, '#{version}', please "
+          warning <<
+            if Xolo::Server.config.alert_tool
+              'check your Xolo alerts for completion, which can take up to 5 minutes, '
+            else
+              'wait at least 5 minutes'
+            end
+          warning << ' before re-adding this version.'
+
+          progress warning
+
+          self.class.pkg_deletion_pool.post do
+            start = Time.now
+            Jamf::Package.delete pkg_id, cnx: jamf_cnx
+            finish = Time.now
+            duration = (finish - start).pix_humanize_secs
+            log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}"
           end
-
-          msg = "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at  #{Time.now.strftime '%F %T'}"
-          progress msg, log: :debug
         end
 
         # Get the patch report for this version

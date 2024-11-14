@@ -61,6 +61,7 @@ require 'ruby-jss'
 require 'windoo'
 require 'concurrent/hash'
 require 'concurrent/atomic/reentrant_read_write_lock'
+require 'concurrent/executor/thread_pool_executor'
 
 module Xolo
 
