@@ -320,7 +320,7 @@ module Xolo
 
           type = ea_name ? 'Extension Attribute (version_script)' : 'App'
 
-          progress "Title Editor: Setting #{type}-based Requirement for title '#{title}'", log: :info
+          progress "Title Editor: Setting #{type}-based Requirement for SoftwareTitle '#{title}'", log: :info
 
           # delete any already there
           ted_title.requirements.delete_all_criteria
