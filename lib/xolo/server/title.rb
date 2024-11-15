@@ -262,7 +262,7 @@ module Xolo
       # Since there is one such group per title, it's name is stored here
       #
       # @return [String] the name of the smart group
-      attr_reader :jamf_installed_smart_group_name
+      attr_reader :jamf_installed_group_name
 
       # For each title there will be a static group containing macs
       # that should not get any automatic installs or updates, They
@@ -346,7 +346,7 @@ module Xolo
         @version_order ||= []
         @new_data_for_update = {}
         @changes_for_update = {}
-        @jamf_installed_smart_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
+        @jamf_installed_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
         @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
       end
 
@@ -365,6 +365,30 @@ module Xolo
       ###################
       def admin
         session[:admin]
+      end
+
+      # @return [Boolean] Are we creating this title?
+      ###################
+      def creating?
+        current_action == :creating
+      end
+
+      # @return [Boolean] Are we updating this title?
+      ###################
+      def updating?
+        current_action == :updating
+      end
+
+      # @return [Boolean] Are we deleting this title?
+      ###################
+      def deleting?
+        current_action == :deleting
+      end
+
+      # @return [Boolean] Are we releasing a version this title?
+      ###################
+      def releasing?
+        current_action == :releasing
       end
 
       # Append a message to the progress stream file,
@@ -435,21 +459,6 @@ module Xolo
         return if curr_script.pix_empty?
 
         curr_script == Xolo::ITEM_UPLOADED ? version_script_file.read : curr_script
-      end
-
-      # @return [Windoo::SoftwareTitle] The Windoo::SoftwareTitle object that represents
-      #   this title in the title editor
-      #############################
-      def ted_title(refresh: false)
-        @ted_title = nil if refresh
-        @ted_title ||= Windoo::SoftwareTitle.fetch id: title, cnx: ted_cnx
-      end
-
-      # @return [String] The key and display name of a version script stored
-      #   in the title editor as the ExtAttr for this title
-      #####################
-      def ted_ea_key
-        @ted_ea_key ||= self.class.ted_ea_key title
       end
 
       # @return [String] The display name of a version script as a normal
@@ -524,6 +533,7 @@ module Xolo
         self.created_by = admin
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
 
+        # this will create the title as needed in the Title Editor
         create_title_in_ted
         create_title_in_jamf
 
@@ -766,6 +776,8 @@ module Xolo
       ##########################
       def release(version_to_release)
         lock
+        @current_action = :releasing
+
         if released_version == version_to_release
           raise Xolo::InvalidDataError,
                 "Version '#{version_to_release}' of title '#{title}' is already released"

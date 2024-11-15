@@ -134,13 +134,14 @@ module Xolo
 
           # set the current values
           kapps.each do |ka_str|
+            msg = "Title Editor: Setting killApp '#{ka_str}' for Patch '#{version}' of SoftwareTitle '#{title}'"
+            progress msg, log: :info
+
             name, bundleid = ka_str.split(Xolo::SEMICOLON_SEP_RE)
             ted_patch.killApps.add_killApp(
               appName: name,
               bundleId: bundleid
             )
-            msg = "Title Editor: Sett killApp '#{ka_str}' for Patch '#{version}' of SoftwareTitle '#{title}'"
-            progress msg, log: :info
           end
         end
 
@@ -180,24 +181,26 @@ module Xolo
             return
           end
 
+          msg = "Title Editor: Setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{min}'"
+          progress msg, log: :info
+
           # min os - one is always required
           ted_patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'greater than or equal',
             value: min
           )
-          msg = "Title Editor: Set min_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{min}'"
-          progress msg, log: :info
 
           return unless max
+
+          msg = "Title Editor: Setting max_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{max}'"
+          progress msg, log: :debug
 
           ted_patch.capabilities.add_criterion(
             name: 'Operating System Version',
             operator: 'less than or equal',
             value: max
           )
-          msg = "Title Editor: Set max_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{max}'"
-          progress msg, log: :debug
         end
 
         # Set the component criteria for this version in the title editor.
@@ -224,16 +227,18 @@ module Xolo
             raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id, or ttl_obj'
           end
 
+          type = ea_name ? 'Extension Attribute (version_script)' : 'App'
+          msg = "Title Editor: Setting #{type}-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
+          progress msg, log: :info
+
           # delete any already there and make a new one
           ted_patch.delete_component
           ted_patch.add_component name: title, version: version
           comp = ted_patch.component
 
-          msg = ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
+          ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
 
           enable_ted_patch
-
-          progress msg, log: :info
         end
 
         # get the param values for patch component criteria from the title object,
@@ -245,7 +250,7 @@ module Xolo
         def get_patch_component_criteria_params(ttl_obj)
           app_name, app_bundle_id, ea_name = nil
 
-          if ttl_obj.current_action == :updating
+          if ttl_obj.updating?
             if ttl_obj.changes_for_update.dig :app_name, :new
               app_name = ttl_obj.changes_for_update[:app_name][:new]
               app_bundle_id = ttl_obj.changes_for_update[:app_bundle_id][:new]
@@ -262,7 +267,7 @@ module Xolo
           [app_name, app_bundle_id, ea_name]
         end
 
-        # @return [String] the progress message
+        # @return [void]
         ##############################
         def set_ea_component(comp, ea_name)
           comp.criteria.add_criterion(
@@ -271,10 +276,9 @@ module Xolo
             operator: 'is',
             value: version
           )
-          "Title Editor: Setting EA-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
         end
 
-        # @return [String] the progress message
+        # @return [void]
         ##############################
         def set_app_component(comp, app_name, app_bundle_id)
           comp.criteria.add_criterion(
@@ -294,7 +298,6 @@ module Xolo
             operator: 'is',
             value: version
           )
-          "Title Editor: Setting App-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
         end
 
         # For a patch to be enabled in the Title Editor, it needs at least a component criterion
