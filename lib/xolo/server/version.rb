@@ -497,7 +497,7 @@ module Xolo
         save_local_data
 
         # prepend our version to the version_order array of the title
-        progress "Updating title version_order, prepending '#{version}'", log: :debug
+        progress "Updating title version_order, prepending '#{version}'", log: :info
         title_object.prepend_version(version)
 
         log_change action: 'Version Created'
