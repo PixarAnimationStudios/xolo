@@ -239,10 +239,11 @@ module Xolo
           title = instantiate_title params[:title]
           data = {
             ted_title_url: title.ted_title_url,
-            jamf_patch_title_url: title.jamf_patch_title_url,
             jamf_installed_group_url: title.jamf_installed_group_url,
             jamf_frozen_group_url: title.jamf_frozen_group_url
           }
+
+          data[:jamf_patch_title_url] = title.jamf_patch_title_url unless title.versions.empty?
 
           if title.version_script
             data[:jamf_patch_ea_url] = title.jamf_patch_ea_url
