@@ -67,7 +67,7 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
-          set_normal_ea_script_in_jamf
+          set_normal_ea_script_in_jamf if version_script
           set_installed_group_criteria_in_jamf
 
           # Create the static group that will computers where this title is 'frozen'
