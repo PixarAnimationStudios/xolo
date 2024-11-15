@@ -237,6 +237,10 @@ module Xolo
       # @return [Hash]
       attr_reader :changes_for_update
 
+      # @return [Symbol] The current action being taken on this title
+      #   one of :creating, :updating, :deleting
+      attr_accessor :current_action
+
       # Constructor
       ######################
       ######################

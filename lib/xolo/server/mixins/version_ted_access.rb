@@ -119,10 +119,10 @@ module Xolo
         ##########################
         def set_patch_killapps
           # creating a new patch? Just use the current values
-          if @current_action == :creating
+          if current_action == :creating
             kapps = killapps
 
-          elsif @current_action == :updating
+          elsif current_action == :updating
             return unless changes_for_update[:killapps]
 
             kapps = changes_for_update[:killapps][:new]
@@ -157,14 +157,14 @@ module Xolo
         ##########################
         def set_patch_capabilites
           # creating a new patch? Just use the current values
-          if @current_action == :creating
+          if current_action == :creating
             min = min_os
             max = max_os
             return unless min || max
 
           # updating an existing patch? Use the new values if they exist
           # noting that a nil new value for max_os means its being removed
-          elsif @current_action == :updating
+          elsif current_action == :updating
             return unless changes_for_update&.key?(:max_os) || changes_for_update&.key?(:min_os)
 
             # min gets reset even if it didn't change and it can't be empty.
@@ -245,18 +245,18 @@ module Xolo
         def get_patch_component_criteria_params(ttl_obj)
           app_name, app_bundle_id, ea_name = nil
 
-          if ttl_obj.changes_for_update
+          if ttl_obj.current_action == :updating
             if ttl_obj.changes_for_update.dig :app_name, :new
               app_name = ttl_obj.changes_for_update[:app_name][:new]
               app_bundle_id = ttl_obj.changes_for_update[:app_bundle_id][:new]
             else
-              ea_name = ttl_obj.ea_name
+              ea_name = ttl_obj.ted_ea_key
             end
           elsif ttl_obj.app_name
             app_name = ttl_obj.app_name
             app_bundle_id = ttl_obj.app_bundle_id
           else
-            ea_name = ttl_obj.ea_name
+            ea_name = ttl_obj.ted_ea_key
           end
 
           [app_name, app_bundle_id, ea_name]
