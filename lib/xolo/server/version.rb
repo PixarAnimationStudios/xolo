@@ -294,6 +294,24 @@ module Xolo
         title_object.version_order.reverse.index version
       end
 
+      # @return [Boolean] Are we creating this title?
+      ###################
+      def creating?
+        current_action == :creating
+      end
+
+      # @return [Boolean] Are we updating this title?
+      ###################
+      def updating?
+        current_action == :updating
+      end
+
+      # @return [Boolean] Are we deleting this title?
+      ###################
+      def deleting?
+        current_action == :deleting
+      end
+
       # The scope target groups to use in policies and patch policies during pilot
       # This is defined in each version, and inherited when new versions are created.
       #
@@ -315,7 +333,7 @@ module Xolo
       #   'frozen' to a single version.
       #
       # For initial install policies, the smart group of macs with any version installed
-      # (jamf_installed_smart_group_name) "xolo-<title>-installed" is also excluded, because
+      # (jamf_installed_group_name) "xolo-<title>-installed" is also excluded, because
       # otherwise the initial-install policies would stomp on the patch policies.
       #
       # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
@@ -331,17 +349,14 @@ module Xolo
         # Use .dup so we don't modify the original
         @excluded_groups_to_use = ttl_obj.changes_for_update&.key?(:excluded_groups) ? ttl_obj.changes_for_update[:excluded_groups][:new].dup : ttl_obj.excluded_groups.dup
 
-        all_jamf_group_names = Jamf::ComputerGroup.all_names(cnx: jamf_cnx)
-
         # always exclude the frozen static group
-        if all_jamf_group_names.include? ttl_obj.jamf_frozen_group_name
-          @excluded_groups_to_use << ttl_obj.jamf_frozen_group_name
-          log_debug "Appended jamf_frozen_group_name '#{ttl_obj.jamf_frozen_group_name}' to @excluded_groups_to_use"
-        else
-          log_error "Missing Jamf 'frozen' static group '#{ttl_obj.jamf_frozen_group_name}'", alert: true
-        end
+        # calling ttl_obj.jamf_frozen_group will create the group if needed
+        @excluded_groups_to_use << ttl_obj.jamf_frozen_group.name
+        log_debug "Appendeds '#{ttl_obj.jamf_frozen_group_name}' to @excluded_groups_to_use"
 
         # always exclude Xolo::Server.config.forced_exclusion if defined
+        all_jamf_group_names = Jamf::ComputerGroup.all_names(cnx: jamf_cnx)
+
         if Xolo::Server.config.forced_exclusion
           if all_jamf_group_names.include? Xolo::Server.config.forced_exclusion
             @excluded_groups_to_use << Xolo::Server.config.forced_exclusion

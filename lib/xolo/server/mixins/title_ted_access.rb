@@ -57,13 +57,31 @@ module Xolo
         ##############################
         ##############################
 
-        # Create a new title in the title editor
+        # @return [Windoo::SoftwareTitle] The Windoo::SoftwareTitle object that represents
+        #   this title in the title editor
+        #############################
+        def ted_title(refresh: false)
+          @ted_title = nil if refresh
+          return @ted_title if @ted_title
+
+          @ted_title =
+            if Windoo::SoftwareTitle.all_ids(cnx: ted_cnx).include? title
+              Windoo::SoftwareTitle.fetch id: title, cnx: ted_cnx
+            else
+              return if deleting?
+
+              create_title_in_ted
+            end
+
+          @ted_title
+        end
+
+        # Create this title in the title editor
         #
-        # @return [void]
+        # @return [Windoo::SoftwareTitle]
         ##########################
         def create_title_in_ted
-          progress "Title Editor: Creating SoftwareTitle '#{title}'", log: :info
-          @ted_title = Windoo::SoftwareTitle.create(
+          new_title = Windoo::SoftwareTitle.create(
             id: title,
             name: display_name,
             publisher: publisher,
@@ -73,9 +91,11 @@ module Xolo
             cnx: ted_cnx
           )
 
+          progress "Title Editor: Creating SoftwareTitle '#{title}'", log: :info
           create_ted_title_requirements
 
           self.ted_id_number = ted_title.softwareTitleId
+          @ted_title = new_title
         end
 
         # Create the requirements for a new title in the Title Editor
@@ -230,12 +250,21 @@ module Xolo
           end
         end
 
+        # @return [String] The key and display name of a version script stored
+        #   in the title editor as the ExtAttr for this title
+        #####################
+        def ted_ea_key
+          @ted_ea_key ||= self.class.ted_ea_key title
+        end
+
         # Create the EA in the Title Editor
         #
         # @return [void]
         ##############################
         def create_ted_ea(script)
           # delete and recreate the EA
+          progress "Title Editor: Creating Extension Attribute from version_script for title '#{title}'", log: :info
+
           ted_title.delete_extensionAttribute
 
           ted_title.add_extensionAttribute(
@@ -244,7 +273,6 @@ module Xolo
             script: script
           )
           @need_to_accept_xolo_ea_in_jamf = true
-          progress "Title Editor: Created Extension Attribute from version_script for title '#{title}'", log: :info
         end
 
         # Update the EA in the Title Editor
@@ -290,25 +318,26 @@ module Xolo
             raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id'
           end
 
+          type = ea_name ? 'Extension Attribute (version_script)' : 'App'
+
+          progress "Title Editor: Setting #{type}-based Requirement for title '#{title}'", log: :info
+
           # delete any already there
           ted_title.requirements.delete_all_criteria
 
-          msg = ea_name ? set_ea_requirement(ea_name) : set_app_requirement(app_name, app_bundle_id)
-
-          progress msg, log: :info
+          ea_name ? set_ea_requirement(ea_name) : set_app_requirement(app_name, app_bundle_id)
         end
 
         # @return [String] the progress/log message
         ##############################
         def set_ea_requirement(ea_name)
+          # add criteria for the ea name
           ted_title.requirements.add_criterion(
             type: 'extensionAttribute',
             name: ea_name,
             operator: 'is not',
             value: Xolo::BLANK
           )
-
-          "Title Editor: Set Extension Attribute (version_script)-based Requirement for title '#{title}'"
         end
 
         # @return [String] the progress/log message
@@ -326,7 +355,6 @@ module Xolo
             operator: 'is',
             value: app_bundle_id
           )
-          "Title Editor: Set App-based Requirement for title '#{title}'"
         end
 
         # update the patch compotent criteria for all versions
@@ -383,7 +411,7 @@ module Xolo
         def delete_title_from_ted
           progress "Title Editor: Deleting SoftwareTitle '#{title}'", log: :info
 
-          ted_title.delete
+          ted_title&.delete
         rescue Windoo::NoSuchItemError
           ted_id_number
         end
