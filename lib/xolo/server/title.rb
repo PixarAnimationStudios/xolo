@@ -325,6 +325,10 @@ module Xolo
       #   once it has been uploaded
       attr_accessor :ssvc_icon_id
 
+      # @return [Symbol] The current action being taken on this title
+      #   one of :creating, :updating, :deleting
+      attr_accessor :current_action
+
       # version_order is defined in ATTRIBUTES
       alias versions version_order
 
