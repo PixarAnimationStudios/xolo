@@ -110,9 +110,13 @@ module Xolo
       def self.setup
         Xolo::Server::DATA_DIR.mkpath
         Xolo::Server::Title::TITLES_DIR.mkpath
+
         setup_ssl
+
         Xolo::Server.start_time = Time.now
         Xolo::Server.logger.info 'Starting Up'
+
+        Xolo::Server::Log.log_rotation_timer_task.execute
 
         # Disable warnings in logs about known scope bug in Jamf Classic API
         Jamf::Scopable::Scope.do_not_warn_about_policy_scope_bugs
