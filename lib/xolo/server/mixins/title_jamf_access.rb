@@ -377,9 +377,9 @@ module Xolo
             return
           end
 
-          # wait up to 30 seconds for the title to become available
+          # wait up to 60secs for the title to become available
           counter = 0
-          until jamf_ted_title_available? || counter == 6
+          until jamf_ted_title_available? || counter == 12
             log_debug "Jamf: Waiting for title '#{display_name}' (#{title}) to become available from the Title Editor"
             sleep 5
             counter += 1
@@ -392,7 +392,6 @@ module Xolo
           end
 
           # This creates/activates the title if needed
-          # TODO: do we need to wait for it to appear?
           jamf_patch_title
 
           return if jamf_patch_ea_matches_version_script?.nil?
@@ -617,12 +616,6 @@ module Xolo
         # @return [Jamf::PatchTitle, nil] The Jamf Patch Title for this Xolo Title
         ########################
         def jamf_patch_title(refresh: false)
-          unless jamf_ted_title_active?
-            msg = "Jamf: Title '#{title}' is not activated in Jamf Patch Management"
-            log_error msg
-            raise Xolo::NoSuchItemError, msg
-          end
-
           @jamf_patch_title = nil if refresh
           return @jamf_patch_title if @jamf_patch_title
 
@@ -644,9 +637,12 @@ module Xolo
               )
             @jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
             jamf_patch_title_id = @jamf_patch_title.save
-
+            lock
+            save_local_data
           end
           @jamf_patch_title
+        ensure
+          unlock
         end
 
         # @return [Integer] The Jamf ID of this title, if it is active in Jamf
