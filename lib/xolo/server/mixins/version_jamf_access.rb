@@ -1024,14 +1024,15 @@ module Xolo
             end
           warning << ' before re-adding this version.'
 
-          progress warning
+          progress warning, log: nil
 
           self.class.pkg_deletion_pool.post do
             start = Time.now
+            log_info "Jamf: Started threadpool deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{start}"
             Jamf::Package.delete pkg_id, cnx: jamf_cnx
             finish = Time.now
             duration = (finish - start).pix_humanize_secs
-            log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}"
+            log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}", alert: true
           end
         end
 
