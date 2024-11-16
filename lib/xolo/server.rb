@@ -50,6 +50,7 @@ require 'yaml'
 require 'open3'
 require 'base64'
 require 'resolv'
+require 'shellwords'
 
 # Gems
 ######
@@ -63,6 +64,7 @@ require 'windoo'
 require 'concurrent/hash'
 require 'concurrent/atomic/reentrant_read_write_lock'
 require 'concurrent/executor/thread_pool_executor'
+require 'concurrent/timer_task'
 
 module Xolo
 

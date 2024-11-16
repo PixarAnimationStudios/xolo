@@ -184,7 +184,17 @@ module Xolo
           default: Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP,
           type: :integer,
           desc: <<~ENDDESC
-            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}, the current file is named '#{Xolo::Server::LOG_FILE_NAME}'.
+            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}. The current file is named '#{Xolo::Server::LOG_FILE_NAME}', older files are appended with '.YYYYMMDD'.
+          ENDDESC
+        },
+
+        # @!attribute log_compress_after_days
+        #   @return [Integer] How many days worth of logs to keep
+        log_compress_after_days: {
+          default: Xolo::Server::Log::DFT_LOG_COMPRESS_AFTER_DAYS,
+          type: :integer,
+          desc: <<~ENDDESC
+            Once a log file is rotated, how many days before it is compressed? Compressed logs are named '#{Xolo::Server::LOG_FILE_NAME}.YYYYMMDD.bz2'. It can be accessed using the various bzip2 tools (bzip2, bunzip2, bzcat, bzgrep, etc). If this number is negative, or larger than log_days_to_keep, no logs will be compressed, if it is zero, all older logs will be compressed.
           ENDDESC
         },
 
