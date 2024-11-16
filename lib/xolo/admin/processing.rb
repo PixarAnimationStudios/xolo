@@ -651,11 +651,17 @@ module Xolo
       #
       # @return [void]
       def server_status
+        data = server_cnx.get('/state').body
+
+        if json?
+          puts JSON.pretty_generate(data)
+          return
+        end
+
         require 'pp'
 
         puts '# Xolo Server Status'
         puts '##################################################'
-        data = server_cnx.get('/state').body
         pp data
       end
 
