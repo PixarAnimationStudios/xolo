@@ -218,16 +218,13 @@ module Xolo
         # @return [String] the hostname or the IP address if the hostname cannot be found
         #######################
         def hostname_from_ip(ip)
-          host = Socket.gethostbyaddr(ip.split('.').map(&:to_i).pack('CCCC')).first
+          # gethostbbaddr is deprecated, so use Resolv instead
+          # host = Socket.gethostbyaddr(ip.split('.').map(&:to_i).pack('CCCC')).first
 
-          # also, can use
-          #    require 'resolv'
-          #    Resolv.getname(ip)
-          # in which case the rescue block would
-          # be for Resolv::ResolvError
+          host = Resolv.getname(ip)
 
           host.pix_empty? ? ip : host
-        rescue SocketError
+        rescue Resolv::ResolvError
           ip
         end
 
