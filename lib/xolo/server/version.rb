@@ -484,9 +484,9 @@ module Xolo
         progress 'Saving version data to Xolo server'
         save_local_data
 
-        # progress_stream << 'Saved version data to Xolo server'
         create_patch_in_ted
         enable_ted_patch
+        title_object.enable_ted_title
 
         create_in_jamf
 
