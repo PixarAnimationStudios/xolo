@@ -383,7 +383,9 @@ module Xolo
         ############################
         def set_policy_exclusions(pol, ttl_obj: nil)
           ttl_obj ||= title_object
-          exclusions = excluded_groups_to_use(ttl_obj: ttl_obj)
+          # dup, so when we add the installed group below, we don't
+          # keep that for future calls to this method.
+          exclusions = excluded_groups_to_use(ttl_obj: ttl_obj).dup
           exclusions ||= []
 
           # the initial-install policies must also exclude any mac with the title
@@ -438,9 +440,11 @@ module Xolo
 
           @activate_patch_version_thread = Thread.new do
             log_debug "Jamf: Starting activate_patch_version_thread waiting for version #{version} of title #{title} to become visible from the title editor"
+
             start_time = Time.now
             max_time = start_time + 3600
             start_time = start_time.strftime '%F %T'
+
             did_it = false
 
             while Time.now < max_time
@@ -1015,10 +1019,10 @@ module Xolo
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
           progress msg, log: :info
 
-          warning = +"IMPORTANT: Package deletion is slow. If you plan to re-add this version, '#{version}', please "
+          warning = +"IMPORTANT: Package deletion is slow. If you plan to re-add this version, '#{version}', please\n  "
           warning <<
             if Xolo::Server.config.alert_tool
-              'check your Xolo alerts for completion, which can take up to 5 minutes, '
+              'check your Xolo alerts for completion, which can take up to 5 minutes,'
             else
               'wait at least 5 minutes'
             end
@@ -1029,10 +1033,14 @@ module Xolo
           self.class.pkg_deletion_pool.post do
             start = Time.now
             log_info "Jamf: Started threadpool deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{start}"
+            jamf_cnx.timeout = 3600
             Jamf::Package.delete pkg_id, cnx: jamf_cnx
             finish = Time.now
-            duration = (finish - start).pix_humanize_secs
+            duration = (finish - start).to_i.pix_humanize_secs
             log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}", alert: true
+          rescue StandardError => e
+            log_error "Package Deletion thread: #{e.class}: #{e}"
+            e.backtrace.each { |l| log_error "..#{l}" }
           end
         end
 

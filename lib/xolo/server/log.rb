@@ -115,27 +115,9 @@ module Xolo
         return @log_rotation_timer_task if @log_rotation_timer_task
 
         @log_rotation_timer_task =
-          Concurrent::TimerTask.new(execution_interval: 300) do |_task|
-            now = Time.now
+          Concurrent::TimerTask.new(execution_interval: 300) { rotate_logs }
 
-            # only do anything during the midnight hour
-            break unless now.hour.zero?
-
-            # only do anything if the last rotation was more than 23 hrs ago
-
-            last_rotation =
-              if Xolo::Server::Log::LAST_ROTATION_FILE.file?
-                Xolo::Server::Log::LAST_ROTATION_FILE.mtime
-              else
-                now - (24 * 3600)
-              end
-            twenty_three_hrs_ago = now - (23 * 3600)
-            break if last_rotation < twenty_three_hrs_ago
-
-            # do it
-            rotate_logs
-          end
-
+        logger.info 'Created Concurrent::TimerTask for nightly log rotation.'
         @log_rotation_timer_task
       end
 
@@ -144,9 +126,13 @@ module Xolo
       # The log rotation built into ruby's Logger class doesn't allow this kind of
       # behavior, And I don't want to require yet another 3rd party gem.
       #
+      # @param force [Boolean] force rotation even if not midnight
+      #
       # @return [void]
       ###############################
-      def self.rotate_logs
+      def self.rotate_logs(force: false)
+        return unless rotate_logs_now?(force: force)
+
         logger.info 'Starting Log Rotation'
 
         # how many to keep?
@@ -196,6 +182,29 @@ module Xolo
 
         LAST_ROTATION_FILE.pix_touch
         logger.info 'Starting New Log'
+      end
+
+      # should we rotate the logs right now?
+      #
+      # @return [Boolean] true if we should rotate the logs
+      ###############################
+      def self.rotate_logs_now?(force: false)
+        return true if force
+
+        now = Time.now
+        # only during the midnight hour
+        return false unless now.hour.zero?
+
+        # only if the last rotation was more than 23 hrs ago
+        # if no rotation_file, assume 24 hrs ago.
+        rotation_file = Xolo::Server::Log::LAST_ROTATION_FILE
+        last_rotation = rotation_file.file? ? rotation_file.mtime : (now - (24 * 3600))
+
+        twenty_three_hrs_ago = now - (23 * 3600)
+
+        # less than (<) means its been more than 23 hrs
+        # since the last rotation was before 23 hrs ago.
+        last_rotation < twenty_three_hrs_ago
       end
 
       #########################

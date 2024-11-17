@@ -127,6 +127,7 @@ module Xolo
             type: :time,
             default: -> { Date.today.to_s },
             required: true,
+            do_not_inherit: true,
             cli: :d,
             validate: true,
             changelog: true,
@@ -265,10 +266,11 @@ module Xolo
             cli: :u,
             validate: true,
             readline: :get_files,
+            do_not_inherit: true,
             hide_from_info: true,
             invalid_msg: 'Invalid installer pkg. Must exist locally and be a .pkg file, or a .zip compressed old-style bundle package.',
             desc: <<~ENDDESC
-              A local copy of the installer package for this version. Will be uploaded to Xolo and then Jamf Pro, distribution point(s), replacing any previously uploaded.
+              The path to a local copy of the installer package for this version. Will be uploaded to Xolo and then Jamf Pro, distribution point(s), replacing any previously uploaded.
 
               Must be a flat .pkg file, or a .zip compressed old-style bundle package.
 
