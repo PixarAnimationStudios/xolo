@@ -667,7 +667,9 @@ module Xolo
             # Use the most recent version if we have one
             if prev_version
               pvers = Xolo::Admin::Version.fetch cli_cmd.title, prev_version, server_cnx
-              opts_defs.each do |key, _deets|
+              opts_defs.each do |key, deets|
+                next if deets[:do_not_inherit]
+
                 val = pvers.send key
                 next unless val
 

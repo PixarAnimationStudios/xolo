@@ -352,6 +352,10 @@ module Xolo
           # Don't cache this in an instance var, it changes during the
           # life of our title instance
           # jamf_ted_patch_source.available_titles.map { |t| t[:name_id] }
+          # Also NOTE: it "available" means not only enabled
+          # in the title editor, but also not already active in jamf.
+          # So any given title will either be here or in
+          # jamf_active_ted_titles, but never both.
           jamf_ted_patch_source.available_name_ids
         end
 
@@ -594,19 +598,35 @@ module Xolo
         # The titles active in Jamf Patch Management from the Title Editor
         # This takes into account that other Patch Sources may have titles with the
         # same 'name_id' (the xolo 'title')
+        # A hash keyed by the title, with values of the jamf title id
         #
-        # @return [Array<String>] The xolo titles that are active in Jamf Patch Management
+        # @return [Hash {String =>  Integer}] The xolo titles that are active in Jamf Patch Management
         ########################
-        def jamf_active_ted_titles
-          Jamf::PatchTitle.all(cnx: jamf_cnx).select do |t|
+        def jamf_active_ted_titles(refresh: false)
+          @jamf_active_ted_titles = nil if refresh
+          return @jamf_active_ted_titles if @jamf_active_ted_titles
+
+          @jamf_active_ted_titles = {}
+          active_from_ted = Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).select do |t|
             t[:source_id] == jamf_ted_patch_source.id
-          end.map { |t| t[:name_id] }
+          end
+          active_from_ted.each { |t| @jamf_active_ted_titles[t[:name_id]] = t[:id] }
+          @jamf_active_ted_titles
         end
 
         # @return [Boolean] Is this xolo title currently active in Jamf?
         ########################
         def jamf_ted_title_active?
-          jamf_active_ted_titles.include? title
+          jamf_active_ted_titles(refresh: true).key? title
+        end
+
+        # The Jamf ID of the Patch Title for this xolo title
+        # if it has been activated in jamf.
+        #
+        # @return [Integer, nil] The Jamf ID of this title, if it is active in Jamf
+        ########################
+        def jamf_patch_title_id
+          @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
         end
 
         # Create or fetch the patch title object for this xolo title.
@@ -619,7 +639,13 @@ module Xolo
           @jamf_patch_title = nil if refresh
           return @jamf_patch_title if @jamf_patch_title
 
-          if jamf_patch_title_id
+          # TODO: Make this not infinite
+          until jamf_ted_title_available? || jamf_ted_title_active?
+            log_debug "Waiting infinitely for title '#{title}' to become available from TEd. Checking every 10 secs"
+            sleep 10
+          end
+
+          if jamf_ted_title_active?
             @jamf_patch_title = Jamf::PatchTitle.fetch(id: jamf_patch_title_id, cnx: jamf_cnx)
 
           else
@@ -636,19 +662,10 @@ module Xolo
                 cnx: jamf_cnx
               )
             @jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
-            jamf_patch_title_id = @jamf_patch_title.save
-            lock
-            save_local_data
+            @jamf_patch_title.save
+
           end
           @jamf_patch_title
-        ensure
-          unlock
-        end
-
-        # @return [Integer] The Jamf ID of this title, if it is active in Jamf
-        ##################################
-        def find_jamf_patch_title_id
-          @jamf_patch_title_id ||= Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
         end
 
         # Delete an entire title from Jamf Pro
@@ -666,7 +683,7 @@ module Xolo
         def delete_installed_group_from_jamf
           return unless jamf_installed_group
 
-          progress "Deleting smart group '#{jamf_installed_group_name}'", log: :info
+          progress "Jamf: Deleting smart group '#{jamf_installed_group_name}'", log: :info
           jamf_installed_group.delete
         end
 
@@ -676,7 +693,7 @@ module Xolo
         def delete_frozen_group_from_jamf
           return unless jamf_frozen_group
 
-          progress "Deleting static group '#{jamf_frozen_group_name}'", log: :info
+          progress "Jamf: Deleting static group '#{jamf_frozen_group_name}'", log: :info
           jamf_frozen_group.delete
         end
 
