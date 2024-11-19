@@ -479,6 +479,31 @@ module Xolo
         ######################
         ######################
 
+        ######################
+        def pilot?
+          status == STATUS_PILOT
+        end
+
+        ######################
+        def released?
+          status == STATUS_RELEASED
+        end
+
+        ######################
+        def skipped?
+          status == STATUS_SKIPPED
+        end
+
+        ######################
+        def deprecated?
+          status == STATUS_DEPRECATED
+        end
+
+        ######################
+        def pending?
+          status == STATUS_PENDING
+        end
+
       end # class Title
 
     end # module BaseClasses
