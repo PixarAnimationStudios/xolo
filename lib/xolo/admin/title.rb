@@ -183,14 +183,6 @@ module Xolo
         self.class.delete title, cnx
       end
 
-      # the latest version of this title in Xolo
-      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
-      # @return [String]
-      ####################
-      def latest_version
-        version_order&.first
-      end
-
       # Freeze the one or more computers for this title
       # @param computers [Array<String>] the computers to freeze
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already

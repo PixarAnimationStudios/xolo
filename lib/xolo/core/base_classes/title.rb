@@ -564,6 +564,14 @@ module Xolo
         ######################
         ######################
 
+        # the latest version of this title in Xolo
+        # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+        # @return [String]
+        ####################
+        def latest_version
+          version_order&.first
+        end
+
       end # class Title
 
     end # module BaseClasses
