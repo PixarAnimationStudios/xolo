@@ -165,7 +165,19 @@ module Xolo
           end
 
           log_debug "Backing up changelog for #{title}"
-          changelog_backup_file.delete if changelog_backup_file.exist?
+
+          if changelog_backup_file.exist?
+            # if deleting the whole title
+            # move aside any previously existing one, appending a timestamp
+            if self.class == Xolo::Server::Title && deleting?
+              changelog_backup_file.rename "#{changelog_backup_file.basename}.#{changelog_backup_file.mtime.strftime('%Y%m%d%H%M%S')}"
+
+              # otherwise, overwrite the current backup
+            else
+              changelog_backup_file.delete
+            end
+
+          end
           changelog_file.pix_cp changelog_backup_file
         end
 
