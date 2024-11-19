@@ -535,6 +535,17 @@ module Xolo
         val
       end
 
+      # @param val [Object] The value to validate
+      #
+      # @return [String] The valid value
+      ##########################
+      def validate_contact_email(val)
+        val = val.to_s.strip
+        return val if val =~ /\A\S+@\S+\.\S+\z/
+
+        raise_invalid_data_error val, VERSION_ATTRS[:contact_email][:invalid_msg]
+      end
+
       # expand Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP into the proper killall string
       #
       # @param ka [String] the string to expand if needed

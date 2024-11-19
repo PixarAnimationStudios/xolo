@@ -476,6 +476,23 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute contact_email
+          #   @return [String] Email address for the person or team responsible for this title
+          contact_email: {
+            label: 'Contact Email Address',
+            cli: :m,
+            required: true,
+            validate: true,
+            type: :string,
+            changelog: true,
+            invalid_msg: 'Invalid Email address.',
+            desc: <<~ENDDESC
+              The email address of the team or person responsible for this title. Used for notifications, questions, etc.
+
+              A mailing list for a team is preferable to an individual's email address, since individuals may leave the team.
+            ENDDESC
+          },
+
           # @!attribute created_by
           #   @return [String] The login of the admin who created this title
           created_by: {

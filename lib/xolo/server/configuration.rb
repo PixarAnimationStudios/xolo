@@ -323,8 +323,8 @@ module Xolo
 
         # @!attribute unreleased_pilots_notification_days
         #   @return [Integer] How many days after the newest pilot of a title is created to notify someone
-        #      that it hasn't been released yet. Notification is weekly, via the alert_tool
-        #      (if defined, see below), and if possible, email to the admin who added the version.
+        #      that it hasn't been released yet. Notification is monthly on the first.
+        #      An email to the contact_email for the title and an alert is sent to the alert_tool, if defined.
         #      If set to 0 or less, no notifications will be sent.
         unreleased_pilots_notification_days: {
           default: Xolo::Server::Helpers::Maintenance::DFT_UNRELEASED_PILOTS_NOTIFICATION_DAYS,
