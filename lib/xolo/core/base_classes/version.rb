@@ -110,6 +110,7 @@ module Xolo
             label: 'Version',
             required: true,
             immutable: true,
+            do_not_inherit: true,
             cli: false,
             type: :string,
             validate: true,
@@ -121,12 +122,11 @@ module Xolo
           },
 
           # @!attribute publish_date
-          #   @return [Time] When the publisher released this version
+          #   @return [Time] When the publisher released this version. Defaults to today.
           publish_date: {
             label: 'Publish Date',
             type: :time,
-            default: -> { Date.today.to_s },
-            required: true,
+            default: -> { Time.now.to_s },
             do_not_inherit: true,
             cli: :d,
             validate: true,
@@ -145,7 +145,7 @@ module Xolo
             label: 'Minimum OS',
             cli: :o,
             type: :string,
-            required: true,
+            # required: true, # value is inherited, so requirement is enforced via validation.
             validate: true,
             default: DEFAULT_MIN_OS,
             changelog: true,
@@ -285,6 +285,7 @@ module Xolo
           status: {
             label: 'Status',
             type: :symbol,
+            do_not_inherit: true,
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
@@ -302,6 +303,7 @@ module Xolo
           created_by: {
             label: 'Created By',
             type: :string,
+            do_not_inherit: true,
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
@@ -314,6 +316,7 @@ module Xolo
           creation_date: {
             label: 'Creation Date',
             type: :time,
+            do_not_inherit: true,
             cli: false,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
@@ -327,6 +330,7 @@ module Xolo
             label: 'Modified By',
             type: :string,
             cli: false,
+            do_not_inherit: true,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who last modified this version.
@@ -339,6 +343,7 @@ module Xolo
             label: 'Modification Date',
             type: :time,
             cli: false,
+            do_not_inherit: true,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               When this version was last modified.
@@ -353,6 +358,7 @@ module Xolo
             label: 'Released By',
             type: :string,
             cli: false,
+            do_not_inherit: true,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               The login of the admin who released this version in Xolo.
@@ -361,7 +367,7 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute deploy_date
+          # @!attribute release_date
           #   @return [Time] The timestamp this version was released in Xolo.
           #     This is when the Xolo sets the status of this version to 'released', making it
           #     no longer 'in pilot' and the one to be installed or updated by default.
@@ -369,6 +375,7 @@ module Xolo
             label: 'Release Date',
             type: :time,
             cli: false,
+            do_not_inherit: true,
             read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
             desc: <<~ENDDESC
               When this version was released in Xolo.
@@ -446,18 +453,20 @@ module Xolo
           jamf_pkg_name: {
             label: 'Jamf Package',
             type: :string,
+            do_not_inherit: true,
             cli: false,
             desc: <<~ENDDESC
               The display name of the Jamf::Package object that installs this version. 'xolo-<title>-<version>'
             ENDDESC
           },
 
-          # @!attribute jamf_pkg
-          #   @return [String] The display name of the Jamf::Package object that installs this version.
-          #     'xolo-<title>-<version>'
+          # @!attribute jamf_pkg_file
+          #   @return [String] The file name of the installer.pkg file used by the Jamf::Package object to
+          #    installs this version. 'xolo-<title>-<version>.pkg' (or .zip)
           jamf_pkg_file: {
             label: 'Jamf Package File',
             type: :string,
+            do_not_inherit: true,
             cli: false,
             desc: <<~ENDDESC
               The installer filename of the Jamf::Package object that installs this version: 'xolo-<title>-<version>.pkg' (or .zip).

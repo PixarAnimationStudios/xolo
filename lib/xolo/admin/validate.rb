@@ -478,6 +478,7 @@ module Xolo
       # @return [Date] The valid value
       ##########################
       def validate_publish_date(val)
+        val = Time.now.to_s if val.pix_empty?
         val = Time.parse val.to_s
         # TODO: ? Ensure this date is >= the prev. version and <= the next
         return val if true
@@ -492,7 +493,10 @@ module Xolo
       # @return [Gem::Version] The valid value
       ##########################
       def validate_min_os(val)
-        return val.to_s unless val == Xolo::NONE || val.pix_empty?
+        # inherit if needed
+        val = current_opt_values[:min_os] if val == Xolo::NONE || val.pix_empty?
+
+        return val.to_s unless val.pix_empty?
 
         raise VERSION_ATTRS[:min_os][:invalid_msg]
       rescue StandardError => e
