@@ -377,7 +377,70 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute jamf_pkg
+          # @!attribute deprecated_by
+          #   @return [String] The login of the admin who deprecated this version in Xolo by releasing
+          #     a newer version.
+          deprecated_by: {
+            label: 'Deprecated By',
+            type: :string,
+            cli: false,
+            do_not_inherit: true,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              The login of the admin who deprecated this version in Xolo by releasing a newer version.
+            ENDDESC
+          },
+
+          # @!attribute deprecation_date
+          #   @return [Time] The timestamp this version was deprecated in Xolo.
+          #     This is when the Xolo sets the status of this version to 'deprecated', meaning
+          #     it was released, but a newer version has since been released.
+          deprecation_date: {
+            label: 'Deprecation Date',
+            type: :time,
+            cli: false,
+            do_not_inherit: true,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              When this version was deprecated in Xolo.
+              This is when the Xolo sets the status of this version to 'deprecated', which is when a newer version has been released.
+              It will still be available for manual installation until it is deleted.
+              Deletion is automatic after a period of time, unless the server is configured otherwise.
+            ENDDESC
+          },
+
+          # @!attribute skipped_by
+          #   @return [String] The login of the admin who skipped this version in Xolo by releasing
+          #     a newer version.
+          skipped_by: {
+            label: 'Skipped By',
+            type: :string,
+            cli: false,
+            do_not_inherit: true,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              The login of the admin who skipped this version in Xolo by releasing a newer version.
+            ENDDESC
+          },
+
+          # @!attribute skipped_date
+          #   @return [Time] The timestamp this version was skipped in Xolo.
+          #     This is when the Xolo sets the status of this version to 'skipped', meaning
+          #     it was never released in Xolo, and now a newer version has been released.
+          skipped_date: {
+            label: 'Skipped Date',
+            type: :time,
+            cli: false,
+            do_not_inherit: true,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              When this version was skipped in Xolo.
+              This is when the Xolo sets the status of this version to 'skipped', meaning it was never released in Xolo, and now a newer version has been released.
+              It will be automatically deleted at the next nightly cleanup, unless the server is configured otherwise.
+            ENDDESC
+          },
+
+          # @!attribute jamf_pkg_name
           #   @return [String] The display name of the Jamf::Package object that installs this version.
           #     'xolo-<title>-<version>'
           jamf_pkg_name: {
