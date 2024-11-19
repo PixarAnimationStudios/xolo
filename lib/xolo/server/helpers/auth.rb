@@ -37,14 +37,26 @@ module Xolo
         #####################
         #####################
 
+        # these routes don't need an auth'd session
         NO_AUTH_ROUTES = [
           '/ping',
           '/auth/login'
         ].freeze
 
+        # these route prefixes don't need an auth'd session
         NO_AUTH_PREFIXES = [
           '/ping/'
         ].freeze
+
+        # these routes are expected to be called by the xolo server itself
+        # and will have the internal_auth_token in the headers
+        # and will come from IPV4_LOOPBACK
+        INTERNAL_ROUTES = [
+          '/cleanup'
+        ].freeze
+
+        # The loopback address for IPV4
+        IPV4_LOOPBACK = '127.0.0.1'
 
         # Module methods
         #####################
@@ -56,9 +68,67 @@ module Xolo
           Xolo.verbose_include includer, self
         end
 
+        # If a request comes in from one of our known IP addresses
+        # with a valid internal_auth_toke in the headers, then the request is allowed.
+        #
+        # This allows the xolo server to send requests to itself without needing
+        # to authenticate, as is needed for some kinds of maintenance tasks
+        # such as cleanup.
+        #
+        # The token value is generated anew at startup and is a long random string, it
+        # is only available to the xolo server itself from its memory, and
+        # is never stored.
+        #
+        # @return [String] The internal_auth_token to be used in the Authorization header of requests
+        #####################
+        def self.internal_auth_token_header
+          @internal_auth_token_header ||= "Bearer #{SecureRandom.hex(64)}"
+        end
+
         # Instance methods
         #####################
         #####################
+
+        # Is the internal_auth_token in the headers of the request?
+        # and is the request coming from one of our known IP addresses?
+        #
+        # @return [Boolean] Is this a valid request from the xolo server itself?
+        #####################
+        def valid_internal_auth_token?
+          log_info "Checking internal auth token from #{request.ip}"
+
+          if !internal_ip_ok?
+            warning = "Invalid IP address for internal request: #{request.ip}"
+          elsif !internal_token_ok?
+            warning = "Invalid internal auth token '#{request.env['HTTP_AUTHORIZATION']}' from #{request.ip}"
+          else
+            log_info "Internal request for #{request.path} is valid"
+            return true
+          end
+
+          log_warn "WARNING: #{warning}"
+          halt 401, { error: 'You do not have access to this resource' }
+        end
+
+        # @return [Boolean] Is the internal_auth_token in the headers of the request?
+        #####################
+        def internal_token_ok?
+          request.env['HTTP_AUTHORIZATION'] == Xolo::Server::Helpers::Auth.internal_auth_token_header
+        end
+
+        # @return [Boolean] Is the request coming from one of our known IP addresses?
+        #####################
+        def internal_ip_ok?
+          # server_ip_addresses.include? request.ip
+          # always require the request to come from the loopback address
+          request.ip == Xolo::Server::Helpers::Auth::IPV4_LOOPBACK
+        end
+
+        # @return [Array<String>] The IP addresses of this server
+        #####################
+        def server_ip_addresses
+          Socket.ip_address_list.map(&:ip_address)
+        end
 
         # is the given username a member of the admin_jamf_group?
         # If not, they are not allowed to talk to the xolo server.
