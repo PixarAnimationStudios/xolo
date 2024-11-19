@@ -56,6 +56,7 @@ module Xolo
       helpers Xolo::Server::Helpers::PkgSigning
       helpers Xolo::Server::Helpers::ProgressStreaming
       helpers Xolo::Server::Helpers::ClientData
+      helpers Xolo::Server::Helpers::Maintenance
 
       # Sinatra setup
       ##############################
@@ -117,6 +118,7 @@ module Xolo
         Xolo::Server.logger.info 'Starting Up'
 
         Xolo::Server::Log.log_rotation_timer_task.execute
+        Xolo::Server::Helpers::Maintenance.cleanup_timer_task.execute
 
         # Disable warnings in logs about known scope bug in Jamf Classic API
         Jamf::Scopable::Scope.do_not_warn_about_policy_scope_bugs

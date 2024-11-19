@@ -270,7 +270,7 @@ module Xolo
           ENDDESC
         },
 
-        # @!attribute release_to_all_contact info
+        # @!attribute release_to_all_contact
         #   @return [String] A string containing contact info for the release_to_all_jamf_group
         release_to_all_contact: {
           required: false,
@@ -290,6 +290,51 @@ module Xolo
                Please contact <value> to set release_groups to 'all', letting us know why you think the title should be automatically deployed to all computers.
 
             This value is required if release_to_all_jamf_group is set.
+          ENDDESC
+        },
+
+        # @!attribute deprecated_lifetime_days
+        #   @return [Integer] How many days after a version is deprecated to keep it
+        deprecated_lifetime_days: {
+          default: Xolo::Server::Helpers::Maintenance::DFT_DEPRECATED_LIFETIME_DAYS,
+          type: :integer,
+          desc: <<~ENDDESC
+            Once a version is deprecated, it will be automatically deleted by the nightly cleanup this many days later. If set to 0 or less, deprecated versions will never be deleted.
+
+            Deprecated versions are those that have been released, but a newer version has been released since then.
+
+            WARNING: If you set this to 0 or less, you will need to manually delete deprecated versions. Keeping them around can cause confusion and clutter in the GUI, and use up disk space.
+          ENDDESC
+        },
+
+        # @!attribute keep_skipped_versions
+        #   @return [Boolean] Should we keep versions that are skipped?
+        keep_skipped_versions: {
+          default: false,
+          type: :boolean,
+          desc: <<~ENDDESC
+            Normally, skipped versions are deleted during nightly cleanup. If you set this to true, skipped versions will be kept.
+
+            Skipped versions are those that were never released, but a newer version has been released.
+
+            WARNING: If you set this to true, you will need to manually delete skipped versions. Keeping them around can cause confusion and clutter in the GUI, and use up disk space.
+          ENDDESC
+        },
+
+        # @!attribute unreleased_pilots_notification_days
+        #   @return [Integer] How many days after the newest pilot of a title is created to notify someone
+        #      that it hasn't been released yet. Notification is weekly, via the alert_tool
+        #      (if defined, see below), and if possible, email to the admin who added the version.
+        #      If set to 0 or less, no notifications will be sent.
+        unreleased_pilots_notification_days: {
+          default: Xolo::Server::Helpers::Maintenance::DFT_UNRELEASED_PILOTS_NOTIFICATION_DAYS,
+          type: :integer,
+          desc: <<~ENDDESC
+            If the newest pilot of a title has not been released in this many days, notify someone about it weekly, asking to release it or delete it. If set to 0 or less, no notifications will be sent. Notifications are sent via the alert_tool (if defined), and if possible, email to the admin who added the version. Default is 180 days (about 6 months).
+
+            Pilot versions are those that have been added for testing, but not yet released.
+
+            This is useful to keep the Xolo clean and up-to-date, and to avoid cluttering with unreleased versions that are no longer relevant.
           ENDDESC
         },
 

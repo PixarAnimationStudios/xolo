@@ -54,6 +54,7 @@ module Xolo
         log_info "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}"
 
         # these routes don't need an auth'd session
+        break if Xolo::Server::Helpers::Auth::INTERNAL_ROUTES.include?(request.path) && valid_internal_auth_token?
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
@@ -152,16 +153,19 @@ module Xolo
       # test
       ##########
       get '/test' do
-        # log_error "This isn't really an error, but I'm testing the Xolo Server alert_tool", alert: true
-        # resp = { status: 'complete' }
-        # body resp
+        Xolo::Server::Helpers::Maintenance.post_to_start_cleanup force: true
+        result = { result: 'posted to start cleanup' }
+        body result
+      end
 
-        # with_streaming do
-        #   log_debug "progress_stream_file in thread is: #{progress_stream_file}"
-        #   a_long_thing_with_streamed_feedback
-        # end
-
-        body client_data_hash
+      # run the cleanup process
+      # The before filter will ensure the request came from the server itself.
+      # with a valid internal auth token.
+      ################
+      post '/cleanup' do
+        cleanup_sversions
+        result = { result: 'Cleanup complete' }
+        body result
       end
 
     end #  Routes
