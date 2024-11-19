@@ -39,6 +39,9 @@ module Xolo
 
       DATETIME_FORMAT = '%F %T'
 
+      # Easier for reporting level changes - the index is the severity number
+      LEVELS = %w[DEBUG INFO WARN ERROR FATAL UNKNOWN].freeze
+
       # THe log format - we use 'progname' to hole the
       # session object, if there is one.
       #
@@ -65,12 +68,15 @@ module Xolo
       # compressed files have this extension
       BZIPPED_EXTNAME = '.bz2'
 
-      # Easier for reporting level changes - the index is the severity number
-      LEVELS = %w[DEBUG INFO WARN ERROR FATAL UNKNOWN].freeze
-
       # This file is touched after each log rotation run.
       # Its mtime is used to decide if we should to it again
       LAST_ROTATION_FILE = LOG_DIR + 'last_log_rotation'
+
+      # When we rotate the main log to .0 we repoint the logger to this
+      # temp filename, then rename the main log to .0, then rename this
+      # temp file to the main log. This way the logger never has to be
+      # reinitialized.
+      TEMP_LOG_FILE = LOG_DIR + 'temp_xoloserver.log'
 
       # top-level logger for the server as a whole
       #############################################
@@ -169,19 +175,37 @@ module Xolo
         end # downto
 
         # now for the current logfile...
-        current_log = LOG_DIR + LOG_FILE_NAME
-        zero_file = LOG_DIR + "#{LOG_FILE_NAME}.0"
+        rotate_live_log compress_after&.zero?
 
-        # copy, and then empty the current one. We don't move/rename it
-        # because the logger will still have its filehandle open
-        # and it'll keep writing into the moved/renamed one.
-        # TODO: = make this deal with the possibility of log lines being written between these steps
-        current_log.pix_cp zero_file
-        current_log.pix_save nil
-        compress_log(zero_file) if compress_after&.zero?
-
+        # touch the last rotation file
         LAST_ROTATION_FILE.pix_touch
+      end
+
+      # Rotate the current log file without losing any log entries
+      #
+      # @return [void]
+      ###############################
+      def self.rotate_live_log(compress_zero)
+        # first, delete any old tmp file
+        TEMP_LOG_FILE.delete if TEMP_LOG_FILE.file?
+
+        # then repoint the logger to the temp file
+        logger.reopen TEMP_LOG_FILE
+
+        # make sure it has data in it
         logger.info 'Starting New Log'
+
+        # then rename the main log to .0
+        zero_file = LOG_DIR + "#{LOG_FILE_NAME}.0"
+        LOG_FILE.rename zero_file
+
+        # then rename the temp file to the main log.
+        # The logger will still log to it because it holds a
+        # filehandle to it, and doesn't care about its name.
+        TEMP_LOG_FILE.rename LOG_FILE
+
+        # compress the zero file if we should
+        compress_log(zero_file) if compress_zero
       end
 
       # should we rotate the logs right now?
