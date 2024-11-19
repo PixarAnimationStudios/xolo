@@ -238,7 +238,8 @@ module Xolo
 
           ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
 
-          enable_ted_patch
+          # SHouldn't be needed here, is called in both create and update
+          # enable_ted_patch
         end
 
         # get the param values for patch component criteria from the title object,
