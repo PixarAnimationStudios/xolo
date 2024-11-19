@@ -163,7 +163,7 @@ module Xolo
       # with a valid internal auth token.
       ################
       post '/cleanup' do
-        cleanup_sversions
+        cleanup_versions
         result = { result: 'Cleanup complete' }
         body result
       end
