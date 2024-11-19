@@ -486,7 +486,7 @@ module Xolo
         # @return [void]
         ########################################
         def assign_pkg_to_patch_in_jamf
-          log_debug "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'"
+          log_info "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'"
 
           jamf_patch_version.package = jamf_pkg_name
           title_object.jamf_patch_title.save
