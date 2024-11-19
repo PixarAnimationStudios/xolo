@@ -610,7 +610,8 @@ module Xolo
         progress "Deprecating older released version '#{version}'"
         disable_policies_for_deprecation_or_skipping :deprecated
         self.status = STATUS_DEPRECATED
-
+        self.deprecation_date = Time.now
+        self.deprecated_by = admin
         save_local_data
       ensure
         unlock
@@ -625,6 +626,8 @@ module Xolo
         progress "Skipping unreleased version '#{version}'"
         disable_policies_for_deprecation_or_skipping :skipped
         self.status = STATUS_SKIPPED
+        self.skipped_date = Time.now
+        self.skipped_by = admin
 
         save_local_data
       ensure
@@ -643,6 +646,10 @@ module Xolo
         progress "Resetting version '#{version}' to pilot status due to rollback of an older version"
         reset_policies_to_pilot
         self.status = STATUS_PILOT
+        self.skipped_date = nil
+        self.skipped_by = nil
+        self.deprecation_date = nil
+        self.deprecated_by = nil
         save_local_data
       ensure
         unlock
