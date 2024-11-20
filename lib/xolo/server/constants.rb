@@ -59,6 +59,8 @@ module Xolo
       # The max time (in seconds) to wait for a the Jamf server to
       # see a change in the Title Editor, e.g.
       # a new version appearing or an EA needing acceptance.
+      # Normally the Jamf server will check in with the Title Editor
+      # every 5 minutes.
       MAX_JAMF_WAIT_FOR_TITLE_EDITOR = 3600
 
       # Jamf objects are named with this prefix followed by <title>-<version>
