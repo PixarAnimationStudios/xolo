@@ -49,6 +49,9 @@ module Xolo
         # At what hour should the nightly cleanup run?
         CLEANUP_HOUR = 2
 
+        # on which day of the month should we send the unreleased pilot notifications?
+        UNRELEASED_PILOTS_NOTIFICATION_DAY = 1
+
         # Once a version becomes deprecated, it will
         # be automatically deleted this many days later.
         # If not set in the server config, this is
@@ -94,6 +97,10 @@ module Xolo
           @last_cleanup ||= Time.at(0)
         end
 
+        # Set the time of the last cleanup
+        # @param time [Time] the time of the last cleanup
+        # @return [Time] the time of the last cleanup
+        ######################################
         def self.last_cleanup=(time)
           @last_cleanup = time
         end
@@ -154,11 +161,10 @@ module Xolo
         ################################
         def cleanup_deprecated_version(version)
           # do nothing if the deprecated_lifetime_days is 0 or less
-          return unless deprecated_lifetime_days > 0
+          return unless deprecated_lifetime_days.positive?
 
           # how many days has this version been deprecated?
           days_deprecated = (Time.now - version.deprecation_date) / 86_400
-
           return unless days_deprecated > deprecated_lifetime_days
 
           log_info "Cleanup: Deleting deprecated version '#{version.version}' of title '#{version.title}'"
@@ -180,21 +186,30 @@ module Xolo
         # @return [void]
         ################################
         def notify_admins_of_unreleased_pilots(title_obj)
+          return unless Time.now.day == UNRELEASED_PILOTS_NOTIFICATION_DAY
           return unless unreleased_pilots_notification_days.positive?
+          return unless title_obj.latest_version
 
-          latest_vers = title_obj.version_order&.first
-          return unless latest_vers
+          latest_vers_obj = instantiate_version title_obj.latest_version
+          return unless latest_vers_obj.pilot?
 
-          latest_version = title_obj.version_object latest_vers
-          return unless latest_version.pilot?
-
-          days_in_pilot = ((Time.now - latest_version.creation_date) / 86_400).to_i
+          days_in_pilot = ((Time.now - latest_vers_obj.creation_date) / 86_400).to_i
 
           return unless days_in_pilot > unreleased_pilots_notification_days
 
-          log_info "Cleanup: Notifying admins about unreleased pilot '#{latest_vers}' of title '#{title_obj.title}', in pilot for #{days_in_pilot} days"
+          alert_msg = "Cleanup: Notifying #{title_obj.contact_email} about unreleased pilot '#{latest_vers}' of title '#{title_obj.title}', in pilot for #{days_in_pilot} days"
 
-          # TODO: how to do this? Email? Alert?
+          log_info alert_msg
+          send_alert alert_msg
+
+          email_msg = <<~MSG
+            The newest version '#{latest_vers_obj.version}' of title '#{title_obj.title}' has been in pilot for #{days_in_pilot} days, which makes it seem like it's not going to be released.
+
+            To reduce clutter, please consider releasing it, deleting it, or deleting the whole title if it's no longer needed.
+
+            If this is intentional, you can ignore this monthly message.
+          MSG
+          send_email to: title_obj.contact_email, subject: 'Unreleased Pilot Notification', msg: email_msg
         end
 
         # how many days can a version be deprecated?

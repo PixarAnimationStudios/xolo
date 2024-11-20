@@ -97,32 +97,6 @@ module Xolo
           send_alert msg, :UNKNOWN if alert
         end
 
-        # Send a message thru the alert_tool, if one is defined in the config.
-        #
-        # Messages are prepended with "#{level} ALERT: "
-        # This should be called by passing alert: true to one of the
-        # logging wrapper methods
-        #
-        # @param msg [String] the message to send
-        # @param level [Symbol] the log level of the message
-        #
-        # @return [void]
-        ###############################
-        def send_alert(msg, level)
-          return unless Xolo::Server.config.alert_tool
-
-          alerter = nil # just in case we need the ensure clause below.
-          alerter = IO.popen(Xolo::Server.config.alert_tool, 'w')
-          alerter.puts "#{level} ALERT: #{msg}"
-
-        # this catches the quitting of the alerter before expected
-        rescue Errno::EPIPE => e
-          true
-        ensure
-          # this flushes the pipe and makes the msg go
-          alerter&.close
-        end
-
       end # Log
 
     end # Helpers

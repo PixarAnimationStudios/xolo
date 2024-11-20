@@ -39,7 +39,7 @@
 
 require 'xolo'
 
-# Server Standard Libraries
+# Standard Libraries
 ######
 require 'logger'
 require 'openssl'
@@ -51,6 +51,7 @@ require 'open3'
 require 'base64'
 require 'resolv'
 require 'shellwords'
+require 'net/smtp'
 
 # Gems
 ######

@@ -330,11 +330,35 @@ module Xolo
           default: Xolo::Server::Helpers::Maintenance::DFT_UNRELEASED_PILOTS_NOTIFICATION_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            If the newest pilot of a title has not been released in this many days, notify someone about it weekly, asking to release it or delete it. If set to 0 or less, no notifications will be sent. Notifications are sent via the alert_tool (if defined), and if possible, email to the admin who added the version. Default is 180 days (about 6 months).
+            If the newest pilot of a title has not been released in this many days, notify someone about it monthly, asking to release it or delete it. If set to 0 or less, these notifications are disabled.
+
+            Notifications are sent on the first of the month via email to the title's contact email address, and the alert_tool (if defined). Default is 180 days (about 6 months).
 
             Pilot versions are those that have been added for testing, but not yet released.
 
-            This is useful to keep the Xolo clean and up-to-date, and to avoid cluttering with unreleased versions that are no longer relevant.
+            This is useful to keep the Xolo server clean and up-to-date, and to avoid cluttering with unreleased versions or titles that are no longer relevant.
+          ENDDESC
+        },
+
+        # @!attribute smtp_server
+        #   @return [String] The hostname of the SMTP server to use for sending email. This is a server that
+        #      can recieve email for your organizaion from the xolo server. Used for sending alerts and
+        #      notifications.
+        smtp_server: {
+          type: :string,
+          desc: <<~ENDDESC
+            The hostname of the SMTP server to use for sending email. This is a server that can recieve email for your organizaion from the xolo server. Used for sending alerts and notifications. If not set, no email notifications will be sent.
+          ENDDESC
+        },
+
+        # @!attribute email_from
+        #   @return [String] The email address to use as the 'from' address for emails sent by xolo
+        email_from: {
+          type: :string,
+          desc: <<~ENDDESC
+            The email address to use as the 'from' address for emails sent by xolo. This should be a valid email address that can recieve replies.
+
+            Will default to '#{Xolo::Server::Helpers::Notification::DFT_EMAIL_FROM}@<hostname>' if not set. The human-readable part of the address will be 'Xolo Server on <hostname>'.
           ENDDESC
         },
 
