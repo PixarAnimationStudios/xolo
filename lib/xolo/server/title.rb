@@ -146,7 +146,7 @@ module Xolo
       # TODO: Remove this and update relevant methods when ruby-jss
       # is updated to use JPAPI for Patch Titles..
       #
-      JPAPI_PATCH_REPORT_RSRC = 'v2/patch-software-title-configurations//patch-report'
+      JPAPI_PATCH_REPORT_RSRC = 'patch-report'
 
       # Class Methods
       ######################
