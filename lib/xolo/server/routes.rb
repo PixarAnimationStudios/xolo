@@ -153,8 +153,15 @@ module Xolo
       # test
       ##########
       get '/test' do
-        Xolo::Server::Helpers::Maintenance.post_to_start_cleanup force: true
-        result = { result: 'posted to start cleanup' }
+        # Xolo::Server::Helpers::Maintenance.post_to_start_cleanup force: true
+        # result = { result: 'posted to start cleanup' }
+
+        send_email(
+          to: 'chrisl@pixar.com',
+          subject: 'Test Email from Xolo Server',
+          msg: 'This is a test email from the Xolo Server'
+        )
+        result = { result: 'message sent' }
         body result
       end
 

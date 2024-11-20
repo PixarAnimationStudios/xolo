@@ -47,6 +47,7 @@ module Xolo
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
       helpers Xolo::Server::Helpers::Log
+      helpers Xolo::Server::Helpers::Notification
       helpers Xolo::Server::Helpers::Auth
       helpers Xolo::Server::Helpers::JamfPro
       helpers Xolo::Server::Helpers::TitleEditor
