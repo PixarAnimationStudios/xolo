@@ -734,19 +734,30 @@ module Xolo
         # @return [Hash] Keys are computer names, values are Xolo::OK or an error message
         #################################
         def freeze_or_thaw_computers(action:, computers:)
+          return unless %i[freeze thaw].include? action
+
           # convert to an array if it's a single string
           computers = [computers].flatten
 
-          result =
+          result, changes_to_log =
             if action == :thaw
               thaw_computers(computers: computers)
-            elsif action == :freeze
-              freeze_computers(computers: computers)
             else
-              raise ArgumentError, "Unknown action '#{action}', must be :freeze or :thaw"
+              freeze_computers(computers: computers)
             end # if action ==
 
           jamf_frozen_group.save
+
+          unless changes_to_log.empty?
+            action_msg =
+              if action == :freeze
+                "Froze computers: #{changes_to_log.join(', ')}"
+              else
+                "Thawed computers: #{changes_to_log.join(', ')}"
+              end
+
+            log_change action: action_msg
+          end
 
           result
         end
@@ -782,25 +793,30 @@ module Xolo
         ##############
         def thaw_computers(computers:)
           result = {}
+          thaws_to_log = []
+
           if computers.include? Xolo::TARGET_ALL
             log_info "Thawing all computers for title: '#{title}'"
             jamf_frozen_group.clear
             result[Xolo::TARGET_ALL] = Xolo::OK
-
+            thaws_to_log << Xolo::TARGET_ALL
           else
+
             grp_members = jamf_frozen_group.member_names
             computers.each do |comp|
               if grp_members.include? comp
                 jamf_frozen_group.remove_member comp
                 log_info "Thawed computer '#{comp}' for title '#{title}'"
                 result[comp] = Xolo::OK
+                thaws_to_log << comp
               else
                 log_debug "Cannot thaw computer '#{comp}' for title '#{title}', not frozen"
                 result[comp] = "#{Xolo::ERROR}: Not frozen"
-              end
-            end
+              end # if  grp_members.include? comp
+            end # computers.each
           end # if computers.include?
-          result
+
+          [result, thaws_to_log]
         end
 
         # freeze some computers
@@ -808,6 +824,8 @@ module Xolo
         ##############
         def freeze_computers(computers:)
           result = {}
+          freezes_to_log = []
+
           comp_names = Jamf::Computer.all_names cnx: jamf_cnx
           grp_members = jamf_frozen_group.member_names
 
@@ -819,12 +837,14 @@ module Xolo
               log_info "Freezing computer '#{comp}' for title '#{title}'"
               jamf_frozen_group.add_member comp
               result[comp] = Xolo::OK
+              freezes_to_log << comp
             else
               log_debug "Cannot freeze computer '#{comp}' for title '#{title}', no such computer"
               result[comp] = "#{Xolo::ERROR}: No computer with that name"
             end # if comp_names.include
           end # computers.each
-          result
+
+          [result, freezes_to_log]
         end
 
         # Return the members of the 'frozen' static group for a title
