@@ -274,6 +274,7 @@ module Xolo
         ########################
         def jamf_normal_ea
           return @jamf_normal_ea if @jamf_normal_ea
+          return unless version_script
 
           if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
             @jamf_normal_ea = Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
@@ -639,9 +640,14 @@ module Xolo
           @jamf_patch_title = nil if refresh
           return @jamf_patch_title if @jamf_patch_title
 
-          # TODO: Make this not infinite
+          breaktime = Time.now + Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
           until jamf_ted_title_available? || jamf_ted_title_active?
-            log_debug "Waiting infinitely for title '#{title}' to become available from TEd. Checking every 10 secs"
+            if Time.now > breaktime
+              raise Xolo::ServerError,
+                    "Jamf: Title '#{title}' is not available in Jamf after waiting #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} seconds"
+            end
+
+            log_debug "Waiting a long time for title '#{title}' to become available from TEd. Checking every 10 secs"
             sleep 10
           end
 

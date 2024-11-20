@@ -161,7 +161,7 @@ module Xolo
           apply_requirement_changes
 
           # mucking with the patches often disables the title, make sure its enabled.
-          reenable_ted_title
+          enable_ted_title
 
           self.ted_id_number ||= ted_title.softwareTitleId
         end
@@ -372,35 +372,31 @@ module Xolo
           end
         end
 
-        # For a Title to be enabled in the Title Editor, it needs at least a requirement criterion
-        # and one enabled patch. Xolo enforces the requirement when the title is created, so from
-        # the title editor's view it should be OK as soon as there's an enabled patch.
+        # Enable the title in the title editor when at least one patch is enabled
         #
-        # So once we have that, this method is called to enable the title.
-        #
-        # @param title [Xolo::Server::Title] the Title to enable in the Title Editor
+        # Re-enable the title in ted after updating any patches
         #
         # @return [void]
         ##############################
         def enable_ted_title
-          progress "Title Editor: (Re-)Enabling SoftwareTitle '#{title}'", log: :debug
-          ted_title.enable
-        end
+          # Nothing to re-enabled unless we have at least one enabled patch
+          return unless ted_title.patches.to_a.any?(&:enabled?)
 
-        # Re-enable the title in ted after updating any patches
-        # @return [void]
-        ##############################
-        def reenable_ted_title
           # re-enable the title itself, we should have at least one enabled version
-          progress "Title Editor: Re-Enabling SoftwareTitle '#{title}'", log: :debug
+          progress "Title Editor: (Re-)Enabling SoftwareTitle '#{title}'", log: :debug
+
           # loop until the enablement goes thru
-          # TODO: make this non-infinite
+          breaktime = Time.now + Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
           loop do
+            if Time.now > breaktime
+              raise Xolo::TimeoutError, "Title Editor: Timed out waiting for SoftwareTitle '#{title}' to enable"
+            end
+
             sleep 5
             ted_title(refresh: true).enable
             break
           rescue Windoo::MissingDataError
-            log_debug "Title Editor: Looping while re-enabling SoftwareTitle '#{title}'"
+            log_debug "Title Editor: Looping up to #{Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs while re-enabling SoftwareTitle '#{title}'"
             nil
           end
         end
