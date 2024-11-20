@@ -852,7 +852,7 @@ module Xolo
         # @return [Arrah<Hash>] Data for each computer with any version of this title installed
         ######################
         def patch_report(vers: nil)
-          page_size = 2
+          page_size = 500
           page = 0
           paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
           paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
