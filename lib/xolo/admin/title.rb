@@ -188,8 +188,9 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response data
       ####################
-      def freeze(computers, cnx)
-        resp = cnx.put "#{SERVER_ROUTE}/#{title}/freeze", computers
+      def freeze(targets, users = false, cnx)
+        data = { targets: targets, users: users }
+        resp = cnx.put "#{SERVER_ROUTE}/#{title}/freeze", data
         resp.body
       end
 
@@ -198,8 +199,9 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response data
       ####################
-      def thaw(computers, cnx)
-        resp = cnx.put "#{SERVER_ROUTE}/#{title}/thaw", computers
+      def thaw(targets, users = false, cnx)
+        data = { targets: targets, users: users }
+        resp = cnx.put "#{SERVER_ROUTE}/#{title}/thaw", data
         resp.body
       end
 

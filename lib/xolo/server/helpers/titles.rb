@@ -131,6 +131,28 @@ module Xolo
           halt 409, { error: msg }
         end
 
+        # when freezing or thawing, are we dealing with a list of computers
+        # or a list of users, for whom we need to get all their assigned computers
+        # @param targets [Array<String>] a list of computers or usernames
+        # @param users [Boolean] is the list usernames? if not, its computers
+        # @return [Array<String>] a list of computers to freeze or thaw
+        ########################
+        def expand_freeze_thaw_targets(targets:, users:)
+          return targets unless users
+
+          log_debug "Expanding user list to freeze or thaw: #{targets}"
+
+          expanded_targets = []
+          all_users = Jamf::User.all_names(cnx: jamf_cnx)
+          targets.each do |user|
+            next unless all_users.include? user
+
+            expanded_targets += Jamf::User.fetch(name: user, cnx: jamf_cnx).computers.map { |c| c[:name] }
+          end
+
+          expanded_targets.uniq
+        end
+
       end # TitleEditor
 
     end # Helpers

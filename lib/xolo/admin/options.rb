@@ -241,6 +241,20 @@ module Xolo
         }
       }.freeze
 
+      FREEZE_THAW_OPTIONS = {
+        users: {
+          label: 'Targets are usernames not computers',
+          cli: :u,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            The targets of the command are usernames, not computers. All computers assigned to the user will be affected.
+            Default is false, targets are computer names.
+          ENDDESC
+        }
+      }.freeze
+
       # The commands that xadm understands
       # For each command there is a hash of details, with these possible keys:
       #
@@ -342,18 +356,18 @@ module Xolo
         },
 
         FREEZE_TITLE_CMD => {
-          desc: 'Prevent one or more computers from updating the currently installed version of a software title.',
-          display: "#{FREEZE_TITLE_CMD} title computer [computer ...]",
-          opts: {},
+          desc: 'Prevent computers from updating the currently installed version of a title.',
+          display: "#{FREEZE_TITLE_CMD} title [--users] target [target ...] ",
+          opts: FREEZE_THAW_OPTIONS,
           process_method: :freeze,
           target: :title,
           confirmation: true
         },
 
         THAW_TITLE_CMD => {
-          desc: 'Allow one or more previously frozen computers to update beyond the currently installed version of a software title.',
-          display: "#{THAW_TITLE_CMD} title computer [computer ...]",
-          opts: {},
+          desc: 'Allow frozen computers to update beyond the currently installed version of a title.',
+          display: "#{THAW_TITLE_CMD} title [--users] target [target ...]",
+          opts: FREEZE_THAW_OPTIONS,
           process_method: :thaw,
           target: :title,
           confirmation: true
