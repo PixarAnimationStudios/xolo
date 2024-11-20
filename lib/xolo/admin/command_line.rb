@@ -334,6 +334,8 @@ module Xolo
         ###
         executable_file = Xolo::Admin::EXECUTABLE_FILENAME
         cmd_desc = Xolo::Admin::Options::COMMANDS.dig cmd, :desc
+        cmd_long_desc = Xolo::Admin::Options::COMMANDS.dig cmd, :long_desc
+        cmd_long_desc &&= format_multiline_indent(cmd_long_desc, indent: 2)
         cmd_usage = Xolo::Admin::Options::COMMANDS.dig cmd, :usage
         cmd_display = Xolo::Admin::Options::COMMANDS.dig cmd, :display
         cmd_opts = Xolo::Admin::Options::COMMANDS.dig cmd, :opts
@@ -353,6 +355,10 @@ module Xolo
           # optimist's 'banner' method chomps the ends.
           banner 'Command:'
           banner "  #{cmd}, #{cmd_desc}"
+          if cmd_long_desc
+            banner "\nDescription:"
+            banner "  #{cmd_long_desc}"
+          end
 
           banner "\nUsage:"
           usage = cmd_usage || "#{executable_file} #{cmd_display} [options]"

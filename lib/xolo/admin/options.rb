@@ -162,13 +162,14 @@ module Xolo
       TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
       TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
 
-      PATCH_REPORT_DESC = <<~ENDDESC
-        Report installation data
-
+      PATCH_REPORT_LONG_DESC = <<~ENDDESC
         Patch reports list which computers have a title, or a version of the title, installed.
-        They always show the computer name, username and last contact date, and the version installed
-        if reporting on all installations.
-        But the options can be used to add more data to the report.
+        They always show the computer name, username and last contact date. If reporting all
+        versions, the version on each computer will also be listed.
+
+        Commandline options can be used to add more data to the report, such as operating system,
+        department, site, and so on.
+
         NOTE: When using --json, all options are included in the data.
       ENDDESC
 
@@ -417,7 +418,8 @@ module Xolo
         },
 
         SEARCH_CMD => {
-          desc: 'Search for titles in Xolo. Matches text in the title, display name, publisher, app name, bundle ID, or description.',
+          desc: 'Search for titles.',
+          long_desc: 'Matches text in title, display name, publisher, app name, bundle ID, or description.',
           display: "#{SEARCH_CMD} title",
           opts: {},
           target: :title,
@@ -433,7 +435,8 @@ module Xolo
         },
 
         REPORT_CMD => {
-          desc: PATCH_REPORT_DESC,
+          desc: 'Show a patch-report of installation data',
+          long_desc: PATCH_REPORT_LONG_DESC,
           display: "#{REPORT_CMD} title [version]",
           opts: PATCH_REPORT_OPTS,
           target: :title_or_version,
