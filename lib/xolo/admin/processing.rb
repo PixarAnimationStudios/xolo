@@ -647,6 +647,48 @@ module Xolo
         handle_processing_error e
       end
 
+      # Show the patch report for a title or version in xolo
+      #
+      # @return [void]
+      ###############################
+      def patch_report
+        if cli_cmd.version
+          vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
+          data = vers.patch_report_data(server_cnx)
+          rpt_title = "Patch Report for Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+        else
+          title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+          data = title.patch_report_data(server_cnx)
+          rpt_title = "Patch Report for Title '#{cli_cmd.title}'"
+        end
+
+        if json?
+          puts JSON.pretty_generate(data)
+          return
+        end
+
+        header_row = %w[Computer User Version LastContact]
+        header_row << 'OS' if cli_cmd_opts.os
+        header_row << 'Dept' if cli_cmd_opts.dept
+        header_row << 'Building' if cli_cmd_opts.building
+        header_row << 'Site' if cli_cmd_opts.site
+        header_row << 'Frozen' if cli_cmd_opts.frozen
+        header_row << 'JamfID' if cli_cmd_opts.id
+
+        data = data.map do |d|
+          asof = Time.parse(d[:lastContactTime]).strftime('%F %T')
+          comp_ary = [d[:computerName], d[:username], d[:version], asof]
+          comp_ary << d[:operatingSystemVersion] if cli_cmd_opts.os
+          comp_ary << d[:departmentName] if cli_cmd_opts.dept
+          comp_ary << d[:buildingName] if cli_cmd_opts.building
+          comp_ary << d[:siteName] if cli_cmd_opts.site
+          comp_ary << d[:frozen] if cli_cmd_opts.frozen
+          comp_ary << d[:deviceId] if cli_cmd_opts.id
+          comp_ary
+        end
+        show_text generate_report(data, header_row: header_row, title: rpt_title)
+      end
+
       # Show info about the server status
       #
       # @return [void]

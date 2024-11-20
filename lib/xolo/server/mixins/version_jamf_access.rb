@@ -1048,7 +1048,7 @@ module Xolo
         # @return [Arrah<Hash>] Data for each computer with this version of this title installed
         ######################
         def patch_report
-          title_object.patch_report.select { |c| c[:version] == version }
+          title_object.patch_report vers: version
         end
 
         # @return [String] The start of the Jamf Pro URL for GUI/WebApp access

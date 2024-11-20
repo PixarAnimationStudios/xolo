@@ -839,11 +839,33 @@ module Xolo
         # Get the patch report for this title.
         # It's the JPAPI report data with each hash having a frozen: key added
         #
+        # TODO: rework this when all the paging stuff is handled by ruby-jss
+        #
+        # @param vers [String, nil] Limit the report to a specific version
+        #
         # @return [Arrah<Hash>] Data for each computer with any version of this title installed
         ######################
-        def patch_report
+        def patch_report(vers: nil)
+          page_size = 2
+          page = 0
+          paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
+          paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
+
+          report = []
+          loop do
+            data = jamf_cnx.jp_get(paged_rsrc)[:results]
+            log_debug "GOT #{paged_rsrc}  >>> Data size: #{data.size}"
+            break if data.empty?
+
+            report += data
+            page += 1
+            paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
+            paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
+          end
+
+          # log_debug "REPORT: #{report}"
+
           frozen_comps = frozen_computers.keys
-          report = jamf_cnx.jp_get patch_report_rsrc
           report.each { |h| h[:frozen] = frozen_comps.include? h[:computerName] }
           report
         end

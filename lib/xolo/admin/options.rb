@@ -162,6 +162,83 @@ module Xolo
       TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
       TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
 
+      PATCH_REPORT_DESC = <<~ENDDESC
+        Report installation data
+
+        Patch reports list which computers have a title, or a version of the title, installed.
+        They always show the computer name, username, version and last contact date
+        But the options can be used to add more data to the report.
+        NOTE: When using --json, all options are included in the data.
+      ENDDESC
+
+      PATCH_REPORT_OPTS = {
+        os: {
+          label: 'Show Operating System Version',
+          cli: :o,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Report the Operating System Version of the computer.
+          ENDDESC
+        },
+
+        building: {
+          label: 'Show Building',
+          cli: :b,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Report the Building of the computer.
+          ENDDESC
+        },
+
+        dept: {
+          label: 'Show Department',
+          cli: :d,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Report the Department of the computer.
+          ENDDESC
+        },
+
+        site: {
+          label: 'Show Site',
+          cli: :s,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Report the Site of the computer.
+          ENDDESC
+        },
+
+        frozen: {
+          label: 'Show Frozen Status',
+          cli: :f,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Report whether or not the computer is frozen for the title.
+          ENDDESC
+        },
+
+        id: {
+          label: 'Show Jamf ID',
+          cli: :i,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Report the Jamf ID of the computer.
+          ENDDESC
+        }
+      }.freeze
+
       # The commands that xadm understands
       # For each command there is a hash of details, with these possible keys:
       #
@@ -307,7 +384,6 @@ module Xolo
           confirmation: true
         },
 
-        # TODO: Implement PATCH, or just PUT ?
         EDIT_VERSION_CMD => {
           desc: 'Edit a version of a title',
           display: "#{EDIT_VERSION_CMD} title version",
@@ -320,7 +396,7 @@ module Xolo
         },
 
         RELEASE_VERSION_CMD => {
-          desc: "Make the version 'live' and available for general installation.",
+          desc: "Make a version 'live', i.e. the one available for general installation.",
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version,
@@ -356,10 +432,11 @@ module Xolo
         },
 
         REPORT_CMD => {
-          desc: 'Report installation data',
-          display: "#{REPORT_CMD} title [version | frozen]",
-          opts: {},
-          target: :title_or_version
+          desc: PATCH_REPORT_DESC,
+          display: "#{REPORT_CMD} title [version]",
+          opts: PATCH_REPORT_OPTS,
+          target: :title_or_version,
+          process_method: :patch_report
         },
 
         CHANGELOG_CMD => {
