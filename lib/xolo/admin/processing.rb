@@ -377,7 +377,7 @@ module Xolo
 
         report_title = "All versions of '#{cli_cmd.title}' in Xolo"
         header = %w[Vers Created By Released By Status]
-        data = versions.map do |v|
+        data = versions.sort_by(&:creation_date).map do |v|
           [
             v.version,
             v.creation_date.to_date,
@@ -656,10 +656,12 @@ module Xolo
           vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
           data = vers.patch_report_data(server_cnx)
           rpt_title = "Patch Report for Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+          all_versions = false
         else
           title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
           data = title.patch_report_data(server_cnx)
           rpt_title = "Patch Report for Title '#{cli_cmd.title}'"
+          all_versions = true
         end
 
         if json?
@@ -667,7 +669,12 @@ module Xolo
           return
         end
 
-        header_row = %w[Computer User Version LastContact]
+        # NOTE: The order of things in this array must match
+        # that in each array of the data, below
+        header_row = %w[Computer User]
+        header_row << 'Version' if all_versions
+        header_row << 'LastContact'
+
         header_row << 'OS' if cli_cmd_opts.os
         header_row << 'Dept' if cli_cmd_opts.dept
         header_row << 'Building' if cli_cmd_opts.building
@@ -675,9 +682,13 @@ module Xolo
         header_row << 'Frozen' if cli_cmd_opts.frozen
         header_row << 'JamfID' if cli_cmd_opts.id
 
+        # See note above about the order of items in each sub-array
         data = data.map do |d|
-          asof = Time.parse(d[:lastContactTime]).strftime('%F %T')
-          comp_ary = [d[:computerName], d[:username], d[:version], asof]
+          last_contact = Time.parse(d[:lastContactTime]).strftime('%F %T')
+          comp_ary = [d[:computerName], d[:username]]
+          comp_ary << d[:version] if all_versions
+          comp_ary << last_contact
+
           comp_ary << d[:operatingSystemVersion] if cli_cmd_opts.os
           comp_ary << d[:departmentName] if cli_cmd_opts.dept
           comp_ary << d[:buildingName] if cli_cmd_opts.building
@@ -686,6 +697,7 @@ module Xolo
           comp_ary << d[:deviceId] if cli_cmd_opts.id
           comp_ary
         end
+
         show_text generate_report(data, header_row: header_row, title: rpt_title)
       end
 

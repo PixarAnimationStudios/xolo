@@ -166,7 +166,8 @@ module Xolo
         Report installation data
 
         Patch reports list which computers have a title, or a version of the title, installed.
-        They always show the computer name, username, version and last contact date
+        They always show the computer name, username and last contact date, and the version installed
+        if reporting on all installations.
         But the options can be used to add more data to the report.
         NOTE: When using --json, all options are included in the data.
       ENDDESC
