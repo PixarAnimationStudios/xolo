@@ -828,7 +828,7 @@ module Xolo
         end # all_versions.each
 
         # update the title
-        released_version = version_to_release
+        self.released_version = version_to_release
         save_local_data
       ensure
         unlock
