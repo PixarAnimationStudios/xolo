@@ -90,6 +90,23 @@ module Xolo
         @terminal_word_wrap ||= terminal_width - 5
       end
 
+      # format a multi-line value by  prepending the desired indentation
+      # to all but the first line, which is expected to be indented in-place where
+      # its being used.
+      #
+      # @param value [String] the value to format
+      # @param indent [Integer] the number of spaces to indent all but the first line
+      # @return [String] the formatted value
+      #######################
+      def format_multiline_indent(value, indent:)
+        value = value.to_s
+        return value unless value.include? "\n"
+
+        lines = value.split("\n")
+        lines[1..-1].each { |line| line.prepend ' ' * indent }
+        lines.join("\n")
+      end
+
       # Display a list of items in as many columns as possible
       # based on terminal width, e.g. with 3 cols:
       #
