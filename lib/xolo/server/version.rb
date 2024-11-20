@@ -550,7 +550,7 @@ module Xolo
 
         # new pkg uploads happen in a separate process
       rescue StandardError => e
-        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\n See server log for details."
+        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
         raise
@@ -566,7 +566,6 @@ module Xolo
       #########################
       def release(rollback:)
         lock
-        progress "Jamf: Releasing version '#{version}'"
 
         # set scope targets of auto-install policy to release-groups
         msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to release_groups: #{release_groups_to_use.join(', ')}"
@@ -595,6 +594,10 @@ module Xolo
 
         # change status to 'released'
         self.status = STATUS_RELEASED
+        self.release_date = Time.now
+        self.released_by = admin
+        chg_msg = rollback ? 'Version Released - Rolled Back' : 'Version Released'
+        log_change action: chg_msg
 
         save_local_data
       ensure
@@ -612,6 +615,8 @@ module Xolo
         self.status = STATUS_DEPRECATED
         self.deprecation_date = Time.now
         self.deprecated_by = admin
+        log_change action: 'Version Deprecated'
+
         save_local_data
       ensure
         unlock
@@ -628,7 +633,7 @@ module Xolo
         self.status = STATUS_SKIPPED
         self.skipped_date = Time.now
         self.skipped_by = admin
-
+        log_change action: 'Version Skipped'
         save_local_data
       ensure
         unlock
@@ -650,6 +655,7 @@ module Xolo
         self.skipped_by = nil
         self.deprecation_date = nil
         self.deprecated_by = nil
+        log_change action: 'Version Reset to Pilot'
         save_local_data
       ensure
         unlock

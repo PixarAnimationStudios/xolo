@@ -595,7 +595,7 @@ module Xolo
         # and the local data will be updated again then
         #
       rescue StandardError => e
-        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\n See server log for details."
+        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
         raise
