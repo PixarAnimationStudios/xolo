@@ -508,7 +508,10 @@ module Xolo
       #   help with that.
       ########################
       def version_objects(refresh: false)
-        @version_objects ||= version_order.map { |v| version_object v }
+        @version_objects = nil if refresh
+        return @version_objects if @version_objects
+
+        @version_objects = version_order.map { |v| version_object v }
       end
 
       # @return [String] The URL path for the patch report for this title
