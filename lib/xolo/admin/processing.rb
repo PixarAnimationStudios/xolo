@@ -281,8 +281,16 @@ module Xolo
       # @return [void]
       ###############################
       def freeze
+        conf_msg = <<~ENDMSG
+          Freeze computers for title '#{cli_cmd.title}'.
+          They will not update beyond their installed version,
+          even it the title is not installed at all.
+        ENDMSG
+
+        return unless confirmed? conf_msg
+
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
-        response_data = title.freeze ARGV, server_cnx
+        response_data = title.freeze ARGV, cli_cmd_opts.users_given, server_cnx
 
         if debug?
           puts "DEBUG: response_data: #{response_data}"
@@ -337,8 +345,15 @@ module Xolo
       # @return [void]
       ###############################
       def thaw
+        conf_msg = <<~ENDMSG
+          Thaw computers for title '#{cli_cmd.title}'.
+          They will again be able to update beyond their installed version.
+        ENDMSG
+
+        return unless confirmed? conf_msg
+
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
-        response_data = title.thaw ARGV, server_cnx
+        response_data = title.thaw ARGV, cli_cmd_opts.users_given, server_cnx
 
         if debug?
           puts "DEBUG: response_data: #{response_data}"

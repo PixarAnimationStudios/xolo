@@ -183,18 +183,17 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         put '/titles/:title/freeze' do
-          request.body.rewind
-          log_debug "Incoming request body: #{request.body.read}"
-          request.body.rewind
-
-          comps_to_freeze = parse_json(request.body.read)
-          log_debug "Incoming computers to freeze for title #{params[:title]}: #{comps_to_freeze}"
-
           halt_on_missing_title params[:title]
+
+          request.body.rewind
+          data = parse_json(request.body.read)
+
+          comps_to_freeze = expand_freeze_thaw_targets(targets: data[:targets], users: data[:users])
+
+          log_debug "Target computers to freeze for title #{params[:title]}: #{comps_to_freeze}"
           title = instantiate_title params[:title]
 
           result = title.freeze_or_thaw_computers(action: :freeze, computers: comps_to_freeze)
-
           body result
         end
 
@@ -206,11 +205,14 @@ module Xolo
         # @return [Hash] A response hash
         #################################
         put '/titles/:title/thaw' do
-          request.body.rewind
-          comps_to_thaw = parse_json(request.body.read)
-          log_debug "Incoming computers to thaw for title #{params[:title]}: #{comps_to_thaw}"
-
           halt_on_missing_title params[:title]
+
+          request.body.rewind
+          data = parse_json(request.body.read)
+
+          comps_to_thaw = expand_freeze_thaw_targets(targets: data[:targets], users: data[:users])
+
+          log_debug "Incoming computers to thaw for title #{params[:title]}: #{comps_to_thaw}"
           title = instantiate_title params[:title]
 
           result = title.freeze_or_thaw_computers(action: :thaw, computers: comps_to_thaw)
