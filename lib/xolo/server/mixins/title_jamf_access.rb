@@ -67,8 +67,18 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
+          # ORDER MATTERS
           set_normal_ea_script_in_jamf if version_script
+
+          # must happen after the normal ea is created
           set_installed_group_criteria_in_jamf
+
+          if uninstall_method
+            set_jamf_uninstall_script_contents
+            # this creates the policy to use the script
+            # must happen after the installed group is created
+            jamf_uninstall_policy
+          end
 
           # Create the static group that will computers where this title is 'frozen'
           # Just calling this will create it if it doesn't exist.
@@ -82,6 +92,8 @@ module Xolo
         # @return [void]
         #########################
         def update_title_in_jamf
+          # ORDER MATTERS
+
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_group
           set_normal_ea_script_in_jamf if need_to_update_normal_ea_in_jamf?
@@ -90,9 +102,22 @@ module Xolo
           # If those have changed, we need to update it.
           set_installed_group_criteria_in_jamf if need_to_update_installed_group_in_jamf?
 
+          # make sure the uninstall script is correct
+          if need_to_update_uninstall_script_in_jamf?
+
+            set_jamf_uninstall_script_contents
+            # this creates or fetches the policy to use the script
+            # which needs both the uninstall script and the installed group to exist
+            jamf_uninstall_policy
+
+          # or delete it if no longer needed
+          elsif !uninstall_script_contents
+            delete_uninstall_pol_and_script
+          end
+
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_group
-          delete_normal_ea_from_jamf if changes_for_update.dig(:version_script, :new).pix_empty?
+          delete_normal_ea_from_jamf unless version_script_contents
 
           if jamf_ted_title_active?
             update_versions_for_title_changes_in_jamf
@@ -131,7 +156,17 @@ module Xolo
         # @return [Boolean]
         ########################
         def need_to_update_normal_ea_in_jamf?
-          changes_for_update[:version_script] && !changes_for_update[:version_script][:new].pix_empty?
+          changes_for_update.key?(:version_script) && !changes_for_update[:version_script][:new].pix_empty?
+        end
+
+        # do we need to update the normal EA in jamf?
+        # true if our incoming changes include :version_script
+        # and the new value is not empty (in which case we'll delete it)
+        #
+        # @return [Boolean]
+        ########################
+        def need_to_update_uninstall_script_in_jamf?
+          changes_for_update.key?(:uninstall_method) && !changes_for_update[:uninstall_method][:new].pix_empty?
         end
 
         # do we need to update the 'installed' smart group?
@@ -166,6 +201,55 @@ module Xolo
 
           log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
           sleep 10
+        end
+
+        # Create or fetch the script that uninstalls this title from a Mac
+        #
+        # @return [Jamf::Script] The Jamf Script for uninstalling this title
+        #####################################
+        def jamf_uninstall_script
+          return @jamf_uninstall_script if @jamf_uninstall_script
+
+          if Jamf::Script.all_names(cnx: jamf_cnx).include? jamf_uninstall_script_name
+            @jamf_uninstall_script = Jamf::Script.fetch name: jamf_uninstall_script_name, cnx: jamf_cnx
+          else
+            return if deleting?
+
+            progress "Jamf: Creating Uninstall script '#{jamf_uninstall_script_name}'", log: :info
+            @jamf_uninstall_script = Jamf::Script.create(
+              name: jamf_uninstall_script_name,
+              script_contents: uninstall_script_contents,
+              cnx: jamf_cnx
+            )
+            @jamf_uninstall_script.save
+          end
+          @jamf_uninstall_script
+        end
+
+        # Create or fetch the policy that runs the jamf uninstall script
+        #
+        # @return [Jamf::Policy] The Jamf Policy for uninstalling this title
+        #####################################
+        def jamf_uninstall_policy
+          return @jamf_uninstall_policy if @jamf_uninstall_policy
+
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_uninstall_policy_name
+            @jamf_uninstall_policy = Jamf::Policy.fetch name: jamf_uninstall_policy_name, cnx: jamf_cnx
+          else
+            return if deleting?
+
+            progress "Jamf: Creating Uninstall policy: '#{jamf_uninstall_policy_name}'", log: :info
+
+            @jamf_uninstall_policy = Jamf::Policy.create name: jamf_uninstall_policy_name, cnx: jamf_cnx
+            @jamf_uninstall_policy.category = Xolo::Server::JAMF_XOLO_CATEGORY
+            @jamf_uninstall_policy.add_script jamf_uninstall_script_name
+            @jamf_uninstall_policy.set_trigger_event :checkin, false
+            @jamf_uninstall_policy.set_trigger_event :custom, jamf_uninstall_policy_name
+            @jamf_uninstall_policy.scope.add_target(:computer_group, jamf_installed_group_name)
+            @jamf_uninstall_policy.enable
+            @jamf_uninstall_policy.save
+          end
+          @jamf_uninstall_policy
         end
 
         # Create or fetch he smartgroup in jamf that contains all macs
@@ -240,6 +324,18 @@ module Xolo
               )
             ]
           end
+        end
+
+        # Set the script contents of the jamf_uninstall_script, if we have one
+        #
+        # @return [void]
+        ################################
+        def set_jamf_uninstall_script_contents
+          return unless uninstall_script_contents
+
+          progress "Jamf: Setting the code for the uninstall script '#{jamf_uninstall_script_name}'", log: :info
+          jamf_uninstall_script.code = uninstall_script_contents
+          jamf_uninstall_script.save
         end
 
         # Create or update a 'normal' EA that matches the Patch EA for this title,
@@ -677,7 +773,9 @@ module Xolo
         # Delete an entire title from Jamf Pro
         ########################
         def delete_title_from_jamf
+          # ORDER MATTERS
           delete_frozen_group_from_jamf
+          delete_uninstall_pol_and_script
           delete_installed_group_from_jamf
           delete_normal_ea_from_jamf
           delete_patch_title_from_jamf
@@ -687,41 +785,66 @@ module Xolo
         # @return [void]
         ######################################
         def delete_installed_group_from_jamf
-          return unless jamf_installed_group
+          grp_id = Jamf::ComputerGroup.valid_id jamf_installed_group_name, cnx: jamf_cnx
+          return unless grp_id
 
           progress "Jamf: Deleting smart group '#{jamf_installed_group_name}'", log: :info
-          jamf_installed_group.delete
+          Jamf::ComputerGroup.delete grp_id, cnx: jamf_cnx
+          # give the server time to see the deletion
+          log_debug 'Sleeping to let server see deletion of smart group'
+          sleep 10
         end
 
         # Delete the 'frozen' static group
         # @return [void]
         ######################################
         def delete_frozen_group_from_jamf
-          return unless jamf_frozen_group
+          grp_id = Jamf::ComputerGroup.valid_id jamf_frozen_group_name, cnx: jamf_cnx
+          return unless grp_id
 
           progress "Jamf: Deleting static group '#{jamf_frozen_group_name}'", log: :info
-          jamf_frozen_group.delete
+          Jamf::ComputerGroup.delete grp_id, cnx: jamf_cnx
         end
 
         # Delete the 'normal' computer ext attr matching the Patch EA
         # @return [void]
         ######################################
         def delete_normal_ea_from_jamf
-          return unless jamf_normal_ea
+          ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
+          return unless ea_id
 
           progress "Jamf: Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
-          jamf_normal_ea.delete
+          Jamf::ComputerExtensionAttribute.delete ea_id, cnx: jamf_cnx
         end
 
         # Delete the patch title
         # NOTE: jamf api user must have 'delete computer ext. attribs' permmissions
         ##############################
         def delete_patch_title_from_jamf
-          return unless jamf_ted_title_active? && jamf_patch_title
+          return unless jamf_ted_title_active?
+
+          pt_id = Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
+          return unless pt_id
 
           msg = "Jamf: Deleting (unsubscribing) title '#{display_name}' (#{title}}) in Jamf Patch Management"
           progress msg, log: :info
-          jamf_patch_title.delete
+          Jamf::PatchTitle.delete pt_id, cnx: jamf_cnx
+        end
+
+        #########################
+        def delete_uninstall_pol_and_script
+          # uninstall the policy first if it exists
+          pol_id = Jamf::Policy.valid_id jamf_uninstall_policy_name, cnx: jamf_cnx
+          if pol_id
+            progress "Jamf: Deleting uninstall policy '#{jamf_uninstall_policy_name}'", log: :info
+            Jamf::Policy.delete pol_id, cnx: jamf_cnx
+          end
+
+          script_id = Jamf::Script.valid_id jamf_uninstall_script_name, cnx: jamf_cnx
+          return unless script_id
+
+          progress "Jamf: Deleteing uninstall script '#{jamf_uninstall_script_name}'", log: :info
+          Jamf::Script.delete script_id, cnx: jamf_cnx
         end
 
         # Freeze or thaw an array of computers for a title

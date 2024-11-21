@@ -292,6 +292,25 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:version_script][:invalid_msg]
       end
 
+      # validate a title uninstall method:
+      # - a path to a script which must start with '#!'
+      # OR
+      # - a comma-separated list of package identifiers
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [Pathname, Array<String>] The valid value
+      ##########################
+      def validate_uninstall_method(val)
+        val = val.to_s.strip
+        script_file = Pathname.new val
+
+        return val unless script_file.file?
+        return script_file if script_file.readable? && script_file.read.start_with?('#!')
+
+        raise_invalid_data_error val, TITLE_ATTRS[:uninstall_method][:invalid_msg]
+      end
+
       # validate an array of jamf group names to use as targets when released.
       # 'all', or 'none' are also acceptable
       #
