@@ -12,6 +12,8 @@
 # an installer.pkg (e.g. drag-installing an app) because there won't be
 # a matching entry in the pkgutil database.
 
+# DO NOT CHANGE THE VALUE OF IDS_TO_UNINSTALL
+# This is a placeholder for the package IDs that Xolo will insert into the script
 IDS_TO_UNINSTALL=(PKG_IDS_FROM_XOLO_GO_HERE)
 
 
@@ -64,22 +66,22 @@ for pkgid in $IDS_TO_UNINSTALL ; do
   # which is what the (Oa) does
   for path in ${(Oa)items_to_delete}; do
 
-    echo "orig path is: '$path'"
+    # echo "orig path is: '$path'"
 
     path_to_delete="${inst_volume}${vol_slash}${inst_location}${loc_slash}${path}"
 
-    if [ -f "$path_to_delete" ] ; then
+    if [[ -f "$path_to_delete" ]] ; then
       echo  "$path_to_delete is a file - deleting it"
       rm -f "$path_to_delete"
 
-    elif [ -L "$path_to_delete" ] ; then
+    elif [[ -L "$path_to_delete" ]] ; then
       echo  "$path_to_delete is a symlink - deleting it"
       rm -f "$path_to_delete"
 
-    elif [ -d "$path_to_delete" ] ; then
+    elif [[ -d "$path_to_delete" ]] ; then
       echo "$path_to_delete is a directory..."
 
-      if [ $(/bin/ls -A "$path_to_delete" | /usr/bin/wc -l) -eq 0  ] ; then
+      if [[ $(/bin/ls -A "$path_to_delete" | /usr/bin/wc -l) -eq 0  ]] ; then
          echo "... and it's empty - deleting it"
          rmdir "$path_to_delete"
       else
@@ -89,8 +91,6 @@ for pkgid in $IDS_TO_UNINSTALL ; do
     else
       echo "$path_to_delete doesn't exist'"
     fi
-
-    echo
 
   done
 
