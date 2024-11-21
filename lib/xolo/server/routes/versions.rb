@@ -155,10 +155,19 @@ module Xolo
         #################################
         get '/titles/:title/versions/:version/patch_report' do
           log_debug "Admin #{session[:admin]} is fetching patch report for version #{params[:version]} title '#{params[:title]}'"
-          halt_on_missing_version params[:title], params[:version]
-          vers = instantiate_version title: params[:title], version: params[:version]
 
-          body vers.patch_report
+          if params[:version] == Xolo::UNKNOWN
+            halt_on_missing_title params[:title]
+            title = instantiate_title params[:title]
+            data = title.patch_report vers: Xolo::UNKNOWN
+
+          else
+            halt_on_missing_version params[:title], params[:version]
+            vers = instantiate_version title: params[:title], version: params[:version]
+
+          end
+
+          body data
         end
 
         # Return URLs for all the UI pages for a version

@@ -651,6 +651,15 @@ module Xolo
       # @return [void]
       ###############################
       def patch_report
+        # since there is no actual version 'unknown'
+        # we'll fetch all of them and extract the onese we want
+        if cli_cmd.version == Xolo::UNKNOWN
+          cli_cmd.version = nil
+          report_unknown = true
+        else
+          report_unknown = false
+        end
+
         if cli_cmd.version
           vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
           data = vers.patch_report_data(server_cnx)
@@ -659,6 +668,7 @@ module Xolo
         else
           title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
           data = title.patch_report_data(server_cnx)
+          data.select! { |d| d[:version] == Xolo::UNKNOWN } if report_unknown
           rpt_title = "Patch Report for Title '#{cli_cmd.title}'"
           all_versions = true
         end
