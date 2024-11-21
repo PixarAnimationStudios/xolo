@@ -28,7 +28,7 @@ for pkgid in $IDS_TO_UNINSTALL ; do
   fi
 
   # the items to delete for a pkg ID
-  items_to_delete=($(/usr/sbin/pkgutil --files $pkgid ))
+  IFS=$'\n' items_to_delete=($(/usr/sbin/pkgutil --files $pkgid ))
 
   # next if that failed for some reason
   if ! [[ $? = 0 ]] ; then
@@ -36,12 +36,12 @@ for pkgid in $IDS_TO_UNINSTALL ; do
     continue
   fi
 
-  # IMPORTANT - get the install volume and  path to  prepend
+  # IMPORTANT - get the install volume and  install location to  prepend
   # to the pathnames
   inst_volume=$(/usr/sbin/pkgutil --pkg-info-plist $pkgid | /usr/bin/plutil -extract volume  raw -- -)
   echo "inst_volume is: '$inst_volume'"
 
-  # if the inst_locatinst_volumeion is set and it's last character is not a slash
+  # if the inst_volume is set and it's last character is not a slash
   # we need to insert a slash after it
   [[ -n $inst_volume ]] && [[ "${inst_volume[-1]}" != '/' ]] && vol_slash='/'
 
@@ -95,7 +95,6 @@ for pkgid in $IDS_TO_UNINSTALL ; do
   done
 
   echo "done deleteing files from $pkgid"
-  echo
   echo "------------------------------------"
 
 done
