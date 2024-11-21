@@ -381,16 +381,17 @@ module Xolo
             label: 'Uninstall Method',
             cli: :u,
             validate: true,
+            type: :string,
             readline: :get_files,
             changelong: true,
             invalid_msg: "Invalid uninstall method. Must be a comma-separated list of package identifiers, or a path to a script in a local file that must exist and start with '#!'.",
             desc: <<~ENDDESC
               By default, Xolo cannot un-install a title. To make it do so you must set the title's uninstall method to either:
               - A comma-separated list of one or more package identifiers, as used by the 'pkgutil' command.
-              - A path to a local file containing a script that will uninstall any version of the title.
+              - A path to a readable local file containing a script that will uninstall any version of the title.
 
               When given package identifiers, Xolo will use them to create a Jamf script that will delete all the files listed by 'pkgutil --files' for each identifier.
-              NOTE: This method will not work if the item was installed without using the installer.pkg
+              NOTE: Package IDs will not work if the item was installed without using an installer.pkg
               (e.g. drag-installing)
 
               When given a script, that script can do anything needed to remove the title, including using vendor-provided tools. It will be added to Jamf.

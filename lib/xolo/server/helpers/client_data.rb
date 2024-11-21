@@ -115,7 +115,10 @@ module Xolo
         #####################
         def update_client_data
           # don't do anything if we are in developer/test mode
-          return if Xolo::Server.config.developer_mode?
+          if Xolo::Server.config.developer_mode?
+            log_debug 'Jamf: Skipping client-data update in developer mode'
+            return
+          end
 
           log_info 'Jamf: Updating client-data package'
 

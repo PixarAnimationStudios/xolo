@@ -86,6 +86,11 @@ module Xolo
       # in a file with this name
       VERSION_SCRIPT_FILENAME = 'version-script'
 
+      # If a title is uninstallable, it will
+      # have a script in Jamf, which is also saved in this file
+      # on the xolo server.
+      UNINSTALL_SCRIPT_FILENAME = 'uninstall-script'
+
       # In the TitleEditor, the version script is
       # stored as an Extension Attribute - each title can
       # only have one.
@@ -115,6 +120,8 @@ module Xolo
 
       JAMF_INSTALLED_GROUP_NAME_SUFFIX = '-installed'
       JAMF_FROZEN_GROUP_NAME_SUFFIX = '-frozen'
+
+      JAMF_UNINSTALL_SUFFIX = '-uninstall'
 
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
@@ -212,6 +219,14 @@ module Xolo
 
       # @pararm title [String] the title we care about
       #
+      # @return [Pathname] The the local file containing the code of the version script
+      #####################
+      def self.uninstall_script_file(title)
+        title_dir(title) + UNINSTALL_SCRIPT_FILENAME
+      end
+
+      # @pararm title [String] the title we care about
+      #
       # @return [Pathname] The the local file containing the self-service icon
       #####################
       def self.ssvc_icon_file(title)
@@ -286,6 +301,19 @@ module Xolo
       # @return [String] the name of the smart group
       attr_reader :jamf_frozen_group_name
 
+      # If a title is uninstallable, it will have a script in Jamf
+      # named 'xolo-<title>-uninstall'
+      #
+      # @return [String] the name of the script to uninstall the title
+      attr_reader :jamf_uninstall_script_name
+
+      # If a title is uninstallable, it will have a policy in Jamf
+      # named 'xolo-<title>-uninstall' that will run the script of
+      # the same name, using a trigger of the same name.
+      #
+      # @return [String] the name of the policy to uninstall the title
+      attr_reader :jamf_uninstall_policy_name
+
       # The instance of Xolo::Server::App that instantiated this
       # title object. This is how we access things that are available in routes
       # and helpers, like the single Jamf and TEd
@@ -346,6 +374,8 @@ module Xolo
         @changes_for_update = {}
         @jamf_installed_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
         @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
+        @jamf_uninstall_script_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
+        @jamf_uninstall_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
       end
 
       # Instance Methods
@@ -421,42 +451,121 @@ module Xolo
       # @return [Pathname]
       #########################
       def title_dir
-        self.class.title_dir title
+        @title_dir ||= self.class.title_dir title
       end
 
       # The title data file for this title on the server
       # @return [Pathname]
       #########################
       def title_data_file
-        self.class.title_data_file title
+        @title_data_file ||= self.class.title_data_file title
       end
 
       # @return [Pathname] The the local file containing the self-service icon
       #####################
       def ssvc_icon_file
-        self.class.ssvc_icon_file title
+        @ssvc_icon_file ||= self.class.ssvc_icon_file title
       end
 
       # @return [Pathname] The the local file containing the code of the version script
       #####################
       def version_script_file
-        self.class.version_script_file title
+        @version_script_file ||= self.class.version_script_file title
       end
 
+      # The code of the version script, if any,
+      # considering the new data of any changes being made
+      #
+      # Returns nil if there is no version script, or if we are in the
+      # process of deleting it.
+      #
       # @return [String] The string contents of the version_script, if any
       ####################
       def version_script_contents
-        # the value of curr_script will be
-        # - nil (no script used),
-        # - a script, that will replace any existing,
-        # - or Xolo::ITEM_UPLOADED, meaning use the one we have saved on disk
-        #
-        # if we have incoming data, that's what we care about
-        # otherwise we use our current value
-        curr_script = new_data_for_update ? new_data_for_update[:version_script] : version_script
-        return if curr_script.pix_empty?
+        return @version_script_contents if defined? @version_script_contents
 
-        curr_script == Xolo::ITEM_UPLOADED ? version_script_file.read : curr_script
+        curr_script =
+          if changes_for_update.key? :version_script
+            # new, incoming script
+            changes_for_update[:version_script][:new]
+          else
+            # the current attribute value, might be Xolo::ITEM_UPLOADED
+            version_script
+          end
+
+        @version_script_contents =
+          if curr_script.pix_empty?
+            # no script, or deleting script
+            nil
+          elsif curr_script == Xolo::ITEM_UPLOADED
+            # use the one we have saved on disk
+            version_script_file.read
+          else
+            # this will be a new one from the changes_for_update
+            curr_script
+          end
+      end
+
+      # @return [Pathname] The the local file containing the code of the uninstall script
+      #####################
+      def uninstall_script_file
+        @uninstall_script_file ||= self.class.uninstall_script_file title
+      end
+
+      # The code of the uninstall_script , if any,
+      # considering the new data of any changes being made
+      #
+      # Returns nil if there is no uninstall_script, or if we are in the
+      # process of deleting it.
+      #
+      # @return [String] The string contents of the uninstall_script, if any
+      ####################
+      def uninstall_script_contents
+        return @uninstall_script_contents if defined? @uninstall_script_contents
+
+        curr_script =
+          if changes_for_update.key? :uninstall_method
+            # new, incoming script
+            changes_for_update[:uninstall_method][:new]
+          else
+            # the current attribute value, might be Xolo::ITEM_UPLOADED
+            uninstall_method
+          end
+
+        @uninstall_script_contents =
+          if curr_script.pix_empty?
+            # no script, or deleting script
+            nil
+          elsif curr_script == Xolo::ITEM_UPLOADED
+            # use the one we have saved on disk
+            uninstall_script_file.read
+          else
+            # this will be a new one from the changes_for_update
+            generate_uninstall_script curr_script
+          end
+      end
+
+      # @param script_or_pkg_ids [String] The new uninstall script, or comma-separated list of pkg IDs
+      # @return [String] The uninstall script, generated from the uninstall_method
+      #####################
+      def generate_uninstall_script(script_or_pkg_ids)
+        # Its already a script, validated by xadm to start with #!
+        return script_or_pkg_ids if script_or_pkg_ids.start_with? '#!'
+
+        ids = script_or_pkg_ids.split(Xolo::COMMA_SEP_RE)
+        uninstall_script_template.sub 'PKG_IDS_FROM_XOLO_GO_HERE', ids.join(' ')
+      end
+
+      # @return [String] The template zsh script for uninstalling via pkgutil
+      #####################
+      def uninstall_script_template
+        # parent 1 = server
+        # parent 2 = xolo
+        # parent 3 = lib
+        # parent 4 = xolo gem
+        data_dir = Pathname.new(__FILE__).parent.parent.parent.parent + 'data'
+        template_file = data_dir + 'uninstall-pkgs-by-id.zsh'
+        template_file.read
       end
 
       # @return [String] The display name of a version script as a normal
@@ -644,6 +753,7 @@ module Xolo
         vdir.mkpath
 
         save_version_script
+        save_uninstall_script
 
         self.modification_date = Time.now
         self.modified_by = admin
@@ -652,31 +762,51 @@ module Xolo
         # do we have a stored self service icon?
         self.self_service_icon = ssvc_icon_file ? Xolo::ITEM_UPLOADED : nil
 
-        file = title_data_file
-        log_debug "Saving local title data to: #{file}"
-        file.pix_atomic_write to_json
+        log_debug "Saving local title data to: #{title_data_file}"
+        title_data_file.pix_atomic_write to_json
       end
 
       # Save our current version script out to our local file,
       # but only if we aren't using app_name and app_bundle_id
       # and only if it's changed
+      #
+      # This won't delete the script if it's being removed, that
+      # happens elsewhere.
+      #
       # This overwrites the existing data.
       #
       # @return [void]
       ##########################
       def save_version_script
-        return if app_name && app_bundle_id
-        return if version_script == Xolo::ITEM_UPLOADED
+        return if app_name || app_bundle_id
+        return if version_script_contents.nil?
 
-        file = version_script_file
-        return if file&.readable? && version_script.chomp == file.read.chomp
+        log_debug "Saving version_script to: #{version_script_file}"
+        version_script_file.pix_atomic_write version_script_contents
 
-        log_debug "Saving version_script to: #{file}"
-        file.pix_atomic_write version_script
-
-        # the json file only stores 'uploaded' in the version_script
-        # attr.
+        # the json file only stores 'uploaded' in the version_script attr.
         self.version_script = Xolo::ITEM_UPLOADED
+      end
+
+      # Save our current uninstall script out to our local file.
+      #
+      # This won't delete the script if it's being removed, that
+      # happens elsewhere.
+      #
+      # This overwrites the existing data.
+      #
+      # @return [void]
+      ##########################
+      def save_uninstall_script
+        return if uninstall_method == Xolo::ITEM_UPLOADED
+        return if uninstall_script_contents.nil?
+
+        log_debug "Saving uninstall script to: #{uninstall_script_file}"
+        uninstall_script_file.pix_atomic_write uninstall_script_contents
+
+        # the json file only stores 'uploaded' in the uninstall_method
+        # attr.
+        self.uninstall_method = Xolo::ITEM_UPLOADED
       end
 
       # Save the self_service_icon from the upload tmpfile
