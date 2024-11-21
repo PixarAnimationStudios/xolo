@@ -170,6 +170,8 @@ module Xolo
         Commandline options can be used to add more data to the report, such as operating system,
         department, site, and so on.
 
+        To see machines with an unknown version of a title, use '#{Xolo::UNKNOWN}' as the version.
+
         NOTE: When using --json, all options are included in the data.
       ENDDESC
 

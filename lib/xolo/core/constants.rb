@@ -77,6 +77,8 @@ module Xolo
 
       DOT_ZIP = '.zip'
 
+      UNKNOWN = 'unknown'
+
       # Installer packages must have one of these extensions
       OK_PKG_EXTS = [DOT_PKG, DOT_ZIP]
 

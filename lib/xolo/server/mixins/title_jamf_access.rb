@@ -872,8 +872,10 @@ module Xolo
         # @return [Arrah<Hash>] Data for each computer with any version of this title installed
         ######################
         def patch_report(vers: nil)
+          vers = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION if vers == Xolo::UNKNOWN
           vers &&= CGI.escape vers.to_s
-          page_size = 500
+
+          page_size = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_JPAPI_PAGE_SIZE
           page = 0
           paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
           paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
@@ -893,7 +895,10 @@ module Xolo
           # log_debug "REPORT: #{report}"
 
           frozen_comps = frozen_computers.keys
-          report.each { |h| h[:frozen] = frozen_comps.include? h[:computerName] }
+          report.each do |h|
+            h[:frozen] = frozen_comps.include? h[:computerName]
+            h[:version] = Xolo::UNKNOWN if h[:version] == Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION
+          end
           report
         end
 

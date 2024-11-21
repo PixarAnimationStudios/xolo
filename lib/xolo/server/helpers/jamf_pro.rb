@@ -49,6 +49,9 @@ module Xolo
         ##############################
         ##############################
 
+        PATCH_REPORT_UNKNOWN_VERSION = 'UNKNOWN_VERSION'
+        PATCH_REPORT_JPAPI_PAGE_SIZE = 500
+
         # Module methods
         #
         # These are available as module methods but not as 'helper'
