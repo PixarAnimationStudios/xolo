@@ -410,7 +410,7 @@ module Xolo
           our_version_script = version_script_contents
           return false if our_version_script.pix_empty?
 
-          jamf_patch_ea_contents.chomp != our_version_script.chomp
+          jamf_patch_ea_contents&.chomp != our_version_script.chomp
         end
 
         # The Jamf Patch Source that is connected to the Title Editor
@@ -473,8 +473,11 @@ module Xolo
         #
         ##########################
         def activate_patch_title_in_jamf
+          # nothing to do if there are no versions
+          return if versions.pix_empty?
+
           if jamf_ted_title_active?
-            log_debug "Jamf: Title '#{display_name}' (#{title}) is already active to Jamf"
+            log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
             return
           end
 
@@ -526,6 +529,9 @@ module Xolo
         # @return [void]
         ############################
         def accept_xolo_patch_ea_in_jamf
+          # never do this unless there's at least one version
+          return if version_order.pix_empty?
+
           # return with warning if we aren't auto-accepting
           unless Xolo::Server.config.jamf_auto_accept_xolo_eas
             progress "Jamf: IMPORTANT: the version-script ExtAttr for this title '#{ted_ea_key}' must be accepted manually in Jamf Pro",
@@ -879,7 +885,7 @@ module Xolo
                 "Thawed computers: #{changes_to_log.join(', ')}"
               end
 
-            log_change action: action_msg
+            log_change msg: action_msg
           end
 
           result
