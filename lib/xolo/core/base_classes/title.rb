@@ -413,17 +413,27 @@ module Xolo
             changelog: true,
             invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. or 0 for no expiration.',
             desc: <<~ENDDESC
-              If none of the executables listed as 'Expiration Paths' have been brought to the foreground in this number of days, the title is uninstalled from the computer.
+              Automatically uninstall this title if none of the apps listed as '--expire-apps' have been brought to the foreground in this number of days.
+              This can be useful for reclaiming unused licenses, especially if users can re-install as needed via Self Service.
+
+              IMPORTANT:
+              - This title must have an '--uninstall-method' set, or it can't be uninstalled by xolo
+              - You must define one or more --expire-apps
+              - Your Jamf Pro server must be configured to gather Application Usage data.
+              - The maximum possible expiration period is limited by the Jamf Pro server's Application
+                Usage Log Flushing period.
+                So if your server only keeps one month of Application Usage data, do not set this value
+                greater than 30, or nothing will ever expire.
 
               Unsetting this value, or setting it to zero, means 'do not expire'.
             ENDDESC
           },
 
-          # @!attribute expiration_paths
-          #   @return [Array<String>] Paths to executables that, when in the foreground,
-          #      are considerd 'use' if this title, WRT expiration.
-          expiration_paths: {
-            label: 'Expiration Paths',
+          # @!attribute expire_apps
+          #   @return [Array<String>] App names that are considered to be 'used' if they spend any time
+          #      in the foreground.
+          expire_apps: {
+            label: 'Expiration Apps',
             cli: :E,
             validate: true,
             type: :string,
@@ -432,15 +442,13 @@ module Xolo
             readline: :get_files,
             changelog: true,
             readline_prompt: 'Path',
-            invalid_msg: "Invalid expiration path. Must start with a '/' and contain at least one more non-adjacent '/'.",
+            invalid_msg: 'Invalid expiration app. Must end with .app',
             desc: <<~ENDDESC
-              One or more paths to executables that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the executable does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
+              One or more names of applications (e.g. 'Google Chrome.app') that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the app does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
 
               If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office.
 
-              These paths do not need to exist on this computer.
-
-              If not using --walkthru you can use --expiration-paths multiple times.
+              If not using --walkthru you can use --expire-apps multiple times.
             ENDDESC
           },
 
