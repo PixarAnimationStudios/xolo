@@ -81,6 +81,9 @@ module Xolo
         # @return [Windoo::SoftwareTitle]
         ##########################
         def create_title_in_ted
+          # delete an old one if its there
+          ted_title&.delete if Windoo::SoftwareTitle.all_ids(cnx: ted_cnx).include? title
+
           new_title = Windoo::SoftwareTitle.create(
             id: title,
             name: display_name,
@@ -407,7 +410,7 @@ module Xolo
         def delete_title_from_ted
           progress "Title Editor: Deleting SoftwareTitle '#{title}'", log: :info
 
-          ted_title&.delete
+          ted_title&.delete if Windoo::SoftwareTitle.all_ids(cnx: ted_cnx).include? title
         rescue Windoo::NoSuchItemError
           ted_id_number
         end

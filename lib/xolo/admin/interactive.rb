@@ -186,7 +186,30 @@ module Xolo
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
+      def uninstall_script_na
+        'N/A if using Uninstall IDs' unless walkthru_cmd_opts[:uninstall_ids].pix_empty?
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def uninstall_ids_na
+        'N/A if using Uninstall Script' unless walkthru_cmd_opts[:uninstall_script].pix_empty?
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
       def expiration_na
+        no_uninstall_script = walkthru_cmd_opts[:uninstall_script].pix_empty?
+        no_uninstall_ids = walkthru_cmd_opts[:uninstall_ids].pix_empty?
+        'N/A until either uninstall_script or uninstall-ids are set' if no_uninstall_script && no_uninstall_ids
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def expiration_paths_na
         'N/A unless expiration is > 0' unless walkthru_cmd_opts[:expiration].to_i.positive?
       end
 
@@ -364,7 +387,7 @@ module Xolo
       # @param validate [Lambda] The lambda for validating the answer before conversion
       # @param deets [Hash] The option-details for the value for which we are prompting
       #
-      # @return [Array] The validated and converted values given by the user.
+      # @return [Array, String] The validated and converted values given by the user, or 'none'
       ###############################
       def prompt_for_multi_values_with_highline(question:, q_desc:, deets:, convert: nil, validate: nil)
         use_readline, convert, validate = setup_for_readline_in_highline(deets, convert, validate)
@@ -384,11 +407,12 @@ module Xolo
           end
           q.gather = Xolo::X
         end
+        chosen_values.flatten!
 
         # don't return an empty array if none was chosen, but
         # return 'none' so that the whole value is cleared.
         chosen_values = Xolo::NONE if chosen_values.include? Xolo::NONE
-        chosen_values.flatten if chosen_values.is_a? Array
+        chosen_values
       end
 
       # Prompt for a single multiline value via an editor, like vim.

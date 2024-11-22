@@ -326,7 +326,7 @@ module Xolo
           #     updated when released
           release_groups: {
             label: 'Release Computer Groups',
-            cli: :t,
+            cli: :r,
             validate: true,
             type: :string,
             multi: true,
@@ -374,32 +374,58 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute uninstall_method
-          #   @return [String] Either a comma-separated list of package identifiers recognized by pkgutil,
-          #     or a path to a script starting with '#!' that will uninstall any version of if this title.
-          uninstall_method: {
-            label: 'Uninstall Method',
-            cli: :u,
+          # @!attribute uninstall_script
+          #   @return [String] The path to a script starting with '#!' that will uninstall any version of
+          #     this title.
+          uninstall_script: {
+            label: 'Uninstall Script',
+            cli: :U,
             validate: true,
             type: :string,
             readline: :get_files,
+            walkthru_na: :uninstall_script_na,
             changelog: true,
-            invalid_msg: "Invalid uninstall method. Must be a comma-separated list of package identifiers, or a path to a script in a local file that must exist and start with '#!'.",
+            invalid_msg: "Invalid Script Path. Local File must exist and start with '#!'.",
             desc: <<~ENDDESC
-              By default, Xolo cannot un-install a title. To make it do so you must set the title's uninstall method to either:
-              - A comma-separated list of one or more package identifiers, as used by the 'pkgutil' command.
-              - A path to a readable local file containing a script that will uninstall any version of the title.
+              By default, Xolo cannot un-install a title. To make it do so you must provide either --uninstall-script or --uninstall-ids.
 
-              When given package identifiers, Xolo will use them to create a Jamf script that will delete all the files listed by 'pkgutil --files' for each identifier.
+              When using --uninstall-script, provide a path to a local file containing a script (starting with '#!') that will uninstall any version of this title.
+
+              This is useful when the publisher provides a custom uninstaller, or to uninstall things that were not installed via .pkg files (e.g. drag-installs).
+
+              Either --uninstall-script or --uninstall-ids must be provided if you want to set --expiration.
+
+              Use '#{Xolo::NONE}' to unset this,
+            ENDDESC
+          },
+
+          # @!attribute uninstall_ids
+          #   @return [String] One or more package identifiers recognized by pkgutil, that will uninstall the
+          #     currently installed version of if this title.
+          uninstall_ids: {
+            label: 'Uninstall IDs',
+            cli: :u,
+            validate: true,
+            type: :string,
+            multi: true,
+            multi_prompt: 'Pkg ID',
+            walkthru_na: :uninstall_ids_na,
+            changelog: true,
+            invalid_msg: 'Invalid uninstall ids',
+            desc: <<~ENDDESC
+              By default, Xolo cannot un-install a title. To make it do so you must provide either --uninstall-ids or --uninstall-script.
+
+              When using --uninstall-ids, provide one or more package identifiers, as listed by `pkgutil --pkgs`.
+              Xolo will use them to create a Jamf Script that will delete all the files that were installed by the matching .pkg installers.
 
               NOTE: Package IDs will not work if the item was installed without using an installer.pkg
               (e.g. drag-installing)
 
-              When given a script, that script can do anything needed to remove the title, including using vendor-provided tools. It will be added to Jamf.
+              Either --uninstall-script or --uninstall-ids must be provided if you want to set --expiration.
 
-              In either case, the resulting Jamf script will be used by a policy that will be run by 'xolo uninstall'.
+              When using the --uninstall-ids CLI option, you can specify more than one ID by using the option more than once, or by providing a single option value with the IDs separated by commas.
 
-              Use '#{Xolo::NONE}' to unset this, making the title not-uninstallable.
+              Use '#{Xolo::NONE}' to unset this,
             ENDDESC
           },
 
@@ -410,45 +436,41 @@ module Xolo
             cli: :e,
             validate: true,
             type: :integer,
+            walkthru_na: :expiration_na,
             changelog: true,
-            invalid_msg: 'Invalid expiration period. Must be a non-negative integer number of days. or 0 for no expiration.',
+            invalid_msg: "Invalid expiration. Must be a non-negative integer, or zero or '#{Xolo::NONE}' for no expiration.",
             desc: <<~ENDDESC
-              Automatically uninstall this title if none of the apps listed as '--expire-apps' have been brought to the foreground in this number of days.
+              Automatically uninstall this title if none of the items listed as '--expire-paths' have been opened in this number of days.
               This can be useful for reclaiming unused licenses, especially if users can re-install as needed via Self Service.
 
               IMPORTANT:
               - This title must have an '--uninstall-method' set, or it can't be uninstalled by xolo
-              - You must define one or more --expire-apps
-              - Your Jamf Pro server must be configured to gather Application Usage data.
-              - The maximum possible expiration period is limited by the Jamf Pro server's Application
-                Usage Log Flushing period.
-                So if your server only keeps one month of Application Usage data, do not set this value
-                greater than 30, or things will expire early.
+              - You must define one or more --expire-paths
 
-              Unsetting this value, or setting it to zero, means 'do not expire'.
+              Setting this to '#{Xolo::NONE}' or zero, means 'do not expire'.
             ENDDESC
           },
 
-          # @!attribute expire_apps
+          # @!attribute expire_paths
           #   @return [Array<String>] App names that are considered to be 'used' if they spend any time
           #      in the foreground.
-          expire_apps: {
-            label: 'Expiration Apps',
+          expire_paths: {
+            label: 'Expiration Paths',
             cli: :E,
             validate: true,
             type: :string,
             multi: true,
-            walkthru_na: :expiration_na,
-            readline: :get_files,
+            walkthru_na: :expiration_paths_na,
             changelog: true,
+            readline: :get_files,
             readline_prompt: 'Path',
-            invalid_msg: 'Invalid expiration app. Must end with .app',
+            invalid_msg: 'Invalid expiration paths. Must be absolute paths starting with /',
             desc: <<~ENDDESC
-              One or more names of applications (e.g. 'Google Chrome.app') that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the app does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
+              The full paths to one or items (e.g. '/Applications/Google Chrome.app') that must be opened within the --expiration period to prevent automatic uninstall of the title. The paths need not be .apps, but can be anything. If the item at the path has never been opened, its date-added is used. If it doesn't exist, it is considered to never have been opened.
 
-              If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office, or when different versions have different app names.
+              If multiple paths are specified, any one of them being opened will count. This is useful for multi-app titles, such as Microsoft Office, or when different versions have different app names.
 
-              If not using --walkthru you can use --expire-apps multiple times.
+              When using the --expiration-paths CLI option, you can specify more than one path by using the option more than once, or by providing a single option value with the paths separated by commas.
             ENDDESC
           },
 
@@ -613,6 +635,12 @@ module Xolo
         # Constructor
         ######################
         ######################
+
+        def initialize(data_hash)
+          super
+          # zero means no expiration
+          @expiration = nil if @expiration.to_i.zero?
+        end
 
         # Instance Methods
         ######################

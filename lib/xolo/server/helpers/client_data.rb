@@ -205,8 +205,8 @@ module Xolo
           pol.scope.set_all_targets
 
           # exclude the forced exclusion group if any
-          if Xolo::Server.config.forced_exclusion
-            pol.scope.set_exclusions :computer_groups, [Xolo::Server.config.forced_exclusion]
+          if valid_forced_exclusion_group_name
+            pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
             log_info "Jamf: Excluded computer group: #{Xolo::Server.config.forced_exclusion} from policy '#{pol_name}'"
           end
 
@@ -224,9 +224,7 @@ module Xolo
             log_err err_msg, alert: true
             return
           end
-
-          # TODO: Enable the policy
-          # pol.enable
+          pol.enable
 
           pol.save
           log_info "Jamf: Created policy '#{pol_name}'"
