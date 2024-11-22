@@ -184,35 +184,37 @@ module Xolo
         # Log a change by adding an entry to the changelog file for a title
         # or one of its versions.
         #
-        # The entry may be for an action, such as 'Title Created',
+        # The entry may be for an message, such as 'Title Created',
         # or for a change to the value of an attribute.
         #
-        # Either provide all three of :attrib, :old, and :new, or provide :action.
-        # For an action, provide the :action key and a String describing the action.
-        # For a change to an attribute, provide the :attrib key and the :old and :new values.
+        # Provide either a message to log with :msg,
+        # or the name of an attribute being changed, with :attrib,
+        # and either :old_val, :new_val, or both.
+        # (either can be omitted or set to nil, when adding or removing the attribute)
         #
         # @param attrib [Symbol] the attribute name
-        # @param old [Object] the original value
-        # @param new [Object] the new value
-        # @param action [String] a description of the action
+        # @param old_val [Object] the original value
+        # @param new_val [Object] the new value
+        # @param msg [String] an arbitrary message to log
         #
         # @return [void]
         #######################
-        def log_change(attrib: nil, old: nil, new: nil, action: nil)
-          raise ArgumentError, 'Must provide attrib:, old: & new: OR action:' if !action && !(attrib && old && new)
+        def log_change(attrib: nil, old_val: nil, new_val: nil, msg: nil)
+          raise ArgumentError, 'Must provide attrib: or action:' if !msg && !attrib
+          raise ArgumentError, 'Must provide old: or new: or both with attrib:' if attrib && (!old_val && !new_val)
 
           # if action, attrib, old, and new are ignored
-          attrib, old, new = nil if action
+          attrib, old_val, new_val = nil if msg
 
           change = {
             time: Time.now,
             admin: session[:admin],
             host: hostname_from_ip(server_app_instance.request.ip),
             version: respond_to?(:version) ? version : nil,
-            action: action,
+            msg: msg,
             attrib: attrib,
-            old: old,
-            new: new
+            old: old_val,
+            new: new_val
           }
 
           log_debug "Writing to changelog for #{title}"
@@ -284,11 +286,11 @@ module Xolo
           #   old_val = "'#{old_val.sort.join("', '")}'" if old_val.is_a? Array
           #   next if new_val == old_val
 
-          #   log_change attrib: attr, old: old_val, new: new_val
+          #   log_change attrib: attr, old_val: old_val, new_val: new_val
           # end
 
           changes_for_update.each do |attr, vals|
-            log_change attrib: attr, old: vals[:old], new: vals[:new]
+            log_change attrib: attr, old_val: vals[:old], new_val: vals[:new]
           end
         end
 
