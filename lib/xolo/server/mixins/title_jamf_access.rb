@@ -1049,11 +1049,7 @@ module Xolo
         def jamf_frozen_group_url
           return @jamf_frozen_group_url if @jamf_frozen_group_url
 
-          gr_id = Jamf::ComputerGroup.map_all(
-            :name,
-            to: :id,
-            cnx: jamf_cnx
-          )[jamf_frozen_group_name]
+          gr_id = Jamf::ComputerGroup.valid_id jamf_frozen_group_name, cnx: jamf_cnx
           return unless gr_id
 
           @jamf_frozen_group_url = "#{jamf_gui_url}/staticComputerGroups.html?id=#{gr_id}&o=r"
@@ -1064,11 +1060,7 @@ module Xolo
         def jamf_installed_group_url
           return @jamf_installed_group_url if @jamf_installed_group_url
 
-          gr_id = Jamf::ComputerGroup.map_all(
-            :name,
-            to: :id,
-            cnx: jamf_cnx
-          )[jamf_installed_group_name]
+          gr_id = Jamf::ComputerGroup.valid_id jamf_installed_group_name, cnx: jamf_cnx
           return unless gr_id
 
           @jamf_installed_group_url = "#{jamf_gui_url}/smartComputerGroups.html?id=#{gr_id}&o=r"
@@ -1095,10 +1087,34 @@ module Xolo
           return @jamf_normal_ea_url if @jamf_normal_ea_url
           return unless version_script
 
-          ea_id = Jamf::ComputerExtensionAttribute.map_all(:name, to: :id, cnx: jamf_cnx)[jamf_normal_ea_name]
+          ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
           return unless ea_id
 
           @jamf_normal_ea_url = "#{jamf_gui_url}/computerExtensionAttributes.html?id=#{ea_id}&o=r"
+        end
+
+        # @return [String] the URL for the uninstall script in Jamf Pro
+        ######################
+        def jamf_uninstall_script_url
+          return @jamf_uninstall_script_url if @jamf_uninstall_script_url
+          return unless uninstall_method
+
+          scr_id = Jamf::Script.valid_id jamf_uninstall_script_name, cnx: jamf_cnx
+          return unless scr_id
+
+          @jamf_uninstall_script_url = "#{jamf_gui_url}/view/settings/computer-management/scripts/#{scr_id}?tab=script"
+        end
+
+        # @return [String] the URL for the uninstall policy in Jamf Pro
+        ######################
+        def jamf_uninstall_policy_url
+          return @jamf_uninstall_policy_url if @jamf_uninstall_policy_url
+          return unless uninstall_method
+
+          pol_id = Jamf::Policy.valid_id jamf_uninstall_policy_name, cnx: jamf_cnx
+          return unless pol_id
+
+          @jamf_uninstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
         end
 
       end # TitleJamfPro
