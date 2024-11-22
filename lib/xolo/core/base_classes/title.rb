@@ -423,7 +423,7 @@ module Xolo
               - The maximum possible expiration period is limited by the Jamf Pro server's Application
                 Usage Log Flushing period.
                 So if your server only keeps one month of Application Usage data, do not set this value
-                greater than 30, or nothing will ever expire.
+                greater than 30, or things will expire early.
 
               Unsetting this value, or setting it to zero, means 'do not expire'.
             ENDDESC
@@ -446,7 +446,7 @@ module Xolo
             desc: <<~ENDDESC
               One or more names of applications (e.g. 'Google Chrome.app') that must come to the foreground of a user's GUI session to be considered 'usage' of this title. If the app does not come to the foreground during period of days specified by --expiration, the title will be uninstalled.
 
-              If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office.
+              If multiple paths are specified, any one of them coming to the foreground will count as usage. This is useful for multi-app titles, such as Microsoft Office, or when different versions have different app names.
 
               If not using --walkthru you can use --expire-apps multiple times.
             ENDDESC
