@@ -688,6 +688,12 @@ module Xolo
         @current_action = :updating
         @new_data_for_update = new_data
         @changes_for_update = note_changes_for_update_and_log
+
+        if @changes_for_update.pix_empty?
+          progress 'No changes to make', log: :info
+          return
+        end
+
         log_info "Updating title '#{title}' for admin '#{admin}'"
 
         # changelog - log the changes now, and
