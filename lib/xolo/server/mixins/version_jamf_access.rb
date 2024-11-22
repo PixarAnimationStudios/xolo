@@ -1071,11 +1071,7 @@ module Xolo
         def jamf_auto_install_policy_url
           return @jamf_auto_install_policy_url if @jamf_auto_install_policy_url
 
-          pol_id = Jamf::Policy.map_all(
-            :name,
-            to: :id,
-            cnx: jamf_cnx
-          )[jamf_auto_install_policy_name]
+          pol_id = Jamf::Policy.valid_id jamf_auto_install_policy_name, cnx: jamf_cnx
           return unless pol_id
 
           @jamf_auto_install_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
@@ -1086,11 +1082,7 @@ module Xolo
         def jamf_manual_install_policy_url
           return @jamf_manual_install_policy_url if @jamf_manual_install_policy_url
 
-          pol_id = Jamf::Policy.map_all(
-            :name,
-            to: :id,
-            cnx: jamf_cnx
-          )[jamf_manual_install_policy_name]
+          pol_id = Jamf::Policy.valid_id jamf_manual_install_policy_name, cnx: jamf_cnx
           return unless pol_id
 
           @jamf_manual_install_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
@@ -1103,11 +1095,7 @@ module Xolo
 
           title_id = title_object.jamf_patch_title_id
 
-          pol_id = Jamf::PatchPolicy.map_all(
-            :name,
-            to: :id,
-            cnx: jamf_cnx
-          )[jamf_patch_policy_name]
+          pol_id = Jamf::PatchPolicy.valid_id jamf_patch_policy_name, cnx: jamf_cnx
           return unless pol_id
 
           @jamf_manual_install_policy_url = "#{jamf_gui_url}/patchDeployment.html?softwareTitleId=#{title_id}&id=#{pol_id}&o=r"

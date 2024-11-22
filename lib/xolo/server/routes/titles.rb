@@ -244,6 +244,10 @@ module Xolo
             jamf_installed_group_url: title.jamf_installed_group_url,
             jamf_frozen_group_url: title.jamf_frozen_group_url
           }
+          if title.uninstall_method
+            data[:jamf_uninstall_script_url] = title.jamf_uninstall_script_url
+            data[:jamf_uninstall_policy_url] = title.jamf_uninstall_policy_url
+          end
 
           data[:jamf_patch_title_url] = title.jamf_patch_title_url unless title.versions.empty?
 
