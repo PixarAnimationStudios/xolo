@@ -189,6 +189,7 @@ module Xolo
         return unless confirmed? "Add title '#{cli_cmd.title}'"
 
         opts_to_process.title = cli_cmd.title
+        read_uninstall_script
 
         new_title = Xolo::Admin::Title.new opts_to_process
 
@@ -217,6 +218,9 @@ module Xolo
         return unless confirmed? "Edit title '#{cli_cmd.title}'"
 
         opts_to_process.title = cli_cmd.title
+        read_uninstall_script
+        opts_to_process.uninstall_ids = [] if opts_to_process.uninstall_script
+        opts_to_process.uninstall_script = nil unless opts_to_process.uninstall_ids.pix_empty?
 
         title = Xolo::Admin::Title.new opts_to_process
         response_data = title.update server_cnx
@@ -234,6 +238,16 @@ module Xolo
         speak "Title '#{cli_cmd.title}' has been updated in Xolo."
       rescue StandardError => e
         handle_processing_error e
+      end
+
+      # if we have an uninstall script, read it in
+      #
+      # @return [void]
+      ###############################
+      def read_uninstall_script
+        return unless opts_to_process.uninstall_script.to_s.start_with? '/'
+
+        opts_to_process.uninstall_script = Pathname.new(opts_to_process.uninstall_script).read
       end
 
       # Upload the ssvc icon, if any?

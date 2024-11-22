@@ -134,9 +134,14 @@ module Xolo
 
           # if the item is not required, and 'none' is given, set the
           # value to nil and we're done
-          if cli_cmd_opts[key] == Xolo::NONE && !deets[:required]
-            cli_cmd_opts[key] = nil
-            next
+          unless deets[:required]
+            if cli_cmd_opts[key].is_a?(Array) && cli_cmd_opts[key].include?(Xolo::NONE)
+              cli_cmd_opts[key] = []
+              next
+            elsif cli_cmd_opts[key] == Xolo::NONE
+              cli_cmd_opts[key] = nil
+              next
+            end
           end
 
           # If an item is :multi, it is an array.
@@ -292,10 +297,8 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:version_script][:invalid_msg]
       end
 
-      # validate a title uninstall method:
+      # validate a title uninstall script:
       # - a path to a script which must start with '#!'
-      # OR
-      # - a comma-separated list of package identifiers
       # OR
       # - 'none' to unset the value
       #
@@ -303,22 +306,41 @@ module Xolo
       #
       # @param val [Object] The value to validate
       #
-      # @return [Pathname, Array<String>] The valid value
+      # @return [String] The valid value
       ##########################
-      def validate_uninstall_method(val)
+      def validate_uninstall_script(val)
         val = val.to_s.strip
-        return nil if val == Xolo::NONE
+        return if val == Xolo::NONE
 
-        script_file = Pathname.new val
-
-        return val unless script_file.file?
+        script_file = Pathname.new(val).expand_path
 
         if script_file.readable?
           script = script_file.read
-          return script if script.start_with? '#!'
+          return script_file.to_s if script.start_with? '#!'
         end
 
-        raise_invalid_data_error val, TITLE_ATTRS[:uninstall_method][:invalid_msg]
+        raise_invalid_data_error val, TITLE_ATTRS[:uninstall_script][:invalid_msg]
+      end
+
+      # validate a title uninstall ids:
+      # - an array of package identifiers
+      # OR
+      # - 'none' to unset the value
+      #
+      # TODO: Consistency with expiration.
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [Array<String>] The valid value
+      ##########################
+      def validate_uninstall_ids(val)
+        val = [val] unless val.is_a? Array
+        return Xolo::X if val == [Xolo::X]
+        return [] if val.include? Xolo::NONE
+
+        return val
+
+        raise_invalid_data_error val, TITLE_ATTRS[:uninstall_ids][:invalid_msg]
       end
 
       # validate an array of jamf group names to use as targets when released.
@@ -400,9 +422,13 @@ module Xolo
       ##########################
       def validate_expiration(val)
         val = val.to_s
-        val = val.to_i if val.pix_integer?
-
-        return val if val.is_a?(Integer) && !val.negative?
+        if val.pix_integer?
+          val = val.to_i
+          return Xolo::NONE if val.zero?
+          return val if val.positive?
+        elsif val == Xolo::NONE
+          return val
+        end
 
         raise_invalid_data_error val, TITLE_ATTRS[:expiration][:invalid_msg]
       end
@@ -414,20 +440,18 @@ module Xolo
       #
       # @return [Array<String>] The valid array
       ##########################
-      def validate_expiration_paths(val)
+      def validate_expire_paths(val)
         val = [val] unless val.is_a? Array
-        return [] if val.include? [Xolo::NONE]
+        return [] if val.include? Xolo::NONE
 
         val.map!(&:to_s)
         bad_paths = []
 
-        val.each do |path|
-          bad_paths << path unless path =~ %r{\A/\w.*/.*\z}
-        end
+        val.each { |path| bad_paths << path unless path =~ %r{\A/\w.*/.*\z} }
 
         return val if bad_paths.empty?
 
-        raise_invalid_data_error bad_paths.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:expiration_paths][:invalid_msg]
+        raise_invalid_data_error bad_paths.join(Xolo::COMMA_JOIN), TITLE_ATTRS[:expire_paths][:invalid_msg]
       end
 
       # validate boolean options
@@ -762,6 +786,7 @@ module Xolo
         validate_title_consistency_app_and_script(opts)
         validate_title_consistency_app_or_script(opts)
         validate_title_consistency_app_name_and_id(opts)
+        validate_title_consistency_uninstall(opts)
         validate_title_consistency_expire_paths(opts)
         validate_title_consistency_no_all_in_ssvc(opts)
         validate_title_consistency_ssvc_needs_category(opts)
@@ -865,8 +890,8 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_expire_paths(opts)
-        return unless opts[:expiration].to_i.positive?
-        return unless opts[:expiration_paths].pix_empty?
+        return unless opts.expiration.to_i.positive?
+        return unless opts.expire_paths.pix_empty?
 
         msg =
           if walkthru?
@@ -877,22 +902,31 @@ module Xolo
         raise_consistency_error msg
       end
 
-      # if target_group is all, can't be in self service
+      # if uninstall script, cant have uninstall ids
+      # and vice versa
       #
       # @param opts [OpenStruct] the current options
       #
       # @return [void]
       #######
-      def validate_title_consistency_no_all_in_ssvc(opts)
-        return unless opts[:release_groups].to_a.include?(Xolo::TARGET_ALL) && opts[:self_service]
+      def validate_title_consistency_uninstall(opts)
+        # walktrhu will have already validated this
+        return if walkthru?
 
-        msg =
-          if walkthru?
-            "Cannot be in Self Service when Target Group is '#{Xolo::TARGET_ALL}'"
-          else
-            "--self-service cannot be used when --target-groups contains '#{Xolo::TARGET_ALL}'"
-          end
-        raise_consistency_error msg
+        if opts.uninstall_script_given && opts.uninstall_ids_given
+
+          # if uninstall_script is given, uninstall_ids must be unset
+          # and vice versa
+          # raise an error if both are given
+
+          raise_consistency_error '--uninstall-script cannot be used with --uninstall-ids'
+
+        elsif opts.uninstall_script_given
+          opts.uninstall_ids = nil
+
+        elsif opts.uninstall_ids_given
+          opts.uninstall_script_given = nil
+        end
       end
 
       # if target_group is all, can't be in self service

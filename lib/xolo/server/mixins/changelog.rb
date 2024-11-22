@@ -259,9 +259,11 @@ module Xolo
             new_val = deets[:type] == :time ? Time.parse(new_data_for_update[attr]) : new_data_for_update[attr]
             old_val = send attr
 
-            new_val = "'#{new_val.sort.join("', '")}'" if new_val.is_a? Array
-            old_val = "'#{old_val.sort.join("', '")}'" if old_val.is_a? Array
-            next if new_val == old_val
+            # Don't change arrays to strings!
+            # just sort them to compare
+            new_val_to_compare =  new_val.is_a?(Array) ? new_val.sort : new_val
+            old_val_to_compare =  old_val.is_a?(Array) ? old_val.sort : old_val
+            next if new_val_to_compare == old_val_to_compare
 
             changes[attr] = { old: old_val, new: new_val }
           end

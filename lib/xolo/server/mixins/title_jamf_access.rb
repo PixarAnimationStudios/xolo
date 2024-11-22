@@ -73,11 +73,14 @@ module Xolo
           # must happen after the normal ea is created
           set_installed_group_criteria_in_jamf
 
-          if uninstall_method
+          if uninstall_script || uninstall_ids
             set_jamf_uninstall_script_contents
             # this creates the policy to use the script
             # must happen after the installed group is created
             jamf_uninstall_policy
+
+            # this creates the expire policy if needed
+            jamf_expire_policy if expiration && !expire_paths.pix_empty?
           end
 
           # Create the static group that will computers where this title is 'frozen'
@@ -106,13 +109,22 @@ module Xolo
           if need_to_update_uninstall_script_in_jamf?
 
             set_jamf_uninstall_script_contents
-            # this creates or fetches the policy to use the script
+
+            # this creates the policy to use the script, if needed
             # which needs both the uninstall script and the installed group to exist
             jamf_uninstall_policy
 
           # or delete it if no longer needed
           elsif !uninstall_script_contents
             delete_uninstall_pol_and_script
+            # can't expire without
+          end
+
+          # Do we need to add or delete the expire policy?
+          # NOTE: if the uninstall script was deleted,
+          # expiration won't do anything.
+          if need_to_update_expiration?
+            changes_for_update.dig(:expiration, :new).to_i.positive? ? jamf_expire_policy : delete_expire_policy
           end
 
           # If we don't use a version script anymore, delete the normal EA
@@ -159,14 +171,35 @@ module Xolo
           changes_for_update.key?(:version_script) && !changes_for_update[:version_script][:new].pix_empty?
         end
 
-        # do we need to update the normal EA in jamf?
-        # true if our incoming changes include :version_script
-        # and the new value is not empty (in which case we'll delete it)
+        # do we need to update the uninstall scriptin jamf?
+        # true if our incoming changes include :uninstall_script OR :uninstall_ids
+        # and the new value of at least one of them is not empty
+        # (in which case we'll delete it)
         #
         # @return [Boolean]
         ########################
         def need_to_update_uninstall_script_in_jamf?
-          changes_for_update.key?(:uninstall_method) && !changes_for_update[:uninstall_method][:new].pix_empty?
+          return false unless changes_for_update.key?(:uninstall_script) || changes_for_update.key?(:uninstall_ids)
+
+          # if we are here, something's changing, we have one of those keys,
+          # so get the new value....
+          # this might be:
+          # - a String (a new script)
+          # - an Array (a new list of ids)
+          # - nil (we are removing uninstallability)
+          changes_for_update.dig(:uninstall_script, :new) || changes_for_update.dig(:uninstall_ids, :new)
+        end
+
+        # do we need to create or delete the expire policy?
+        # True if our incoming changes include :expiration
+        #
+        # Ignore the expire paths - even when disabling expiration
+        # they can stay there, they won't mean anything.
+        #
+        # @return [Boolean]
+        ###################################
+        def need_to_update_expiration?
+          changes_for_update.key?(:expiration)
         end
 
         # do we need to update the 'installed' smart group?
@@ -246,10 +279,46 @@ module Xolo
             @jamf_uninstall_policy.set_trigger_event :checkin, false
             @jamf_uninstall_policy.set_trigger_event :custom, jamf_uninstall_policy_name
             @jamf_uninstall_policy.scope.add_target(:computer_group, jamf_installed_group_name)
+            if valid_forced_exclusion_group_name
+              @jamf_uninstall_policy.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
+            end
+            @jamf_uninstall_policy.frequency = :ongoing
             @jamf_uninstall_policy.enable
             @jamf_uninstall_policy.save
           end
+
           @jamf_uninstall_policy
+        end
+
+        # Create or fetch the policy that expires a title
+        #
+        # @return [Jamf::Policy] The Jamf Policy for expiring this title
+        #####################################
+        def jamf_expire_policy
+          return @jamf_expire_policy if @jamf_expire_policy
+
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_expire_policy_name
+            @jamf_expire_policy = Jamf::Policy.fetch name: jamf_expire_policy_name, cnx: jamf_cnx
+          else
+            return if deleting?
+
+            progress "Jamf: Creating Expiration policy: '#{jamf_expire_policy_name}'", log: :info
+
+            @jamf_expire_policy = Jamf::Policy.create name: jamf_expire_policy_name, cnx: jamf_cnx
+            @jamf_expire_policy.category = Xolo::Server::JAMF_XOLO_CATEGORY
+            @jamf_expire_policy.run_command = "#{Xolo::Server::Title::CLIENT_EXPIRE_COMMAND} #{title}"
+            @jamf_expire_policy.set_trigger_event :checkin, true
+            @jamf_expire_policy.set_trigger_event :custom, jamf_expire_policy_name
+            @jamf_expire_policy.scope.add_target(:computer_group, jamf_installed_group_name)
+            if valid_forced_exclusion_group_name
+              @jamf_expire_policy.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
+            end
+            @jamf_expire_policy.frequency = :daily
+            @jamf_expire_policy.enable
+            @jamf_expire_policy.save
+          end
+
+          @jamf_expire_policy
         end
 
         # Create or fetch he smartgroup in jamf that contains all macs
@@ -781,6 +850,7 @@ module Xolo
         def delete_title_from_jamf
           # ORDER MATTERS
           delete_frozen_group_from_jamf
+          delete_expire_policy
           delete_uninstall_pol_and_script
           delete_installed_group_from_jamf
           delete_normal_ea_from_jamf
@@ -851,6 +921,15 @@ module Xolo
 
           progress "Jamf: Deleteing uninstall script '#{jamf_uninstall_script_name}'", log: :info
           Jamf::Script.delete script_id, cnx: jamf_cnx
+        end
+
+        #############################
+        def delete_expire_policy
+          pol_id = Jamf::Policy.valid_id jamf_expire_policy_name, cnx: jamf_cnx
+          return unless pol_id
+
+          progress "Jamf: Deleting expiration policy '#{jamf_expire_policy_name}'", log: :info
+          Jamf::Policy.delete pol_id, cnx: jamf_cnx
         end
 
         # Freeze or thaw an array of computers for a title
@@ -1097,7 +1176,7 @@ module Xolo
         ######################
         def jamf_uninstall_script_url
           return @jamf_uninstall_script_url if @jamf_uninstall_script_url
-          return unless uninstall_method
+          return unless uninstallable?
 
           scr_id = Jamf::Script.valid_id jamf_uninstall_script_name, cnx: jamf_cnx
           return unless scr_id
@@ -1109,12 +1188,25 @@ module Xolo
         ######################
         def jamf_uninstall_policy_url
           return @jamf_uninstall_policy_url if @jamf_uninstall_policy_url
-          return unless uninstall_method
+          return unless uninstallable?
 
           pol_id = Jamf::Policy.valid_id jamf_uninstall_policy_name, cnx: jamf_cnx
           return unless pol_id
 
           @jamf_uninstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
+        end
+
+        # @return [String] the URL for the uninstall policy in Jamf Pro
+        ######################
+        def jamf_expire_policy_url
+          return @jamf_expire_policy_url if @jamf_expire_policy_url
+          return unless uninstallable?
+          return unless expiration
+
+          pol_id = Jamf::Policy.valid_id jamf_expire_policy_name, cnx: jamf_cnx
+          return unless pol_id
+
+          @jamf_expire_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
         end
 
       end # TitleJamfPro

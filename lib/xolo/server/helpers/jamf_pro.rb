@@ -88,6 +88,7 @@ module Xolo
         # TODO: allow using APIClients
         #
         # @return [Jamf::Connection] A connection object
+        ##########################
         def jamf_cnx(refresh: false)
           if refresh
             @jamf_cnx = nil
@@ -111,6 +112,32 @@ module Xolo
           log_debug "Jamf: Connected to Jamf Pro at #{@jamf_cnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{@jamf_cnx.keep_alive?}, Expires: #{@jamf_cnx.token.expires}. cnx ID: #{@jamf_cnx.object_id}"
 
           @jamf_cnx
+        end
+
+        # if there's a forced_exclusion group defined in the server config
+        # return it's name, but only if it exists in jamf. If it doesn't
+        # return nil and alert someone
+        #
+        # @return [String] The valid name of the forced exclusion group
+        #####################
+        def valid_forced_exclusion_group_name
+          return @valid_forced_exclusion_group_name if defined?(@valid_forced_exclusion_group_name)
+
+          the_grp_name = Xolo::Server.config.forced_exclusion
+
+          if the_grp_name
+            if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? the_grp_name
+              @valid_forced_exclusion_group_name = the_grp_name
+            else
+              msg = "ERROR: The forced_exclusion group '#{Xolo::Server.config.forced_exclusion}' in xolo server config does not exist in Jamf"
+              log_error msg, alert: true
+              @valid_forced_exclusion_group_name = nil
+            end
+
+          # not in config
+          else
+            @valid_forced_exclusion_group_name = nil
+          end
         end
 
       end # JamfPro

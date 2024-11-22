@@ -122,6 +122,11 @@ module Xolo
       JAMF_FROZEN_GROUP_NAME_SUFFIX = '-frozen'
 
       JAMF_UNINSTALL_SUFFIX = '-uninstall'
+      JAMF_EXPIRE_SUFFIX = '-expire'
+
+      # the expire policy will run this client command,
+      # appending the title
+      CLIENT_EXPIRE_COMMAND = '/usr/local/bin/xolo expire'
 
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
@@ -314,6 +319,13 @@ module Xolo
       # @return [String] the name of the policy to uninstall the title
       attr_reader :jamf_uninstall_policy_name
 
+      # If a title is expirable, it will have a policy in Jamf
+      # named 'xolo-<title>-expire' that will run the expiration
+      # process daily, at checkin or using a trigger of the same name.
+      #
+      # @return [String] the name of the policy to uninstall the title
+      attr_reader :jamf_expire_policy_name
+
       # The instance of Xolo::Server::App that instantiated this
       # title object. This is how we access things that are available in routes
       # and helpers, like the single Jamf and TEd
@@ -367,6 +379,7 @@ module Xolo
       # they might not have all the correct innards
       def initialize(data_hash)
         super
+
         @ted_id_number ||= data_hash[:ted_id_number]
         @jamf_patch_title_id ||= data_hash[:jamf_patch_title_id]
         @version_order ||= []
@@ -376,6 +389,7 @@ module Xolo
         @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
         @jamf_uninstall_script_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
         @jamf_uninstall_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
+        @jamf_expire_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_EXPIRE_SUFFIX}"
       end
 
       # Instance Methods
@@ -523,22 +537,23 @@ module Xolo
       def uninstall_script_contents
         return @uninstall_script_contents if defined? @uninstall_script_contents
 
+        log_debug "changes_for_update: #{changes_for_update}"
+
         curr_script =
-          if changes_for_update.key? :uninstall_method
-            # new, incoming script, might be nil if we're deleting
-            changes_for_update[:uninstall_method][:new]
+          if changes_for_update.key?(:uninstall_script) || changes_for_update.key?(:uninstall_ids)
+            # this might still be nil if we are removing uninstallability
+            changes_for_update.dig(:uninstall_script, :new) || changes_for_update.dig(:uninstall_ids, :new)
           else
-            # the current attribute value, might be Xolo::ITEM_UPLOADED
-            uninstall_method
+            # the current one, which might be Xolo::ITEM_UPLOADED
+            uninstall_script || uninstall_ids
           end
 
         @uninstall_script_contents =
           if curr_script.pix_empty?
-            # no script, or deleting script
-
+            # removing uninstallability, or it was never added
             nil
           elsif curr_script == Xolo::ITEM_UPLOADED
-            # use the one we have saved on disk
+            # nothing changed, use the one we have saved on disk
             uninstall_script_file.read
           else
             # this will be a new one from the changes_for_update
@@ -547,14 +562,13 @@ module Xolo
       end
 
       # @param script_or_pkg_ids [String] The new uninstall script, or comma-separated list of pkg IDs
-      # @return [String] The uninstall script, generated from the uninstall_method
+      # @return [String, Array ] The uninstall script, provided or generated from the given pkg ids
       #####################
       def generate_uninstall_script(script_or_pkg_ids)
         # Its already a script, validated by xadm to start with #!
-        return script_or_pkg_ids if script_or_pkg_ids.start_with? '#!'
+        return script_or_pkg_ids if script_or_pkg_ids.is_a? String
 
-        ids = script_or_pkg_ids.split(Xolo::COMMA_SEP_RE)
-        uninstall_script_template.sub 'PKG_IDS_FROM_XOLO_GO_HERE', ids.join(' ')
+        uninstall_script_template.sub 'PKG_IDS_FROM_XOLO_GO_HERE', script_or_pkg_ids.join(' ')
       end
 
       # @return [String] The template zsh script for uninstalling via pkgutil
@@ -739,6 +753,7 @@ module Xolo
           log_debug "Updating Xolo Title attribute '#{attr}': '#{old_val}' -> '#{new_val}'"
           send "#{attr}=", new_val
         end
+
         # update any other server-specific attributes here...
       end
 
@@ -799,15 +814,23 @@ module Xolo
       # @return [void]
       ##########################
       def save_uninstall_script
-        return if uninstall_method == Xolo::ITEM_UPLOADED
+        return if uninstall_script == Xolo::ITEM_UPLOADED || uninstall_ids == Xolo::ITEM_UPLOADED
         return if uninstall_script_contents.nil?
 
         log_debug "Saving uninstall script to: #{uninstall_script_file}"
         uninstall_script_file.pix_atomic_write uninstall_script_contents
 
-        # the json file only stores 'uploaded' in the uninstall_method
-        # attr.
-        self.uninstall_method = Xolo::ITEM_UPLOADED
+        # the json file only stores 'uploaded' in uninstall_script
+        # The actual script is saved in its own file.
+        self.uninstall_script &&= Xolo::ITEM_UPLOADED
+      end
+
+      # are we uninstallable?
+      #
+      # @return [Boolean]
+      ##########################
+      def uninstallable?
+        uninstall_script || !uninstall_ids.pix_empty?
       end
 
       # Save the self_service_icon from the upload tmpfile

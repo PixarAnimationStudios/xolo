@@ -377,6 +377,10 @@ module Xolo
         # set excluded groups in a [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
         #
+        # This applies more nuance to the 'excluded_groups_to_use' depending on
+        # the policy in question. E.g. manual-install policy should not
+        # have the installed-group excluded, to allow re-installs
+        #
         # @param pol [Jamf::Policy, Jamf::PatchPolicy]
         # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
         #   if nil, we'll instantiate it now
@@ -388,15 +392,18 @@ module Xolo
           exclusions = excluded_groups_to_use(ttl_obj: ttl_obj).dup
           exclusions ||= []
 
-          # the initial-install policies must also exclude any mac with the title
+          # the initial auto-install policies must also exclude any mac with the title
           # already installed
-          if pol.is_a?(Jamf::Policy) && !exclusions.include?(ttl_obj.jamf_installed_group_name)
+          # But the manual install policy should never exclude it - so that
+          # one-off macs can install or re-install at any time.
+          if pol.is_a?(Jamf::Policy) && pol.name == jamf_auto_install_policy_name
             # calling ttl_obj.jamf_installed_group will create the group if needed
             exclusions << ttl_obj.jamf_installed_group.name
           end
 
           log_debug "Jamf: updating exclusions for #{pol.class} '#{pol.name}' to: #{exclusions.join ', '}"
 
+          exclusions.uniq!
           pol.scope.set_exclusions :computer_groups, exclusions
         end
 
@@ -523,6 +530,7 @@ module Xolo
           pol.add_package jamf_pkg_name
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
+          pol.frequency = :ongoing
 
           # manual install policy is always available manually install
           # anywhere except the exclusions.
@@ -573,6 +581,7 @@ module Xolo
           pol.add_package jamf_pkg_name
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
+          pol.frequency = :once_per_computer
 
           # while in pilot, only pilot groups are targets
           set_policy_pilot_groups pol
