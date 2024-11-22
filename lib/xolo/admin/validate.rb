@@ -296,6 +296,10 @@ module Xolo
       # - a path to a script which must start with '#!'
       # OR
       # - a comma-separated list of package identifiers
+      # OR
+      # - 'none' to unset the value
+      #
+      # TODO: Consistency with expiration.
       #
       # @param val [Object] The value to validate
       #
@@ -303,10 +307,16 @@ module Xolo
       ##########################
       def validate_uninstall_method(val)
         val = val.to_s.strip
+        return nil if val == Xolo::NONE
+
         script_file = Pathname.new val
 
         return val unless script_file.file?
-        return script_file if script_file.readable? && script_file.read.start_with?('#!')
+
+        if script_file.readable?
+          script = script_file.read
+          return script if script.start_with? '#!'
+        end
 
         raise_invalid_data_error val, TITLE_ATTRS[:uninstall_method][:invalid_msg]
       end
