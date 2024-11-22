@@ -551,9 +551,9 @@ module Xolo
           vers_or_title = change[:version] ? "version #{change[:version]}" : 'title'
           output << "#{Time.parse(change[:time]).strftime('%F %T')} #{change[:admin]}@#{change[:host]} changed #{vers_or_title}"
 
-          if change[:action]
-            val = format_multiline_indent(change[:action], indent: 10)
-            output << "  Action: #{val}"
+          if change[:msg]
+            val = format_multiline_indent(change[:msg], indent: 7)
+            output << "  msg: #{val}"
 
           else
             output << "  Attribute: #{change[:attrib]}"

@@ -525,7 +525,7 @@ module Xolo
 
         curr_script =
           if changes_for_update.key? :uninstall_method
-            # new, incoming script
+            # new, incoming script, might be nil if we're deleting
             changes_for_update[:uninstall_method][:new]
           else
             # the current attribute value, might be Xolo::ITEM_UPLOADED
@@ -535,6 +535,7 @@ module Xolo
         @uninstall_script_contents =
           if curr_script.pix_empty?
             # no script, or deleting script
+
             nil
           elsif curr_script == Xolo::ITEM_UPLOADED
             # use the one we have saved on disk
@@ -652,7 +653,7 @@ module Xolo
         progress 'Saving title data to Xolo server'
         save_local_data
 
-        log_change action: 'Title Created'
+        log_change msg: 'Title Created'
 
         # ssvc icon is uploaded in a separate process, and the
         # title data file will be updated as needed then.
@@ -708,7 +709,7 @@ module Xolo
         # and the local data will be updated again then
         #
       rescue StandardError => e
-        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
+        log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
         raise

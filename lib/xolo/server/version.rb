@@ -501,7 +501,7 @@ module Xolo
         progress "Updating title version_order, prepending '#{version}'", log: :info
         title_object.prepend_version(version)
 
-        log_change action: 'Version Created'
+        log_change msg: 'Version Created'
 
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
       ensure
@@ -551,7 +551,7 @@ module Xolo
 
         # new pkg uploads happen in a separate process
       rescue StandardError => e
-        log_change action: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\nSee server log for details."
+        log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
         raise
@@ -598,7 +598,7 @@ module Xolo
         self.release_date = Time.now
         self.released_by = admin
         chg_msg = rollback ? 'Version Released - Rolled Back' : 'Version Released'
-        log_change action: chg_msg
+        log_change msg: chg_msg
 
         save_local_data
       ensure
@@ -616,7 +616,7 @@ module Xolo
         self.status = STATUS_DEPRECATED
         self.deprecation_date = Time.now
         self.deprecated_by = admin
-        log_change action: 'Version Deprecated'
+        log_change msg: 'Version Deprecated'
 
         save_local_data
       ensure
@@ -634,7 +634,7 @@ module Xolo
         self.status = STATUS_SKIPPED
         self.skipped_date = Time.now
         self.skipped_by = admin
-        log_change action: 'Version Skipped'
+        log_change msg: 'Version Skipped'
         save_local_data
       ensure
         unlock
@@ -656,7 +656,7 @@ module Xolo
         self.skipped_by = nil
         self.deprecation_date = nil
         self.deprecated_by = nil
-        log_change action: 'Version Reset to Pilot'
+        log_change msg: 'Version Reset to Pilot'
         save_local_data
       ensure
         unlock
@@ -726,7 +726,7 @@ module Xolo
         # delete the local data
         progress 'Deleting version data from the Xolo server', log: :info
         version_data_file.delete
-        log_change action: 'Version Deleted'
+        log_change msg: 'Version Deleted'
 
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
       ensure
