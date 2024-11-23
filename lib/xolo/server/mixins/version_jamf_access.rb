@@ -449,13 +449,13 @@ module Xolo
             log_debug "Jamf: Starting activate_patch_version_thread waiting for version #{version} of title #{title} to become visible from the title editor"
 
             start_time = Time.now
-            max_time = start_time + 3600
+            max_time = start_time + Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
             start_time = start_time.strftime '%F %T'
 
             did_it = false
 
             while Time.now < max_time
-              sleep 30
+              sleep 15
               log_debug "Jamf: checking for version #{version} of title #{title} to become visible from the title editor since #{start_time}"
 
               # check for the existence of the jamf_patch_title every time, since it might have gone away
