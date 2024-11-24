@@ -1,0 +1,279 @@
+#!/bin/zsh
+
+# Copyright 2024 Pixar
+#
+#    Licensed under the Apache License, Version 2.0 (the "Apache License")
+#    with the following modification; you may not use this file except in
+#    compliance with the Apache License and the following modification to it:
+#    Section 6. Trademarks. is deleted and replaced with:
+#
+#    6. Trademarks. This License does not grant permission to use the trade
+#       names, trademarks, service marks, or product names of the Licensor
+#       and its affiliates, except as required to comply with Section 4(c) of
+#       the License and to reproduce the content of the NOTICE file.
+#
+#    You may obtain a copy of the Apache License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the Apache License with the above modification is
+#    distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#    KIND, either express or implied. See the Apache License for the specific
+#    language governing permissions and limitations under the Apache License.
+
+# SHELL SETUP
+###############################
+###############################
+
+# Load the zsh/zutil module for several utility functions
+zmodload zsh/zutil
+
+# for perl-style regexps
+setopt RE_MATCH_PCRE
+
+# ENVIRONMENT
+###############################
+###############################
+
+# Needed for the UTF-8 chars in the lsreg output
+export LANG="en_US.UTF-8"
+export LC_ALL="en_US.UTF-8"
+
+# CONSTANTS
+###############################
+###############################
+
+# The list of commands that xolo can accept
+COMMANDS=(
+  install i
+  uninstall u
+  refresh r
+  titles t
+  list l
+  details d
+  expire e
+)
+
+# The usage message for xolo
+USAGE='xolo [options] <command> [<title> [<version>]]'
+
+# The URL for more information about xolo
+XOLO_DOX_URL='<URL TO BE DETERMINED>'
+
+# The long path to the lsregister command
+LSREG='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister'
+
+# GLOBAL VARIABLES
+###############################
+###############################
+
+# From the command line
+show_help=
+be_verbose=
+be_quiet=
+debugging_on=
+title=
+version=
+
+# An Associative Array to hold the installed apps
+typeset -A installed_apps
+
+# FUNCTIONS
+###############################
+###############################
+
+# Show the help message
+###############################
+function show_help() {
+  cat <<ENDHELP
+xolo: manage software titles on your computer
+
+Usage:
+  $USAGE
+
+Options:
+  -h, -H, --help: Show this help message.
+  -v, --verbose: Enable verbose mode, extra information will be printed.
+  -q, --quiet: Enable quiet mode, only errors will be printed to stderr.
+  -d, --debug: Enable debug mode, extra debug information will be printed.
+
+Commands:
+  install, i <title> [<version>]
+    Install a title, or specific version thereof (e.g. a version currently in pilot)
+    If no version is specified, the currently released version will be installed.
+
+  uninstall, u <title>
+    Uninstall a title, if possible. Not all titles are uninstallable via xolo.
+
+  refresh, r
+    Update xolo's information about current titles and versions.
+    This also happens automatically at least daily, when this computer is online.
+
+  titles, t
+    List all known titles and versions. Not all may be available for install,
+    e.g., if this computer is in an excluded computer-group
+
+  list, l
+    List titles installed on this computer, that are known to xolo.
+
+  details, d <title> [<version>]
+    Show detailed information about a title, or a specific version thereof.
+
+  expire, e
+    Expire any expirable titles that have not been used in their defined expiration period,
+    This also happens automatically at least daily.
+
+  For more information about xolo, see $XOLO_DOX_URL
+ENDHELP
+} # end show_help
+
+# Parse the command line arguments
+###############################
+function parse_cli() {
+
+  # Thanks to https://gist.github.com/mattmc3/804a8111c4feba7d95b6d7b984f12a53
+  #
+  # -D pulls parsed flags out of $@
+  # -E allows flags/args and positionals to be mixed, which we don't want in this example
+  # -F says fail if we find a flag that wasn't defined
+  # -M allows us to map option aliases (ie: h=flag_help -help=h)
+  # -K allows us to set default values without zparseopts overwriting them
+  zparseopts -D -F -K -- \
+    {h,-H,-help}=show_help \
+    {v,-verbose}=be_verbose \
+    {q,-quiet}=be_quiet \
+    {d,-debug}=debugging_on ||
+    return 1
+
+    command=$1
+    shift
+    title=$1
+    shift
+    version=$1
+
+}
+
+# Print a message to stout if we're not in quiet mode
+###############################
+function say() {
+  level=$1
+
+    debug)
+      [[ -n "$debugging_on" ]]  && echo "$*" >&2 ;;
+
+    verbose)
+        [[ -n "$be_verbose" ]]  && echo "$*" >&2 ;;
+
+
+
+    *)
+      shift
+      echo "$*"
+      ;;
+  esac
+
+
+
+  [[ -n "$be_quiet" ]] && echo "$*"
+}
+
+# Print a message to stdout if we're in verbose mode
+###############################
+function verbose() {
+  [[ -n "$be_verbose" ]] && echo "$*"
+}
+
+# Print a debug message to stderr
+###############################
+function debug() {
+  [[ -n "$debugging_on" ]] && echo "DEBUG: $*" >&2
+}
+
+# Gather all installed bundle ids and app names from lsreg
+# store them in an associative array in $installed_apps.
+# keys are bundle ids, values are app names
+###############################
+function get_installed_apps() {
+  # loop thru lsreg output
+  "$LSREG" -dump Bundle | while IFS= read -r line ; do
+    # a line if ------ starts a new record
+    if [[ "$line" =~ '^-+$' ]] ; then
+      unset app_name
+      unset app_bundle_id
+      continue
+    fi
+
+    # $MATCH is the whole matched string, $match is the array of captures
+    [[ "$line" =~ '^path:\s+/.*/(.+\.app) \(' ]] && app_name=$match[1]
+    [[ "$line" =~ '^\s+CFBundleIdentifier = "(.+)";' ]] && app_bundle_id=$match[1]
+
+    if [[ -n "$app_name" && -n "$app_bundle_id" ]] ; then
+      installed_apps[$app_bundle_id]=$app_name
+      unset app_name
+      unset app_bundle_id
+    fi
+  done
+  # installed_apps is now an associative array with bundle ids as keys and app names as values
+
+  # TMP: print the installed apps
+  for bundle app in ${(kv)installed_apps}; do
+        echo "$bundle -> $app"
+  done
+
+} # end installed_apps
+
+
+# MAIN
+###############################
+###############################
+
+# Parse the command line
+parse_cli
+
+# If the user asked for help, show it and exit
+if [[ -n "$show_help" ]] ; then
+  show_help
+  exit 0
+fi
+
+# What are we doing?
+debug "Command: $command"
+debug "Title: $title"
+debug "Version: $version"
+
+case $command in
+  install|i)
+    debug "installing $title"
+    install_title
+    ;;
+  uninstall|u)
+    debug "uninstalling $title"
+    uninstall_title
+    ;;
+  refresh|r)
+    debug "refreshing client data"
+    refresh_client_data
+    ;;
+  titles|t)
+    debug "listing titles"
+    list_all_titles
+    ;;
+  list|l)
+    debug "listing installed titles"
+    list_installed_titles
+    ;;
+  details|d)
+    debug "showing details for $title"
+    show_details
+    ;;
+  expire|e)
+    debug "expiring $title"
+    expire_title
+    ;;
+  *)
+    echo "Unknown command: $command"
+    echo "Use --help for more information"
+    exit 1
+    ;;
+esac

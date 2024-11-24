@@ -161,12 +161,18 @@ module Xolo
           # delete the oldest
           prev_file = LOG_DIR + "#{LOG_FILE_NAME}.#{prev_age}"
           new_file = LOG_DIR + "#{LOG_FILE_NAME}.#{age}"
-          prev_file.rename new_file if prev_file.file?
+          if prev_file.file?
+            log_info "Moving log file #{pre_file.basename} => #{new_file.basename}"
+            prev_file.rename new_file
+          end
 
           # Do the same for any already compressed files
           prev_compressed_file = LOG_DIR + "#{LOG_FILE_NAME}.#{prev_age}#{BZIPPED_EXTNAME}"
           new_compressed_file = LOG_DIR + "#{LOG_FILE_NAME}.#{age}#{BZIPPED_EXTNAME}"
-          prev_compressed_file.rename new_compressed_file if prev_compressed_file.file?
+          if prev_compressed_file.file?
+            log_info "Moving log file #{prev_compressed_file.basename} => #{new_compressed_file.basename}"
+            prev_compressed_file.rename new_compressed_file
+          end
 
           next unless compress_after
 
@@ -236,9 +242,9 @@ module Xolo
         zipout = `/usr/bin/bzip2  #{file.to_s.shellescape}`
 
         if $CHILD_STATUS.success?
-          logger.info "Compressed old log file: #{file}"
+          logger.info "Compressed log file: #{file}"
         else
-          logger.error "Failed to compress old log file: #{file}"
+          logger.error "Failed to compress log file: #{file}"
           zipout.lines.each { |l| logger.error ".. #{l.chomp}" }
         end # if success?
       end

@@ -23,17 +23,29 @@
 
 # frozen_string_literal: true
 
-# NOTE:  This may not be used - the xolo client tool might be
-# a stand alone script, perhaps even a shell script.
-# This is because the current plan is for it to merely
-# run a bunch of Jamf policies, so all it does it run
-# the jamf binary.
-#
-# But that may change as Xolo develops and we figure out what it should
-# do and how.
-
 require 'xolo'
 
+require 'highline'
+
+# Use optimist for CLI option processing
+# https://rubygems.org/gems/optimist
+#
+# This version modified to allow 'insert_blanks' which
+# puts blank lines between each option in the help output.
+# See comments in the required file for details.
+#
+require 'optimist_with_insert_blanks'
+
+# A small monkeypatch that allows Readline completion
+# of Highline.ask to optionally use a prompt and be
+# case insensitive
+require 'xolo/admin/highline_terminal'
+
+# Yes we're using a OpenStruct for our @opts, even though it's very slow.
+# It isn't so slow that it's a problem for processing a CLI tool.
+# The benefit is being able to use either Hash-style references
+# e.g. opts[key] or method-style when you know the key e.g. opts.title
+require 'ostruct'
 require 'io/console'
 
 module Xolo

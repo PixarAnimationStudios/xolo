@@ -36,6 +36,7 @@
 require 'English'
 require 'date'
 require 'pathname'
+require 'json'
 
 # Other Gems to include at this level
 require 'pixar-ruby-extensions'
