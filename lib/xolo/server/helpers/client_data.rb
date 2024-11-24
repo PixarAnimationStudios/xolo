@@ -38,6 +38,22 @@ module Xolo
       # This means methods here are available in all routes, views, and helpers
       # the Sinatra server app.
       #
+      # The client data package is a Jamf::Package that installs a JSON file on all
+      # managed Macs. This JSON file contains data about all titles and versions, and
+      # any other data that the xolo client needs to know about.
+      #
+      # It is updated automatically by the server when titles or versions are changed.
+      #
+      # It is used so that the xolo client can know what it needs to know about titles and
+      # versions without having to query the server or do anything over a network other
+      # than using the jamf binary.
+      #
+      # The downside is that the client data package is likely to be somewhat out of date,
+      # but that is a tradeoff for the simplicity and security of the client.
+      #
+      # The client data package is installed in /Library/Application Support/xolo/client-data.json
+      # it contains a JSON object with a 'titles' key, which is an object with keys for each title.
+      # The data provided is that produced by the Title#to_h and Version#to_h methods.
       module ClientData
 
         # Constants
@@ -288,10 +304,16 @@ module Xolo
         # @return [Hash] the data to put in the xolo-client-data JSON file
         #####################
         def client_data_hash
-          cdh = {}
+          cdh = {
+            titles: {}
+          }
           all_title_objects.each do |title|
-            cdh[title.title] = title.to_h
-            cdh[title.title][:versions] = title.version_objects.map(&:to_h)
+            cdh[:titles][title.title] = title.to_h
+            cdh[:titles][title.title][:versions] = title.version_objects.map(&:to_h)
+            next unless title.version_script
+
+            # the client uses the version_script to determine if a title is installed
+            cdh[:titles][title.title][:version_script] = title.version_script_content
           end
           # TESTING
           # outfile = Pathname.new('/tmp/client-data.json')
