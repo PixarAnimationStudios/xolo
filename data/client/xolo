@@ -615,7 +615,7 @@ function refresh_client_data() {
 
   cmd="$JAMF policy -trigger $UPDATE_CLIENT_DATA_TRIGGER $(jamf_policy_modifier)"
   debug "Running: $cmd"
-  $cmd
+  eval $cmd
 }
 
 # validate that the title exists
@@ -664,7 +664,7 @@ function install() {
 
   cmd="$JAMF policy -trigger $policy_trigger $(jamf_policy_modifier)"
   debug "Running: $cmd"
-  $cmd
+  eval $cmd
 }
 
 # Unnstall a title
@@ -685,7 +685,7 @@ function uninstall() {
   # the trigger
   cmd="$JAMF policy -trigger $policy_trigger $(jamf_policy_modifier)"
   debug "Running: $cmd"
-  $cmd
+  eval $cmd
 }
 
 # List all known titles and their versions and statuses
