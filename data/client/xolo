@@ -1,5 +1,6 @@
 #!/bin/zsh
 
+
 # Copyright 2024 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
@@ -44,16 +45,9 @@ export LC_ALL="en_US.UTF-8"
 ###############################
 ###############################
 
-# The list of commands that xolo can accept
-COMMANDS=(
-  install i
-  uninstall u
-  refresh r
-  titles t
-  list l
-  details d
-  expire e
-)
+# The version of xolo
+# This should be updated automatically when this script is packaged
+XOLO_VERSION='0.0.1'
 
 # The usage message for xolo
 USAGE='xolo [options] <command> [<title> [<version>]]'
@@ -78,15 +72,22 @@ UPDATE_CLIENT_DATA_TRIGGER='update-xolo-client-data'
 ###############################
 
 # From the command line
+
+# options
 show_help=
 be_verbose=
 be_quiet=
 debugging_on=
+no_versions=
+show_xolo_version=
+
+# arguments
 command=
 title=
 version=
 
 # An Associative Array to hold the installed apps
+# is populated by get_installed_apps
 typeset -A installed_apps
 
 # FUNCTIONS
@@ -122,6 +123,10 @@ Options:
   -v, --verbose: Enable verbose mode, extra information will be printed.
   -q, --quiet: Enable quiet mode, only errors will be printed to stderr.
   -d, --debug: Enable debug mode, extra debug information will be printed.
+  -n, --no-versions: With the 'list-titles' and 'list-installed' commands,
+                       do not show the versions available, or the version
+                       installed, respectively.
+  -V, --version: Show the version of xolo.
 
   NOTE: Debug mode will also enable verbose mode. Both debug and verbose modes
   override quiet mode.
@@ -138,11 +143,11 @@ Commands:
     Update xolo's information about current titles and versions.
     This also happens automatically at least daily, when this computer is online.
 
-  titles, t
+  list-titles, lt
     List all known titles and versions. Not all may be available for install,
     e.g., if this computer is in an excluded computer-group
 
-  list, l
+  list-installed, li
     List titles installed on this computer, that are known to xolo.
 
   details, d <title> [<version>]
@@ -163,7 +168,9 @@ function parse_cli() {
     {h,H,-help}=show_help \
     {v,-verbose}=be_verbose \
     {q,-quiet}=be_quiet \
-    {d,-debug}=debugging_on || \
+    {d,-debug}=debugging_on \
+    {n,-no-versions}=no_versions \
+    {V,-version}=show_xolo_version || \
     die 'Unknonwn Options or Args.'
 
   # they are in arrays, but we want regular vars
@@ -171,8 +178,8 @@ function parse_cli() {
   be_verbose=$be_verbose[-1]
   be_quiet=$be_quiet[-1]
   debugging_on=$debugging_on[-1]
-
-
+  no_versions=$no_versions[-1]
+  show_xolo_version=$show_xolo_version[-1]
 
   # if debugging is on, verbose is also on
   [[ -n $debugging_on ]] && be_verbose=1
@@ -253,38 +260,53 @@ function jamf_policy_modifier() {
   fi
 }
 
-# Gather all installed bundle ids and app names from lsreg
+# Gather all installed bundle ids and installed versions from lsreg
 # store them in an associative array in $installed_apps.
-# keys are bundle ids, values are app names
+# keys are bundle ids, values are app name & installed version
+# separated by a semicolon
+# e.g. 'com.apple.Safari => Safari.app;14.0.3'
 ###############################
 function get_installed_apps() {
+  local app_name
+  local app_bundle_id
+  local app_vers
+
   # loop thru lsreg output
   "$LSREG" -dump Bundle | while IFS= read -r line ; do
     # a line if ------ starts a new record
     if [[ "$line" =~ '^-+$' ]] ; then
       unset app_name
       unset app_bundle_id
+      unset app_vers
       continue
     fi
 
     # $MATCH is the whole matched string, $match is the array of captures
+    # NOTE this only works if the path is listed before the CFBundleIdentifier
+    # which seems to be the case in the lsreg output
     [[ "$line" =~ '^path:\s+/.*/(.+\.app) \(' ]] && app_name=$match[1]
-    [[ "$line" =~ '^\s+CFBundleIdentifier = "(.+)";' ]] && app_bundle_id=$match[1]
+    [[ "$line" =~ '^\s+CFBundleIdentifier = \"(.+)\";' ]] && app_bundle_id=$match[1]
+    [[ "$line" =~ '^\s+CFBundleShortVersionString = \"(.+)\";' ]] && app_vers=$match[1]
 
-    if [[ -n "$app_name" && -n "$app_bundle_id" ]] ; then
-      installed_apps[$app_bundle_id]=$app_name
+    if [[ -n "$app_name" && -n "$app_bundle_id" && -n "$app_vers" ]] ; then
+      installed_apps[$app_bundle_id]="$app_name;$app_vers"
       unset app_name
       unset app_bundle_id
+      unset app_vers
     fi
   done
   # installed_apps is now an associative array with bundle ids as keys and app names as values
 
-  # TMP: print the installed apps
-  for bundle app in ${(kv)installed_apps}; do
-        echo "$bundle -> $app"
-  done
+  # print the installed apps - this is a long list
+  if debugging_on ; then
+    debug "All Installed Apps:"
+    for bundle app in ${(kv)installed_apps}; do
+          debug "'$bundle' -> '$app'"
+    done
+  fi
 
 } # end installed_apps
+
 
 
 # $1 = a string of javascript that extracts your desired info from
@@ -320,9 +342,9 @@ function run() {
 }
 ENDJAVASCRIPT
 
-  # echo '========================'
-  # echo "${CLIENT_DATA_PROCESSING_JS}"
-  # echo '========================'
+  debug '============= EXECUTING JAVASCRIPT ==========='
+  debug "${CLIENT_DATA_PROCESSING_JS}"
+  debug '========================'
 
   # run the javascript to send the result to stdout
   osascript -l "JavaScript" <<< "${CLIENT_DATA_PROCESSING_JS}"
@@ -336,6 +358,38 @@ function all_xolo_titles() {
 
   read -r -d '' jscode <<ENDJAVASCRIPT
     result = Object.keys(parsed_data.titles).join('\n');
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# Outputs all known titles, one per line
+#######################################
+function all_xolo_titles_with_versions() {
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+
+    result = '';
+
+    Object.entries(parsed_data.titles).forEach(([title, title_data]) => {
+      result += \`\${title}: \`;
+
+      if (title_data.versions.length > 0) {
+        vers_array = title_data.versions.map(
+          function (version) {
+            return \`\${version.version} (\${version.status})\`;
+          } // end function
+        ); // end map
+
+        result += \`\${vers_array.join(', ')}\`;
+      } // end if
+
+      result += "\n";
+    }); // end forEach
+
+    // remove the last newline
+    result = result.slice(0, -1);
+
 ENDJAVASCRIPT
   extract_json_data "$jscode"
 }
@@ -506,7 +560,7 @@ function app_data_for_title() {
      var appname = parsed_data.titles["${desired_title}"]["app_name"];
      var bundleid = parsed_data.titles["${desired_title}"]["app_bundle_id"];
      if (appname && bundleid) {
-      result = \`\${appname};\${bundleid} \`;
+      result = \`\${appname};\${bundleid}\`;
      } else {
        result = '';
      }
@@ -606,8 +660,6 @@ ENDJAVASCRIPT
   extract_json_data "$jscode"
 }
 
-
-
 # Refresh the client data
 ###############################
 function refresh_client_data() {
@@ -621,6 +673,9 @@ function refresh_client_data() {
 # validate that the title exists
 ###############################
 function validate_title() {
+  # if we've already validated the title, we're done
+  [[ -n "$title_is_valid" ]] && return
+
   # die if no title given
   [[ -z "$title" ]] && die "No title given.\nUsage: $USAGE\nUse --help for more information."
 
@@ -630,11 +685,15 @@ function validate_title() {
 
   # index will be zero if the title is not in the array
   [[ ${all_titles[(Ie)$title]} -eq 0 ]] && die "No such title: $title"
+  title_is_valid=1
 }
 
 # validate that the version exists
 ###############################
 function validate_version() {
+  # if we've already validated the version, we're done
+  [[ -n "$version_is_valid" ]] && return
+
   validate_title
   # die if no version given
   [[ -z "$version" ]] && die "No version given.\nUsage: $USAGE\nUse --help for more information."
@@ -642,6 +701,7 @@ function validate_version() {
   # die if no such version
   all_versions=$(versions_for_title $title)
   [[ $all_versions =~ (^|\n)$version($|\n) ]] || die "No such version: $version"
+  version_is_valid=1
 }
 
 # Install a title, or a specific version thereof
@@ -689,21 +749,16 @@ function uninstall() {
 }
 
 # List all known titles and their versions and statuses
-# TODO: make this faster, it queries the client data for each version
 ###############################
 function list_all_titles() {
-  verbose "Listing all known titles..."
+  say "Listing all known titles..."
 
-  output=""
-  while IFS= read -r ttl; do
-     output="$output\n$ttl:"
-    while IFS= read -r vers; do
-      output="$output $vers ($(status_for_version $ttl $vers)),"
-    done <<<"$(versions_for_title $ttl)"
-    # remove the last char, either the : or the ,
-    output=${output::-1}
-  done <<<"$(all_xolo_titles)"
-  echo "$output"
+  if [[ -n "$no_versions" ]] ; then
+    all_xolo_titles
+    return 0
+  fi
+
+  all_xolo_titles_with_versions
 }
 
 # Show detailed information about a title or a version thereof
@@ -719,52 +774,203 @@ function show_details() {
   fi
 }
 
+# List all installed titles
+###############################
+function list_installed_titles() {
+  local ttl
+  local app_data
+
+
+  verbose "Listing installed titles..."
+
+  # populate the installed_apps associative array
+  get_installed_apps
+
+  while IFS= read -r ttl; do
+    app_data=$(app_data_for_title $ttl)
+
+    if [[ -n "$app_data" ]] ; then
+      debug "App Data: '$app_data'"
+      display_title_if_installed_by_app_data $ttl "$app_data"
+    else
+      display_title_if_installed_by_version_script $ttl
+    fi
+  done <<<"$(all_xolo_titles)"
+}
+
+# given a title and some app data (name, bundle id)
+# output a line if its installed, optionally with the version
+# $1 is the semicolon separated app data, name:bundle_id
+###############################
+function display_title_if_installed_by_app_data() {
+  local ttl=$1
+  local app_data=$2
+  local app_name
+  local app_bundle_id
+  local inst_app_name
+  local inst_app_vers
+  local data
+  local parts
+
+
+  parts=(${(s/;/)app_data})
+  app_name=$parts[1]
+  app_bundle_id=$parts[2]
+  debug "Split App Data: '$app_bundle_id' -> '$app_name'"
+
+  # This shouldn't happen but...
+  [[ -n "$app_name" && -n "$app_bundle_id" ]] || return
+
+  # is this bundle id installed?
+  [[ -n $installed_apps[$app_bundle_id] ]] || return
+
+  data=$installed_apps[$app_bundle_id]
+  parts=(${(s/;/)data})
+  inst_app_name=$parts[1]
+  inst_app_vers=$parts[2]
+  debug "Split Installed Data: '$inst_app_name' -> '$inst_app_vers'"
+
+  # no go if the app name doesn't match
+  [[ "$inst_app_name" == "$app_name" ]] || return
+
+  if [[ -n "$no_versions" ]] ; then
+    echo $ttl
+  else
+    echo "$ttl ($inst_app_vers)"
+  fi
+}
+
+
+# Given a title, use its version script to see if its installed,
+# and if so, output a line for it, optionally with the version
+# $1 is the title
+###############################
+function display_title_if_installed_by_version_script() {
+  local title=$1
+  local version_script=$(version_script_for_title $title)
+  local app_vers=
+
+  [[ -n "$version_script" ]] || return
+
+  vsout=$(eval "$version_script")
+  [[ -n "$vsout" ]] || return
+
+  # the output should be something like
+  # <result>version</result> if installed, and
+  # <result></result> if not installed
+  [[ "$vsout" =~ '>(\S+)<' ]] && app_vers=$match[1]
+  [[ -n "$app_vers" ]] || return
+
+  if [[ -n "$no_versions" ]] ; then
+    echo $ttl
+  else
+    echo "$ttl ($app_vers)"
+  fi
+}
+
+# Expire the title given on the command line, if
+# - it has an expiration period set
+# - it has defined expire paths
+# - none of the paths are running right now
+# - none of the paths have been used in the defined period
+###############################
+function expire() {
+  validate_title
+
+  local now=$(date '+%s')
+  local expiration=$(expiration_for_title $title)
+  local exp_secs=$(( $expiration * 24 * 3600 ))
+  local expire_paths
+  local victim_path
+  local must_have_been_used_since=$(( $now - $exp_secs ))
+  local last_use_epoch
+  local last_use
+
+  [[ -z "$expiration" ]] && return
+
+  # this gives us an array of paths
+  IFS=$'\n' expire_paths=($(expire_paths_for_title $title))
+  # return if empty
+  [[ ${#expire_paths} -eq 0 ]] && return
+
+  # if any of the paths are running, we're done
+  for victim_path in $expire_paths ; do
+    [[ -n $(/usr/bin/pgrep -f "$victim_path") ]] && return
+  done
+
+  # if any of the paths have been used in the defined period, we're done
+  for victim_path in $expire_paths ; do
+    last_use=$(/usr/bin/mdls -name kMDItemLastUsedDate "$victim_path" -raw)
+    # +> 2024-11-25 23:10:00 +0000
+
+    last_use_epoch=$(/bin/date -j -f "%Y-%m-%d %H:%M:%S %z" "$last_use" +"%s")
+
+    [[ "$last_use_epoch" > "$must_have_been_used_since" ]] && return
+  done
+
+  # if we're here, we can expire the title
+  verbose "Expiring title $title..."
+  uninstall
+}
+
 # MAIN
 ###############################
 ###############################
 
-# Parse the command line
-parse_cli "$@"
+function main() {
+  # Parse the command line
+  parse_cli "$@"
 
-# If the user asked for help, show it and exit
-if [[ -n "$show_help" ]] ; then
-  show_help
-  exit 0
-fi
+  # If the user asked for help, show it and exit
+  if [[ -n "$show_help" ]] ; then
+    show_help
+    exit 0
+  fi
 
-[[ -z "$command" ]] && die "No command given.\nUsage: $USAGE\nUse --help for more information."
-[[ ! " ${COMMANDS[@]} " == *" $command "* ]] && die "Unknown command: $command\nUsage: $USAGE\nUse --help for more information."
+  # If the user asked for the xolo version, show it and exit
+  if [[ -n "$show_xolo_version" ]] ; then
+    echo "xolo version: $XOLO_VERSION"
+    exit 0
+  fi
 
-case "$command" in
-  install|i)
-    debug "running function 'install'"
-    install
-    ;;
-  uninstall|u)
-    debug "running function 'uninstall'"
-    uninstall
-    ;;
-  refresh|r)
-    debug "running function 'refresh_client_data'"
-    refresh_client_data
-    ;;
-  titles|t)
-    debug "running function 'list_all_titles'"
-    list_all_titles
-    ;;
-  list|l)
-    debug "running function 'list_installed_titles'"
-    list_installed_titles
-    ;;
-  details|d)
-    debug "running function 'show_details'"
-    show_details
-    ;;
-  expire|e)
-    debug "running function 'expire'"
-    expire
-    ;;
-  *)
-    die "Unknown command: $command\nUse --help for more information"
-    ;;
-esac
+  [[ -z "$command" ]] && die "No command given.\nUsage: $USAGE\nUse --help for more information."
+
+  case "$command" in
+    install|i)
+      debug "running function 'install'"
+      install
+      ;;
+    uninstall|u)
+      debug "running function 'uninstall'"
+      uninstall
+      ;;
+    refresh|r)
+      debug "running function 'refresh_client_data'"
+      refresh_client_data
+      ;;
+    list-titles|lt)
+      debug "running function 'list_all_titles'"
+      list_all_titles
+      ;;
+    list-installed|li)
+      debug "running function 'list_installed_titles'"
+      list_installed_titles
+      ;;
+    details|d)
+      debug "running function 'show_details'"
+      show_details
+      ;;
+    expire|e)
+      debug "running function 'expire'"
+      expire
+      ;;
+    *)
+      die "Unknown command: $command\nUsage: $USAGE\nUse --help for more information."
+      ;;
+  esac
+
+}
+
+# RUN!
+###########################
+main "$@"
