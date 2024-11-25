@@ -283,6 +283,8 @@ module Xolo
           cmd << root_dir.to_s
           cmd << '--identifier'
           cmd << CLIENT_DATA_PACKAGE_IDENTIFIER
+          cmd << '--install-location'
+          cmd << '/'
           cmd << '--version'
           cmd << pkg_version
           cmd << '--sign'
@@ -292,7 +294,7 @@ module Xolo
           cmd << pkg_file.to_s
 
           progress "Jamf: Creating new installer pkg file '#{CLIENT_DATA_PACKAGE_FILE}'", log: :info
-          log_debug "Jamf: Running: #{cmd.join(' ')}"
+          log_debug "Command to build '#{CLIENT_DATA_PACKAGE_FILE}': #{cmd.join(' ')}"
 
           unlock_signing_keychain
           stdouterr, exit_status = Open3.capture2e(*cmd)
