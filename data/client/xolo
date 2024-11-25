@@ -64,6 +64,15 @@ XOLO_DOX_URL='<URL TO BE DETERMINED>'
 # The long path to the lsregister command
 LSREG='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister'
 
+# The path to the jamf binary
+JAMF='/usr/local/bin/jamf'
+
+# The path to the client data json file
+CLIENT_DATA_JSON_FILE="/Library/Application Support/xolo/client-data.json"
+
+# The jamf policy trigger to update the client data
+UPDATE_CLIENT_DATA_TRIGGER='update-xolo-client-data'
+
 # GLOBAL VARIABLES
 ###############################
 ###############################
@@ -73,6 +82,7 @@ show_help=
 be_verbose=
 be_quiet=
 debugging_on=
+command=
 title=
 version=
 
@@ -83,11 +93,26 @@ typeset -A installed_apps
 ###############################
 ###############################
 
+# Print a message to stderr
+###############################
+function echoerr() { echo "$@" 1>&2; }
+
+# Die with an error message and status
+###############################
+function die() {
+  local msg="$1"
+  local mystat=1
+  [[ -n "$2" ]] && mystat=$2
+  echoerr "$msg"
+  exit $mystat
+}
+
+
 # Show the help message
 ###############################
 function show_help() {
   cat <<ENDHELP
-xolo: manage software titles on your computer
+xolo: manage software titles on this computer
 
 Usage:
   $USAGE
@@ -97,6 +122,9 @@ Options:
   -v, --verbose: Enable verbose mode, extra information will be printed.
   -q, --quiet: Enable quiet mode, only errors will be printed to stderr.
   -d, --debug: Enable debug mode, extra debug information will be printed.
+
+  NOTE: Debug mode will also enable verbose mode. Both debug and verbose modes
+  override quiet mode.
 
 Commands:
   install, i <title> [<version>]
@@ -131,63 +159,98 @@ ENDHELP
 # Parse the command line arguments
 ###############################
 function parse_cli() {
-
-  # Thanks to https://gist.github.com/mattmc3/804a8111c4feba7d95b6d7b984f12a53
-  #
-  # -D pulls parsed flags out of $@
-  # -E allows flags/args and positionals to be mixed, which we don't want in this example
-  # -F says fail if we find a flag that wasn't defined
-  # -M allows us to map option aliases (ie: h=flag_help -help=h)
-  # -K allows us to set default values without zparseopts overwriting them
-  zparseopts -D -F -K -- \
-    {h,-H,-help}=show_help \
+  zparseopts -D -F -E -- \
+    {h,H,-help}=show_help \
     {v,-verbose}=be_verbose \
     {q,-quiet}=be_quiet \
-    {d,-debug}=debugging_on ||
-    return 1
+    {d,-debug}=debugging_on || \
+    die 'Unknonwn Options or Args.'
 
-    command=$1
-    shift
-    title=$1
-    shift
-    version=$1
+  # they are in arrays, but we want regular vars
+  show_help=$show_help[-1]
+  be_verbose=$be_verbose[-1]
+  be_quiet=$be_quiet[-1]
+  debugging_on=$debugging_on[-1]
 
+
+
+  # if debugging is on, verbose is also on
+  [[ -n $debugging_on ]] && be_verbose=1
+
+  # if we're in verbose mode, we're not in quiet mode
+  [[ -n $be_verbose ]] && unset be_quiet
+
+  command=$1
+  [[ ${#@} -gt 0 ]] && shift
+
+  title=$1
+  [[ ${#@} -gt 0 ]] && shift
+
+  version=$1
+
+  # echo "show_help is: $show_help"
+  # echo "be_verbose is: $be_verbose"
+  # echo "be_quiet is: $be_quiet"
+  # echo "debugging_on is: $debugging_on"
+  # echo "command is: $command"
+  # echo "title is: $title"
+  # echo "version is: $version"
+
+
+  debug "Parsed command line:"
+  debug "..show_help is: $show_help"
+  debug "..be_verbose is: $be_verbose"
+  debug "..be_quiet is: $be_quiet"
+  debug "..debugging_on is: $debugging_on"
+  debug "..command is: $command"
+  debug "..title is: $title"
+  debug "..version is: $version"
+}
+
+# quick test for debugging_on
+###############################
+function debugging_on() {
+  [[ -n "$debugging_on" ]]
+}
+
+# quick test for be_verbose
+###############################
+function be_verbose() {
+  [[ -n "$be_verbose" ]]
+}
+
+# quick test for be_quiet
+###############################
+function be_quiet() {
+  [[ -n "$be_quiet" ]]
 }
 
 # Print a message to stout if we're not in quiet mode
 ###############################
 function say() {
-  level=$1
-
-    debug)
-      [[ -n "$debugging_on" ]]  && echo "$*" >&2 ;;
-
-    verbose)
-        [[ -n "$be_verbose" ]]  && echo "$*" >&2 ;;
-
-
-
-    *)
-      shift
-      echo "$*"
-      ;;
-  esac
-
-
-
-  [[ -n "$be_quiet" ]] && echo "$*"
+  be_quiet || echo "$*"
 }
 
 # Print a message to stdout if we're in verbose mode
 ###############################
 function verbose() {
-  [[ -n "$be_verbose" ]] && echo "$*"
+  be_verbose && echo "$*"
 }
 
-# Print a debug message to stderr
+# Print a debug message to stderr if debugging is on
 ###############################
 function debug() {
-  [[ -n "$debugging_on" ]] && echo "DEBUG: $*" >&2
+  debugging_on && echo "DEBUG: $*" 1>&2
+}
+
+# what to tack on to the end of a jamf policy command
+###############################
+function jamf_policy_modifier() {
+  if be_verbose ; then
+    echo '-verbose'
+  elif be_quiet ; then
+    echo '> /dev/null'
+  fi
 }
 
 # Gather all installed bundle ids and app names from lsreg
@@ -224,12 +287,428 @@ function get_installed_apps() {
 } # end installed_apps
 
 
+# $1 = a string of javascript that extracts your desired info from
+# the client-data.json file, which has already been parsed into
+# the variable 'parsed_data'
+#
+# your code should process parsed_data however it needs, and then
+# put the desired output string  into the 'result' var, which has already
+# been declared.
+#
+# The result of your processing will be sent to stdout of this function
+#######################################
+function extract_json_data() {
+  local processing_code="$1"
+  local CLIENT_DATA_PROCESSING_JS
+
+  read -r -d '' CLIENT_DATA_PROCESSING_JS <<ENDJAVASCRIPT
+// this gives us access to the local file system
+var app = Application.currentApplication();
+app.includeStandardAdditions = true;
+
+// run() is automatically executed when the program is called, and will print any output returned.
+function run() {
+    var parsed_data = JSON.parse(app.read("${CLIENT_DATA_JSON_FILE}"));
+    var result;
+
+    // the line below will sub-in whatever code we were passed
+    // to process the parsed data and store the result in 'result'
+
+    ${processing_code}
+
+    return result
+}
+ENDJAVASCRIPT
+
+  # echo '========================'
+  # echo "${CLIENT_DATA_PROCESSING_JS}"
+  # echo '========================'
+
+  # run the javascript to send the result to stdout
+  osascript -l "JavaScript" <<< "${CLIENT_DATA_PROCESSING_JS}"
+
+}
+
+# Outputs all known titles, one per line
+#######################################
+function all_xolo_titles() {
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+    result = Object.keys(parsed_data.titles).join('\n');
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+
+# $1 = the name of a title
+# Outputs all the versions for the title, one per line
+#######################################
+function versions_for_title() {
+  local desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     result = parsed_data.titles["${desired_title}"]["version_order"].join('\n');
+   } else {
+     result = \`Unknown title \${desired_title}\n\`;
+   }
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# Output the text to be displayed for the 'details' command for a title
+#######################################
+function details_for_title() {
+  desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var title_data = parsed_data.titles["${desired_title}"];
+
+     result = \`Details of title \${title_data.title}\n\`;
+     result += \`..Display Name: \${title_data.display_name}\n\`;
+     result += \`..Description: \${title_data.description}\n\`;
+     result += \`..Publisher: \${title_data.publisher}\n\`;
+     result += \`..Release Groups: \${title_data.release_groups}\n\`;
+     result += \`..Excluded Groups: \${title_data.excluded_groups}\n\`;
+
+     if (title_data.uninstall_script || title_data.uninstall_ids.length > 0) {
+       var uninstallable = 'true';
+     } else {
+       var uninstallable = 'false';
+     }
+     result += \`..Uninstallable: \${uninstallable}\n\`;
+
+     if ( uninstallable == 'true' && title_data.expiration && title_data.expire_paths.length > 0) {
+       result += \`..Expires after days of disuse: \${title_data.expiration}\n\`;
+       result += \`..Expire Paths: \${title_data.expire_paths}\n\`;
+     }
+
+     if ( title_data.self_service ) {
+      result += \`..In Self Service: true\n\`;
+      result += \`..Self Service Category: \${title_data.self_service_category}\n\`;
+     }
+
+     result += \`..Contact: \${title_data.contact_email}\n\`;
+     result += \`..Added to Xolo: \${title_data.creation_date} by \${title_data.created_by}\n\`;
+
+     result += \`..Versions:\n\`;
+     if (title_data.versions.length > 0) {
+       title_data.versions.forEach(
+         function (arrayItem) {
+            result += \`....\${arrayItem.version}: \${arrayItem.status}\n\`;
+          }
+        );
+      } else {
+        result += \`....No versions added yet\n\`;
+      }
+
+   } else {
+     result = \`Unknown title ${desired_title}\n\`;
+   }
+ENDJAVASCRIPT
+
+  extract_json_data "$jscode"
+}
+
+
+# $1 = the name of a title
+# $2 = the name of a version
+# Output the text to be displayed for the 'details' command for a version
+#######################################
+function details_for_version() {
+  desired_title=$1
+  desired_version=$2
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var title_data = parsed_data.titles["${desired_title}"];
+     var version_data = title_data.versions.find(
+        function(value, index, array) {
+          return value.version == "${desired_version}";
+        }
+      );
+
+     if (version_data) {
+         result = \`Details of version '\${version_data.version}' of title \${title_data.title}\n\`;
+         result += \`..Publish Date: \${version_data.publish_date}\n\`;
+         result += \`..Added to Xolo: \${version_data.creation_date} by \${version_data.created_by}\n\`;
+         if (version_data.pilot_groups.length > 0) result += \`..Pilot Groups: \${version_data.pilot_groups}\n\`;
+
+         result += \`..Minimum OS Version: \${version_data.min_os}\n\`;
+         if (version_data.max_os) result += \`..Maximum OS Version: \${version_data.max_os}\n\`;
+         result += \`..Requires Reboot: \${version_data.reboot}\n\`;
+         result += \`..Standalone: \${version_data.standalone}\n\`;
+         if (version_data.killapps.length > 0) result += \`..KillApps: \${version_data.killapps}\n\`;
+
+         result += \`..Status: \${version_data.status}\n\`;
+         if (version_data.status == 'released') {
+           result += \`..Released: \${version_data.release_date} by \${version_data.released_by}\n\`;
+           if (title_data.release_groups.length > 0)  result += \`..Release Groups: \${title_data.release_groups}\n\`;
+         }
+
+         if (version_data.status == 'deprecated') {
+           result += \`..Deprecated: \${version_data.deprecation_date} by \${version_data.deprecated_by}\n\`;
+         }
+
+         if (version_data.status == 'skipped') {
+           result += \`..Skipped: \${version_data.skipped_date} by \${version_data.skipped_by}\n\`;
+         }
+
+
+
+      } else {
+        result = \`Unknown version '${desired_version}' for title ${desired_title}\n\`;
+     }
+
+   } else {
+     result = \`Unknown title ${desired_title}\n\`;
+   }
+ENDJAVASCRIPT
+
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# Outputs the version script for the title
+# or empty string if not set, or if no matching title
+#######################################
+function version_script_for_title() {
+  desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var vscript = parsed_data.titles["${desired_title}"]["version_script"];
+     result = vscript ? vscript : ''
+   } else {
+     result = '';
+   }
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# Outputs the app_name and app_bundle_id for the title, semi-colon separated
+# or empty string if not set, or if no matching title
+#######################################
+function app_data_for_title() {
+  desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var appname = parsed_data.titles["${desired_title}"]["app_name"];
+     var bundleid = parsed_data.titles["${desired_title}"]["app_bundle_id"];
+     if (appname && bundleid) {
+      result = \`\${appname};\${bundleid} \`;
+     } else {
+       result = '';
+     }
+        } else {
+     result = '';
+   }
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# Outputs the expiration period (integer of days) for the title
+# or empty string if not set, or if no matching title
+#######################################
+function expiration_for_title() {
+  desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var expiration = parsed_data.titles["${desired_title}"]["expiration"];
+     result = expiration ? expiration : ''
+   } else {
+     result = '';
+   }
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# Outputs the expire paths for the title one per line
+# or empty string if not set, or if no matching title
+#######################################
+function expire_paths_for_title() {
+  desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var expire_paths = parsed_data.titles["${desired_title}"]["expire_paths"];
+     result = expire_paths.length > 0 ? expire_paths.join("\n") : ''
+   } else {
+     result = '';
+   }
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# Outputs the currently released version for the title
+# or empty string if not set, or if no matching title
+#######################################
+function released_version_for_title() {
+  desired_title=$1
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var released_version = parsed_data.titles["${desired_title}"]["released_version"];
+     result = released_version ? released_version : ''
+   } else {
+     result = '';
+   }
+ENDJAVASCRIPT
+  extract_json_data "$jscode"
+}
+
+# $1 = the name of a title
+# $2 = the name of a version
+# Output status of a version
+#######################################
+function status_for_version() {
+  desired_title=$1
+  desired_version=$2
+  local jscode
+
+  read -r -d '' jscode <<ENDJAVASCRIPT
+   if (parsed_data.titles["${desired_title}"]) {
+     var title_data = parsed_data.titles["${desired_title}"];
+     var version_data = title_data.versions.find(
+        function(value, index, array) {
+          return value.version == "${desired_version}";
+        }
+      );
+
+     if (version_data) {
+        result = version_data.status;
+      } else {
+        result = \`Unknown version '${desired_version}' for title ${desired_title}\n\`;
+     }
+
+   } else {
+     result = \`Unknown title ${desired_title}\n\`;
+   }
+ENDJAVASCRIPT
+
+  extract_json_data "$jscode"
+}
+
+
+
+# Refresh the client data
+###############################
+function refresh_client_data() {
+  verbose "Refreshing client data..."
+
+  cmd="$JAMF policy -trigger $UPDATE_CLIENT_DATA_TRIGGER $(jamf_policy_modifier)"
+  debug "Running: $cmd"
+  $cmd
+}
+
+# validate that the title exists
+###############################
+function validate_title() {
+  # die if no title given
+  [[ -z "$title" ]] && die "No title given.\nUsage: $USAGE\nUse --help for more information."
+
+  # die if no such title
+  all_titles=$(all_xolo_titles)
+  [[ $all_titles =~ (^|\n)$title($|\n) ]] || die "No such title: $title"
+}
+
+# validate that the version exists
+###############################
+function validate_version() {
+  validate_title
+  # die if no version given
+  [[ -z "$version" ]] && die "No version given.\nUsage: $USAGE\nUse --help for more information."
+
+  # die if no such version
+  all_versions=$(versions_for_title $title)
+  [[ $all_versions =~ (^|\n)$version($|\n) ]] || die "No such version: $version"
+}
+
+# Install a title, or a specific version thereof
+###############################
+function install() {
+  validate_title
+
+  # if no version is given, we'll find the current release
+  if [[ -z "$version" ]] ; then
+    version=$(released_version_for_title $title)
+    [[ -z "$version" ]] && die "No current release for title: $title. Specify a version to install."
+  fi
+  validate_version
+
+  # get the policy trigger for the desired version
+  policy_trigger="xolo-${title}-${version}-manual-install"
+
+  # run the policy trigger
+  verbose "Installing version $version of title $title..."
+
+  cmd="$JAMF policy -trigger $policy_trigger $(jamf_policy_modifier)"
+  debug "Running: $cmd"
+  $cmd
+}
+
+# Unnstall a title
+# This might not do anything if the title is not uninstallable,
+# or if the title is not installed
+###############################
+function uninstall() {
+  validate_title
+
+  # get the policy trigger for the desired version
+  policy_trigger="xolo-${title}-uninstall"
+
+  # run the policy trigger
+  verbose "Attempting to uninstall title $title..."
+
+  # TODO: look at the output of the policy run to see if it was successful
+  # and report possible reasons for failure, esp if no policy was found for
+  # the trigger
+  cmd="$JAMF policy -trigger $policy_trigger $(jamf_policy_modifier)"
+  debug "Running: $cmd"
+  $cmd
+}
+
+# List all known titles and their versions and statuses
+# TODO: make this faster, it queries the client data for each version
+###############################
+function list_all_titles() {
+  verbose "Listing all known titles..."
+
+  output=""
+  while IFS= read -r ttl; do
+     output="$output\n$ttl:"
+    while IFS= read -r vers; do
+      output="$output $vers ($(status_for_version $ttl $vers)),"
+    done <<<"$(versions_for_title $ttl)"
+    # remove the last char, either the : or the ,
+    output=${output::-1}
+  done <<<"$(all_xolo_titles)"
+  echo "$output"
+}
+
 # MAIN
 ###############################
 ###############################
 
 # Parse the command line
-parse_cli
+parse_cli "$@"
 
 # If the user asked for help, show it and exit
 if [[ -n "$show_help" ]] ; then
@@ -237,43 +716,39 @@ if [[ -n "$show_help" ]] ; then
   exit 0
 fi
 
-# What are we doing?
-debug "Command: $command"
-debug "Title: $title"
-debug "Version: $version"
+[[ -z "$command" ]] && die "No command given.\nUsage: $USAGE\nUse --help for more information."
+[[ ! " ${COMMANDS[@]} " == *" $command "* ]] && die "Unknown command: $command\nUsage: $USAGE\nUse --help for more information."
 
-case $command in
+case "$command" in
   install|i)
-    debug "installing $title"
-    install_title
+    debug "running function 'install'"
+    install
     ;;
   uninstall|u)
-    debug "uninstalling $title"
-    uninstall_title
+    debug "running function 'uninstall'"
+    uninstall
     ;;
   refresh|r)
-    debug "refreshing client data"
+    debug "running function 'refresh_client_data'"
     refresh_client_data
     ;;
   titles|t)
-    debug "listing titles"
+    debug "running function 'list_all_titles'"
     list_all_titles
     ;;
   list|l)
-    debug "listing installed titles"
+    debug "running function 'list_installed_titles'"
     list_installed_titles
     ;;
   details|d)
-    debug "showing details for $title"
+    debug "running function 'show_details'"
     show_details
     ;;
   expire|e)
-    debug "expiring $title"
-    expire_title
+    debug "running function 'expire'"
+    expire
     ;;
   *)
-    echo "Unknown command: $command"
-    echo "Use --help for more information"
-    exit 1
+    die "Unknown command: $command\nUse --help for more information"
     ;;
 esac
