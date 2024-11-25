@@ -463,11 +463,11 @@ function details_for_version() {
 
 
       } else {
-        result = \`Unknown version '${desired_version}' for title ${desired_title}\n\`;
+        result = \`Unknown version '${desired_version}' for title ${desired_title}\`;
      }
 
    } else {
-     result = \`Unknown title ${desired_title}\n\`;
+     result = \`Unknown title ${desired_title}\`;
    }
 ENDJAVASCRIPT
 
@@ -595,11 +595,11 @@ function status_for_version() {
      if (version_data) {
         result = version_data.status;
       } else {
-        result = \`Unknown version '${desired_version}' for title ${desired_title}\n\`;
+        result = \`Unknown version '${desired_version}' for title ${desired_title}\`;
      }
 
    } else {
-     result = \`Unknown title ${desired_title}\n\`;
+     result = \`Unknown title ${desired_title}\`;
    }
 ENDJAVASCRIPT
 
@@ -625,8 +625,11 @@ function validate_title() {
   [[ -z "$title" ]] && die "No title given.\nUsage: $USAGE\nUse --help for more information."
 
   # die if no such title
-  all_titles=$(all_xolo_titles)
-  [[ $all_titles =~ (^|\n)$title($|\n) ]] || die "No such title: $title"
+  # all titles in an array
+  IFS=$'\n' all_titles=($(all_xolo_titles))
+
+  # index will be zero if the title is not in the array
+  [[ ${all_titles[(Ie)$title]} -eq 0 ]] && die "No such title: $title"
 }
 
 # validate that the version exists
@@ -701,6 +704,19 @@ function list_all_titles() {
     output=${output::-1}
   done <<<"$(all_xolo_titles)"
   echo "$output"
+}
+
+# Show detailed information about a title or a version thereof
+###############################
+function show_details() {
+  validate_title
+
+  if [[ -z "$version" ]] ; then
+    details_for_title $title
+  else
+    validate_version
+    details_for_version $title $version
+  fi
 }
 
 # MAIN
