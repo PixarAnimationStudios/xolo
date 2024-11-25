@@ -73,7 +73,7 @@ module Xolo
           # must happen after the normal ea is created
           set_installed_group_criteria_in_jamf
 
-          if uninstall_script || uninstall_ids
+          if uninstall_script || !uninstall_ids.pix_empty?
             set_jamf_uninstall_script_contents
             # this creates the policy to use the script
             # must happen after the installed group is created
