@@ -310,10 +310,17 @@ module Xolo
           all_title_objects.each do |title|
             cdh[:titles][title.title] = title.to_h
             cdh[:titles][title.title][:versions] = title.version_objects.map(&:to_h)
-            next unless title.version_script
 
             # the client uses the version_script to determine if a title is installed
-            cdh[:titles][title.title][:version_script] = title.version_script_content
+            cdh[:titles][title.title][:version_script] = title.version_script_contents if title.version_script
+
+            # add the forced_exclusion_group_name if any
+            if Xolo::Server.config.forced_exclusion
+              cdh[:titles][title.title][:excluded_groups] << Xolo::Server.config.forced_exclusion
+            end
+
+            # add the frozen group name to the excluded_groups array
+            cdh[:titles][title.title][:excluded_groups] << title.frozen_group_name if title.jamf_frozen_group_name
           end
           # TESTING
           # outfile = Pathname.new('/tmp/client-data.json')
