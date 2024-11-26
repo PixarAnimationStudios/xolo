@@ -157,6 +157,9 @@ Commands:
     Expire any expirable titles that have not been used in their defined expiration period,
     This also happens automatically at least daily.
 
+  help, h
+    Show this help message. The same as -h or --help.
+
   For more information about xolo, see $XOLO_DOX_URL
 ENDHELP
 } # end show_help
@@ -591,7 +594,7 @@ ENDJAVASCRIPT
 }
 
 # $1 = the name of a title
-# Outputs the expire paths for the title one per line
+# Outputs the expire paths for the title, one per line
 # or empty string if not set, or if no matching title
 #######################################
 function expire_paths_for_title() {
@@ -730,6 +733,8 @@ function install() {
 # Unnstall a title
 # This might not do anything if the title is not uninstallable,
 # or if the title is not installed
+# TODO: Be DRY about running Jamf policies - make a function that does it
+# consistently
 ###############################
 function uninstall() {
   validate_title
@@ -886,6 +891,7 @@ function expire() {
   local last_use_epoch
   local last_use
 
+  # return if no expiration period
   [[ -z "$expiration" ]] && return
 
   # this gives us an array of paths
@@ -893,19 +899,17 @@ function expire() {
   # return if empty
   [[ ${#expire_paths} -eq 0 ]] && return
 
-  # if any of the paths are running, we're done
+  # loop thru the paths and see if any have been used recently
   for victim_path in $expire_paths ; do
+    # if any of the paths are running, we're done
     [[ -n $(/usr/bin/pgrep -f "$victim_path") ]] && return
-  done
 
-  # if any of the paths have been used in the defined period, we're done
-  for victim_path in $expire_paths ; do
+    # if any of the paths have been used in the defined period, we're done
     last_use=$(/usr/bin/mdls -name kMDItemLastUsedDate "$victim_path" -raw)
     # +> 2024-11-25 23:10:00 +0000
-
     last_use_epoch=$(/bin/date -j -f "%Y-%m-%d %H:%M:%S %z" "$last_use" +"%s")
 
-    [[ "$last_use_epoch" > "$must_have_been_used_since" ]] && return
+    [[ "$last_use_epoch" -gt "$must_have_been_used_since" ]] && return
   done
 
   # if we're here, we can expire the title
@@ -963,6 +967,10 @@ function main() {
     expire|e)
       debug "running function 'expire'"
       expire
+      ;;
+    help|h)
+      debug "running function 'show_help'"
+      show_help
       ;;
     *)
       die "Unknown command: $command\nUsage: $USAGE\nUse --help for more information."
