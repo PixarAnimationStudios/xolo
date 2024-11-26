@@ -31,7 +31,10 @@
 zmodload zsh/zutil
 
 # for perl-style regexps
-setopt RE_MATCH_PCRE
+# DISABLED FOR NOW - some versions of macos don't seem to have
+# /usr/lib/zsh/5.9/zsh/pcre.so
+#
+# setopt RE_MATCH_PCRE
 
 # ENVIRONMENT
 ###############################
@@ -287,9 +290,9 @@ function get_installed_apps() {
     # $MATCH is the whole matched string, $match is the array of captures
     # NOTE this only works if the path is listed before the CFBundleIdentifier
     # which seems to be the case in the lsreg output
-    [[ "$line" =~ '^path:\s+/.*/(.+\.app) \(' ]] && app_name=$match[1]
-    [[ "$line" =~ '^\s+CFBundleIdentifier = \"(.+)\";' ]] && app_bundle_id=$match[1]
-    [[ "$line" =~ '^\s+CFBundleShortVersionString = \"(.+)\";' ]] && app_vers=$match[1]
+    [[ "$line" =~ '^path:[[:space:]]+/.*/(.+\.app) \(' ]] && app_name=$match[1]
+    [[ "$line" =~ '^[[:space:]]+CFBundleIdentifier = \"(.+)\";' ]] && app_bundle_id=$match[1]
+    [[ "$line" =~ '^[[:space:]]+CFBundleShortVersionString = \"(.+)\";' ]] && app_vers=$match[1]
 
     if [[ -n "$app_name" && -n "$app_bundle_id" && -n "$app_vers" ]] ; then
       installed_apps[$app_bundle_id]="$app_name;$app_vers"
@@ -857,13 +860,15 @@ function display_title_if_installed_by_version_script() {
 
   [[ -n "$version_script" ]] || return
 
+  debug "Running version script for $title"
   vsout=$(eval "$version_script")
+  debug "Version Script Output: '$vsout'"
   [[ -n "$vsout" ]] || return
 
   # the output should be something like
   # <result>version</result> if installed, and
   # <result></result> if not installed
-  [[ "$vsout" =~ '>(\S+)<' ]] && app_vers=$match[1]
+  [[ "$vsout" =~ '>([^[:space:]]+)<' ]] && app_vers=$match[1]
   [[ -n "$app_vers" ]] || return
 
   if [[ -n "$no_versions" ]] ; then
