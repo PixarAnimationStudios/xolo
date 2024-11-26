@@ -154,6 +154,14 @@ module Xolo
       STATUS_CMD = 'status'
       HELP_CMD = 'help'
 
+      # server-admin commands
+      SERVER_CLEANUP_CMD = 'run-server-cleanup'
+      UPDATE_CLIENT_DATA_CMD = 'update-client-data'
+      ROTATE_SERVER_LOGS_CMD = 'rotate-server-logs'
+      SET_SERVER_LOG_LEVEL_CMD = 'set-server-log-level'
+
+      # various strings for the commands and opts
+
       HELP_OPT = '--help'
 
       DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
@@ -469,7 +477,7 @@ module Xolo
 
         CONFIG_CMD => {
           desc: 'Configure xadm. (Implies --walkthru)',
-          display: "#{CONFIG_CMD}",
+          display: CONFIG_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
           walkthru_header: 'Editing xadm configuration',
@@ -496,19 +504,60 @@ module Xolo
           process_method: :list_categories
         },
 
-        STATUS_CMD => {
-          desc: 'Show status of Xolo server',
-          display: STATUS_CMD,
-          opts: {},
-          process_method: :server_status
-        },
-
         HELP_CMD => {
           desc: 'Get help for a specifc command',
           display: 'help command',
           opts: {},
           no_login: true
+        },
+
+        STATUS_CMD => {
+          desc: 'Show status of Xolo server, requires server-admin privileges',
+          display: STATUS_CMD,
+          opts: {},
+          process_method: :server_status
+        },
+
+        SERVER_CLEANUP_CMD => {
+          desc: "Run the server's cleanup process now. Requires server-admin privileges.",
+          display: SERVER_CLEANUP_CMD,
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SERVER_CLEANUP_CMD}",
+          opts: {},
+          arg_banner: :none,
+          process_method: :server_cleanup,
+          confirmation: true
+        },
+
+        UPDATE_CLIENT_DATA_CMD => {
+          desc: 'Make the server update the client-data package now. Requires server-admin privileges.',
+          display: UPDATE_CLIENT_DATA_CMD,
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{UPDATE_CLIENT_DATA_CMD}",
+          opts: {},
+          arg_banner: :none,
+          process_method: :update_client_data,
+          confirmation: true
+        },
+
+        ROTATE_SERVER_LOGS_CMD => {
+          desc: 'Rotate the logs on the server now. Requires server-admin privileges.',
+          display: ROTATE_SERVER_LOGS_CMD,
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{ROTATE_SERVER_LOGS_CMD}",
+          opts: {},
+          arg_banner: :none,
+          process_method: :rotate_server_logs,
+          confirmation: true
+        },
+
+        SET_SERVER_LOG_LEVEL_CMD => {
+          desc: 'Set the log level of the server logger. Requires server-admin privileges.',
+          display: SET_SERVER_LOG_LEVEL_CMD,
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SET_SERVER_LOG_LEVEL_CMD} level",
+          opts: {},
+          arg_banner: '  level:     The log level to set, one of "debug", "info", "warn", "error", "fatal"',
+          process_method: :set_server_log_level,
+          confirmation: true
         }
+
       }.freeze
 
       # The commands that add something to xolo - how their options are processed and validated

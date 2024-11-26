@@ -178,6 +178,17 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute server_admin_jamf_group
+        #   @return [String] The name of a Jamf account-group containing users of 'xadm'
+        server_admin_jamf_group: {
+          type: :string,
+          desc: <<~ENDDESC
+            The name of a Jamf account-group (not a User group) that allows the use of the server admin commands of 'xadm', including --run-server-cleanup, --update-client-data, --rotate-server-logs and --set-server-log-level.
+            Members of this group can also use the xadm commands that require the 'admin_jamf_group' group.
+            If unset, no one can use the server admin commands.
+          ENDDESC
+        },
+
         # @!attribute log_days_to_keep
         #   @return [Integer] How many days worth of logs to keep
         log_days_to_keep: {

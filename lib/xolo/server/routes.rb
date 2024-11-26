@@ -54,9 +54,15 @@ module Xolo
         log_info "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}"
 
         # these routes don't need an auth'd session
-        break if Xolo::Server::Helpers::Auth::INTERNAL_ROUTES.include?(request.path) && valid_internal_auth_token?
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
+
+        # these routes are for server admins only,and require an authenticated session
+        break if Xolo::Server::Helpers::Auth::SERVER_ADMIN_ROUTES.include?(request.path) && valid_server_admin?
+
+        # these routes are expected to be called by the xolo server itself
+        # do this check last, so if a server admin is doing this manually, they can
+        break if Xolo::Server::Helpers::Auth::INTERNAL_ROUTES.include?(request.path) && valid_internal_auth_token?
 
         # If here, we must have a session cookie marked as 'authenticated'
         # log_debug "Session in before filter: #{session.inspect}"
@@ -108,29 +114,6 @@ module Xolo
         body Xolo::Server.thread_info
       end
 
-      # State
-      ##########
-      get '/state' do
-        state = {
-          executable: Xolo::Server::EXECUTABLE_FILENAME,
-          start_time: Xolo::Server.start_time,
-          app_env: Xolo::Server.app_env,
-          data_dir: Xolo::Server::DATA_DIR,
-          log_file: Xolo::Server::Log::LOG_FILE,
-          log_level: Xolo::Server::Log::LEVELS[Xolo::Server.logger.level],
-          ruby_version: RUBY_VERSION,
-          xolo_version: Xolo::VERSION,
-          ruby_jss_version: Jamf::VERSION,
-          windoo_version: Windoo::VERSION,
-          config: Xolo::Server.config.to_h_private,
-          pkg_deletion_pool: Xolo::Server::Version.pkg_deletion_pool_info,
-          object_locks: Xolo::Server.object_locks,
-          threads: Xolo::Server.thread_info
-        }
-
-        body state
-      end
-
       # The streamed progress updates
       # The stream_file param should be in the URL query, i.e.
       # "/streamed/progress/?streamed_file=<url-escaped path to file>"
@@ -168,24 +151,6 @@ module Xolo
 
         result = { result: 'test' }
 
-        body result
-      end
-
-      # run the cleanup process
-      # The before filter will ensure the request came from the server itself.
-      # with a valid internal auth token.
-      ################
-      post '/cleanup' do
-        cleanup_versions
-        result = { result: 'Cleanup complete' }
-        body result
-      end
-
-      #
-      ################
-      post '/update-client-data' do
-        update_client_data
-        result = { result: 'Client Data Updated' }
         body result
       end
 
