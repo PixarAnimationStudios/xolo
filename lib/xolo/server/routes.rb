@@ -156,12 +156,18 @@ module Xolo
         # Xolo::Server::Helpers::Maintenance.post_to_start_cleanup force: true
         # result = { result: 'posted to start cleanup' }
 
-        send_email(
-          to: 'chrisl@pixar.com',
-          subject: 'Test Email from Xolo Server',
-          msg: 'This is a test email from the Xolo Server'
-        )
-        result = { result: 'message sent' }
+        # send_email(
+        #   to: 'chrisl@pixar.com',
+        #   subject: 'Test Email from Xolo Server',
+        #   msg: 'This is a test email from the Xolo Server'
+        # )
+        # result = { result: 'message sent' }
+
+        client_data_testing
+        update_client_data
+
+        result = { result: 'test' }
+
         body result
       end
 
@@ -172,6 +178,14 @@ module Xolo
       post '/cleanup' do
         cleanup_versions
         result = { result: 'Cleanup complete' }
+        body result
+      end
+
+      #
+      ################
+      post '/update-client-data' do
+        update_client_data
+        result = { result: 'Client Data Updated' }
         body result
       end
 
