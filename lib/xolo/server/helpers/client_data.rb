@@ -105,7 +105,8 @@ module Xolo
         end
 
         # A mutex for the client data update process
-        # TODO: user Concrrent Ruby instead of Mutex
+        #
+        # TODO: use Concrrent Ruby instead of Mutex
         #
         # @return [Mutex] the mutex
         #####################
@@ -139,6 +140,7 @@ module Xolo
           log_info 'Jamf: Updating client-data package'
 
           # shorter name
+
           mutex = Xolo::Server::Helpers::ClientData.client_data_mutex
 
           until mutex.try_lock
@@ -266,12 +268,21 @@ module Xolo
 
           pkg_work_dir = Pathname.new(Dir.mktmpdir(work_dir_prefix))
 
+          # The client data JSON file
           root_dir = pkg_work_dir + 'pkgroot'
           xolo_client_dir = root_dir + 'Library' + 'Application Support' + 'xolo'
           xolo_client_dir.mkpath
           client_data_file = xolo_client_dir + CLIENT_DATA_FILE
-
           client_data_file.pix_save JSON.pretty_generate(client_data_hash)
+
+          # The xolo client executable
+          log_debug 'Copying xolo client app to package'
+          xolo_client_app_dir = root_dir + 'usr' + 'local' + 'bin'
+          xolo_client_app_dir.mkpath
+          xolo_client_app = xolo_client_app_dir + 'xolo'
+          client_app_source.pix_cp xolo_client_app
+          # make it executable
+          xolo_client_app.chmod 0o755
 
           # Create the package
           pkg_file = pkg_work_dir + CLIENT_DATA_PACKAGE_FILE
@@ -322,7 +333,7 @@ module Xolo
             end
 
             # add the frozen group name to the excluded_groups array
-            cdh[:titles][title.title][:excluded_groups] << title.frozen_group_name if title.jamf_frozen_group_name
+            cdh[:titles][title.title][:excluded_groups] << title.jamf_frozen_group_name if title.jamf_frozen_group_name
           end
           # TESTING
           # outfile = Pathname.new('/tmp/client-data.json')
@@ -352,6 +363,35 @@ module Xolo
           end
 
           log_info "Jamf: Uploaded new '#{CLIENT_DATA_PACKAGE_FILE}' via upload tool"
+        end
+
+        # @return [Pathname] the path to the client executable 'xolo' in the ruby gem
+        #####################
+        def client_app_source
+          @client_app ||= Pathname.new(__FILE__).expand_path.parent.parent.parent.parent.parent + 'data' + 'client' + 'xolo'
+        end
+
+        # temp
+        #####################
+        def client_data_testing
+          this_file = Pathname.new(__FILE__).expand_path
+          log_debug "this_file: #{this_file}"
+          # parent 1 == helpers
+          # parent 2 == server
+          # parent 3 == xolo
+          # parent 4 == lib
+          # parent 5 == root
+          data_dir = this_file.parent.parent.parent.parent.parent + 'data'
+          log_debug "data_dir: #{data_dir}"
+          log_debug "data_dir exists? #{data_dir.exist?}"
+          log_debug "data_dir children: #{data_dir.children}"
+          client_dir = data_dir + 'client'
+          log_debug "client_dir: #{client_dir}"
+          log_debug "client_dir exists? #{client_dir.exist?}"
+          log_debug "client_dir children: #{client_dir.children}"
+          client_app = client_dir + 'xolo'
+          log_debug "client_app: #{client_app}"
+          log_debug "client_app exists? #{client_app.exist?}"
         end
 
       end # JamfPro
