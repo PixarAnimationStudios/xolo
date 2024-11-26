@@ -95,6 +95,16 @@ module Xolo
         @logger
       end
 
+      # A mutex for the log rotation process
+      #
+      # TODO: use Concrrent Ruby instead of Mutex
+      #
+      # @return [Mutex] the mutex
+      #####################
+      def self.rotation_mutex
+        @rotation_mutex ||= Mutex.new
+      end
+
       # change log level of the server logger, new requests should inherit it
       #############################################
       # def self.set_level(level, user: :unknown)
@@ -139,6 +149,16 @@ module Xolo
       def self.rotate_logs(force: false)
         return unless rotate_logs_now?(force: force)
 
+        # TODO: Use Concurrent ruby rather than this instance variable
+        mutex = Xolo::Server::Log.rotation_mutex
+
+        if mutex.locked?
+          log_warn 'Log rotation already running, skipping this run'
+          return
+        end
+
+        mutex.lock
+
         logger.info 'Starting Log Rotation'
 
         # how many to keep?
@@ -162,7 +182,7 @@ module Xolo
           prev_file = LOG_DIR + "#{LOG_FILE_NAME}.#{prev_age}"
           new_file = LOG_DIR + "#{LOG_FILE_NAME}.#{age}"
           if prev_file.file?
-            log_info "Moving log file #{pre_file.basename} => #{new_file.basename}"
+            logger.info "Moving log file #{prev_file.basename} => #{new_file.basename}"
             prev_file.rename new_file
           end
 
@@ -170,7 +190,7 @@ module Xolo
           prev_compressed_file = LOG_DIR + "#{LOG_FILE_NAME}.#{prev_age}#{BZIPPED_EXTNAME}"
           new_compressed_file = LOG_DIR + "#{LOG_FILE_NAME}.#{age}#{BZIPPED_EXTNAME}"
           if prev_compressed_file.file?
-            log_info "Moving log file #{prev_compressed_file.basename} => #{new_compressed_file.basename}"
+            logger.info "Moving log file #{prev_compressed_file.basename} => #{new_compressed_file.basename}"
             prev_compressed_file.rename new_compressed_file
           end
 
@@ -185,6 +205,8 @@ module Xolo
 
         # touch the last rotation file
         LAST_ROTATION_FILE.pix_touch
+      ensure
+        mutex.unlock
       end
 
       # Rotate the current log file without losing any log entries
@@ -203,6 +225,8 @@ module Xolo
 
         # then rename the main log to .0
         zero_file = LOG_DIR + "#{LOG_FILE_NAME}.0"
+        logger.info "Moving log file #{LOG_FILE_NAME} => #{zero_file.basename}"
+
         LOG_FILE.rename zero_file
 
         # then rename the temp file to the main log.
@@ -257,6 +281,18 @@ module Xolo
     #########################################
     def self.logger
       Log.logger
+    end
+
+    # set the log level of the server logger
+    #########################################
+    def self.set_log_level(level, admin:)
+      # make sure the level is valid
+      raise ArgumentError, "Unknown log level '#{level}'" unless Log::LEVELS.include? level.to_s.upcase
+
+      # unknonwn always gets logged
+      logger.unknown "Setting log level to #{level} by #{admin}"
+
+      logger.level = level
     end
 
   end #  Server

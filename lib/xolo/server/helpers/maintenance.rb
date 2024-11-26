@@ -69,6 +69,16 @@ module Xolo
         # Module Methods
         #####################################
 
+        # A mutex for the cleanup process
+        #
+        # TODO: use Concrrent Ruby instead of Mutex
+        #
+        # @return [Mutex] the mutex
+        #####################
+        def self.cleanup_mutex
+          @cleanup_mutex ||= Mutex.new
+        end
+
         # nightly cleanup is done by a Concurrent::TimerTask, which checks every
         # hour to see if it should do anything.
         #
@@ -136,6 +146,14 @@ module Xolo
         # @return [void]
         ################################
         def cleanup_versions
+          # TODO: Use Concurrent ruby rather than this instance variable
+          mutex = Xolo::Server::Helpers::Maintenance.cleanup_mutex
+
+          if mutex.locked?
+            log_warn 'Cleanup already running, skipping this run'
+            return
+          end
+          mutex.lock
           log_info 'Running Cleanup...'
 
           Xolo::Server::Title.all_titles.each do |title|
@@ -153,6 +171,8 @@ module Xolo
           end # each title
 
           Xolo::Server::Helpers::Maintenance.last_cleanup = Time.now
+        ensure
+          mutex&.unlock
         end
 
         # Cleanup a deprecated version.

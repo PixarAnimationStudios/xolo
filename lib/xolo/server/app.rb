@@ -38,6 +38,7 @@ module Xolo
 
       register Xolo::Server::Routes
       register Xolo::Server::Routes::Auth
+      register Xolo::Server::Routes::Maint
       register Xolo::Server::Routes::JamfPro
       register Xolo::Server::Routes::TitleEditor
       register Xolo::Server::Routes::Titles

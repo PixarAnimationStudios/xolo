@@ -139,8 +139,7 @@ module Xolo
 
           log_info 'Jamf: Updating client-data package'
 
-          # shorter name
-
+          # TODO: Use Concurrent Ruby instead of Mutex
           mutex = Xolo::Server::Helpers::ClientData.client_data_mutex
 
           until mutex.try_lock

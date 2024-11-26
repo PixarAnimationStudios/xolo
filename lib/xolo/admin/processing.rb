@@ -40,6 +40,19 @@ module Xolo
       # Title attributes that are used for 'xadm search'
       SEARCH_ATTRIBUTES = %i[title display_name description publisher app_name app_bundle_id].freeze
 
+      # Routes for server admins
+
+      SERVER_STATUS_ROUTE = '/state'
+      SERVER_CLENUP_ROUTE = '/cleanup'
+      SERVER_ROTATE_LOGS_ROUTE = '/rotate-logs'
+      SERVER_UPDATE_CLIENT_DATA_ROUTE = '/update-client-data'
+      SERVER_LOG_LEVEL_ROUTE = '/set-log-level'
+
+      # We can't pull this from Xolo::Server::Log::LEVELS, because
+      # we don't want to require that file here, it'll complain about
+      # the lack of sinatra and such.
+      LOG_LEVELS = %w[debug info warn error fatal].freeze
+
       # Module Methods
       ##########################
       ##########################
@@ -728,7 +741,7 @@ module Xolo
       #
       # @return [void]
       def server_status
-        data = server_cnx.get('/state').body
+        data = server_cnx.get(SERVER_STATUS_ROUTE).body
 
         if json?
           puts JSON.pretty_generate(data)
@@ -740,6 +753,65 @@ module Xolo
         puts '# Xolo Server Status'
         puts '##################################################'
         pp data
+        nil
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
+      # kick off server cleanup
+      #
+      # @return [void]
+      def server_cleanup
+        return unless confirmed? 'Run the Xolo Server cleanup process'
+
+        result = server_cnx.post(SERVER_CLENUP_ROUTE).body
+        puts result[:result]
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
+      # force update the client data pkg
+      #
+      # @return [void]
+      def update_client_data
+        return unless confirmed? 'Force update of the client data package'
+
+        result = server_cnx.post(SERVER_UPDATE_CLIENT_DATA_ROUTE).body
+        puts result[:result]
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
+      # rotate the server logs
+      #
+      # @return [void]
+      def rotate_server_logs
+        return unless confirmed? 'Rotate the Xolo Server logs'
+
+        result = server_cnx.post(SERVER_ROTATE_LOGS_ROUTE).body
+        puts result[:result]
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
+      # set the server log level
+      #
+      # @return [void]
+      def set_server_log_level
+        level = ARGV.shift&.downcase
+        raise ArgumentError, 'No log level given' unless level
+
+        unless LOG_LEVELS.include? level
+          raise ArgumentError, "Invalid log level '#{level}', must be one of #{LOG_LEVELS.join(', ')}"
+        end
+
+        return unless confirmed? "Set the Xolo Server log level to '#{level}'?"
+
+        payload = { level: level }
+        result = server_cnx.post(SERVER_LOG_LEVEL_ROUTE, payload).body
+        puts result[:result]
+      rescue StandardError => e
+        handle_processing_error e
       end
 
       # List all the computer groups in jamf pro
@@ -768,6 +840,7 @@ module Xolo
         list_in_cols 'Categories in Jamf Pro:', jamf_category_names.sort_by(&:downcase)
       end
 
+      # run the cleanup
       # get the /test route to do whatever testing it does
       # during testing - this will return all kinds of things.
       #

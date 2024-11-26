@@ -55,6 +55,15 @@ module Xolo
           '/cleanup'
         ].freeze
 
+        # these routes must
+        SERVER_ADMIN_ROUTES = [
+          '/state',
+          '/cleanup',
+          '/update-client-data',
+          '/rotate-logs',
+          '/set-log-level'
+        ].freeze
+
         # The loopback address for IPV4
         IPV4_LOOPBACK = '127.0.0.1'
 
@@ -107,7 +116,7 @@ module Xolo
           end
 
           log_warn "WARNING: #{warning}"
-          halt 401, { error: 'You do not have access to this resource' }
+          halt 403, { error: 'You do not have access to this resource' }
         end
 
         # @return [Boolean] Is the internal_auth_token in the headers of the request?
@@ -131,6 +140,7 @@ module Xolo
         end
 
         # is the given username a member of the admin_jamf_group?
+        # or the server_admin_jamf_group?
         # If not, they are not allowed to talk to the xolo server.
         #
         # @param admin_name [String] The jamf acct name of the person seeking access
@@ -138,11 +148,46 @@ module Xolo
         # @return [Boolean] Is the admin a member of the admin_jamf_group?
         #####################
         def member_of_admin_jamf_group?(admin_name)
-          groupname = Xolo::Server.config.admin_jamf_group
+          log_info "Checking if '#{admin_name}' is allowed to access the Xolo server"
 
-          user_in_jamf_acct_group?(groupname, admin_name)
-        ensure
-          jamf_cnx&.disconnect
+          groupname = Xolo::Server.config.admin_jamf_group
+          return true if user_in_jamf_acct_group?(groupname, admin_name)
+
+          # if they're not in the admin group, check the server_admin group
+          return true if member_of_server_admin_jamf_group?(admin_name)
+
+          log_info "'#{admin_name}' is not a member of the admin_jamf_group or the server_admin_jamf_group"
+          false
+        end
+
+        # is the given username a member of the server_admin_jamf_group?
+        # they must be in order to access the server admin routes
+        #
+        # @param admin_name [String] The jamf acct name of the person seeking access
+        #
+        # @return [Boolean] Is the admin a member of the server_admin_jamf_group?
+        #####################
+        def member_of_server_admin_jamf_group?(admin_name)
+          return false unless Xolo::Server.config.server_admin_jamf_group
+
+          log_info "Checking if '#{admin_name}' is allowed to access server admin routes"
+
+          groupname = Xolo::Server.config.server_admin_jamf_group
+          return true if user_in_jamf_acct_group?(groupname, admin_name)
+
+          log_info "'#{admin_name}' is not a member of the server_admin_jamf_group '#{groupname}'"
+          false
+        end
+
+        # is the session[:admin] a member of the server_admin_jamf_group,
+        # and has a valid session?
+        #
+        # @return [Boolean]
+        #####################
+        def valid_server_admin?
+          return true if session[:authenticated] && member_of_server_admin_jamf_group?(session[:admin])
+
+          halt 403, { error: 'You do not have access to that resource.' }
         end
 
         # is the given username a member of the release_to_all_approval_group?
@@ -175,6 +220,8 @@ module Xolo
         # check to see if a username is a member of a Jamf AccountGroup either from Jamf or from LDAP
         #
         def user_in_jamf_acct_group?(groupname, username)
+          log_debug "Checking if '#{username}' is a member of the Jamf AccountGroup '#{groupname}'"
+
           # This isn't well implemented in ruby-jss, so use c_get directly
           jgroup = jamf_cnx.c_get("accounts/groupname/#{groupname}")[:group]
 
