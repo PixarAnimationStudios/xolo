@@ -151,7 +151,7 @@ module Xolo
       LIST_GROUPS_CMD = 'list-groups'
       LIST_CATEGORIES_CMD = 'list-categories'
 
-      STATUS_CMD = 'status'
+      SERVER_STATUS_CMD = 'status'
       HELP_CMD = 'help'
 
       # server-admin commands
@@ -511,17 +511,17 @@ module Xolo
           no_login: true
         },
 
-        STATUS_CMD => {
+        SERVER_STATUS_CMD => {
           desc: 'Show status of Xolo server, requires server-admin privileges',
-          display: STATUS_CMD,
+          display: SERVER_STATUS_CMD,
           opts: {},
+          arg_banner: :none,
           process_method: :server_status
         },
 
         SERVER_CLEANUP_CMD => {
           desc: "Run the server's cleanup process now. Requires server-admin privileges.",
           display: SERVER_CLEANUP_CMD,
-          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SERVER_CLEANUP_CMD}",
           opts: {},
           arg_banner: :none,
           process_method: :server_cleanup,
@@ -531,7 +531,6 @@ module Xolo
         UPDATE_CLIENT_DATA_CMD => {
           desc: 'Make the server update the client-data package now. Requires server-admin privileges.',
           display: UPDATE_CLIENT_DATA_CMD,
-          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{UPDATE_CLIENT_DATA_CMD}",
           opts: {},
           arg_banner: :none,
           process_method: :update_client_data,
@@ -541,7 +540,6 @@ module Xolo
         ROTATE_SERVER_LOGS_CMD => {
           desc: 'Rotate the logs on the server now. Requires server-admin privileges.',
           display: ROTATE_SERVER_LOGS_CMD,
-          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{ROTATE_SERVER_LOGS_CMD}",
           opts: {},
           arg_banner: :none,
           process_method: :rotate_server_logs,
@@ -551,9 +549,9 @@ module Xolo
         SET_SERVER_LOG_LEVEL_CMD => {
           desc: 'Set the log level of the server logger. Requires server-admin privileges.',
           display: SET_SERVER_LOG_LEVEL_CMD,
-          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SET_SERVER_LOG_LEVEL_CMD} level",
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SET_SERVER_LOG_LEVEL_CMD} level [options]",
           opts: {},
-          arg_banner: '  level:     The log level to set, one of "debug", "info", "warn", "error", "fatal"',
+          arg_banner: '  level: The log level to set, one of "debug", "info", "warn", "error", "fatal"',
           process_method: :set_server_log_level,
           confirmation: true
         }
