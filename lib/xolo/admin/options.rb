@@ -93,7 +93,7 @@ module Xolo
           walkthru: false,
           desc: <<~ENDDESC
             Run xadm in quiet mode
-            When used with add-, edit-, delete-, pilot-, and release-
+            When used with add-, edit-, delete-, and release-
             commands, nothing will be printed to standard output.
 
             Ignored for other commands, the purpose of which is to print
