@@ -156,6 +156,16 @@ module Xolo
       Xolo::Server::Configuration.instance
     end
 
+    ################
+    def self.shutting_down?
+      @shutting_down
+    end
+
+    ################
+    def self.shutting_down=(bool)
+      @shutting_down = bool ? true : false
+    end
+
     # threads for reporting
     ##########################
     def self.thread_info

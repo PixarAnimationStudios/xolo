@@ -63,6 +63,13 @@ module Xolo
       # every 5 minutes.
       MAX_JAMF_WAIT_FOR_TITLE_EDITOR = 3600
 
+      # The max time (in seconds) to wait for a the Jamf server to
+      # stop the pkg deletion thread pool. It will wait until the
+      # queue is empty, or until this time has passed.
+      # Each pkg deletion thread can take up to 5 minutes, and
+      # there are 10 threads in the pool.
+      MAX_JAMF_WAIT_FOR_PKG_DELETION = 3600
+
       # Jamf objects are named with this prefix followed by <title>-<version>
       # See also:  Xolo::Server::Version#jamf_obj_name_pfx
       # which holds the full prefix for that version, and is used as the

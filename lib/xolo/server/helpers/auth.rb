@@ -51,8 +51,11 @@ module Xolo
         # these routes are expected to be called by the xolo server itself
         # and will have the internal_auth_token in the headers
         # and will come from IPV4_LOOPBACK
+        #
+        # We use routes like this for internal tasks that require a
+        # server-request context.
         INTERNAL_ROUTES = [
-          '/cleanup'
+          '/cleanup-internal'
         ].freeze
 
         # these routes must
@@ -61,10 +64,11 @@ module Xolo
           '/cleanup',
           '/update-client-data',
           '/rotate-logs',
-          '/set-log-level'
+          '/set-log-level',
+          '/shutdown-server'
         ].freeze
 
-        # The loopback address for IPV4
+        # The loopback address for IPV4, aka 'localhost'
         IPV4_LOOPBACK = '127.0.0.1'
 
         # Module methods

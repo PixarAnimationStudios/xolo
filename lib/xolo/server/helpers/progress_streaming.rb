@@ -154,7 +154,7 @@ module Xolo
         #
         # @return [void]
         ###################
-        def progress(msg, log: :debug)
+        def progress(msg, log: :nil)
           # log_debug "Progress method called from #{caller_locations.first}"
 
           progress_stream_file.pix_append "#{msg.chomp}\n"

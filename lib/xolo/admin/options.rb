@@ -160,6 +160,7 @@ module Xolo
       UPDATE_CLIENT_DATA_CMD = 'update-client-data'
       ROTATE_SERVER_LOGS_CMD = 'rotate-server-logs'
       SET_SERVER_LOG_LEVEL_CMD = 'set-server-log-level'
+      SHUTDOWN_SERVER_CMD = 'shutdown-server'
 
       # various strings for the commands and opts
 
@@ -309,8 +310,8 @@ module Xolo
       #   the arguments and options.
       #
       # - streamed_response: [Boolean] Used for long-running server processes, like delete_title
-      #   or delete_version. When true, we don't expect a JSON response from the server, but
-      #   instead a stream of status messages, which we just print out as they arrive.
+      #   or delete_version. When true, we don't expect a final JSON response from the server, but
+      #   instead a link to a stream of status messages, which we just print out as they arrive.
       #
       ###### Arguments vs options:
       #
@@ -555,6 +556,15 @@ module Xolo
           opts: {},
           arg_banner: '  level: The log level to set, one of "debug", "info", "warn", "error", "fatal"',
           process_method: :set_server_log_level,
+          confirmation: true
+        },
+
+        SHUTDOWN_SERVER_CMD => {
+          desc: 'Shutdown (Restart) the server gracefully, finishing all pending tasks. Requires server-admin privileges.',
+          display: SHUTDOWN_SERVER_CMD,
+          opts: {},
+          arg_banner: :none,
+          process_method: :shutdown_server,
           confirmation: true
         }
 

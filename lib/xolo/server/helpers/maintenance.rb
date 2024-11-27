@@ -123,12 +123,17 @@ module Xolo
         # @return [void]
         ######################################
         def self.post_to_start_cleanup(force: false)
+          if Xolo::Server.shutting_down?
+            Xolo::Server.logger.info 'Not starting cleanup, server is shutting down'
+            return
+          end
+
           # only run the cleanup if it's between 2am and 3am
           # and the last one was more than 23 hrs ago
           last_cleanup_hrs_ago = (Time.now - last_cleanup) / 3600
           return unless force || (Time.now.hour == CLEANUP_HOUR && last_cleanup_hrs_ago > 23)
 
-          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/cleanup"
+          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/cleanup-internal"
           https = Net::HTTP.new(uri.host, uri.port)
           https.use_ssl = true
           # The server cert may be self-signed and/or doesn't
@@ -146,6 +151,10 @@ module Xolo
         # @return [void]
         ################################
         def cleanup_versions
+          if Xolo::Server.shutting_down?
+            log_info 'Not starting cleanup, server is shutting down'
+            return
+          end
           # TODO: Use Concurrent ruby rather than this instance variable
           mutex = Xolo::Server::Helpers::Maintenance.cleanup_mutex
 
@@ -244,6 +253,45 @@ module Xolo
         def unreleased_pilots_notification_days
           @unreleased_pilots_notification_days ||=
             Xolo::Server.config.unreleased_pilots_notification_days || DFT_UNRELEASED_PILOTS_NOTIFICATION_DAYS
+        end
+
+        # Shutdown the server
+        # @return [void]
+        ################################
+        def shutdown_server
+          # let all the routes know we are shutting down
+          Xolo::Server.shutting_down = true
+
+          log_info "Server Shutdown by #{session[:admin]}"
+          # stop_cleanup_timer_task
+          # stop_log_rotation_timer_task
+          shutdown_pkg_deletion_pool
+          # wait_for_object_locks
+          # wait_for_progress_streams
+        end
+
+        # Shutdown the pkg deletion pool
+        # @return [void]
+        ################################
+        def shutdown_pkg_deletion_pool
+          # Start the shutdown of the pkg_deletion_pool. Will finish anything
+          # in the queue, but not accept any new tasks.
+          pkg_pool = Xolo::Server::Version.pkg_deletion_pool
+          pkg_pool.shutdown
+          pkg_pool_shutdown_start = Time.now
+          progress 'Shutting down pkg deletion pool'
+          # returns true when shutdown is complete
+          until pkg_pool.wait_for_termination(20)
+            msg = "..Waiting for pkg deletion pool to finish, processing: #{pkg_pool.length}, in queue: #{pkg_pool.queue_length}"
+            progress msg, log: :debug
+            next unless Time.now - pkg_pool_shutdown_start > Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_PKG_DELETION
+
+            msg = 'ERROR: Timeout waiting for pkg deletion pool to finish, some pkgs may not be deleted'
+            progress msg, log: :error
+            pkg_pool.kill
+            break
+          end
+          progress 'Pkg deletion pool finished'
         end
 
       end # module Maintenance
