@@ -33,6 +33,7 @@ zmodload zsh/zutil
 # for perl-style regexps
 # DISABLED FOR NOW - some versions of macos don't seem to have
 # /usr/lib/zsh/5.9/zsh/pcre.so
+# All our regexps now use posix style
 #
 # setopt RE_MATCH_PCRE
 
@@ -90,7 +91,7 @@ title=
 version=
 
 # An Associative Array to hold the installed apps
-# is populated by get_installed_apps
+# is populated by get_installed_apps()
 typeset -A installed_apps
 
 # FUNCTIONS
@@ -106,6 +107,7 @@ function echoerr() { echo "$@" 1>&2; }
 function die() {
   local msg="$1"
   local mystat=1
+
   [[ -n "$2" ]] && mystat=$2
   echoerr "$msg"
   exit $mystat
@@ -215,6 +217,9 @@ function parse_cli() {
   debug "..be_verbose is: $be_verbose"
   debug "..be_quiet is: $be_quiet"
   debug "..debugging_on is: $debugging_on"
+  debug "..no_versions is: $no_versions"
+  debug "..show_xolo_version is: $show_xolo_version"
+
   debug "..command is: $command"
   debug "..title is: $title"
   debug "..version is: $version"
@@ -244,26 +249,16 @@ function say() {
   be_quiet || echo "$*"
 }
 
-# Print a message to stdout if we're in verbose mode
+# Print a message to stdout if we're in verbose or debug mode
 ###############################
 function verbose() {
   be_verbose && echo "$*"
 }
 
-# Print a debug message to stderr if debugging is on
+# Print a message to stderr if we're in debug mode
 ###############################
 function debug() {
   debugging_on && echo "DEBUG: $*" 1>&2
-}
-
-# what to tack on to the end of a jamf policy command
-###############################
-function jamf_policy_modifier() {
-  if be_verbose ; then
-    echo '-verbose'
-  elif be_quiet ; then
-    echo '> /dev/null'
-  fi
 }
 
 # Gather all installed bundle ids and installed versions from lsreg
@@ -273,6 +268,7 @@ function jamf_policy_modifier() {
 # e.g. 'com.apple.Safari => Safari.app;14.0.3'
 ###############################
 function get_installed_apps() {
+  debug "Getting all installed .apps on this Mac..."
   local app_name
   local app_bundle_id
   local app_vers
@@ -305,7 +301,7 @@ function get_installed_apps() {
 
   # print the installed apps - this is a long list
   if debugging_on ; then
-    debug "All Installed Apps:"
+    debug "All installed .apps on this Mac:"
     for bundle app in ${(kv)installed_apps}; do
           debug "'$bundle' -> '$app'"
     done
@@ -313,8 +309,8 @@ function get_installed_apps() {
 
 } # end installed_apps
 
-
-
+# Extract data from the client-data.json file
+#
 # $1 = a string of javascript that extracts your desired info from
 # the client-data.json file, which has already been parsed into
 # the variable 'parsed_data'
@@ -326,6 +322,7 @@ function get_installed_apps() {
 # The result of your processing will be sent to stdout of this function
 #######################################
 function extract_json_data() {
+  debug "Extracting data from client-data.json..."
   local processing_code="$1"
   local CLIENT_DATA_PROCESSING_JS
 
@@ -348,11 +345,13 @@ function run() {
 }
 ENDJAVASCRIPT
 
+  # in debug mode, show the javascript that will be run
   debug '============= EXECUTING JAVASCRIPT ==========='
   debug "${CLIENT_DATA_PROCESSING_JS}"
   debug '========================'
 
-  # run the javascript to send the result to stdout
+  # run the javascript to send the result to stdout, which is the default
+  # behavior of of the 'run' function in JXA
   osascript -l "JavaScript" <<< "${CLIENT_DATA_PROCESSING_JS}"
 
 }
@@ -360,6 +359,7 @@ ENDJAVASCRIPT
 # Outputs all known titles, one per line
 #######################################
 function all_xolo_titles() {
+  debug "Getting all known titles..."
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -368,9 +368,10 @@ ENDJAVASCRIPT
   extract_json_data "$jscode"
 }
 
-# Outputs all known titles, one per line
+# Outputs all known titles, one per line, with versions and statuses
 #######################################
 function all_xolo_titles_with_versions() {
+  debug "Getting all known titles with versions and statuses..."
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -405,6 +406,7 @@ ENDJAVASCRIPT
 # Outputs all the versions for the title, one per line
 #######################################
 function versions_for_title() {
+  debug "Getting versions for title $1..."
   local desired_title=$1
   local jscode
 
@@ -422,7 +424,8 @@ ENDJAVASCRIPT
 # Output the text to be displayed for the 'details' command for a title
 #######################################
 function details_for_title() {
-  desired_title=$1
+  debug "Getting details for title $1..."
+  local desired_title=$1
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -481,8 +484,9 @@ ENDJAVASCRIPT
 # Output the text to be displayed for the 'details' command for a version
 #######################################
 function details_for_version() {
-  desired_title=$1
-  desired_version=$2
+  debug "Getting details for version $2 of title $1 ..."
+  local desired_title=$1
+  local desired_version=$2
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -539,7 +543,8 @@ ENDJAVASCRIPT
 # or empty string if not set, or if no matching title
 #######################################
 function version_script_for_title() {
-  desired_title=$1
+  debug "Getting version script for title $1..."
+  local desired_title=$1
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -558,7 +563,8 @@ ENDJAVASCRIPT
 # or empty string if not set, or if no matching title
 #######################################
 function app_data_for_title() {
-  desired_title=$1
+  debug "Getting app data for title $1..."
+  local desired_title=$1
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -582,7 +588,8 @@ ENDJAVASCRIPT
 # or empty string if not set, or if no matching title
 #######################################
 function expiration_for_title() {
-  desired_title=$1
+  debug "Getting expiration for title $1..."
+  local desired_title=$1
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -601,7 +608,8 @@ ENDJAVASCRIPT
 # or empty string if not set, or if no matching title
 #######################################
 function expire_paths_for_title() {
-  desired_title=$1
+  debug "Getting expire paths for title $1..."
+  local desired_title=$1
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -620,7 +628,8 @@ ENDJAVASCRIPT
 # or empty string if not set, or if no matching title
 #######################################
 function released_version_for_title() {
-  desired_title=$1
+  debug "Getting released version for title $1..."
+  local desired_title=$1
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -639,8 +648,9 @@ ENDJAVASCRIPT
 # Output status of a version
 #######################################
 function status_for_version() {
-  desired_title=$1
-  desired_version=$2
+  debug "Getting status for version $2 of title $1 ..."
+  local desired_title=$1
+  local desired_version=$2
   local jscode
 
   read -r -d '' jscode <<ENDJAVASCRIPT
@@ -666,14 +676,35 @@ ENDJAVASCRIPT
   extract_json_data "$jscode"
 }
 
+# Run a Jamf policy trigger
+# $1 = the policy trigger to run
+# $2 = any extra options to pass to the jamf command
+# be_verbose() and be_quiet() will automatically be honored
+#######################################
+function run_jamf_policy_trigger() {
+  local policy_trigger=$1
+  local jamf_options=$2
+  local jamf_verbose=''
+  local jamf_quiet=''
+  local cmd
+
+  be_verbose && jamf_verbose='-verbose'
+  be_quiet && jamf_quiet='> /dev/null'
+
+    # TODO: look at the output of the policy run to see if it was successful
+  # and report possible reasons for failure, esp if no policy was found for
+  # the trigger
+  cmd="$JAMF policy -trigger $policy_trigger $jamf_options $jamf_verbose $jamf_quiet"
+  debug "Running jamf policy command: $cmd"
+  eval $cmd
+}
+
 # Refresh the client data
 ###############################
 function refresh_client_data() {
-  verbose "Refreshing client data..."
+  say "Refreshing client data..."
 
-  cmd="$JAMF policy -trigger $UPDATE_CLIENT_DATA_TRIGGER $(jamf_policy_modifier)"
-  debug "Running: $cmd"
-  eval $cmd
+  run_jamf_policy_trigger $UPDATE_CLIENT_DATA_TRIGGER
 }
 
 # validate that the title exists
@@ -681,6 +712,8 @@ function refresh_client_data() {
 function validate_title() {
   # if we've already validated the title, we're done
   [[ -n "$title_is_valid" ]] && return
+
+  debug "Validating title: $title"
 
   # die if no title given
   [[ -z "$title" ]] && die "No title given.\nUsage: $USAGE\nUse --help for more information."
@@ -701,6 +734,8 @@ function validate_version() {
   [[ -n "$version_is_valid" ]] && return
 
   validate_title
+  debug "Validating version: $version"
+
   # die if no version given
   [[ -z "$version" ]] && die "No version given.\nUsage: $USAGE\nUse --help for more information."
 
@@ -722,15 +757,13 @@ function install() {
   fi
   validate_version
 
-  # get the policy trigger for the desired version
-  policy_trigger="xolo-${title}-${version}-manual-install"
-
-  # run the policy trigger
-  verbose "Installing version $version of title $title..."
-
-  cmd="$JAMF policy -trigger $policy_trigger $(jamf_policy_modifier)"
-  debug "Running: $cmd"
-  eval $cmd
+    if [[ -n "$version" ]] ; then
+     say "Installing version $version of title $title"
+  else
+     say "Installing released version of title: $title"
+  fi
+r
+  run_jamf_policy_trigger "xolo-${title}-${version}-manual-install"
 }
 
 # Unnstall a title
@@ -741,25 +774,15 @@ function install() {
 ###############################
 function uninstall() {
   validate_title
+  say "Uninstalling title $title..."
 
-  # get the policy trigger for the desired version
-  policy_trigger="xolo-${title}-uninstall"
-
-  # run the policy trigger
-  verbose "Attempting to uninstall title $title..."
-
-  # TODO: look at the output of the policy run to see if it was successful
-  # and report possible reasons for failure, esp if no policy was found for
-  # the trigger
-  cmd="$JAMF policy -trigger $policy_trigger $(jamf_policy_modifier)"
-  debug "Running: $cmd"
-  eval $cmd
+  run_jamf_policy_trigger "xolo-${title}-uninstall"
 }
 
 # List all known titles and their versions and statuses
 ###############################
 function list_all_titles() {
-  say "Listing all known titles..."
+  say "All Titles know to Xolo..."
 
   if [[ -n "$no_versions" ]] ; then
     all_xolo_titles
@@ -946,35 +969,35 @@ function main() {
 
   case "$command" in
     install|i)
-      debug "running function 'install'"
+      debug "processing command 'install'"
       install
       ;;
     uninstall|u)
-      debug "running function 'uninstall'"
+      debug "processing command 'uninstall'"
       uninstall
       ;;
     refresh|r)
-      debug "running function 'refresh_client_data'"
+      debug "processing command 'refresh'"
       refresh_client_data
       ;;
     list-titles|lt)
-      debug "running function 'list_all_titles'"
+      debug "processing command 'list_titles'"
       list_all_titles
       ;;
     list-installed|li)
-      debug "running function 'list_installed_titles'"
+      debug "processing command 'list_installed'"
       list_installed_titles
       ;;
     details|d)
-      debug "running function 'show_details'"
+      debug "processing command 'details'"
       show_details
       ;;
     expire|e)
-      debug "running function 'expire'"
+      debug "processing command 'expire'"
       expire
       ;;
     help|h)
-      debug "running function 'show_help'"
+      debug "processing command 'help'"
       show_help
       ;;
     *)
