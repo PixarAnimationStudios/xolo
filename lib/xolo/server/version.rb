@@ -155,6 +155,12 @@ module Xolo
         curr_lock && curr_lock > Time.now
       end
 
+      # The package-deletion thread pool
+      #
+      # the auto_terminate is false to prevents the threads from being daemonized,
+      # and running after the main thread exits. This is important because launchd
+      # jobs should never do that.
+      #
       # See https://ruby-concurrency.github.io/concurrent-ruby/master/file.thread_pools.html
       # @return [Queue] The package-deletion thread pool
       ###############################
@@ -164,6 +170,7 @@ module Xolo
           min_threads: 1, # start with 1 thread
           max_threads: MAX_PKG_DELETION_THREADS, # create at most 10 threads
           max_queue: 0, # no limit
+          auto_terminate: false, # see method comments above
           idletime: 60 # seconds thread can remain idle before it is reclaimed, default is 60
           # fallback_policy: :abort # the default is :abort, which will raise a
           #   Concurrent::RejectedExecutionError exception and discard the task

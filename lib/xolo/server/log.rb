@@ -205,8 +205,11 @@ module Xolo
 
         # touch the last rotation file
         LAST_ROTATION_FILE.pix_touch
+      rescue StandardError => e
+        logger.error "Error rotating logs: #{e}"
+        e.backtrace.each { |l| logger.error "..#{l}" }
       ensure
-        mutex.unlock
+        Xolo::Server::Log.rotation_mutex.unlock if Xolo::Server::Log.rotation_mutex.owned?
       end
 
       # Rotate the current log file without losing any log entries

@@ -50,23 +50,26 @@ module Xolo
       # pre-process
       ##############
       before do
+        if Xolo::Server.shutting_down? && !request.path.start_with?('/streamed_progress/')
+          halt 503, { error: 'Server is shutting down' }
+        end
+
         adm = session[:admin] ? ", admin '#{session[:admin]}'" : Xolo::BLANK
         log_info "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}"
+
+        log_debug "Session in before-filter: #{session.inspect}"
 
         # these routes don't need an auth'd session
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
-        # these routes are for server admins only,and require an authenticated session
-        break if Xolo::Server::Helpers::Auth::SERVER_ADMIN_ROUTES.include?(request.path) && valid_server_admin?
-
         # these routes are expected to be called by the xolo server itself
-        # do this check last, so if a server admin is doing this manually, they can
         break if Xolo::Server::Helpers::Auth::INTERNAL_ROUTES.include?(request.path) && valid_internal_auth_token?
 
-        # If here, we must have a session cookie marked as 'authenticated'
-        # log_debug "Session in before filter: #{session.inspect}"
+        # these routes are for server admins only, and require an authenticated session
+        break if Xolo::Server::Helpers::Auth::SERVER_ADMIN_ROUTES.include?(request.path) && valid_server_admin?
 
+        # If here, we must have a session cookie marked as 'authenticated'
         halt 401, { error: 'You must log in to the Xolo server' } unless session[:authenticated]
       end
 
@@ -80,6 +83,7 @@ module Xolo
       end
 
       # post-process
+      # Convert the body to JSON unless @no_json is set
       ##############
       after do
         if @no_json
@@ -99,6 +103,7 @@ module Xolo
         # from ruby-jss and windoo api connections?
         # perhaps a callback to when a Sinatra server instance
         # 'finishes'?
+        # can't
       end
 
       # Ping

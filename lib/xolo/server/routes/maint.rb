@@ -76,16 +76,27 @@ module Xolo
           body state
         end
 
-        # run the cleanup process
+        # run the cleanup process from the internal timer task
         # The before filter will ensure the request came from the server itself.
         # with a valid internal auth token.
         ################
+        post '/cleanup-internal' do
+          log_info 'Starting internal cleanup'
+
+          thr = Thread.new { cleanup_versions }
+          thr.name = 'Internal Cleanup Thread'
+          result = { result: 'Internal Cleanup Underway' }
+          body result
+        end
+
+        # run the cleanup process manually from a server admin via xadm
+        ################
         post '/cleanup' do
-          log_info "Force server cleanup by #{session[:admin]}"
+          log_info "Starting manual server cleanup by #{session[:admin]}"
 
           thr = Thread.new { cleanup_versions }
           thr.name = 'Manual Cleanup Thread'
-          result = { result: 'Cleanup Underway' }
+          result = { result: 'Manual Cleanup Underway' }
           body result
         end
 
@@ -122,6 +133,32 @@ module Xolo
 
           result = { result: "Log level set to #{level}" }
           body result
+        end
+
+        # Shutdown the server gracefully
+        # stop accepting new requests
+        # wait for all queues and threads to finish, including:
+        #  the cleanup timer task & mutex
+        #  the log rotation timer task & mutex
+        #  the pkg deletion pool
+        #  the object locks
+        #  the progress streams, including this one, which will be the last thing to finish
+        ################
+        post '/shutdown-server' do
+          with_streaming do
+            shutdown_server
+          end
+
+          # TODO:
+          #  cant do this inside the with_streaming block!
+          # But - the shutdown is happening too fast for
+          # the stream to be sent...
+          @streaming_thread&.join
+
+          Xolo::Server::App.quit!
+
+          # during testing and just in case
+          Xolo::Server.shutting_down = false
         end
 
       end # module maint

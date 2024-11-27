@@ -740,6 +740,7 @@ module Xolo
       # Show info about the server status
       #
       # @return [void]
+      ###############################
       def server_status
         data = server_cnx.get(SERVER_STATUS_ROUTE).body
 
@@ -761,6 +762,7 @@ module Xolo
       # kick off server cleanup
       #
       # @return [void]
+      ###############################
       def server_cleanup
         return unless confirmed? 'Run the Xolo Server cleanup process'
 
@@ -773,6 +775,7 @@ module Xolo
       # force update the client data pkg
       #
       # @return [void]
+      ###############################
       def update_client_data
         return unless confirmed? 'Force update of the client data package'
 
@@ -785,6 +788,7 @@ module Xolo
       # rotate the server logs
       #
       # @return [void]
+      ###############################
       def rotate_server_logs
         return unless confirmed? 'Rotate the Xolo Server logs'
 
@@ -797,6 +801,7 @@ module Xolo
       # set the server log level
       #
       # @return [void]
+      ###############################
       def set_server_log_level
         level = ARGV.shift&.downcase
         raise ArgumentError, 'No log level given' unless level
@@ -811,6 +816,31 @@ module Xolo
         result = server_cnx.post(SERVER_LOG_LEVEL_ROUTE, payload).body
         puts result[:result]
       rescue StandardError => e
+        handle_processing_error e
+      end
+
+      # shutdown the server
+      #
+      # @return [void]
+      ###############################
+      def shutdown_server
+        return unless confirmed? 'Shutdown the Xolo Server'
+
+        result = server_cnx.post('/shutdown-server').body
+        puts result[:result]
+
+        if debug?
+          puts "DEBUG: response_data: #{result}"
+          puts
+        end
+
+        display_progress result[:progress_stream_url_path]
+
+        puts 'Shutdown complete'
+      rescue Faraday::ConnectionFailed
+        puts 'Shutdown complete'
+      rescue StandardError => e
+        puts "Error Class: #{e.class}"
         handle_processing_error e
       end
 
