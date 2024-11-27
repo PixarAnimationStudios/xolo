@@ -77,9 +77,10 @@ module Xolo
           desc: <<~ENDDESC
             Do not ask for confirmation before commands that require it:
             add-title, edit-title, delete-title, add-version, edit-version,
-            release-version, delete-version.
+            release, delete-version.
             This is mostly used for automating xolo.
-            Ignored if using --walkthru.
+            Ignored if using --walkthru: if you're interacive you must confirm
+            your changes.
             WARNING: Be careful that all values are correct.
           ENDDESC
         },
@@ -421,8 +422,9 @@ module Xolo
           confirmation: true
         },
 
+        # TODO: implement a 'desc_addendum' that elaborates the desc in the command help.
         RELEASE_VERSION_CMD => {
-          desc: "Make a version 'live', i.e. the one available for general installation.",
+          desc: "Take a version out of pilot and make it 'live'.",
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version,
@@ -459,7 +461,7 @@ module Xolo
         },
 
         REPORT_CMD => {
-          desc: 'Show a patch-report of installation data',
+          desc: 'Show a patch-report for a title, or a version of a title',
           long_desc: PATCH_REPORT_LONG_DESC,
           display: "#{REPORT_CMD} title [version]",
           opts: PATCH_REPORT_OPTS,
@@ -476,7 +478,7 @@ module Xolo
         },
 
         CONFIG_CMD => {
-          desc: 'Configure xadm. (Implies --walkthru)',
+          desc: 'Configure xadm. Always interactive, implies --walkthru',
           display: CONFIG_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
