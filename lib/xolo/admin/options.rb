@@ -560,9 +560,20 @@ module Xolo
         },
 
         SHUTDOWN_SERVER_CMD => {
-          desc: 'Shutdown (Restart) the server gracefully, finishing all pending tasks. Requires server-admin privileges.',
+          desc: 'Shutdown or restart the server gracefully. Requires server-admin privileges.',
           display: SHUTDOWN_SERVER_CMD,
-          opts: {},
+          opts: {
+            restart: {
+              label: 'Restart after shutdown',
+              cli: :r,
+              type: :boolean,
+              validate: :validate_boolean,
+              default: false,
+              desc: <<~ENDDESC
+                Restart the server automatically after shutdown. If not given, you must reload the launchd plist, or reboot the server machine to restart the server process.
+              ENDDESC
+            }
+          },
           arg_banner: :none,
           process_method: :shutdown_server,
           confirmation: true

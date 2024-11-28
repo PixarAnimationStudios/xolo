@@ -42,6 +42,8 @@ module Xolo
         #######################
         #######################
 
+        PROGRESS_THREAD_NAME_PREFIX = 'xolo-progress-stream-'
+
         # Module Methods
         #######################
         #######################
@@ -92,7 +94,7 @@ module Xolo
             stop_progress_streaming
           end
 
-          @streaming_thread.name = "xolo-progress-stream-#{session[:xolo_id]}"
+          @streaming_thread.name = "#{PROGRESS_THREAD_NAME_PREFIX}#{session[:xolo_id]}"
 
           resp_body = {
             status: :running,
@@ -128,7 +130,7 @@ module Xolo
         def progress_stream_file
           return @progress_stream_file if @progress_stream_file
 
-          tempf = Tempfile.create "xolo-progress-stream-#{session[:xolo_id]}-"
+          tempf = Tempfile.create "#{PROGRESS_THREAD_NAME_PREFIX}#{session[:xolo_id]}-"
           tempf.close # we'll write to it later
           log_debug "Created progress_stream_file: #{tempf.path}"
           @progress_stream_file = Pathname.new(tempf.path)

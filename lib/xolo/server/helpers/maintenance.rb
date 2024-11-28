@@ -66,6 +66,9 @@ module Xolo
         # default value.
         DFT_UNRELEASED_PILOTS_NOTIFICATION_DAYS = 180
 
+        # when doing a full shutdown, we need to unload the launchd plist
+        SERVER_LAUNCHD_PLIST = Pathname.new '/Library/LaunchDaemons/com.pixar.xoloserver.plist'
+
         # Module Methods
         #####################################
 
@@ -258,16 +261,88 @@ module Xolo
         # Shutdown the server
         # @return [void]
         ################################
-        def shutdown_server
+        def shutdown_server(restart)
           # let all the routes know we are shutting down
           Xolo::Server.shutting_down = true
 
-          log_info "Server Shutdown by #{session[:admin]}"
-          # stop_cleanup_timer_task
-          # stop_log_rotation_timer_task
+          progress "Server Shutdown by #{session[:admin]}", log: :info
+
+          stop_cleanup_timer_task
+          stop_log_rotation_timer_task
           shutdown_pkg_deletion_pool
-          # wait_for_object_locks
-          # wait_for_progress_streams
+          wait_for_object_locks
+          wait_for_progress_streams
+
+          # without unloading the launchd job, the server will restart automatically
+          # when we tell it to quit
+          if restart
+            progress 'Restarting the server now', log: :info
+            Xolo::Server::App.quit!
+          else
+            progress 'Shutting down the server now', log: :info
+            unload_server_launchd
+          end
+        end
+
+        # full shutdown of the server by unloading the launchd plist
+        # @return [void]
+        ################################
+        def unload_server_launchd
+          log_info 'Unloading the server launchd plist'
+          system "/bin/launchctl unload #{SERVER_LAUNCHD_PLIST}"
+        end
+
+        # Stop the cleanup timer task
+        # @return [void]
+        ################################
+        def stop_cleanup_timer_task
+          progress 'Stopping the cleanup timer task', log: :info
+          Xolo::Server::Helpers::Maintenance.cleanup_timer_task.shutdown
+        end
+
+        # Stop the log rotation timer task
+        # @return [void]
+        ################################
+        def stop_log_rotation_timer_task
+          progress 'Stopping the log rotation timer task', log: :info
+          Xolo::Server::Log.log_rotation_timer_task.shutdown
+        end
+
+        # Wait for all object locks to be released
+        # @return [void]
+        ################################
+        def wait_for_object_locks
+          Xolo::Server.remove_expired_object_locks
+
+          until Xolo::Server.object_locks.empty?
+            progress 'Waiting for object locks to be released', log: :info
+            log_debug "Object locks: #{Xolo::Server.object_locks.inspect}"
+            sleep 5
+            Xolo::Server.remove_expired_object_locks
+          end
+          progress 'All object locks released', log: :info
+        end
+
+        # Wait for all progress streams to finish
+        # @return [void]
+        ################################
+        def wait_for_progress_streams
+          prefix = Xolo::Server::Helpers::ProgressStreaming::PROGRESS_THREAD_NAME_PREFIX
+          prog_threads = Thread.list.select { |th| th.name.to_s.start_with? prefix }
+          # remove our own thread from the list
+          prog_threads.delete Thread.current
+          prog_threads.delete @streaming_thread
+
+          until prog_threads.empty?
+            progress 'Waiting for progress streams to finish', log: :info
+            log_debug "Progress stream threads: #{prog_threads.map(&:name)}}"
+            sleep 5
+            prog_threads = Thread.list.select { |th| th.name.to_s.start_with? prefix }
+            # remove our own thread from the list
+            prog_threads.delete Thread.current
+            prog_threads.delete @streaming_thread
+          end
+          progress 'All progress streams finished', log: :info
         end
 
         # Shutdown the pkg deletion pool
@@ -279,7 +354,7 @@ module Xolo
           pkg_pool = Xolo::Server::Version.pkg_deletion_pool
           pkg_pool.shutdown
           pkg_pool_shutdown_start = Time.now
-          progress 'Shutting down pkg deletion pool'
+          progress 'Shutting down pkg deletion pool', log: :info
           # returns true when shutdown is complete
           until pkg_pool.wait_for_termination(20)
             msg = "..Waiting for pkg deletion pool to finish, processing: #{pkg_pool.length}, in queue: #{pkg_pool.queue_length}"
@@ -291,7 +366,7 @@ module Xolo
             pkg_pool.kill
             break
           end
-          progress 'Pkg deletion pool finished'
+          progress 'Pkg deletion queue is empty'
         end
 
       end # module Maintenance
