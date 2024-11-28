@@ -47,6 +47,7 @@ module Xolo
       SERVER_ROTATE_LOGS_ROUTE = '/rotate-logs'
       SERVER_UPDATE_CLIENT_DATA_ROUTE = '/update-client-data'
       SERVER_LOG_LEVEL_ROUTE = '/set-log-level'
+      SERVER_SHUTDOWN_ROUTE = '/shutdown-server'
 
       # We can't pull this from Xolo::Server::Log::LEVELS, because
       # we don't want to require that file here, it'll complain about
@@ -826,8 +827,12 @@ module Xolo
       def shutdown_server
         return unless confirmed? 'Shutdown the Xolo Server'
 
-        result = server_cnx.post('/shutdown-server').body
-        puts result[:result]
+        restart = cli_cmd_opts.restart
+        action = restart ? 'Restart' : 'Shutdown'
+        payload = { restart: restart }
+
+        result = server_cnx.post(SERVER_SHUTDOWN_ROUTE, payload).body
+        puts "result[:result] = #{result[:result]}"
 
         if debug?
           puts "DEBUG: response_data: #{result}"
@@ -836,9 +841,9 @@ module Xolo
 
         display_progress result[:progress_stream_url_path]
 
-        puts 'Shutdown complete'
+        puts "#{action} complete"
       rescue Faraday::ConnectionFailed
-        puts 'Shutdown complete'
+        puts "#{action} complete"
       rescue StandardError => e
         puts "Error Class: #{e.class}"
         handle_processing_error e

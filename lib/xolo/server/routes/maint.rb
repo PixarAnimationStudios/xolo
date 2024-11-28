@@ -145,20 +145,17 @@ module Xolo
         #  the progress streams, including this one, which will be the last thing to finish
         ################
         post '/shutdown-server' do
+          request.body.rewind
+          payload = parse_json request.body.read
+          restart = payload[:restart]
+
+          # for streamed responses, the with_streaming block must
+          # be the last thing in the route
           with_streaming do
-            shutdown_server
+            # give the stream a chance to get started
+            sleep 2
+            shutdown_server restart
           end
-
-          # TODO:
-          #  cant do this inside the with_streaming block!
-          # But - the shutdown is happening too fast for
-          # the stream to be sent...
-          @streaming_thread&.join
-
-          Xolo::Server::App.quit!
-
-          # during testing and just in case
-          Xolo::Server.shutting_down = false
         end
 
       end # module maint

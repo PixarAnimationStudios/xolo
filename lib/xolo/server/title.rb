@@ -1006,6 +1006,8 @@ module Xolo
       # Lock this title for updates
       #############################
       def lock
+        raise Xolo::ServerError, 'Server is shutting down' if Xolo::Server.shutting_down?
+
         while locked?
           log_debug "Waiting for update lock on title '#{title}'..."
           sleep 0.33
