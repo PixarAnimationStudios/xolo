@@ -59,6 +59,7 @@ module Xolo
           state = {
             executable: Xolo::Server::EXECUTABLE_FILENAME,
             start_time: Xolo::Server.start_time,
+            uptime: (Time.now - Xolo::Server.start_time).to_i.pix_humanize_secs,
             app_env: Xolo::Server.app_env,
             data_dir: Xolo::Server::DATA_DIR,
             log_file: Xolo::Server::Log::LOG_FILE,
