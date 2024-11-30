@@ -948,7 +948,7 @@ module Xolo
                 "No version '#{version_to_release}' for title '#{title}'"
         end
 
-        progress "Releasing version #{version_to_release} of title '#{title}'", log: :debug
+        progress "Releasing version #{version_to_release} of title '#{title}'", log: :info
 
         # get the Version objects and figure out our starting point, but process
         # them in reverse order so that we don't have two released versions at once
