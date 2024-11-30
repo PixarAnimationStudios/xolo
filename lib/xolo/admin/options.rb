@@ -61,12 +61,12 @@ module Xolo
           walkthru: false,
           cli: :w,
           desc: <<~ENDDESC
-            Run xadm in interactive mode
+            Run xadm in interactive mode when adding or editing titles or versions.
             This causes xadm to present an interactive, menu-and-
             prompt-driven interface. All command-options given on the
             command line are ignored, and will be gathered
             interactively.
-            Using the command 'config' will always imply --walkthru.
+            The 'config' command is always interactive, even without --walkthru.
           ENDDESC
         },
 
@@ -75,9 +75,8 @@ module Xolo
           cli: :a,
           walkthru: false,
           desc: <<~ENDDESC
-            Do not ask for confirmation before commands that require it:
-            add-title, edit-title, delete-title, add-version, edit-version,
-            release, delete-version.
+            Do not ask for confirmation before making changes or using server-
+            admin commands.
             This is mostly used for automating xolo.
             Ignored if using --walkthru: if you're interacive you must confirm
             your changes.
@@ -111,7 +110,7 @@ module Xolo
           desc: <<~ENDDESC
             For commands that output lists or info about titles and versions,
             such as 'list-titles' or 'info <title> <version>',
-            return the data as raw JSON, not formatted for human eyes.
+            return the data as raw JSON.
           ENDDESC
         },
 
@@ -171,19 +170,6 @@ module Xolo
 
       TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
       TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
-
-      PATCH_REPORT_LONG_DESC = <<~ENDDESC
-        Patch reports list which computers have a title, or a version of the title, installed.
-        They always show the computer name, username and last contact date. If reporting all
-        versions, the version on each computer will also be listed.
-
-        Commandline options can be used to add more data to the report, such as operating system,
-        department, site, and so on.
-
-        To see machines with an unknown version of a title, use '#{Xolo::UNKNOWN}' as the version.
-
-        NOTE: When using --json, all options are included in the data.
-      ENDDESC
 
       PATCH_REPORT_OPTS = {
         os: {
@@ -345,7 +331,6 @@ module Xolo
           confirmation: true
         },
 
-        # TODO: Implement PATCH, or just PUT ?
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
           display: "#{EDIT_TITLE_CMD} title",
@@ -369,6 +354,12 @@ module Xolo
 
         FREEZE_TITLE_CMD => {
           desc: 'Prevent computers from updating the currently installed version of a title.',
+          long_desc: <<~ENDLONG,
+            The target computers are added to a static group that is excluded from
+            all policies and patch policies related to this title and its versions.
+            If a computer doesn't have any version of the title, this will prevent
+            it from being installed via xolo (it will be 'frozen' in that state).
+          ENDLONG
           display: "#{FREEZE_TITLE_CMD} title [--users] target [target ...] ",
           opts: FREEZE_THAW_OPTIONS,
           process_method: :freeze,
@@ -377,7 +368,12 @@ module Xolo
         },
 
         THAW_TITLE_CMD => {
-          desc: 'Allow frozen computers to update beyond the currently installed version of a title.',
+          desc: 'Un-freeze computers, allowing them to resume updates of a title.',
+          ong_desc: <<~ENDLONG,
+            The target computers are removed from the static group that is excluded from
+            all policies and patch policies related to this title and its versions.
+            This will allow installation and updates to resume.
+          ENDLONG
           display: "#{THAW_TITLE_CMD} title [--users] target [target ...]",
           opts: FREEZE_THAW_OPTIONS,
           process_method: :thaw,
@@ -404,6 +400,11 @@ module Xolo
         ADD_VERSION_CMD => {
           desc: 'Add a new version to a title, making it available for piloting',
           display: "#{ADD_VERSION_CMD} title version",
+          long_desc: <<~ENDLONG,
+            The version will be automatically installed or updated on any computers
+            in the 'pilot-groups' defined for the version. To manually install it
+            on other computers, you must use 'xolo install <title> <version>'.
+          ENDLONG
           opts: Xolo::Admin::Version.cli_opts,
           walkthru_header: "Adding Version '#{TARGET_VERSION_PLACEHOLDER}' to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           process_method: :add_version,
@@ -423,9 +424,13 @@ module Xolo
           confirmation: true
         },
 
-        # TODO: implement a 'desc_addendum' that elaborates the desc in the command help.
         RELEASE_VERSION_CMD => {
           desc: "Take a version out of pilot and make it 'live'.",
+          long_desc: <<~ENDLONG,
+            Once released, the version will be updated on all computers
+            where it is installed. It will also be the version installed
+            manually on a computer when running 'xolo install <title>'.
+          ENDLONG
           display: "#{RELEASE_VERSION_CMD} title version",
           opts: {},
           target: :version,
@@ -446,7 +451,10 @@ module Xolo
 
         SEARCH_CMD => {
           desc: 'Search for titles.',
-          long_desc: 'Matches text in title, display name, publisher, app name, bundle ID, or description.',
+          long_desc: <<~ENDLONG,
+            Matches text in title, display name, publisher, app name, bundle ID,
+            or description.
+          ENDLONG
           display: "#{SEARCH_CMD} title",
           opts: {},
           target: :title,
@@ -463,7 +471,18 @@ module Xolo
 
         REPORT_CMD => {
           desc: 'Show a patch-report for a title, or a version of a title',
-          long_desc: PATCH_REPORT_LONG_DESC,
+          long_desc: <<~ENDDESC,
+            Patch reports list which computers have a title, or a version of the title, installed.
+            They always show the computer name, username and last contact date. If reporting all
+            versions, the version on each computer will also be listed.
+
+            Commandline options can be used to add more data to the report, such as operating system,
+            department, site, and so on.
+
+            To see machines with an unknown version of a title, use '#{Xolo::UNKNOWN}' as the version.
+
+            NOTE: When using --json, all options are included in the data.
+          ENDDESC
           display: "#{REPORT_CMD} title [version]",
           opts: PATCH_REPORT_OPTS,
           target: :title_or_version,
@@ -471,7 +490,10 @@ module Xolo
         },
 
         CHANGELOG_CMD => {
-          desc: 'Show the changelog for a title and its versions',
+          desc: 'Show the changelog for a title',
+          long_desc: <<~ENDDESC,
+            The changelog is a list of all the changes made to the title and its versions.
+          ENDDESC
           display: "#{CHANGELOG_CMD} title",
           opts: {},
           target: :title,
@@ -515,7 +537,12 @@ module Xolo
         },
 
         SERVER_STATUS_CMD => {
-          desc: 'Show status of Xolo server, requires server-admin privileges',
+          desc: 'Show status of Xolo server.',
+          long_desc: <<~ENDLONG,
+            Requires server-admin privileges.
+            Displays the current status of the server, including uptime, log level,
+            versions of various libraries, configuration, threads, and more.
+          ENDLONG
           display: SERVER_STATUS_CMD,
           opts: {},
           arg_banner: :none,
@@ -523,7 +550,16 @@ module Xolo
         },
 
         SERVER_CLEANUP_CMD => {
-          desc: "Run the server's cleanup process now. Requires server-admin privileges.",
+          desc: "Run the server's cleanup process now.",
+          long_desc: <<~ENDLONG,
+            Requires server-admin privileges.
+            Once a version of a title is released, the preveiously released
+            version is marked as 'deprecated', and any older unreleased versions
+            are marked as 'skipped'. A nightly task will then delete all skipped
+            versions from xolo, as well as deprecated versions that have been than
+            deprecated more than some number of days, as configured configured on
+            the server. Running this command will do that cleanup now.
+          ENDLONG
           display: SERVER_CLEANUP_CMD,
           opts: {},
           arg_banner: :none,
@@ -533,6 +569,13 @@ module Xolo
 
         UPDATE_CLIENT_DATA_CMD => {
           desc: 'Make the server update the client-data package now. Requires server-admin privileges.',
+          long_desc: <<~ENDLONG,
+            Requires server-admin privileges.
+            Every time a change is made to a title or version, the server updates
+            a JSON file with the current state of all titles and versions. This
+            file is then packaged and deployed to all managed clients. Running
+            this command will force the server to update that file now.
+          ENDLONG
           display: UPDATE_CLIENT_DATA_CMD,
           opts: {},
           arg_banner: :none,
@@ -541,7 +584,12 @@ module Xolo
         },
 
         ROTATE_SERVER_LOGS_CMD => {
-          desc: 'Rotate the logs on the server now. Requires server-admin privileges.',
+          desc: 'Rotate the logs on the server now.',
+          long_desc: <<~ENDLONG,
+            Requires server-admin privileges.
+            Server log rotation is normally done nightly. Running this command
+            will rotate the logs now.
+          ENDLONG
           display: ROTATE_SERVER_LOGS_CMD,
           opts: {},
           arg_banner: :none,
@@ -550,7 +598,13 @@ module Xolo
         },
 
         SET_SERVER_LOG_LEVEL_CMD => {
-          desc: 'Set the log level of the server logger. Requires server-admin privileges.',
+          desc: 'Set the log level of the server logger.',
+          long_desc: <<~ENDLONG,
+            Requires server-admin privileges.
+            Sets the log level of the server logger to one of 'debug', 'info',
+            'warn', 'error', or 'fatal'. This will affect the amount of output
+            written to the server log file.
+          ENDLONG
           display: SET_SERVER_LOG_LEVEL_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SET_SERVER_LOG_LEVEL_CMD} level [options]",
           opts: {},
@@ -560,8 +614,14 @@ module Xolo
         },
 
         SHUTDOWN_SERVER_CMD => {
-          desc: 'Shutdown or restart the server gracefully. Requires server-admin privileges.',
-          display: SHUTDOWN_SERVER_CMD,
+          desc: 'Shutdown or restart the server gracefully.',
+          long_desc: <<~ENDLONG,
+            Requires server-admin privileges.
+            Gracefully stop the xolo server process, optionally restarting it automatically.
+            This will attempt to finish any in-progress operations before shutting down.
+            If you don't use --restart, you must reload the launchd plist, or reboot the server machine to restart the server process.
+          ENDLONG
+          display: "#{SHUTDOWN_SERVER_CMD} [--restart]",
           opts: {
             restart: {
               label: 'Restart after shutdown',
