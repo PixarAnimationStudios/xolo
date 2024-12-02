@@ -1,0 +1,8 @@
+Command:
+  list-groups, List all computer groups in Jamf pro
+
+Usage:
+  xadm list-groups
+
+Options:
+  -h, --help    Show this message

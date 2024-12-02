@@ -1,0 +1,13 @@
+Command:
+  server-status, Show status of Xolo server.
+
+Description:
+  Requires server-admin privileges.
+  Displays the current status of the server, including uptime, log level,
+  versions of various libraries, configuration, threads, and more.
+
+Usage:
+  xadm server-status [options]
+
+Options:
+  -h, --help    Show this messag

@@ -1,0 +1,17 @@
+Command:
+  run-server-cleanup, Run the server's cleanup process now.
+
+Description:
+  Requires server-admin privileges.
+  Once a version of a title is released, the preveiously released
+  version is marked as 'deprecated', and any older unreleased versions
+  are marked as 'skipped'. A nightly task will then delete all skipped
+  versions from xolo, as well as deprecated versions that have been than
+  deprecated more than some number of days, as configured configured on
+  the server. Running this command will do that cleanup now.
+
+Usage:
+  xadm run-server-cleanup [options]
+
+Options:
+  -h, --help    Show this message

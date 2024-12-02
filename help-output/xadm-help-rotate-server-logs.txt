@@ -1,0 +1,13 @@
+Command:
+  rotate-server-logs, Rotate the logs on the server now.
+
+Description:
+  Requires server-admin privileges.
+  Server log rotation is normally done nightly. Running this command
+  will rotate the logs now.
+
+Usage:
+  xadm rotate-server-logs [options]
+
+Options:
+  -h, --help    Show this message

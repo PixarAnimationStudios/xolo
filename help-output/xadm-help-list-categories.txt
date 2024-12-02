@@ -1,0 +1,8 @@
+ommand:
+  list-categories, List all categories in Jamf pro
+
+Usage:
+  xadm list-categories
+
+Options:
+  -h, --help    Show this message
