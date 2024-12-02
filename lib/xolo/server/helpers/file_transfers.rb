@@ -93,6 +93,7 @@ module Xolo
         def process_incoming_pkg
           log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
 
+          # the Xolo::Server::Version that owns this pkg
           version = instantiate_version title: params[:title], version: params[:version]
 
           # the original uploaded filename
@@ -102,7 +103,8 @@ module Xolo
 
           # Set the jamf_pkg_file, now that we know the extension
           uploaded_pkg_name = "#{version.jamf_pkg_name}#{file_extname}"
-          log_debug "Jamf: Package.filename will be '#{uploaded_pkg_name}'"
+          log_debug "Jamf: Package filename will be '#{uploaded_pkg_name}'"
+          version.jamf_pkg_file = uploaded_pkg_name
 
           # The tempfile created by Sinatra when the pkg was uploaded from xadm
           tempfile = Pathname.new params[:file][:tempfile].path
@@ -120,9 +122,6 @@ module Xolo
             log_debug "Uploaded .pkg file doesn't need signing, copying tempfile to '#{staged_pkg.basename}'"
             tempfile.pix_cp staged_pkg
           end
-
-          # the Xolo::Server::Version that owns this pkg
-          version = instantiate_version title: params[:title], version: params[:version]
 
           # upload the pkg with the uploader tool defined in config
           upload_to_dist_point(version, staged_pkg)
