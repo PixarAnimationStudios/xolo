@@ -783,7 +783,7 @@ function uninstall() {
 # List all known titles and their versions and statuses
 ###############################
 function list_all_titles() {
-  say "All Titles know to Xolo..."
+  say "All Titles known to Xolo..."
 
   if [[ -n "$no_versions" ]] ; then
     all_xolo_titles
