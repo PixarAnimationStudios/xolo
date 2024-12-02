@@ -236,7 +236,7 @@ module Xolo
         validate_cli_command
 
         # Some commands, like 'config', always do walkthru
-        return if reparse_global_cli_for_mandatory_walkthru?
+        global_opts.walkthru = true if cli_cmd.command == Xolo::Admin::Options::CONFIG_CMD
 
         # if the command is 'help'
         # then
@@ -308,19 +308,21 @@ module Xolo
 
       # Are we doing mandatory walkthru? If so, re-parse the global opts
       ##################################################################
-      def reparse_global_cli_for_mandatory_walkthru?
-        return false if ARGV.include? Xolo::Admin::Options::HELP_OPT
-        return false unless cli_cmd.command == Xolo::Admin::Options::CONFIG_CMD
+      # def reparse_global_cli_for_mandatory_walkthru?
+      #   return false if @reparsed_global_cli_for_mandatory_walkthru
+      #   return false if ARGV.include? Xolo::Admin::Options::HELP_OPT
+      #   return false unless cli_cmd.command == Xolo::Admin::Options::CONFIG_CMD
 
-        ARGV.clear
-        ARGV << '--walkthru'
-        ARGV << '--debug' if global_opts.debug
-        ARGV << '--auto-confirm' if global_opts.auto_confirm
-        ARGV << Xolo::Admin::Options::CONFIG_CMD
+      #   ARGV.clear
+      #   ARGV << '--walkthru'
+      #   ARGV << '--debug' if global_opts.debug
+      #   ARGV << '--auto-confirm' if global_opts.auto_confirm
+      #   ARGV << Xolo::Admin::Options::CONFIG_CMD
 
-        parse_cli
-        true
-      end
+      #   parse_cli
+      #   @reparsed_global_cli_for_mandatory_walkthru = true
+      #   true
+      # end
 
       # Parse the options for the command.
       # This returns a hash from Optimist

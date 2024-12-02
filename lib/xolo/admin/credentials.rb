@@ -136,6 +136,8 @@ module Xolo
         cmd << XOLO_CREDS_LBL
 
         run_security(cmd.map { |i| security_escape i }.join(' '))
+      rescue Xolo::NoSuchItemError
+        nil
       rescue RuntimeError => e
         raise e unless e.to_s == 'No matching keychain item was found'
 

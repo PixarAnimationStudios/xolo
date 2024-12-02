@@ -150,15 +150,18 @@ module Xolo
       end
 
       # update the adm config file using the values from 'xadm config'
+      # which is a walkthru
       #
       # @return [void]
       ###############################
       def update_config
-        Xolo::Admin::Configuration::KEYS.each_key do |key|
-          config.send "#{key}=", opts_to_process[key]
-        end
+        debug? && puts("DEBUG: opts_to_process: #{opts_to_process}")
 
-        config.save_to_file
+        # Xolo::Admin::Configuration::KEYS.each_key do |key|
+        #   config.send "#{key}=", opts_to_process[key]
+        # end
+
+        config.save_to_file data: opts_to_process.to_h
       end
 
       # List all titles in Xolo

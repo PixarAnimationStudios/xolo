@@ -707,9 +707,11 @@ module Xolo
         raise Xolo::MissingDataError, 'admin username must be set before password' if admin.pix_empty?
 
         payload = { admin: admin, password: val }.to_json
-        resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
-
-        raise_invalid_data_error 'User/Password', resp.body[:error] unless resp.success?
+        begin
+          resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+        rescue Faraday::UnauthorizedError => e
+          raise_invalid_data_error 'User/Password', 'Username or Password is incorrect'
+        end
 
         # store the passwd in the keychain
         store_pw admin, val
