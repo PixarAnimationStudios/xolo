@@ -151,7 +151,7 @@ module Xolo
       LIST_GROUPS_CMD = 'list-groups'
       LIST_CATEGORIES_CMD = 'list-categories'
 
-      SERVER_STATUS_CMD = 'status'
+      SERVER_STATUS_CMD = 'server-status'
       HELP_CMD = 'help'
 
       # server-admin commands
@@ -568,7 +568,7 @@ module Xolo
         },
 
         UPDATE_CLIENT_DATA_CMD => {
-          desc: 'Make the server update the client-data package now. Requires server-admin privileges.',
+          desc: 'Make the server update the client-data package now.',
           long_desc: <<~ENDLONG,
             Requires server-admin privileges.
             Every time a change is made to a title or version, the server updates
