@@ -1,0 +1,15 @@
+Command:
+  thaw, Un-freeze computers, allowing them to resume updates of a title.
+
+Usage:
+  xadm thaw title [--users] target [target ...] [options]
+
+Arguments:
+  title:     The unique name of a title in Xolo, e.g. 'google-chrome'
+
+Options:
+  -u, --users    The targets of the command are usernames, not computers. All computers assigned to the user will be affected.
+                 Default is false, targets are computer names.
+
+  -h, --help     Show this message
+

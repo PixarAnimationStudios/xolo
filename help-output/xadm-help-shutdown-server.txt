@@ -1,0 +1,17 @@
+Command:
+  shutdown-server, Shutdown or restart the server gracefully.
+
+Description:
+  Requires server-admin privileges.
+  Gracefully stop the xolo server process, optionally restarting it automatically.
+  This will attempt to finish any in-progress operations before shutting down.
+  If you don't use --restart, you must reload the launchd plist, or reboot the server machine to restart the server process.
+
+Usage:
+  xadm shutdown-server [--restart] [options]
+
+Options:
+  -r, --restart    Restart the server automatically after shutdown. If not given, you must reload the launchd plist, or reboot the
+                   server machine to restart the server process.
+
+  -h, --help       Show this message

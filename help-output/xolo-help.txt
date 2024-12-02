@@ -1,0 +1,48 @@
+xolo: manage software titles on this computer
+
+Usage:
+  xolo [options] <command> [<title> [<version>]]
+
+Options:
+  -h, -H, --help: Show this help message.
+  -v, --verbose: Enable verbose mode, extra information will be printed.
+  -q, --quiet: Enable quiet mode, only errors will be printed to stderr.
+  -d, --debug: Enable debug mode, extra debug information will be printed.
+  -n, --no-versions: With the 'list-titles' and 'list-installed' commands,
+                       do not show the versions available, or the version
+                       installed, respectively.
+  -V, --version: Show the version of xolo.
+
+  NOTE: Debug mode will also enable verbose mode. Both debug and verbose modes
+  override quiet mode.
+
+Commands:
+  install, i <title> [<version>]
+    Install a title, or specific version thereof (e.g. a version currently in pilot)
+    If no version is specified, the currently released version will be installed.
+
+  uninstall, u <title>
+    Uninstall a title, if possible. Not all titles are uninstallable via xolo.
+
+  refresh, r
+    Update xolo's information about current titles and versions.
+    This also happens automatically at least daily, when this computer is online.
+
+  list-titles, lt
+    List all known titles and versions. Not all may be available for install,
+    e.g., if this computer is in an excluded computer-group
+
+  list-installed, li
+    List titles installed on this computer, that are known to xolo.
+
+  details, d <title> [<version>]
+    Show detailed information about a title, or a specific version thereof.
+
+  expire, e
+    Expire any expirable titles that have not been used in their defined expiration period,
+    This also happens automatically at least daily.
+
+  help, h
+    Show this help message. The same as -h or --help.
+
+  For more information about xolo, see <URL TO BE DETERMINED>

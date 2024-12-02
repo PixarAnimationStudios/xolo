@@ -1,0 +1,11 @@
+Command:
+  delete-title, Delete a software title, and all of its versions
+
+Usage:
+  xadm delete-title title [options]
+
+Arguments:
+  title:     The unique name of a title in Xolo, e.g. 'google-chrome'
+
+Options:
+  -h, --help    Show this message

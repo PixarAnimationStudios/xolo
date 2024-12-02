@@ -1,0 +1,17 @@
+Command:
+  release, Take a version out of pilot and make it 'live'.
+
+Description:
+  Once released, the version will be updated on all computers
+  where it is installed. It will also be the version installed
+  manually on a computer when running 'xolo install <title>'.
+
+Usage:
+  xadm release title version [options]
+
+Arguments:
+  title:     The unique name of a title in Xolo, e.g. 'google-chrome'
+  version:   The version of the title you are working with. e.g. '12.34.5'
+
+Options:
+  -h, --help    Show this message

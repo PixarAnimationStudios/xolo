@@ -1,0 +1,175 @@
+Command:
+  add-title, Add a new software title
+
+Usage:
+  xadm add-title title [options]
+
+Arguments:
+  title:     The unique name of a title in Xolo, e.g. 'google-chrome'
+
+Options:
+  -n, --display-name=<s>             A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
+                                     Must be at least three characters long.
+                                     REQUIRED
+
+  -d, --description=<s>              A useful dscription of what the software installed by this title does. You can also include
+                                     URLs, developer names, support info, etc.
+                                     
+                                     DO NOT use, e.g. 'Installs Some App', because we know that already and it isn't helpful.
+                                     
+                                     IMPORTANT: If this title appears in Self Service, the description will be visible to users.
+                                     
+                                     Must be at least 20 Characters.
+                                     REQUIRED
+
+  -P, --publisher=<s>                The company or entity that publishes this title, e.g. 'Apple, Inc.' or 'Pixar Animation
+                                     Studios'.
+                                     REQUIRED
+
+  -a, --app-name=<s>                 If this title installs a .app bundle, the app's name must be provided. This the name of the
+                                     bundle itself on disk, e.g. 'Google Chrome.app'.
+                                     
+                                     Jamf Patch Management uses this, plus the app's bundle id, to determine if the title is
+                                     installed on a computer, and if so, which version.
+                                     
+                                     If the title does not install a .app bundle, leave this blank, and provide a --version-script.
+                                     
+                                     REQUIRED if --app-bundle-id is used.
+
+  -b, --app-bundle-id=<s>            If this title installs a .app bundle, the app's bundle-id must be provided. This is found in
+                                     the CFBundleIdentifier key of the app's Info.plist, e.g. 'com.google.chrome'
+                                     
+                                     Jamf Patch Management uses this, plus the app's name, to determine if the title is installed
+                                     on a computer, and if so, which version.
+                                     
+                                     If the title does not install a .app bundle, or if the .app doesn't provide its version via
+                                     the bundle id (e.g. Firefox) leave this blank, and provide a --version-script.
+                                     
+                                     REQUIRED if --app-name is used.
+
+  -v, --version-script=<s>           If this title does NOT install a .app bundle, enter the local path to a script which will run
+                                     on managed computers and output a <result> tag with the currently installed version of this
+                                     title.
+                                     
+                                     E.g. if version 1.2.3 is installed, the script should output the text:
+                                        <result>1.2.3</result>
+                                     and if no version of the title is installed, it should output:
+                                        <result></result>
+                                     
+                                     NOTE: This cannot be used if --app-name & --app-bundle-id are used, but must be used if they
+                                     are not
+
+  -r, --release-groups=<s>           One or more Jamf Computer Groups whose members will automatically have this title installed
+                                     when new versions are released.
+                                     
+                                     If your Xolo administrators allow it, you can use 'all' to auto-install on all computers that
+                                     aren't excluded. If not, you'll be told how to request setting release groups to 'all'.
+                                     
+                                     NOTE: Titles can always be installed manually (via command line or Self Service) on
+                                     non-excluded computers. It's OK to have no release groups.
+                                     
+                                     When using the --release-groups CLI option, you can specify more than one group by using the
+                                     option more than once, or by providing a single option value with the groups separated by
+                                     commas.
+                                     
+                                     To remove all existing, use 'none'.
+                                     
+                                     NOTE: When a version is in 'pilot', before it is released, these groups are ignored, but
+                                     instead a set of 'pilot' groups is defined for each version - and those groups will have that
+                                     version auto-installed.
+
+  -x, --excluded-groups=<s>          One or more Jamf Computer Groups whose members are not allowed to install this title.
+                                     
+                                     When a computer is in one of these groups, the title is not available even if the computer is
+                                     in a pilot or release group.
+                                     
+                                     When using the --excluded-groups CLI option, you can specify more than one group by using the
+                                     option more than once, or by providing a single option value with the groups separated by
+                                     commas.
+                                     
+                                     To remove all existing, use 'none'.
+                                     
+                                     NOTE: Regardless of the excluded groups set here, if the server has defined a
+                                     'forced_exclusion' in its config, that group is always excluded from all xolo titles. Also,
+                                     computers that are 'frozen' for a title are excluded.
+
+  -U, --uninstall-script=<s>         By default, Xolo cannot un-install a title. To make it do so you must provide either
+                                     --uninstall-script or --uninstall-ids.
+                                     
+                                     When using --uninstall-script, provide a path to a local file containing a script (starting
+                                     with '#!') that will uninstall any version of this title.
+                                     
+                                     This is useful when the publisher provides a custom uninstaller, or to uninstall things that
+                                     were not installed via .pkg files (e.g. drag-installs).
+                                     
+                                     Either --uninstall-script or --uninstall-ids must be provided if you want to set --expiration.
+                                     
+                                     Use 'none' to unset this,
+
+  -u, --uninstall-ids=<s>            By default, Xolo cannot un-install a title. To make it do so you must provide either
+                                     --uninstall-ids or --uninstall-script.
+                                     
+                                     When using --uninstall-ids, provide one or more package identifiers, as listed by `pkgutil
+                                     --pkgs`.
+                                     Xolo will use them to create a Jamf Script that will delete all the files that were installed
+                                     by the matching .pkg installers.
+                                     
+                                     NOTE: Package IDs will not work if the item was installed without using an installer.pkg
+                                     (e.g. drag-installing)
+                                     
+                                     Either --uninstall-script or --uninstall-ids must be provided if you want to set --expiration.
+                                     
+                                     When using the --uninstall-ids CLI option, you can specify more than one ID by using the
+                                     option more than once, or by providing a single option value with the IDs separated by commas.
+                                     
+                                     Use 'none' to unset this,
+
+  -e, --expiration=<s>               Automatically uninstall this title if none of the items listed as '--expire-paths' have been
+                                     opened in this number of days.
+                                     This can be useful for reclaiming unused licenses, especially if users can re-install as
+                                     needed via Self Service.
+                                     
+                                     IMPORTANT:
+                                     - This title must have an '--uninstall-method' set, or it can't be uninstalled by xolo
+                                     - You must define one or more --expire-paths
+                                     
+                                     Setting this to 'none' or zero, means 'do not expire'.
+
+  -E, --expire-paths=<s>             The full paths to one or items (e.g. '/Applications/Google Chrome.app') that must be opened
+                                     within the --expiration period to prevent automatic uninstall of the title. The paths need not
+                                     be .apps, but can be anything. If the item at the path has never been opened, its date-added
+                                     is used. If it doesn't exist, it is considered to never have been opened.
+                                     
+                                     If multiple paths are specified, any one of them being opened will count. This is useful for
+                                     multi-app titles, such as Microsoft Office, or when different versions have different app
+                                     names.
+                                     
+                                     When using the --expiration-paths CLI option, you can specify more than one path by using the
+                                     option more than once, or by providing a single option value with the paths separated by
+                                     commas.
+
+  -s, --self-service                 Make this title available in Self Service. Only the currently released version will be
+                                     available.
+                                     
+                                     While in pilot, a version is installed via its auto-install policy,
+                                     or 'sudo xolo install <title> <version>' or updated via its Patch Policy.
+                                     
+                                     It will never be available to excluded computers.
+                                     
+                                     Self Service is not available for titles with the release_group 'all'.
+
+  -c, --self-service-category=<s>    The Category in which to display this title in Self Service.
+                                     REQUIRED if self_service is true, ignored otherwise
+
+  -i, --self-service-icon=<s>        Path to a local image file to use as the icon for this title in Self Service.
+                                     The file must be a PNG, JPG, or GIF file. The recommended size is 512x512 pixels.
+                                     If one has already been set, this will replace it.
+
+  -m, --contact-email=<s>            The email address of the team or person responsible for this title. Used for notifications,
+                                     questions, etc.
+                                     
+                                     A mailing list for a team is preferable to an individual's email address, since individuals
+                                     may leave the team.
+                                     REQUIRED
+
+  -h, --help                         Show this message

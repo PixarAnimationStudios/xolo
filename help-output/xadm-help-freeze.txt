@@ -1,0 +1,21 @@
+Command:
+  freeze, Prevent computers from updating the currently installed version of a title.
+
+Description:
+  The target computers are added to a static group that is excluded from
+  all policies and patch policies related to this title and its versions.
+  If a computer doesn't have any version of the title, this will prevent
+  it from being installed via xolo (it will be 'frozen' in that state).
+
+Usage:
+  xadm freeze title [--users] target [target ...]  [options]
+
+Arguments:
+  title:     The unique name of a title in Xolo, e.g. 'google-chrome'
+
+Options:
+  -u, --users    The targets of the command are usernames, not computers. All computers assigned to the user will be affected.
+                 Default is false, targets are computer names.
+
+  -h, --help     Show this message
+

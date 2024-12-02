@@ -1,0 +1,18 @@
+Command:
+  set-server-log-level, Set the log level of the server logger.
+
+Description:
+  Requires server-admin privileges.
+  Sets the log level of the server logger to one of 'debug', 'info',
+  'warn', 'error', or 'fatal'. This will affect the amount of output
+  written to the server log file.
+
+Usage:
+  xadm set-server-log-level level [options]
+
+Arguments:
+  level: The log level to set, one of "debug", "info", "warn", "error", "fatal"
+
+Options:
+  -h, --help    Show this message
+

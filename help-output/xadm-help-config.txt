@@ -1,0 +1,8 @@
+Command:
+  config, Configure xadm. Always interactive, implies --walkthru
+
+Usage:
+  xadm config
+
+Options:
+  -h, --help    Show this message
