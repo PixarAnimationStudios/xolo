@@ -48,14 +48,22 @@ Gem::Specification.new do |s|
   # executables
   s.executables << 'xadm'
   s.executables << 'xoloserver'
-  s.executables << 'xolo'
 
-  # Dependencies
-  s.add_runtime_dependency 'pixar-ruby-extensions', '~>1.0'
+  # Dependencies for all
+  # s.add_runtime_dependency 'pixar-ruby-extensions', '~>1.11'
+  # zeitwork
+  # faraday, faraday-multipart, faraday-net-http
+
+  # Only for xadm
+  # s.add_runtime_dependency 'highline', '~>2.0'
+  # s.add_runtime_dependency 'optimist_with_insert_blanks', '~>1.0'
 
   # Only for the server
   # s.add_runtime_dependency 'ruby-jss', '~>2.0'
   # s.add_runtime_dependency 'windoo', '~>1.0'
   # s.add_runtime_dependency 'sinatra', '~>1.0'
-  # s.add_runtime_dependency 'thin', '~>1.0'
+  # sinatra-contrib
+  # concurrent ruby
+  # s.add_runtime_dependency 'thin', '~>1.0' # will use event machine and more
+  # net-smtp
 end
