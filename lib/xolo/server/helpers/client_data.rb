@@ -367,6 +367,11 @@ module Xolo
         # @return [Pathname] the path to the client executable 'xolo' in the ruby gem
         #####################
         def client_app_source
+          # parent 1 == helpers
+          # parent 2 == server
+          # parent 3 == xolo
+          # parent 4 == lib
+          # parent 5 == root
           @client_app ||= Pathname.new(__FILE__).expand_path.parent.parent.parent.parent.parent + 'data' + 'client' + 'xolo'
         end
 
