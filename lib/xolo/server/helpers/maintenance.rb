@@ -222,7 +222,7 @@ module Xolo
           return unless unreleased_pilots_notification_days.positive?
           return unless title_obj.latest_version
 
-          latest_vers_obj = instantiate_version title_obj.latest_version
+          latest_vers_obj = instantiate_version title: title_obj, version: title_obj.latest_version
           return unless latest_vers_obj.pilot?
 
           days_in_pilot = ((Time.now - latest_vers_obj.creation_date) / 86_400).to_i

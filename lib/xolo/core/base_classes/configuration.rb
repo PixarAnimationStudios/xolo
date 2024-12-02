@@ -148,6 +148,9 @@ module Xolo
         # commands or file paths, and its the commands or file paths
         # we want to save.
         #
+        # @param data [Hash{Symbol: Object}] The data to save to the config file
+        #
+        # @return [void]
         ###############
         def save_to_file(data: nil)
           data ||= raw_data
