@@ -63,7 +63,7 @@ Commands:
   list-groups          List all computer groups in Jamf pro
   list-categories      List all categories in Jamf pro
   help                 Get help for a specifc command
-  server-status               Show status of Xolo server.
+  server-status        Show status of Xolo server.
   run-server-cleanup   Run the server's cleanup process now.
   update-client-data   Make the server update the client-data package now.
   rotate-server-logs   Rotate the logs on the server now.
