@@ -159,7 +159,8 @@ Commands:
     Show detailed information about a title, or a specific version thereof.
 
   expire, e
-    Expire any expirable titles that have not been used in their defined expiration period,
+    Expire the given title if it has not been used in its defined expiration period.
+    Does nothing if the title is not expirable.
     This also happens automatically at least daily.
 
   help, h
