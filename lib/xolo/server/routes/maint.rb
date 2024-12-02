@@ -105,6 +105,7 @@ module Xolo
         ################
         post '/update-client-data' do
           log_info "Force update of client-data by #{session[:admin]}"
+          log_debug "Gem Paths: #{Gem.paths.inspect}"
 
           thr = Thread.new { update_client_data }
           thr.name = 'Manual Client Data Update Thread'

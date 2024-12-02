@@ -52,11 +52,12 @@ Gem::Specification.new do |s|
   # Dependencies for all
   # s.add_runtime_dependency 'pixar-ruby-extensions', '~>1.11'
   # zeitwork
-  # faraday, faraday-multipart, faraday-net-http
+  # faraday
+  # faraday-multipart
+  # faraday-net-http
 
   # Only for xadm
   # s.add_runtime_dependency 'highline', '~>2.0'
-  # s.add_runtime_dependency 'optimist_with_insert_blanks', '~>1.0'
 
   # Only for the server
   # s.add_runtime_dependency 'ruby-jss', '~>2.0'
