@@ -183,6 +183,7 @@ module Xolo
           end # each title
 
           Xolo::Server::Helpers::Maintenance.last_cleanup = Time.now
+          log_info 'Cleanup complete.'
         ensure
           mutex&.unlock
         end
