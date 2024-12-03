@@ -149,6 +149,8 @@ Commands:
     that are scoped to this computer. The exact behavior depends on what's installed
     and the title's configuration. This also happens automatically every time
     this computer checks in with Jamf Pro.
+    Note: this just runs the 'jamf policy' command, which will execute any pending
+    Jamf policies triggered by "recurring check-in".
 
   refresh, r
     Update xolo's information about current titles and versions.
@@ -167,7 +169,7 @@ Commands:
   expire, e
     Expire the given title if it has not been used in its defined expiration period.
     Does nothing if the title is not expirable.
-    This also happens automatically at least daily.
+    This also happens automatically at least daily, when this computer is online.
 
   help, h
     Show this help message. The same as -h or --help.
