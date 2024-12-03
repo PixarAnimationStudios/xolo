@@ -790,7 +790,6 @@ function uninstall() {
 # trigger "recurring check-in".
 ###############################
 function update() {
-  validate_title
   say "Updating installed titles, or installing newly scoped ones..."
 
   cmd="$JAMF policy"
