@@ -195,7 +195,7 @@ module Xolo
           default: Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP,
           type: :integer,
           desc: <<~ENDDESC
-            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}. The current file is named '#{Xolo::Server::LOG_FILE_NAME}', older files are appended with '.YYYYMMDD'.
+            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}. The current file is named '#{Xolo::Server::LOG_FILE_NAME}', older files are appended with '.0' for yesterday, '.1' for the previous day, etc.
           ENDDESC
         },
 
@@ -205,7 +205,7 @@ module Xolo
           default: Xolo::Server::Log::DFT_LOG_COMPRESS_AFTER_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            Once a log file is rotated, how many days before it is compressed? Compressed logs are named '#{Xolo::Server::LOG_FILE_NAME}.YYYYMMDD.bz2'. It can be accessed using the various bzip2 tools (bzip2, bunzip2, bzcat, bzgrep, etc). If this number is negative, or larger than log_days_to_keep, no logs will be compressed, if it is zero, all older logs will be compressed.
+            Once a log file is rotated, how many days before it is compressed? Compressed logs are named '#{Xolo::Server::LOG_FILE_NAME}.XX.bz2'. It can be accessed using the various bzip2 tools (bzip2, bunzip2, bzcat, bzgrep, etc). If this number is negative, or larger than log_days_to_keep, no logs will be compressed, if it is zero, all older logs will be compressed.
           ENDDESC
         },
 
@@ -310,7 +310,7 @@ module Xolo
           default: Xolo::Server::Helpers::Maintenance::DFT_DEPRECATED_LIFETIME_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            Once a version is deprecated, it will be automatically deleted by the nightly cleanup this many days later. If set to 0 or less, deprecated versions will never be deleted.
+            When a version is deprecated, it will be automatically deleted by the nightly cleanup this many days later. If set to 0 or less, deprecated versions will never be deleted.
 
             Deprecated versions are those that have been released, but a newer version has been released since then.
 
@@ -469,6 +469,7 @@ module Xolo
           desc: <<~ENDDESC
             The username of the Jamf account for connecting to the Jamf Pro APIs.
             TODO: Document the permissions needed by this account.
+            TODO: Allow using api-clients
           ENDDESC
         },
 
@@ -534,6 +535,8 @@ module Xolo
             An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points, and Jamf has not provided asupported way to upload packages to all possible Dist Points via the APIs.
 
             There are some unsupported methods, and you are welcome to use them in the external tool you provide here.  As Jamf supports API-based package uploads, xolo will be updated to use them.
+
+            COMING SOON: A built-in ability to upload to all dist points supported by the Jamf API. Requires Jamf Pro 11.6 and up.
           ENDDESC
         },
 

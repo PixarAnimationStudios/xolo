@@ -122,12 +122,13 @@ Options:
                                                log files should be kept? All logs are kept in
                                                /Library/Application Support/xoloserver/logs. The
                                                current file is named 'xoloserver.log', older files
-                                               are appended with '.YYYYMMDD'.
+                                               are appended with '.0' for yesterday, '.1' for the
+                                               previous day, etc.
                                                 (default: 30)
 
   --log-compress-after-days=<i>                Once a log file is rotated, how many days before it
                                                is compressed? Compressed logs are named
-                                               'xoloserver.log.YYYYMMDD.bz2'. It can be accessed
+                                               'xoloserver.log.XX.bz2'. It can be accessed
                                                using the various bzip2 tools (bzip2, bunzip2,
                                                bzcat, bzgrep, etc). If this number is negative, or
                                                larger than log_days_to_keep, no logs will be
@@ -194,7 +195,7 @@ Options:
                                                developers.
                                                - While you need to trust your xadm users not to
                                                upload a malicious pkg, this would be true
-                                                 even if you deployed the certs to them, so keeping
+                                               even if you deployed the certs to them, so keeping
                                                the certs on the server is more secure.
 
   --release-to-all-jamf-group=<s>              The name of a Jamf account-group (not a User group)
@@ -237,7 +238,7 @@ Options:
                                                This value is required if release_to_all_jamf_group
                                                is set.
 
-  --deprecated-lifetime-days=<i>               Once a version is deprecated, it will be
+  --deprecated-lifetime-days=<i>               When a version is deprecated, it will be
                                                automatically deleted by the nightly cleanup this
                                                many days later. If set to 0 or less, deprecated
                                                versions will never be deleted.
