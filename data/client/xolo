@@ -144,6 +144,12 @@ Commands:
   uninstall, u <title>
     Uninstall a title, if possible. Not all titles are uninstallable via xolo.
 
+  update, U
+    Run any pending updates to currently installed titles, or install new titles
+    that are scoped to this computer. The exact behavior depends on what's installed
+    and the title's configuration. This also happens automatically every time
+    this computer checks in with Jamf Pro.
+
   refresh, r
     Update xolo's information about current titles and versions.
     This also happens automatically at least daily, when this computer is online.
@@ -770,14 +776,26 @@ r
 # Unnstall a title
 # This might not do anything if the title is not uninstallable,
 # or if the title is not installed
-# TODO: Be DRY about running Jamf policies - make a function that does it
-# consistently
 ###############################
 function uninstall() {
   validate_title
   say "Uninstalling title $title..."
 
   run_jamf_policy_trigger "xolo-${title}-uninstall"
+}
+
+# Update installed titles or install new ones
+# scoped to this computer.
+# This is just running 'jamf policy' with its default
+# trigger "recurring check-in".
+###############################
+function update() {
+  validate_title
+  say "Updating installed titles, or installing newly scoped ones..."
+
+  cmd="$JAMF policy"
+  debug "Running jamf policy command: $cmd"
+  eval $cmd
 }
 
 # List all known titles and their versions and statuses
@@ -976,6 +994,10 @@ function main() {
     uninstall|u)
       debug "processing command 'uninstall'"
       uninstall
+      ;;
+    update|U)
+      debug "processing command 'update'"
+      update
       ;;
     refresh|r)
       debug "processing command 'refresh'"

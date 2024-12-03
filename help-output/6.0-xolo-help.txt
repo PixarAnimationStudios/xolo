@@ -24,6 +24,12 @@ Commands:
   uninstall, u <title>
     Uninstall a title, if possible. Not all titles are uninstallable via xolo.
 
+  update, U
+    Run any pending updates to currently installed titles, or install new titles
+    that are scoped to this computer. The exact behavior depends on what's installed
+    and the title's configuration. This also happens automatically every time
+    this computer checks in with Jamf Pro.
+
   refresh, r
     Update xolo's information about current titles and versions.
     This also happens automatically at least daily, when this computer is online.
