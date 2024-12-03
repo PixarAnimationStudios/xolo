@@ -12,7 +12,7 @@ This is the xolo admin tool, used for managing titles and versions via xolo. Fol
 
 ## xolo
 
-This is the client-side tool for installing, uninstalling and related tasks on managed Macs. Unlick xadm and xoloserver, which are large complex tools written in ruby, xolo itself is a zsh script, basically a glorified wrapper around the `jamf policy` command.
+This is the client-side tool for installing, uninstalling and related tasks on managed Macs. Unlike xadm and xoloserver, which are large complex tools written in ruby, xolo itself is a zsh script, basically a glorified wrapper around the `jamf policy` command.
 
 ## xoloserver
 
