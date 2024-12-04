@@ -1,5 +1,7 @@
 #!/bin/zsh
 
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+
 # Used by Xolo to uninstall packages based on one or more package-IDs as used by the
 # 'pkgutil' command.
 #
@@ -11,6 +13,7 @@
 # NOTE: This will not be useful if something was installed in a manner other than
 # an installer.pkg (e.g. drag-installing an app) because there won't be
 # a matching entry in the pkgutil database.
+# It also won't help if the user has moved or renamed files after installation.
 
 # DO NOT CHANGE THE VALUE OF IDS_TO_UNINSTALL
 # This is a placeholder for the package IDs that Xolo will insert into the script
@@ -72,18 +75,18 @@ for pkgid in $IDS_TO_UNINSTALL ; do
 
     if [[ -f "$path_to_delete" ]] ; then
       echo  "$path_to_delete is a file - deleting it"
-      rm -f "$path_to_delete"
+      /bin/rm -f "$path_to_delete"
 
     elif [[ -L "$path_to_delete" ]] ; then
       echo  "$path_to_delete is a symlink - deleting it"
-      rm -f "$path_to_delete"
+      /bin/rm -f "$path_to_delete"
 
     elif [[ -d "$path_to_delete" ]] ; then
       echo "$path_to_delete is a directory..."
 
       if [[ $(/bin/ls -A "$path_to_delete" | /usr/bin/wc -l) -eq 0  ]] ; then
          echo "... and it's empty - deleting it"
-         rmdir "$path_to_delete"
+         /bin/rm -f "$path_to_delete"
       else
          echo "... but its not empty - NOT deleting it"
       fi
