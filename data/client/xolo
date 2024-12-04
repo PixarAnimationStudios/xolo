@@ -940,28 +940,55 @@ function expire() {
   local last_use
 
   # return if no expiration period
-  [[ -z "$expiration" ]] && return
-
+  if [[ -z "$expiration" ]] ;then
+    say "Title $title is not expirable: No expiration period."
+    return
+  fi
   # this gives us an array of paths
   IFS=$'\n' expire_paths=($(expire_paths_for_title $title))
   # return if empty
-  [[ ${#expire_paths} -eq 0 ]] && return
+  if [[ ${#expire_paths} -eq 0 ]] ; then
+    say "Title $title is not expirable: no expire paths."
+    return
+  fi
 
   # loop thru the paths and see if any have been used recently
   for victim_path in $expire_paths ; do
     # if any of the paths are running, we're done
-    [[ -n $(/usr/bin/pgrep -f "$victim_path") ]] && return
+    if [[ -n $(/usr/bin/pgrep -f "$victim_path") ]] ; then
+      say "Title $title is not expirable right now: $victim_path is running."
+      return
+    fi
 
     # if any of the paths have been used in the defined period, we're done
     last_use=$(/usr/bin/mdls -name kMDItemLastUsedDate "$victim_path" -raw)
     # +> 2024-11-25 23:10:00 +0000
+
+    # use install time if no last use time
+    if ! [[ "$last_use" =~ '^[[:digit:]]{4}-' ]] ; then
+      debug "No last use time for $victim_path, using install time."
+      last_use=$(/usr/bin/mdls -name kMDItemDateAdded "$victim_path" -raw)
+
+      # not installed if mdls fails or returns nothing
+      # so don't expire it
+      if [[ "$last_use" =~ '^[[:digit:]]{4}-' ]] || [[ -z "$last_use" ]] ; then
+        say "Title $title is not expirable: $victim_path has no last use or install time."
+        return
+      fi
+    fi
+
     last_use_epoch=$(/bin/date -j -f "%Y-%m-%d %H:%M:%S %z" "$last_use" +"%s")
 
-    [[ "$last_use_epoch" -gt "$must_have_been_used_since" ]] && return
-  done
+    # if the last use time is more recent than the expiration period,
+    # for any path, we're done
+    if [[ "$last_use_epoch" -gt "$must_have_been_used_since" ]] ; then
+      say "Title $title is not expirable right now: $victim_path was used recently."
+      return
+    fi
+  done # for victim_path in $expire_paths
 
   # if we're here, we can expire the title
-  verbose "Expiring title $title..."
+  say "Expiring title $title..."
   uninstall
 }
 
