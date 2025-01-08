@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -342,11 +342,11 @@ module Xolo
         cmd_display = Xolo::Admin::Options::COMMANDS.dig cmd, :display
         cmd_opts = Xolo::Admin::Options::COMMANDS.dig cmd, :opts
 
-        title_cmd = title_command?
+        title_command?
         vers_cmd = version_command?
         title_or_vers_command = title_or_version_command?
         add_command = add_command?
-        edit_command = edit_command?
+        edit_command?
         arg_banner = Xolo::Admin::Options::COMMANDS.dig(cmd, :arg_banner)
         arg_banner ||= Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
 

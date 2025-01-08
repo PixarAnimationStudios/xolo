@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -87,7 +87,7 @@ module Xolo
         else
           raise Xolo::ServerError, "#{resp.status}: #{resp.body}"
         end
-      rescue Faraday::UnauthorizedError => e
+      rescue Faraday::UnauthorizedError
         raise Xolo::AuthenticationError, 'Invalid username or password'
       end
 

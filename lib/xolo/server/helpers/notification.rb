@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -76,7 +76,7 @@ module Xolo
           alerter.puts "#{level} ALERT: #{msg}"
 
         # this catches the quitting of the alerter before expected
-        rescue Errno::EPIPE => e
+        rescue Errno::EPIPE
           true
         ensure
           # this flushes the pipe and makes the msg go

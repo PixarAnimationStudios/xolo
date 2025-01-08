@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -510,10 +510,8 @@ module Xolo
       #
       # @return [void]
       #########################
-      def mark_pkg_uploaded(uploaded_pkg_name)
+      def mark_pkg_uploaded(_uploaded_pkg_name)
         lock
-        jamf_pkg_file = uploaded_pkg_name
-        pkg_to_upload = Xolo::ITEM_UPLOADED
         save_local_data
         log_debug "Marked package as uploaded to Jamf Pro for version '#{version}' of title '#{title}'"
       ensure

@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -55,7 +55,7 @@ module Xolo
         def process_incoming_testfile
           progress 'starting test file upload', log: :debug
 
-          filename = params[:file][:filename]
+          params[:file][:filename]
           tempfile = Pathname.new params[:file][:tempfile].path
 
           progress "1/3 TempFile is #{tempfile} size is #{tempfile.size}... is it still uploading?", log: :debug

@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -83,7 +83,7 @@ module Xolo
         # @return [Boolean] is then pkg at the given pathname signed?
         #########################
         def pkg_signed?(pkg)
-          check_output = `/usr/sbin/pkgutil --check-signature #{Shellwords.escape pkg.to_s}`
+          `/usr/sbin/pkgutil --check-signature #{Shellwords.escape pkg.to_s}`
           already_signed = $CHILD_STATUS.success?
           if already_signed
             log_debug "No need to sign '#{pkg.basename}': It is already signed."
