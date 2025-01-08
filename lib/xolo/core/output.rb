@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -287,7 +287,6 @@ module Xolo
           help = "# -- Using /usr/bin/less: ' ' next, 'b' prev, 'q' exit, 'h' help --"
           text = "#{help}\n#{text}"
         end
-        less = nil
 
         # point stdout through less, print, then restore stdout
         less = IO.popen('/usr/bin/less', 'w')
@@ -297,7 +296,7 @@ module Xolo
 
         # this catches the quitting of 'less' before all the output
         # is displayed
-        rescue Errno::EPIPE => e
+        rescue Errno::EPIPE
           true
         ensure
           less&.close

@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -163,7 +163,7 @@ module Xolo
 
           else
             halt_on_missing_version params[:title], params[:version]
-            vers = instantiate_version title: params[:title], version: params[:version]
+            instantiate_version title: params[:title], version: params[:version]
 
           end
 

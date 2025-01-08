@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -937,7 +937,7 @@ module Xolo
 
         content = { file: upfile }
         # upload the file in a thread
-        thr = Thread.new { upload_cnx.post(route) { |req| req.body = content } }
+        Thread.new { upload_cnx.post(route) { |req| req.body = content } }
 
         # when the server starts the upload, it notes the new
         # streaming url for our session[:xolo_id], which we can then fetch and

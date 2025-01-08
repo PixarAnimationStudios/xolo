@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -682,9 +682,9 @@ module Xolo
         return val if response.body == Xolo::Admin::Connection::PING_RESPONSE
 
         raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:hostname][:invalid_msg]
-      rescue Faraday::ConnectionFailed => e
+      rescue Faraday::ConnectionFailed
         raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:hostname][:invalid_msg]
-      rescue Faraday::SSLError => e
+      rescue Faraday::SSLError
         raise_invalid_data_error val, 'SSL Error. Be sure to use the fully qualified hostname.'
       end
 
@@ -708,8 +708,8 @@ module Xolo
 
         payload = { admin: admin, password: val }.to_json
         begin
-          resp = server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
-        rescue Faraday::UnauthorizedError => e
+          server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
+        rescue Faraday::UnauthorizedError
           raise_invalid_data_error 'User/Password', 'Username or Password is incorrect'
         end
 

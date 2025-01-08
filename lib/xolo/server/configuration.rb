@@ -1,4 +1,4 @@
-# Copyright 2024 Pixar
+# Copyright 2025 Pixar
 #
 #    Licensed under the Apache License, Version 2.0 (the "Apache License")
 #    with the following modification; you may not use this file except in
@@ -93,6 +93,8 @@ module Xolo
       BACKUP_FILE_EXPIRATION_DAYS = 30
       BACKUP_FILE_EXPIRATION_SECS = 120 # BACKUP_FILE_EXPIRATION_DAYS * 24 * 60 * 60
 
+      # We don't store the ssl data in a Dir.tmpdir because those will be deleted
+      # out from under the server if they aren't accessed within 3 days.
       SSL_DIR = Xolo::Server::DATA_DIR + 'ssl'
       SSL_CERT_FILENAME = 'cert.pem'
       SSL_KEY_FILENAME = 'key.pem'
