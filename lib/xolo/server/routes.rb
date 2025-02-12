@@ -113,12 +113,6 @@ module Xolo
         body 'pong'
       end
 
-      # Threads
-      ##########
-      get '/threads' do
-        body Xolo::Server.thread_info
-      end
-
       # The streamed progress updates
       # The stream_file param should be in the URL query, i.e.
       # "/streamed_progress/?stream_file=<url-escaped path to file>"
