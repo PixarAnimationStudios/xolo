@@ -63,7 +63,7 @@ Schema:
 ## POST /maint/cleanup
 
 #### Purpose
-Manually the server's cleanup process
+Manually run the server's cleanup process
 
 #### Request
 Type: None
