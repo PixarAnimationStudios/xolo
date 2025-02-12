@@ -78,7 +78,7 @@ module Xolo
         enable :sessions
         set :session_secret, SecureRandom.hex(64)
         set :protection, session: true
-        set :sessions, expire_after: 3600
+        set :sessions, expire_after: Xolo::Server::Constants::SESSION_EXPIRE_AFTER
       end
 
       ###############
