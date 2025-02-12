@@ -80,6 +80,14 @@ module Xolo
           body({ admin: admin, authenticated: true })
         end
 
+        # Log out the current admin
+        ###################
+        post '/auth/logout' do
+          log_info "Logging out admin '#{session[:admin]}' from #{request.ip}"
+          session.clear
+          body({ authenticated: false })
+        end
+
         # check if the current admin is allowed to set a title's release groups to 'all'
         ###################
         get '/auth/release_to_all_allowed' do
