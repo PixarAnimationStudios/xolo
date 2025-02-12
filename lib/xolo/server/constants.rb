@@ -45,6 +45,10 @@ module Xolo
       APP_ENV_TEST = 'test'
       APP_ENV_PROD = 'production'
 
+      # Sinatra App Settings
+
+      SESSION_EXPIRE_AFTER = 3600 # seconds
+
       # Paths
 
       DATA_DIR = Pathname.new('/Library/Application Support/xoloserver')
