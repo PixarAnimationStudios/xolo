@@ -1,6 +1,6 @@
 # Accessing the Xolo Server via HTTPS
 
-While `xadm` is the preferred way to interact with the Xolo server, all that interaction is done via an HTTPS API, by exchanging JSON data with specific endpoints on the server. 
+While `xadm` is the preferred way to interact with the Xolo server, all that interaction is done via an HTTPS API, by exchanging JSON data with specific endpoints on the server. Even though this has many similarities to a [REST API](https://en.wikipedia.org/wiki/REST), it wasn't developed with the standards of REST in mind, so I will refrain from calling it that.
 
 There may be times when you want to access the server using those endpoints yourself, rather than using `xadm`, for example, on a Continuous Integration node where you don't have ruby installed, and can't use `xadm`.
 
