@@ -136,7 +136,7 @@ module Xolo
           last_cleanup_hrs_ago = (Time.now - last_cleanup) / 3600
           return unless force || (Time.now.hour == CLEANUP_HOUR && last_cleanup_hrs_ago > 23)
 
-          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/cleanup-internal"
+          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/maint/cleanup-internal"
           https = Net::HTTP.new(uri.host, uri.port)
           https.use_ssl = true
           # The server cert may be self-signed and/or doesn't

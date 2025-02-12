@@ -55,17 +55,18 @@ module Xolo
         # We use routes like this for internal tasks that require a
         # server-request context.
         INTERNAL_ROUTES = [
-          '/cleanup-internal'
+          '/maint/cleanup-internal'
         ].freeze
 
         # these routes must
         SERVER_ADMIN_ROUTES = [
-          '/state',
-          '/cleanup',
-          '/update-client-data',
-          '/rotate-logs',
-          '/set-log-level',
-          '/shutdown-server'
+          '/maint/threads',
+          '/maint/state',
+          '/maint/cleanup',
+          '/maint/update-client-data',
+          '/maint/rotate-logs',
+          '/maint/set-log-level',
+          '/maint/shutdown-server'
         ].freeze
 
         # The loopback address for IPV4, aka 'localhost'

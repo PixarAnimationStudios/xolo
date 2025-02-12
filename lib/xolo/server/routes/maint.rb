@@ -53,9 +53,15 @@ module Xolo
           Xolo.verbose_extend extender, self
         end
 
+        # Threads
+        ##########
+        get '/maint/threads' do
+          body Xolo::Server.thread_info
+        end
+
         # State
         ##########
-        get '/state' do
+        get '/maint/state' do
           state = {
             executable: Xolo::Server::EXECUTABLE_FILENAME,
             start_time: Xolo::Server.start_time,
@@ -81,7 +87,7 @@ module Xolo
         # The before filter will ensure the request came from the server itself.
         # with a valid internal auth token.
         ################
-        post '/cleanup-internal' do
+        post '/maint/cleanup-internal' do
           log_info 'Starting internal cleanup'
 
           thr = Thread.new { cleanup_versions }
@@ -92,7 +98,7 @@ module Xolo
 
         # run the cleanup process manually from a server admin via xadm
         ################
-        post '/cleanup' do
+        post '/maint/cleanup' do
           log_info "Starting manual server cleanup by #{session[:admin]}"
 
           thr = Thread.new { cleanup_versions }
@@ -103,7 +109,7 @@ module Xolo
 
         # force an update of the client data
         ################
-        post '/update-client-data' do
+        post '/maint/update-client-data' do
           log_info "Force update of client-data by #{session[:admin]}"
           log_debug "Gem Paths: #{Gem.paths.inspect}"
 
@@ -115,7 +121,7 @@ module Xolo
 
         # force log rotation
         ################
-        post '/rotate-logs' do
+        post '/maint/rotate-logs' do
           log_info "Force log rotation by #{session[:admin]}"
 
           thr = Thread.new { Xolo::Server::Log.rotate_logs force: true }
@@ -126,7 +132,7 @@ module Xolo
 
         # set the log level
         ################
-        post '/set-log-level' do
+        post '/maint/set-log-level' do
           request.body.rewind
           payload = parse_json request.body.read
           level = payload[:level]
@@ -146,7 +152,7 @@ module Xolo
         #  the object locks
         #  the progress streams, including this one, which will be the last thing to finish
         ################
-        post '/shutdown-server' do
+        post '/maint/shutdown-server' do
           request.body.rewind
           payload = parse_json request.body.read
           restart = payload[:restart]

@@ -42,12 +42,12 @@ module Xolo
 
       # Routes for server admins
 
-      SERVER_STATUS_ROUTE = '/state'
-      SERVER_CLENUP_ROUTE = '/cleanup'
-      SERVER_ROTATE_LOGS_ROUTE = '/rotate-logs'
-      SERVER_UPDATE_CLIENT_DATA_ROUTE = '/update-client-data'
-      SERVER_LOG_LEVEL_ROUTE = '/set-log-level'
-      SERVER_SHUTDOWN_ROUTE = '/shutdown-server'
+      SERVER_STATUS_ROUTE = '/maint/state'
+      SERVER_CLENUP_ROUTE = '/maint/cleanup'
+      SERVER_ROTATE_LOGS_ROUTE = '/maint/rotate-logs'
+      SERVER_UPDATE_CLIENT_DATA_ROUTE = '/maint/update-client-data'
+      SERVER_LOG_LEVEL_ROUTE = '/maint/set-log-level'
+      SERVER_SHUTDOWN_ROUTE = '/maint/shutdown-server'
 
       # We can't pull this from Xolo::Server::Log::LEVELS, because
       # we don't want to require that file here, it'll complain about
