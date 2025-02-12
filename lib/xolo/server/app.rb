@@ -73,9 +73,7 @@ module Xolo
         set :dump_errors, true
         disable :show_exceptions
 
-        # logger = Xolo::Server.logger
-        # logger.level = development? ? Logger::DEBUG : Logger::INFO
-        # set :logger, logger
+        # Logging is handled by the Xolo::Server::Log module
 
         enable :sessions
         set :session_secret, SecureRandom.hex(64)

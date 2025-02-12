@@ -74,8 +74,8 @@ module Xolo
           end
         end
 
-        # get a list of version names for a title
-        # @return [Array<String>] the names of existing versions for the title
+        # get a list of versions for a title
+        # @return [Array<Hash>] the names of existing versions for the title
         #################################
         get '/titles/:title/versions' do
           halt_on_missing_title params[:title]
