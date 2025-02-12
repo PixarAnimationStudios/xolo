@@ -132,7 +132,7 @@ module Xolo
           if title.released_version == params[:version]
             msg = "Version '#{params[:version]}' of title '#{params[:title]}' is already released"
             log_debug "ERROR: #{msg}"
-            halt 409, { error: msg }
+            halt 409, { status: 409, error: msg }
           end
 
           vers_to_release = params[:version]
