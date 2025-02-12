@@ -121,7 +121,7 @@ module Xolo
 
       # The streamed progress updates
       # The stream_file param should be in the URL query, i.e.
-      # "/streamed/progress/?streamed_file=<url-escaped path to file>"
+      # "/streamed_progress/?stream_file=<url-escaped path to file>"
       #
       ################
       get '/streamed_progress/' do

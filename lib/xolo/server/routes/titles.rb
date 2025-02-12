@@ -74,7 +74,7 @@ module Xolo
           end
         end
 
-        # get a list of title names
+        # get an array of titles
         # @return [Array<Hash>] the data for existing titles
         #################################
         get '/titles' do
@@ -115,7 +115,7 @@ module Xolo
           end
         end
 
-        # Release a version of this title
+        # Release a version of a title
         #
         # @return [Hash] A response hash
         #################################
