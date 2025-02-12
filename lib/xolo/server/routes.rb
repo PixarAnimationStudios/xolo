@@ -51,7 +51,7 @@ module Xolo
       ##############
       before do
         if Xolo::Server.shutting_down? && !request.path.start_with?('/streamed_progress/')
-          halt 503, { error: 'Server is shutting down' }
+          halt 503, { status: 503, error: 'Server is shutting down' }
         end
 
         adm = session[:admin] ? ", admin '#{session[:admin]}'" : Xolo::BLANK

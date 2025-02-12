@@ -68,7 +68,7 @@ module Xolo
 
           if err
             log_info "Authentication failed: #{err}"
-            halt 401, { error: err }
+            halt 401, { status: 401, error: err }
           end
 
           # Set the session values
