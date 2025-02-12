@@ -191,7 +191,7 @@ Schema:
 ## GET /titles/{title}/versions/{versions}/urls
 
 #### Purpose
-URLs for all the Title Editor and Jamf WebApp pages related to a title
+URLs for all the Title Editor and Jamf WebApp pages related to a version
 
 #### Notes
 Keys of the response object will vary depending on the state of the title

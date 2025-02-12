@@ -88,7 +88,7 @@ Schema:
 ## DELETE /titles/{title}
 
 #### Purpose
-Delete a title object and all it's versions
+Delete a title object and all its versions
 
 #### Path Parameters
 `title` - the desired title
@@ -272,7 +272,7 @@ Schema:
 ## GET /titles/{title}/changelog
 
 #### Purpose
-URLs for all the Title Editor and Jamf WebApp pages related to a title
+Change log for a title and all its versions
 
 #### Notes
 Each change object might indicate
