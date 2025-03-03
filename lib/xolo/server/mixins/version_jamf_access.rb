@@ -202,37 +202,38 @@ module Xolo
           return if Jamf::Category.all_names(cnx: jamf_cnx).include? Xolo::Server::JAMF_XOLO_CATEGORY
 
           log_debug "Jamf Pro: Creating category #{Xolo::Server::JAMF_XOLO_CATEGORY}"
-          Jamf::Category.create(name: Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
+          @jamf_xolo_category_id = Jamf::Category.create(name: Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
         end
 
-        # Create the Jamf::Package object for this version if needed
+        # @return [Jamf::JPackage] Create the Jamf::JPackage object for this version and return it
         #########################
         def create_pkg_in_jamf
           progress "Jamf: Creating Package object '#{jamf_pkg_name}'", log: :info
 
-          pkg = Jamf::Package.create(
+          # The filename is temporary, and will be replaced when the file is uploaded
+          pkg = Jamf::JPackage.create(
             cnx: jamf_cnx,
-            name: jamf_pkg_name,
-            filename: jamf_pkg_file,
-            reboot_required: reboot,
-            notes: jamf_pkg_notes
+            packageName: jamf_pkg_name,
+            fileName: "#{jamf_pkg_name}.pkg",
+            rebootRequired: reboot,
+            notes: jamf_pkg_notes,
+            categoryId: jamf_xolo_category_id,
+            osRequirements: ">=#{min_os}"
           )
-          pkg.category = Xolo::Server::JAMF_XOLO_CATEGORY
 
           # TODO: Implement max_os, either here, or by maintaining a smart group?
-          # I really which jamf would improve how package objects handle
+          # I really wish jamf would improve how package objects handle
           # OS requirements, building in the concept of min/max
-          pkg.os_requirements = ">=#{min_os}"
 
-          @jamf_pkg_id = pkg.save
+          self.jamf_pkg_id = pkg.save
           pkg
         rescue StandardError => e
-          msg = "Jamf: Failed to create Jamf::Package '#{jamf_pkg_name}': #{e.class}: #{e}"
+          msg = "Jamf: Failed to create Jamf::JPackage '#{jamf_pkg_name}': #{e.class}: #{e}"
           log_error msg
-          halt 400, msg
+          raise Xolo::Core::Exceptions::ServerError, msg
         end
 
-        # @return [String] the 'notes' text for the Jamf::Package object for this version
+        # @return [String] the 'notes' text for the Jamf::JPackage object for this version
         #############################
         def jamf_pkg_notes
           pkg_notes = Xolo::Server::Version::JAMF_PKG_NOTES_PREFIX.sub(
@@ -676,21 +677,21 @@ module Xolo
           update_jamf_pkg_min_os if changes_for_update&.key? :min_os
         end
 
-        # update the reboot setting for the Jamf::Package
+        # update the reboot setting for the Jamf::JPackage
         # @return [void]
         ##########################
         def update_jamf_pkg_reboot
-          progress "Jamf: Updating reboot setting for Jamf::Package '#{jamf_pkg_name}'", log: :debug
-          jamf_package.reboot_required = reboot
+          progress "Jamf: Updating reboot setting for Jamf::JPackage '#{jamf_pkg_name}'", log: :debug
+          jamf_package.rebootRequired = reboot
           jamf_package.save
         end
 
-        # update the min_os setting for the Jamf::Package
+        # update the min_os setting for the Jamf::JPackage
         # @return [void]
         ##########################
         def update_jamf_pkg_min_os
-          progress "Jamf: Updating os_requirement for Jamf::Package '#{jamf_pkg_name}'", log: :debug
-          jamf_package.os_requirements = ">=#{min_os}"
+          progress "Jamf: Updating os_requirement for Jamf::JPackage '#{jamf_pkg_name}'", log: :debug
+          jamf_package.osRequirements = ">=#{min_os}"
           jamf_package.save
         end
 
@@ -723,15 +724,17 @@ module Xolo
           pol.remove_from_self_service
         end
 
-        # Create or fetch the Jamf::Package object for this version
+        # Create or fetch the Jamf::JPackage object for this version
         # Returns nil if the package doesn't exist and we're deleting
         #
-        # @return [Jamf::Package] the Package object associated with this version
+        # @return [Jamf::JPackage] the Package object associated with this version
         ######################
         def jamf_package
-          @jamf_package ||=
-            if Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
-              Jamf::Package.fetch name: jamf_pkg_name, cnx: jamf_cnx
+          return @jamf_package if @jamf_package
+
+          @jamf_package =
+            if jamf_pkg_id
+              Jamf::JPackage.fetch id: jamf_pkg_id, cnx: jamf_cnx
             else
               return if deleting?
 
@@ -990,7 +993,7 @@ module Xolo
           # Delete package object
           # This is slow and it blocks, so do it in a thread and update progress every
           # 15 secs
-          return unless Jamf::Package.all_names(cnx: jamf_cnx).include? jamf_pkg_name
+          return unless Jamf::JPackage.valid_id packageName: jamf_pkg_name, cnx: jamf_cnx
 
           delete_pkg_from_jamf
 

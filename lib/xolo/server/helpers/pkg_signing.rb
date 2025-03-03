@@ -116,7 +116,7 @@ module Xolo
 
           msg = "Failed to sign uploaded pkg: #{stdouterr}"
           log_error msg
-          halt 400, { error: msg }
+          halt 400, { status: 400, error: msg }
         end
 
         # unlock the pkg signing keychain
@@ -146,7 +146,7 @@ module Xolo
 
           msg = "Error unlocking signing keychain: #{outerrs}"
           log_error msg
-          halt 400, { error: msg }
+          halt 400, { status: 400, error: msg }
         end
 
       end # JamfPro

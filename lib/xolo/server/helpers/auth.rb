@@ -121,7 +121,7 @@ module Xolo
           end
 
           log_warn "WARNING: #{warning}"
-          halt 403, { error: 'You do not have access to this resource' }
+          halt 403, { status: 403, error: 'You do not have access to this resource' }
         end
 
         # @return [Boolean] Is the internal_auth_token in the headers of the request?
@@ -192,7 +192,7 @@ module Xolo
         def valid_server_admin?
           return true if session[:authenticated] && member_of_server_admin_jamf_group?(session[:admin])
 
-          halt 403, { error: 'You do not have access to that resource.' }
+          halt 403, { status: 403, error: 'You do not have access to that resource.' }
         end
 
         # is the given username a member of the release_to_all_approval_group?

@@ -383,7 +383,7 @@ Options:
                                                distribution point(s).
 
                                                It will be run with two arguments:
-                                               - The display name of the Jamf::Package object the
+                                               - The display name of the Jamf Package object the
                                                .pkg is used with
                                                - the path to the .pkg file on the Xolo server,
                                                which will be uploaded

@@ -70,7 +70,7 @@ module Xolo
         break if Xolo::Server::Helpers::Auth::SERVER_ADMIN_ROUTES.include?(request.path) && valid_server_admin?
 
         # If here, we must have a session cookie marked as 'authenticated'
-        halt 401, { error: 'You must log in to the Xolo server' } unless session[:authenticated]
+        halt 401, { status: 401, error: 'You must log in to the Xolo server' } unless session[:authenticated]
       end
 
       # error process

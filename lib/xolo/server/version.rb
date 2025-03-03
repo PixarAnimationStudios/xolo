@@ -222,7 +222,7 @@ module Xolo
       # Jamf Patch Policy is named this
       attr_reader :jamf_patch_policy_name
 
-      # The Jamf::Package object has this jamf id
+      # The Jamf Package object has this jamf id
       attr_reader :jamf_pkg_id
 
       # when applying updates, the new data is stored

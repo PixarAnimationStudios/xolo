@@ -103,7 +103,7 @@ module Xolo
             else
               msg = 'Invalid data to instantiate a Xolo::Server::Version'
               log_error msg
-              halt 400, { error: msg }
+              halt 400, { status: 400, error: msg }
             end
 
           vers.title_object = title_obj || instantiate_title(title)
@@ -120,7 +120,7 @@ module Xolo
 
           msg = "No version '#{version}' for title '#{title}'."
           log_debug "ERROR: #{msg}"
-          resp_body = @streaming ? msg : { error: msg }
+          resp_body = @streaming ? msg : { status: 404, error: msg }
 
           halt 404, resp_body
         end
@@ -134,7 +134,7 @@ module Xolo
 
           msg = "Version '#{version}' of title '#{title}' already exists."
           log_debug "ERROR: #{msg}"
-          resp_body = @streaming ? msg : { error: msg }
+          resp_body = @streaming ? msg : { status: 409, error: msg }
           halt 409, resp_body
         end
 
@@ -147,7 +147,7 @@ module Xolo
 
           msg = "Version '#{version}' of title '#{title}' is being modified by another admin. Try again later."
           log_debug "ERROR: #{msg}"
-          halt 409, { error: msg }
+          halt 409, { status: 409, error: msg }
         end
 
       end # TitleEditor

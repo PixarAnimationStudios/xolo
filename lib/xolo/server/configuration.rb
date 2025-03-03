@@ -507,19 +507,23 @@ module Xolo
         },
 
         # @!attribute upload_tool
-        #   @return [String] The path to an executable that can upload .pkg files for use by
-        #      the Jamf Pro server. The API doesn't provide this ability.
+        #   @return [String] Either "api", or the path to an executable on the server that can upload
+        #      .pkg files to your distribution points. If "api", Xolo will use the Jamf API to upload
+        #      the package to your primary distribution point, either a cloud distribution point, or
+        #      a fileshare distribution point. API uploads are only available in Jamf Pro 11.6 and later.
         upload_tool: {
           required: true,
           type: :string,
           desc: <<~ENDDESC
             After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
 
-            This value is the path to an executable on the xolo server that will do that second upload to the distribution point(s).
+            If this value is 'api', and you are using Jamf Pro 11.6 or later,  Xolo will use the Jamf API to upload the package to your primary distribution point. API uploads are only available in Jamf Pro 11.6 and later, and will only upload to the primary distribution point. Syncing to other distribution points is not supported by the API.
+
+            If this value is a path, it is to an executable on the xolo server that will do the upload to the distribution point(s). This tool can be anything you like, as long as it can upload a .pkg to the Jamf distribution point(s) you use.
 
             It will be run with two arguments:
-            - The display name of the Jamf::Package object the .pkg is used with
-            - the path to the .pkg file on the Xolo server, which will be uploaded
+            - First, The display name of the Jamf Package object the .pkg is used with
+            - Then the path to the .pkg file on the Xolo server, which will be uploaded
               to the Jamf distribution point(s).
 
             So if the executable is '/usr/local/bin/jamf-pkg-uploader' then when Xolo recieves a .pkg to be uploaded to Jamf, it will run something like:
@@ -534,11 +538,7 @@ module Xolo
 
             After that tool runs, the copy of the .pkg on the server ( '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
 
-            An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points, and Jamf has not provided asupported way to upload packages to all possible Dist Points via the APIs.
-
-            There are some unsupported methods, and you are welcome to use them in the external tool you provide here.  As Jamf supports API-based package uploads, xolo will be updated to use them.
-
-            COMING SOON: A built-in ability to upload to all dist points supported by the Jamf API. Requires Jamf Pro 11.6 and up.
+            An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points. While the packages/upload endpoint of the Jamf Pro API (v11.6+) will upload to the primary distribution point, it won't upload to all the others you might have.
           ENDDESC
         },
 
