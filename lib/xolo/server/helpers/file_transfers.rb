@@ -83,7 +83,7 @@ module Xolo
           log_error msg
           e.backtrace.each { |line| log_error "..#{line}" }
 
-          halt 400, { error: msg }
+          halt 400, { status: 400, error: msg }
         end
 
         # Handle an uploaded pkg installer
@@ -124,7 +124,7 @@ module Xolo
           end
 
           # upload the pkg with the uploader tool defined in config
-          upload_to_dist_point(version, staged_pkg)
+          upload_to_dist_point(version.jamf_package, staged_pkg)
 
           # save/update the local data file, since we've done stuff to update it
           version.mark_pkg_uploaded uploaded_pkg_name
@@ -135,27 +135,44 @@ module Xolo
           msg = "#{e.class}: #{e}"
           log_error msg
           e.backtrace.each { |line| log_error "..#{line}" }
-          halt 400, { error: msg }
+          halt 400, { status: 400, error: msg }
+        end
+
+        # upload a staged pkg to the dist point(s)
+        #
+        # @param jpkg [Jamf::JPackage] The package object for which the pkg is being uploaded
+        # @param pkg_file [Pathname] The path to .pkg file being uploaded
+        #
+        # @return [void]
+        ###########################################
+        def upload_to_dist_point(jpkg, pkg_file)
+          if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
+            log_info "Jamf: Uploading #{pkg_file.basename} to primary dist point via API"
+            jpkg.upload pkg_file
+          else
+            upload_via_tool(jpkg, pkg_file)
+          end
         end
 
         # upload the pkg with the uploader tool defined in config
+        #
         # @param version [Xolo::Server::Version] The version object
         # @param staged_pkg [Pathname] The path to the staged pkg
         #
         # @return [void]
         ###########################################
-        def upload_to_dist_point(version, staged_pkg)
-          log_info "Jamf: Uploading #{staged_pkg.basename} to dist point(s)"
+        def upload_via_tool(jpkg, pkg_file)
+          log_info "Jamf: Uploading #{pkg_file.basename} to dist point(s) via upload tool"
 
           tool = Shellwords.escape Xolo::Server.config.upload_tool.to_s
-          jpkg_name = Shellwords.escape version.jamf_pkg_name
-          pkg = Shellwords.escape staged_pkg.to_s
+          jpkg_name = Shellwords.escape jpkg.packageName
+          pkg = Shellwords.escape pkg_file.to_s
           cmd = "#{tool} #{jpkg_name} #{pkg}"
 
           stdouterr, exit_status = Open3.capture2e(cmd)
           return if exit_status.success?
 
-          raise "Uploader tool failed to upload #{staged_pkg.basename} to dist point(s): #{stdouterr}"
+          raise "Uploader tool failed to upload #{pkg_file.basename} to dist point(s): #{stdouterr}"
         end
 
         # Confirm and return the extension of the originally uplaoded file,

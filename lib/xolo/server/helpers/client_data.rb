@@ -38,7 +38,7 @@ module Xolo
       # This means methods here are available in all routes, views, and helpers
       # the Sinatra server app.
       #
-      # The client data package is a Jamf::Package that installs a JSON file on all
+      # The client data package is a Jamf::JPackage that installs a JSON file on all
       # managed Macs. This JSON file contains data about all titles and versions, and
       # any other data that the xolo client needs to know about.
       #
@@ -61,7 +61,7 @@ module Xolo
         ##############################
         ##############################
 
-        # The name of the Jamf::Package object that contains the xolo-client-data
+        # The name of the Jamf Package object that contains the xolo-client-data
         # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
         CLIENT_DATA_PACKAGE_NAME = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}client-data"
 
@@ -121,6 +121,16 @@ module Xolo
         ##############################
         ##############################
 
+        # @return [Jamf::JPackage] the xolo-client-data package object
+        #####################
+        def client_data_package
+          return @client_data_package if @client_data_package
+
+          @client_data_package = Jamf::JPackage.fetch packageName: CLIENT_DATA_PACKAGE_NAME, cnx: jamf_cnx
+        rescue Jamf::NoSuchItemError
+          @client_data_package = create_client_data_jamf_package
+        end
+
         # update the xolo-client-data package and the policy that installs it
         #
         # This package installs a JSON file with data about all titles and versions
@@ -147,10 +157,8 @@ module Xolo
             sleep 5
           end
 
-          create_client_data_jamf_package_if_needed
-
           new_pkg = create_new_client_data_pkg_file
-          upload_client_data_package new_pkg
+          upload_to_dist_point client_data_package, new_pkg
 
           create_client_data_policies_if_needed
 
@@ -159,33 +167,32 @@ module Xolo
           mutex.unlock if mutex&.owned?
         end
 
-        # Create the xolo-client-data package in Jamf Pro
+        # Create and return the xolo-client-data package in Jamf Pro
         #
-        # @return [void]
+        # @return [Jamf::JPackage]
         #####################
-        def create_client_data_jamf_package_if_needed
-          return if Jamf::Package.all_names(cnx: jamf_cnx).include? CLIENT_DATA_PACKAGE_NAME
+        def create_client_data_jamf_package
+          progress "Jamf: Creating package object '#{CLIENT_DATA_PACKAGE_NAME}'"
 
-          progress "Jamf: Creating package '#{CLIENT_DATA_PACKAGE_NAME}'"
+          info = "Installs the xolo client data JSON file into /Library/Application Support/xolo/#{CLIENT_DATA_FILE}"
 
           # Create the package
-          pkg = Jamf::Package.create(
-            name: CLIENT_DATA_PACKAGE_NAME,
-            filename: CLIENT_DATA_PACKAGE_FILE,
-            cnx: jamf_cnx
+          pkg = Jamf::JPackage.create(
+            cnx: jamf_cnx,
+            packageName: CLIENT_DATA_PACKAGE_NAME,
+            fileName: CLIENT_DATA_PACKAGE_FILE,
+            categoryId: jamf_xolo_category_id,
+            info: info
           )
-          pkg.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pkg.reboot_required = false
-          pkg.fill_existing_users = false
-          pkg.fill_user_template = false
 
-          pkg.info = "Installs the xolo client data JSON file into /Library/Application Support/xolo/#{CLIENT_DATA_FILE}"
           pkg.save
           # .pkg files are not uploaded here, but in the upload_client_data_package method
 
           log_debug "Jamf: Created package '#{CLIENT_DATA_PACKAGE_NAME}'"
+
+          pkg
         rescue StandardError => e
-          raise "Jamf: Error creating Jamf::Package '#{CLIENT_DATA_PACKAGE_NAME}': #{e.class}: #{e}"
+          raise "Jamf: Error creating Jamf::JPackage '#{CLIENT_DATA_PACKAGE_NAME}': #{e.class}: #{e}"
         end
 
         # Create the xolo-client-data policies in Jamf Pro
@@ -288,13 +295,22 @@ module Xolo
 
           # NOTE: no need to shellescape the paths, since we are using the
           # array version of Open3.capture2e
-          cmd = ['/usr/bin/pkgbuild']
+          #
+          # Also use productbuild instead of pkgbuild, since it's needed
+          # for the package to be deployable via MDM.
+          #
+          # Also, productbuild handles --root differently than pkgbuild
+          # it takes two arguments, the root dir and the destination dir
+          # AND it requires the destination dir to be /System/Volumes/Data/
+          # if you want install the package on the booted volume.
+          # See man productbuild
+          #
+          cmd = ['/usr/bin/productbuild']
           cmd << '--root'
           cmd << root_dir.to_s
+          cmd << '/System/Volumes/Data/'
           cmd << '--identifier'
           cmd << CLIENT_DATA_PACKAGE_IDENTIFIER
-          cmd << '--install-location'
-          cmd << '/'
           cmd << '--version'
           cmd << pkg_version
           cmd << '--sign'
@@ -339,29 +355,6 @@ module Xolo
           # outfile.pix_save JSON.pretty_generate(cdh)
 
           cdh
-        end
-
-        # upload a new CLIENT_DATA_PACKAGE_FILE to the distribution point
-        #
-        # @param new_pkg [Pathname] the path to the package to upload
-        #
-        # @return [void]
-        ####################
-        def upload_client_data_package(new_pkg)
-          # Upload the package
-          log_debug "Jamf: Uploading package '#{CLIENT_DATA_PACKAGE_FILE}'"
-
-          tool = Xolo::Server.config.upload_tool.to_s.shellescape
-          jpkg_name = CLIENT_DATA_PACKAGE_NAME.shellescape
-          pkg = new_pkg.to_s.shellescape
-          cmd = "#{tool} #{jpkg_name} #{pkg}"
-
-          stdouterr, exit_status = Open3.capture2e(cmd)
-          unless exit_status.success?
-            raise "Uploader tool failed to upload #{new_pkg.basename} to dist point(s): #{stdouterr}"
-          end
-
-          log_info "Jamf: Uploaded new '#{CLIENT_DATA_PACKAGE_FILE}' via upload tool"
         end
 
         # @return [Pathname] the path to the client executable 'xolo' in the ruby gem

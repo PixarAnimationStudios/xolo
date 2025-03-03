@@ -257,7 +257,7 @@ module Xolo
           },
 
           # @!attribute jamf_pkg
-          #   @return [String] The file name of the installer for the Jamf::Package object that
+          #   @return [String] The file name of the installer for the Jamf Package object that
           #     installs this version.  'xolo-<title>-<version>.pkg' (or .zip)
           pkg_to_upload: {
             label: 'Upload Package',
@@ -448,7 +448,7 @@ module Xolo
           },
 
           # @!attribute jamf_pkg_name
-          #   @return [String] The display name of the Jamf::Package object that installs this version.
+          #   @return [String] The display name of the Jamf Package object that installs this version.
           #     'xolo-<title>-<version>'
           jamf_pkg_name: {
             label: 'Jamf Package',
@@ -456,12 +456,26 @@ module Xolo
             do_not_inherit: true,
             cli: false,
             desc: <<~ENDDESC
-              The display name of the Jamf::Package object that installs this version. 'xolo-<title>-<version>'
+              The display name of the Jamf Package object that installs this version. 'xolo-<title>-<version>'
+            ENDDESC
+          },
+
+          # @!attribute jamf_pkg_id
+          #   @return [String] The id of the Jamf Package object that installs this version.
+          #      This is an integer in a string, as are all IDs in the Jamf Pro API.
+          jamf_pkg_id: {
+            label: 'Jamf Package',
+            type: :string,
+            read_only: true,
+            do_not_inherit: true,
+            cli: false,
+            desc: <<~ENDDESC
+              The id of the Jamf Package object that installs this version. 'xolo-<title>-<version>'
             ENDDESC
           },
 
           # @!attribute jamf_pkg_file
-          #   @return [String] The file name of the installer.pkg file used by the Jamf::Package object to
+          #   @return [String] The file name of the installer.pkg file used by the Jamf Package object to
           #    installs this version. 'xolo-<title>-<version>.pkg' (or .zip)
           jamf_pkg_file: {
             label: 'Jamf Package File',
@@ -469,7 +483,7 @@ module Xolo
             do_not_inherit: true,
             cli: false,
             desc: <<~ENDDESC
-              The installer filename of the Jamf::Package object that installs this version: 'xolo-<title>-<version>.pkg' (or .zip).
+              The installer filename of the Jamf Package object that installs this version: 'xolo-<title>-<version>.pkg' (or .zip).
             ENDDESC
           }
 

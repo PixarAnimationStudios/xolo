@@ -88,7 +88,7 @@ module Xolo
               msg = 'Invalid data to instantiate a Xolo::Server::Title'
               log_error msg
 
-              halt 400, { error: msg }
+              halt 400, { status: 400, error: msg }
             end
 
           title.server_app_instance = self
@@ -104,7 +104,7 @@ module Xolo
 
           msg = "Title '#{title}' does not exist."
           log_debug "ERROR: #{msg}"
-          halt 404, { error: msg }
+          halt 404, { status: 404, error: msg }
         end
 
         # Halt 409 if a title already exists
@@ -116,7 +116,7 @@ module Xolo
 
           msg = "Title '#{title}' already exists."
           log_debug "ERROR: #{msg}"
-          halt 409, { error: msg }
+          halt 409, { status: 409, error: msg }
         end
 
         # Halt 409 if a title is locked
@@ -128,7 +128,7 @@ module Xolo
 
           msg = "Title '#{title}' is being modified by another admin. Try again later."
           log_debug "ERROR: #{msg}"
-          halt 409, { error: msg }
+          halt 409, { status: 409, error: msg }
         end
 
         # when freezing or thawing, are we dealing with a list of computers

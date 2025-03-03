@@ -114,6 +114,12 @@ module Xolo
           @jamf_cnx
         end
 
+        # The id of
+        #
+        def jamf_xolo_category_id
+          @jamf_xolo_category_id ||= Jamf::Category.valid_id(Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).to_s
+        end
+
         # if there's a forced_exclusion group defined in the server config
         # return it's name, but only if it exists in jamf. If it doesn't
         # return nil and alert someone
