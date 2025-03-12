@@ -142,11 +142,42 @@ module Xolo
           end
         end
 
+        # upload a pkg for a version
         # param with the uploaded file must be :file
         ######################
         post '/titles/:title/versions/:version/pkg' do
           process_incoming_pkg
           body({ result: :uploaded })
+        end
+
+        # Install a version on computers and/or a group, via
+        # the Jamf API's deploy_package endpoint and the
+        # InstallEnterpriseApplication MDM command.
+        #
+        # Request body is a JSON object with the following keys
+        #  computers: [Array<String, Integer>] The computer identifiers to install on.
+        #     Identifiers are either serial numbers, names, or Jamf IDs.
+        #  groups: [Array<String, Integer>] Identifiers of the groups to install on.
+        #
+        # Response body is a JSON object with the following keys
+        #   removals: [Array<Hash>] { device: <Integer>, group: <Integer>, reason: <String> }
+        #   queuedCommands: [Array<Hash>] { device: <Integer>, commandUuid: <String> }
+        #   errors: [Array<Hash>] { device: <Integer>, group: <Integer>, reason: <String> }
+        ######################
+        post '/titles/:title/versions/:version/deploy' do
+          request.body.rewind
+          targets = parse_json(request.body.read)
+
+          log_info "Incoming MDM deployment from admin #{session[:admin]} for title '#{params[:title]}',  version '#{params[:version]}'."
+          log_info "MDM deployment targets: #{targets}"
+
+          halt_on_missing_version params[:title], params[:version]
+
+          vers = instantiate_version title: params[:title], version: params[:version]
+
+          result = vers.deploy_via_mdm targets
+
+          body result
         end
 
         # Return info about all the computers with a given version of a title installed

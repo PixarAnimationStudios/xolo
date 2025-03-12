@@ -139,6 +139,7 @@ module Xolo
         end
 
         # upload a staged pkg to the dist point(s)
+        # This will also update the checksum and manifest.
         #
         # @param jpkg [Jamf::JPackage] The package object for which the pkg is being uploaded
         # @param pkg_file [Pathname] The path to .pkg file being uploaded
@@ -147,9 +148,17 @@ module Xolo
         ###########################################
         def upload_to_dist_point(jpkg, pkg_file)
           if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
-            log_info "Jamf: Uploading #{pkg_file.basename} to primary dist point via API"
-            jpkg.upload pkg_file
+            jpkg.upload pkg_file # this will update the checksum and manifest automatically
+            log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
           else
+            log_debug "Jamf: Regeneratin manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+            jpkg.generate_manifest(pkg_file)
+
+            log_debug "Jamf: Recalculating checksum for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+            jpkg.recalculate_checksum(pkg_file)
+
+            log_info "Jamf: Saving package '#{jpkg.packageName}' with new checksum and manifest"
+            jpkg.save
             upload_via_tool(jpkg, pkg_file)
           end
         end
@@ -172,7 +181,9 @@ module Xolo
           stdouterr, exit_status = Open3.capture2e(cmd)
           return if exit_status.success?
 
-          raise "Uploader tool failed to upload #{pkg_file.basename} to dist point(s): #{stdouterr}"
+          msg =  "Uploader tool failed to upload #{pkg_file.basename} to dist point(s): #{stdouterr}"
+          log_error msg
+          raise msg
         end
 
         # Confirm and return the extension of the originally uplaoded file,

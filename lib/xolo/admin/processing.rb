@@ -522,6 +522,48 @@ module Xolo
         handle_processing_error e
       end
 
+      # Deploy a version of a title in Xolo to one or more computers or computer groups
+      #
+      # @return [void]
+      ###############################
+      def deploy_version
+        return unless confirmed? "Deploy Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' via MDM?"
+
+        puts "Deploying Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' to computers: #{ARGV.join(', ')}"
+        puts "Groups: #{cli_cmd_opts[:groups].join(', ')}" if cli_cmd_opts[:groups]
+
+        response = Xolo::Admin::Version.deploy(
+          cli_cmd.title,
+          cli_cmd.version,
+          server_cnx,
+          groups: cli_cmd_opts[:groups],
+          computers: ARGV
+        )
+
+        return if quiet?
+
+        if json?
+          puts JSON.pretty_generate(response)
+          return
+        end
+
+        puts "Deployment of Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+        puts '---------------------------------------------------------------'
+        response[:removals].each do |removal|
+          type = removal[:device] ? 'Computer' : 'Group'
+          name = removal[:device] || removal[:group]
+          puts "Removed #{type} '#{name}' from targets: #{removal[:reason]}"
+        end
+
+        response[:queuedCommands].each do |cmd|
+          puts "Sent MDM deployment to #{cmd[:device]}, Command UUID: #{cmd[:commandUuid]}"
+        end
+
+        response[:errors].each do |err|
+          puts "Error deploying to #{err[:device]}: #{err[:reason]}"
+        end
+      end
+
       # Delete a title in Xolo
       #
       # @return [void]

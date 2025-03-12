@@ -19,6 +19,10 @@ Naming/VariableName:
   Enabled: false
 Naming/MethodName:
   Enabled: false
+# allow get_ and set_ prefixes for method names, they aren't
+# always accessors
+Naming/AccessorMethodName:
+  Enabled: false
 
 #### Style
 

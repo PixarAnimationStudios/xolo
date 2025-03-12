@@ -46,6 +46,8 @@ module Xolo
 
       class NotConnectedError < ConnectionError; end
 
+      class TimeoutError < ConnectionError; end
+
       class AuthenticationError < ConnectionError; end
 
       class PermissionError < ConnectionError; end

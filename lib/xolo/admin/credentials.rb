@@ -87,7 +87,7 @@ module Xolo
 
       # If we can't access the keychain, prompt for the password. This is usually
       # when we're running in a non-GUI session, e.g. via ssh.
-      rescue Xolo::Core::Exceptions::KeychainError
+      rescue Xolo::KeychainError
         raise unless @security_exit_status.exitstatus == SEC_STATUS_NO_GUI_ERROR
 
         question = "Keychain not accessible.\nPlease enter the xolo admin password for #{ENV['USER']}: "
