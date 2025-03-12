@@ -102,6 +102,23 @@ module Xolo
         new resp.body
       end
 
+      # Deploy a version to desired computers and groups via MDM
+      #
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @param groups [Array<String, Integer>] The groups to deploy to
+      # @param computers [Array<String, Integer>] The computers to deploy to
+      #
+      # @return [Hash] The response from the server
+      ####################
+      def self.deploy(title, version, cnx, groups: [], computers: [])
+        raise ArgumentError, 'Must provide at least one group or computer' if groups.empty? && computers.empty?
+
+        route = "#{server_route(title, version)}/deploy"
+        content = { groups: groups, computers: computers }
+        resp = cnx.post(route) { |req| req.body = content }
+        resp.body
+      end
+
       # Delete a version of a title from the server
       # @param title [String] the title
       # @param version [String] the version to delete

@@ -246,7 +246,7 @@ module Xolo
         return unless self_service_icon.is_a? Pathname
 
         unless self_service_icon.readable?
-          raise Xolo::Core::Exceptions::NoSuchItemError,
+          raise Xolo::NoSuchItemError,
                 "Can't upload self service icon '#{self_service_icon}': file doesn't exist or is not readable"
         end
 

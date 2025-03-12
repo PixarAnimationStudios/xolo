@@ -230,7 +230,7 @@ module Xolo
         rescue StandardError => e
           msg = "Jamf: Failed to create Jamf::JPackage '#{jamf_pkg_name}': #{e.class}: #{e}"
           log_error msg
-          raise Xolo::Core::Exceptions::ServerError, msg
+          raise Xolo::ServerError, msg
         end
 
         # @return [String] the 'notes' text for the Jamf::JPackage object for this version
@@ -1054,6 +1054,132 @@ module Xolo
             log_error "Package Deletion thread: #{e.class}: #{e}"
             e.backtrace.each { |l| log_error "..#{l}" }
           end
+        end
+
+        # Install this version on a one or more computers via MDM.
+        #
+        # @param targets [Hash ] With the following keys
+        #   - computers: [Array<String, Integer>] The computer identifiers to install on.
+        #     Identifiers are either serial numbers, names, or Jamf IDs.
+        #   - groups: [Array<String, Integer>] The names or ids of computer groups to install on.
+        #
+        # @return [Hash] The results of the install with the following keys
+        #   - removals: [Array<Hash>] { device: <String>, group: <InteStringger>, reason: <String> }
+        #   - queuedCommands: [Array<Hash>] { device: <String>, commandUuid: <String> }
+        #   - errors: [Array<Hash>] { device: <String>, group: <Integer>, reason: <String> }
+        #
+        def deploy_via_mdm(targets)
+          all_targets = targets[:computers] || []
+          removals = []
+
+          # expand groups into computers,
+          all_targets += expand_groups_for_deploy(targets[:groups], removals) if targets[:groups]
+
+          # remove duplicates
+          all_targets.uniq!
+
+          # remove invalid computers, after this all_targets will be valid computer ids
+          remove_invalid_computers_for_deploy(all_targets, removals)
+
+          # remove members of excluded groups from the list of targets
+          remove_exclusions_from_deploy(all_targets, removals)
+
+          # deploy the package to the computers
+          jamf_package.deploy_via_mdm computer_ids: all_targets
+
+          # convert ids to names for the response
+          comp_ids_to_names = Jamf::Computer.map_all(:id, to: :name, cnx: jamf_cnx)
+
+          jamf_package.deploy_response[:queuedCommands].map! do |qc|
+            { device: comp_ids_to_names[qc[:device]], commandUuid: qc[:commandUuid] }
+          end
+
+          jamf_package.deploy_response[:errors].map! do |err|
+            { device: comp_ids_to_names[err[:device]], reason: err[:reason] }
+          end
+
+          log_info "Jamf: Deployed version '#{version}' of title '#{title}' to #{all_targets.size} computers via MDM"
+          removals.each { |r| log_info "Jamf: Removal #{r}" }
+          jamf_package.deploy_response[:queuedCommands].each { |qc| log_info "Jamf: Queued Command #{qc}" }
+          jamf_package.deploy_response[:errors].each { |err| log_info "Jamf: Error #{err}" }
+
+          {
+            removals: removals,
+            queuedCommands: jamf_package.deploy_response[:queuedCommands],
+            errors: jamf_package.deploy_response[:errors]
+          }
+        end
+
+        # expand computer groups given for deploy_via_mdm
+        #
+        # @param groups [Array<String, Integer>] The names or ids of computer groups to install on.
+        # @param removals [Array<Hash>] The groups that are not valid, for reporting back to the caller
+        #
+        # @return [Array<Integer>] The ids of the computers in the groups
+        #########################
+        def expand_groups_for_deploy(groups, removals)
+          log_debug "Expanding group targets for MDM deployment of title '#{params[:title]}',  version '#{params[:version]}'"
+
+          computers = []
+          groups.each do |g|
+            gid = Jamf::ComputerGroup.valid_id g, cnx: jamf_cnx
+            if gid
+              jgroup = Jamf::ComputerGroup.fetch id: gid, cnx: jamf_cnx
+              computers += jgroup.member_ids
+            else
+              removals << { device: nil, group: g, reason: 'Group not found in Jamf Pro' }
+            end
+          end
+          computers
+        end
+
+        # remove invalid computers from the list of targets for deploy_via_mdm
+        #
+        # @param targets [Array<String, Integer>] The names or ids of computers to install on.
+        # @param removals [Array<Hash>] The computers that are not valid, for reporting back to the caller
+        #
+        # @return [void]
+        #########################
+        def remove_invalid_computers_for_deploy(targets, removals)
+          log_debug "Removing invalid computer targets for MDM deployment of title '#{params[:title]}',  version '#{params[:version]}'"
+
+          targets.map! do |c|
+            id = Jamf::Computer.valid_id c, cnx: jamf_cnx
+            if id
+              id
+            else
+              removals << { device: c, group: nil, reason: 'Computer not found in Jamf Pro' }
+              nil
+            end
+          end.compact!
+        end
+
+        # Remove exclusions from the list of targets for deploy_via_mdm
+        #
+        # @param targets [Array<Integer>] The ids of computers to install on.
+        # @param removals [Array<Hash>] The computers that are not valid, for reporting back to the caller
+        #
+        # @return [void]
+        #########################
+        def remove_exclusions_from_deploy(targets, removals)
+          log_debug "Removing excluded computer targets for MDM deployment of title '#{params[:title]}',  version '#{params[:version]}'"
+
+          excluded_groups_to_use.each do |group|
+            gid = Jamf::ComputerGroup.valid_id group, cnx: jamf_cnx
+            unless gid
+              log_error "Jamf: Excluded group '#{group}' not found in Jamf Pro. Skipping."
+              next
+            end # unless gid
+
+            jgroup = Jamf::ComputerGroup.fetch id: gid, cnx: jamf_cnx
+            jgroup.members.each do |member|
+              next unless targets.include? member[:id]
+
+              log_debug "Jamf: Removing computer '#{member[:name]}' (#{member[:id]}) from deployment targets because it is in excluded group '#{group}'"
+              targets.delete member[:id]
+              removals << { device: member[:name], group: nil, reason: "In excluded group '#{group}'" }
+            end
+          end # excluded_groups_to_use.each
         end
 
         # Get the patch report for this version

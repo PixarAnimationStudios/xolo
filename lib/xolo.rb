@@ -64,8 +64,7 @@ module Xolo
   extend Xolo::Core::Loading
   include Xolo::Core::Constants
   include Xolo::Core::Exceptions
-
-  VERSION = Xolo::Core::Version::VERSION
+  include Xolo::Core::Version
 
 end # module Xolo
 

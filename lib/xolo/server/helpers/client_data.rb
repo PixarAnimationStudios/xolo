@@ -123,12 +123,12 @@ module Xolo
 
         # @return [Jamf::JPackage] the xolo-client-data package object
         #####################
-        def client_data_package
-          return @client_data_package if @client_data_package
+        def client_data_jpackage
+          return @client_data_jpackage if @client_data_jpackage
 
-          @client_data_package = Jamf::JPackage.fetch packageName: CLIENT_DATA_PACKAGE_NAME, cnx: jamf_cnx
+          @client_data_jpackage = Jamf::JPackage.fetch packageName: CLIENT_DATA_PACKAGE_NAME, cnx: jamf_cnx
         rescue Jamf::NoSuchItemError
-          @client_data_package = create_client_data_jamf_package
+          @client_data_jpackage = create_client_data_jamf_package
         end
 
         # update the xolo-client-data package and the policy that installs it
@@ -158,7 +158,7 @@ module Xolo
           end
 
           new_pkg = create_new_client_data_pkg_file
-          upload_to_dist_point client_data_package, new_pkg
+          upload_to_dist_point client_data_jpackage, new_pkg
 
           create_client_data_policies_if_needed
 
