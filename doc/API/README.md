@@ -77,6 +77,8 @@ This documentation is preliminary and may never be fully complete.
     Return info about all computers with a given version of a title installed
   - [GET /titles/{title}/versions/{version}/urls](versions.md#urls)
     Get URLs for all the Title Editor and Jamf WebApp pages related to a version
+  - [POST /titles/{title}/versions/{version}/deploy](versions.md#deploy)
+    Deploy a version for installation on one or more computers or computer-groups
 - [Server Maintenance Endpoints](maintenance.md)
   - [GET /maint/state](maintenance.md#get_maint_state)
     Get server state details
