@@ -237,7 +237,7 @@ When you upload the .pkg to Xolo, it will automatically get a basic manifest nee
 MDM command.
 
 The response object contains three arrays of objects:
-- removals: target computers that were removed as targets, and the reason why
+- removals: target computers or groups that were removed as targets, and the reason why
 - queuedCommands: Machines that were sent the MDM command successfully, and the MDM Command UUID (may be useful for troubleshooting). 
   NOTE: Sending the MDM command doesn't mean that the install was successful - there's no way to know that other than on the computer itself.
 - errors: Machines that did not get the MDM command successfully, and the reason why.
