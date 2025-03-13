@@ -217,7 +217,7 @@ Schema:
 ```
 
 <!-- ------------------------- -->
-<a name="deploy"></a>
+<a id="deploy">---</a>
 ## POST /titles/{title}/versions/{version}/deploy
 
 #### Purpose
