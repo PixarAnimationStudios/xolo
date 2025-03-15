@@ -184,7 +184,7 @@ module Xolo
         def create_in_jamf
           ensure_jamf_xolo_category
 
-          # this will create or fetch the pkg
+          # this will create or fetch the JPackage object
           jamf_package
 
           # these will create or fetch the policies
@@ -734,6 +734,7 @@ module Xolo
 
           @jamf_package =
             if jamf_pkg_id
+              log_debug "Jamf: Fetching Jamf::JPackage '#{jamf_pkg_id}'"
               Jamf::JPackage.fetch id: jamf_pkg_id, cnx: jamf_cnx
             else
               return if deleting?
@@ -1069,6 +1070,11 @@ module Xolo
         #   - errors: [Array<Hash>] { device: <String>, group: <Integer>, reason: <String> }
         #
         def deploy_via_mdm(targets)
+          unless dist_pkg
+            raise Xolo::UnsupportedError,
+                  'MDM deployment is not supported for this version, it is not a Distribution Package.'
+          end
+
           all_targets = targets[:computers] || []
           removals = []
 
@@ -1118,7 +1124,7 @@ module Xolo
         # @return [Array<Integer>] The ids of the computers in the groups
         #########################
         def expand_groups_for_deploy(groups, removals)
-          log_debug "Expanding group targets for MDM deployment of title '#{params[:title]}',  version '#{params[:version]}'"
+          log_debug "Expanding group targets for MDM deployment of title '#{title}',  version '#{version}'"
 
           computers = []
           groups.each do |g|
@@ -1141,7 +1147,7 @@ module Xolo
         # @return [void]
         #########################
         def remove_invalid_computers_for_deploy(targets, removals)
-          log_debug "Removing invalid computer targets for MDM deployment of title '#{params[:title]}',  version '#{params[:version]}'"
+          log_debug "Removing invalid computer targets for MDM deployment of title '#{title}',  version '#{version}'"
 
           targets.map! do |c|
             id = Jamf::Computer.valid_id c, cnx: jamf_cnx
@@ -1162,7 +1168,7 @@ module Xolo
         # @return [void]
         #########################
         def remove_exclusions_from_deploy(targets, removals)
-          log_debug "Removing excluded computer targets for MDM deployment of title '#{params[:title]}',  version '#{params[:version]}'"
+          log_debug "Removing excluded computer targets for MDM deployment of title '#{title}',  version '#{version}'"
 
           excluded_groups_to_use.each do |group|
             gid = Jamf::ComputerGroup.valid_id group, cnx: jamf_cnx

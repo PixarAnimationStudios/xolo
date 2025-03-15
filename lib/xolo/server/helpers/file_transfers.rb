@@ -123,6 +123,9 @@ module Xolo
             tempfile.pix_cp staged_pkg
           end
 
+          # make note if the pkg is a Distribution package
+          version.dist_pkg = pkg_is_distribution?(staged_pkg)
+
           # upload the pkg with the uploader tool defined in config
           upload_to_dist_point(version.jamf_package, staged_pkg)
 
@@ -136,6 +139,28 @@ module Xolo
           log_error msg
           e.backtrace.each { |line| log_error "..#{line}" }
           halt 400, { status: 400, error: msg }
+        end
+
+        # Check if a package is a Distribution package, if not,
+        # it is a component package and can't be used for
+        # MDM deployment.
+        #
+        # @param pkg_file [Pathname, String] The path to the .pkg
+        #
+        # @return [Boolean] true if the pkg is a Distribution package
+        ###########################################
+        def pkg_is_distribution?(pkg_file)
+          pkg_file = Pathname.new(pkg_file)
+          raise ArgumentError, "pkg_file does not exist or not a file: #{pkg_file}" unless pkg_file.file?
+
+          tmpdir = Pathname.new(Dir.mktmpdir)
+          workdir = tmpdir + "#{pkg_file.basename}-expanded"
+
+          system "/usr/sbin/pkgutil --expand #{pkg_file.to_s.shellescape} #{workdir.to_s.shellescape}"
+
+          workdir.children.map(&:basename).map(&:to_s).include? 'Distribution'
+        ensure
+          tmpdir.rmtree
         end
 
         # upload a staged pkg to the dist point(s)

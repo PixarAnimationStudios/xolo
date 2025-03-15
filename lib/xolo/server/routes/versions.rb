@@ -178,6 +178,11 @@ module Xolo
           result = vers.deploy_via_mdm targets
 
           body result
+        rescue StandardError => e
+          msg = "#{e.class}: #{e}"
+          log_error msg
+          e.backtrace.each { |line| log_error "..#{line}" }
+          halt 400, { status: 400, error: msg }
         end
 
         # Return info about all the computers with a given version of a title installed

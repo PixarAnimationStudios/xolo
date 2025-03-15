@@ -236,7 +236,13 @@ module Xolo
 
         opts_to_process.title = cli_cmd.title
         read_uninstall_script
-        opts_to_process.uninstall_ids = [] if opts_to_process.uninstall_script
+
+        # if we were passed a new uninstall script, remove the uninstall ids
+        if opts_to_process.uninstall_script && opts_to_process.uninstall_script != Xolo::ITEM_UPLOADED
+          opts_to_process.uninstall_ids = []
+        end
+
+        # if we were passed uninstall ids, remove the uninstall script
         opts_to_process.uninstall_script = nil unless opts_to_process.uninstall_ids.pix_empty?
 
         title = Xolo::Admin::Title.new opts_to_process
@@ -529,8 +535,10 @@ module Xolo
       def deploy_version
         return unless confirmed? "Deploy Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' via MDM?"
 
-        puts "Deploying Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' to computers: #{ARGV.join(', ')}"
-        puts "Groups: #{cli_cmd_opts[:groups].join(', ')}" if cli_cmd_opts[:groups]
+        unless json? || quiet?
+          puts "Deploying Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' to computers: #{ARGV.join(', ')}"
+          puts "Groups: #{cli_cmd_opts[:groups].join(', ')}" unless cli_cmd_opts[:groups].pix_empty?
+        end
 
         response = Xolo::Admin::Version.deploy(
           cli_cmd.title,
@@ -547,7 +555,7 @@ module Xolo
           return
         end
 
-        puts "Deployment of Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+        puts "Results: Deployment of Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
         puts '---------------------------------------------------------------'
         response[:removals].each do |removal|
           type = removal[:device] ? 'Computer' : 'Group'
@@ -562,6 +570,8 @@ module Xolo
         response[:errors].each do |err|
           puts "Error deploying to #{err[:device]}: #{err[:reason]}"
         end
+      rescue StandardError => e
+        handle_processing_error e
       end
 
       # Delete a title in Xolo

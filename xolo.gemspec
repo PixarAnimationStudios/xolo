@@ -55,6 +55,7 @@ Gem::Specification.new do |s|
   # faraday
   # faraday-multipart
   # faraday-net-http
+  # pixar-ruby-extensions
 
   # Only for xadm
   # s.add_runtime_dependency 'highline', '~>2.0'

@@ -127,6 +127,11 @@ module Xolo
       }.freeze
 
       # The xadm commands
+      # TODO: add commands for:
+      # - upload a manifest for a version
+      # - get the status of an MDM command given a uuid
+      # - get the code of a version script
+      # - get the code of an uninstall script
 
       LIST_TITLES_CMD = 'list-titles'
       ADD_TITLE_CMD = 'add-title'

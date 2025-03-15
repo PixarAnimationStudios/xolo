@@ -2,7 +2,7 @@
 
 Version data in Xolo is exchanged and stored using this JSON Object. 
 
-When reading title data from, or sending title data to, the Xolo server, this structure represents a version of a title.
+When reading version data from, or sending version data to, the Xolo server, this structure represents a version of a title.
 
 Depending on the usage, not all keys will be present. 
 
@@ -18,6 +18,7 @@ TODO: Document the different contexts and which keys are used in each.
   "creation_date": "2024-12-02 15:37:34 -0800",
   "deprecated_by": null,
   "deprecation_date": null,
+  "dist_pkg": true,
   "jamf_pkg_file": "xolo-xolotest-1.0.0.pkg",
   "jamf_pkg_id": 11231,
   "jamf_pkg_name": "xolo-xolotest-1.0.0",
