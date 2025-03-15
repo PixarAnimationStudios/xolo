@@ -485,6 +485,20 @@ module Xolo
             desc: <<~ENDDESC
               The installer filename of the Jamf Package object that installs this version: 'xolo-<title>-<version>.pkg' (or .zip).
             ENDDESC
+          },
+
+          # @!attribute dist_pkg
+          #   @return [Boolean] Is the uploaded package a Distribution package? If so it can be used
+          #      for MDM deployment.
+          dist_pkg: {
+            label: 'Distribution Package',
+            type: :boolean,
+            do_not_inherit: true,
+            cli: false,
+            desc: <<~ENDDESC
+              If true, the uploaded .pkg file is a flat Distribution package, and can be deployed via MDM using the 'xadm deploy' command. Nil if the pkg was not uploaded via xolo.
+              This value is set by the server when the pkg is uploaded.
+            ENDDESC
           }
 
         }.freeze
