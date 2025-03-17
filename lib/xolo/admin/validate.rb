@@ -405,6 +405,26 @@ module Xolo
         raise_invalid_data_error bad_grps, TITLE_ATTRS[:excluded_groups][:invalid_msg]
       end
 
+      # validate an array  of jamf groups to use as MDM deployment targets.
+      # 'none' is also acceptable
+      #
+      # @param val [Array<String>] The value to validate:  names of jamf comp.
+      #   groups, or 'none'
+      #
+      # @return [Array<String>] The valid value
+      ##########################
+      def validate_deploy_groups(val)
+        val = [val] unless val.is_a? Array
+        return [] if val.include? Xolo::NONE
+
+        bad_grps = bad_jamf_groups(val)
+        return val if bad_grps.empty?
+
+        bad_grps = "No Such Groups: #{bad_grps.join(Xolo::COMMA_JOIN)}"
+
+        raise_invalid_data_error bad_grps, 'Invalid group(s). Must exist in Jamf Pro.'
+      end
+
       # @param grp_ary [Array<String>] Jamf groups to validate
       # @return [Array<String>] Jamf groups that do not exist.
       ##########################
@@ -534,7 +554,7 @@ module Xolo
         val = Time.now.to_s if val.pix_empty?
         val = Time.parse val.to_s
         # TODO: ? Ensure this date is >= the prev. version and <= the next
-        return val if true
+        return val
 
         raise VERSION_ATTRS[:publish_date][:invalid_msg]
       rescue StandardError => e
@@ -561,7 +581,7 @@ module Xolo
       # @return [Gem::Version] The valid value
       ##########################
       def validate_max_os(val)
-        return val if true
+        return val
 
         raise VERSION_ATTRS[:max_os][:invalid_msg]
       rescue StandardError => e

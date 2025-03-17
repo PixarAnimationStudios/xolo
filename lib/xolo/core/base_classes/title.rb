@@ -360,7 +360,7 @@ module Xolo
             changelog: true,
             readline_prompt: 'Group Name',
             readline: :jamf_computer_group_names,
-            invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf and not be excluded.',
+            invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members are not allowed to install this title.
 

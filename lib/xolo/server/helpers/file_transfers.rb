@@ -173,7 +173,7 @@ module Xolo
         ###########################################
         def upload_to_dist_point(jpkg, pkg_file)
           if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
-            jpkg.upload pkg_file # this will update the checksum and manifest automatically
+            jpkg.upload pkg_file # this will update the checksum and manifest automatically, and save back to the server
             log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
           else
             log_debug "Jamf: Regeneratin manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"

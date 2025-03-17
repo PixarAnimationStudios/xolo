@@ -111,7 +111,7 @@ module Xolo
       # @return [Hash] The response from the server
       ####################
       def self.deploy(title, version, cnx, groups: [], computers: [])
-        raise ArgumentError, 'Must provide at least one group or computer' if groups.empty? && computers.empty?
+        raise ArgumentError, 'Must provide at least one group or computer' if groups.pix_empty? && computers.pix_empty?
 
         route = "#{server_route(title, version)}/deploy"
         content = { groups: groups, computers: computers }
