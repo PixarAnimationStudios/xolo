@@ -472,11 +472,12 @@ module Xolo
             When you upload the .pkg to Xolo, it will automatically get a basic manifest needed for the
             MDM command.
           ENDLONG
-          display: "#{DEPLOY_VERSION_CMD} title version [--group group ...] [computer ...]",
+          display: "#{DEPLOY_VERSION_CMD} title version [computer ...]",
           opts: {
             groups: {
               label: 'Computer group whose computers will be targeted',
               cli: :g,
+              validate: :validate_deploy_groups,
               type: :string,
               multi: true,
               readline_prompt: 'Group Name',

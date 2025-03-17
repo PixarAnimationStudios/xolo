@@ -226,6 +226,8 @@ module Xolo
           # OS requirements, building in the concept of min/max
 
           self.jamf_pkg_id = pkg.save
+          # save the data now so the pkg_id is available for immeadiate use, e.g. by pkg upload
+          save_local_data
           pkg
         rescue StandardError => e
           msg = "Jamf: Failed to create Jamf::JPackage '#{jamf_pkg_name}': #{e.class}: #{e}"
@@ -732,10 +734,11 @@ module Xolo
         def jamf_package
           return @jamf_package if @jamf_package
 
+          id = jamf_pkg_id || Jamf::JPackage.valid_id(name: jamf_pkg_name, cnx: jamf_cnx)
           @jamf_package =
-            if jamf_pkg_id
-              log_debug "Jamf: Fetching Jamf::JPackage '#{jamf_pkg_id}'"
-              Jamf::JPackage.fetch id: jamf_pkg_id, cnx: jamf_cnx
+            if id
+              log_debug "Jamf: Fetching Jamf::JPackage '#{id}'"
+              Jamf::JPackage.fetch id: id, cnx: jamf_cnx
             else
               return if deleting?
 
@@ -1131,8 +1134,16 @@ module Xolo
             gid = Jamf::ComputerGroup.valid_id g, cnx: jamf_cnx
             if gid
               jgroup = Jamf::ComputerGroup.fetch id: gid, cnx: jamf_cnx
+
+              if excluded_groups_to_use.include? jgroup.name
+                log_debug "Jamf: Group '#{jgroup.name}' is in the excluded groups list. Removing."
+                removals << { device: nil, group: g, reason: "Group '#{jgroup.name}' is in the excluded groups list" }
+                next
+              end
+              log_debug "Jamf: Adding computers from group '#{jgroup.name}' to deployment targets"
               computers += jgroup.member_ids
             else
+              log_debug "Jamf: Group '#{g}' not found in Jamf Pro. Removing."
               removals << { device: nil, group: g, reason: 'Group not found in Jamf Pro' }
             end
           end

@@ -537,14 +537,14 @@ module Xolo
 
         unless json? || quiet?
           puts "Deploying Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' to computers: #{ARGV.join(', ')}"
-          puts "Groups: #{cli_cmd_opts[:groups].join(', ')}" unless cli_cmd_opts[:groups].pix_empty?
+          puts "Groups: #{opts_to_process[:groups].join(', ')}" unless opts_to_process[:groups].pix_empty?
         end
 
         response = Xolo::Admin::Version.deploy(
           cli_cmd.title,
           cli_cmd.version,
           server_cnx,
-          groups: cli_cmd_opts[:groups],
+          groups: opts_to_process[:groups],
           computers: ARGV
         )
 

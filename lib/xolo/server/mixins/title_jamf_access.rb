@@ -849,9 +849,9 @@ module Xolo
         ########################
         def delete_title_from_jamf
           # ORDER MATTERS
-          delete_frozen_group_from_jamf
           delete_expire_policy
           delete_uninstall_pol_and_script
+          delete_frozen_group_from_jamf
           delete_installed_group_from_jamf
           delete_normal_ea_from_jamf
           delete_patch_title_from_jamf
