@@ -77,6 +77,8 @@ module Xolo
         def with_streaming
           raise 'No block given to run in streaming thread' unless block_given?
 
+          @streaming_now = true
+
           # always call this first in a
           # long-running route that will use progress streaming
           setup_progress_streaming

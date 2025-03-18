@@ -120,6 +120,10 @@ module Xolo
       ################
       get '/streamed_progress/' do
         log_debug "Starting progress stream from file: #{params[:stream_file]}"
+        # make note that this Server instance is just streaming from a file
+        # not acuatlly processing anything.
+        @streaming_from_file = true
+
         @no_json = true
         stream_file = Pathname.new params[:stream_file]
 
