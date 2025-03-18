@@ -111,7 +111,7 @@ module Xolo
           vers
         end
 
-        # Halt 404 if a title doesn't exist
+        # Halt 404 if a version doesn't exist
         # @pararm [String] The title of a Title
         # @return [void]
         ##################
@@ -120,7 +120,10 @@ module Xolo
 
           msg = "No version '#{version}' for title '#{title}'."
           log_debug "ERROR: #{msg}"
-          resp_body = @streaming ? msg : { status: 404, error: msg }
+          resp_body = @streaming_now ? msg : { status: 404, error: msg }
+
+          # don't halt if we're streaming, just error out
+          raise Xolo::NoSuchItemError, msg if @streaming_now
 
           halt 404, resp_body
         end
@@ -134,7 +137,11 @@ module Xolo
 
           msg = "Version '#{version}' of title '#{title}' already exists."
           log_debug "ERROR: #{msg}"
-          resp_body = @streaming ? msg : { status: 409, error: msg }
+          resp_body = @streaming_now ? msg : { status: 409, error: msg }
+
+          # don't halt if we're streaming, just error out
+          raise Xolo::NoSuchItemError, msg if @streaming_now
+
           halt 409, resp_body
         end
 
