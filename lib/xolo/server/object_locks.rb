@@ -101,6 +101,17 @@ module Xolo
         end
       end
 
+      # Testing Concurrent::ReentrantReadWriteLock for titles and versions
+      # to be acquired and released in the route blocks
+      #
+      def rw_lock(title, version = nil)
+        @rw_locks ||= Concurrent::Hash.new
+        @rw_locks[title] ||= { lock: Concurrent::ReentrantReadWriteLock.new }
+        return @rw_locks[title] unless version
+
+        @rw_locks[title][version] ||= Concurrent::ReentrantReadWriteLock.new
+      end
+
     end #  ObjectLocks
 
   end #  Server
