@@ -505,19 +505,6 @@ module Xolo
         unlock
       end
 
-      # Mark this verion's package as having been uploaded
-      # to the Jamf Pro distribution point(s)
-      #
-      # @return [void]
-      #########################
-      def mark_pkg_uploaded(_uploaded_pkg_name)
-        lock
-        save_local_data
-        log_debug "Marked package as uploaded to Jamf Pro for version '#{version}' of title '#{title}'"
-      ensure
-        unlock
-      end
-
       # Update a this version, updating to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #

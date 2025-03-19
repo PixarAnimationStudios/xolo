@@ -95,6 +95,7 @@ module Xolo
 
           # the Xolo::Server::Version that owns this pkg
           version = instantiate_version title: params[:title], version: params[:version]
+          version.lock
 
           # the original uploaded filename
           orig_filename = params[:file][:filename]
@@ -130,7 +131,7 @@ module Xolo
           upload_to_dist_point(version.jamf_package, staged_pkg)
 
           # save/update the local data file, since we've done stuff to update it
-          version.mark_pkg_uploaded uploaded_pkg_name
+          version.save_local_data
 
           # remove the staged pkg. The tmp file will go away on its own.
           staged_pkg.delete
@@ -139,6 +140,8 @@ module Xolo
           log_error msg
           e.backtrace.each { |line| log_error "..#{line}" }
           halt 400, { status: 400, error: msg }
+        ensure
+          version.unlock
         end
 
         # Check if a package is a Distribution package, if not,

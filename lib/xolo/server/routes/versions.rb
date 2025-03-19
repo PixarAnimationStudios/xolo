@@ -68,9 +68,11 @@ module Xolo
 
           log_info "Admin #{session[:admin]} is creating version #{data[:version]} of title '#{params[:title]}'"
 
-          with_streaming do
-            vers.create
-            update_client_data
+          Xolo::Server.rw_lock(data[:title], data[:version]).with_write_lock do
+            with_streaming do
+              vers.create
+              update_client_data
+            end
           end
         end
 
@@ -91,11 +93,13 @@ module Xolo
         # @return [Hash] The data for this version
         #################################
         get '/titles/:title/versions/:version' do
-          log_debug "Admin #{session[:admin]} is fetching version '#{params[:version]}' of title '#{params[:title]}'"
-          halt_on_missing_version params[:title], params[:version]
+          Xolo::Server.rw_lock(data[:title], data[:version]).with_read_lock do
+            log_debug "Admin #{session[:admin]} is fetching version '#{params[:version]}' of title '#{params[:title]}'"
+            halt_on_missing_version params[:title], params[:version]
 
-          vers = instantiate_version title: params[:title], version: params[:version]
-          body vers.to_h
+            vers = instantiate_version title: params[:title], version: params[:version]
+            body vers.to_h
+          end
         end
 
         # Update a version,
