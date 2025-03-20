@@ -93,7 +93,7 @@ module Xolo
         # @return [Hash] The data for this version
         #################################
         get '/titles/:title/versions/:version' do
-          Xolo::Server.rw_lock(data[:title], data[:version]).with_read_lock do
+          Xolo::Server.rw_lock(params[:title], params[:version]).with_read_lock do
             log_debug "Admin #{session[:admin]} is fetching version '#{params[:version]}' of title '#{params[:title]}'"
             halt_on_missing_version params[:title], params[:version]
 
