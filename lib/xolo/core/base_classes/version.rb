@@ -488,7 +488,7 @@ module Xolo
           },
 
           # @!attribute dist_pkg
-          #   @return [Boolean] Is the uploaded package a Distribution package? If so it can be used
+          #   @return [Boolean] Is the most recently uploaded package a Distribution package? If so it can be used
           #      for MDM deployment.
           dist_pkg: {
             label: 'Distribution Package',
@@ -496,7 +496,21 @@ module Xolo
             do_not_inherit: true,
             cli: false,
             desc: <<~ENDDESC
-              If true, the uploaded .pkg file is a flat Distribution package, and can be deployed via MDM using the 'xadm deploy' command. Nil if the pkg was not uploaded via xolo.
+              If true, the most recently uploaded .pkg file is a flat Distribution package, and can be deployed via MDM using the 'xadm deploy' command. Nil if no pkg was ever uploaded via xolo. Uploading a different .pkg file via other means will not change this value, and may cause the pkg to fail to deploy via MDM.
+              This value is set by the server when the pkg is uploaded.
+            ENDDESC
+          },
+
+          # @!attribute sha_512
+          #   @return [String] The SHA512 checksum of the most recently uploaded package
+          sha_512: {
+            label: 'Package Checksum',
+            type: :string,
+            do_not_inherit: true,
+            cli: false,
+            desc: <<~ENDDESC
+              The SHA512 checksum of the most recently uploaded package.
+              NOTE: The Jamf Server may use an MD5 checksum in the package object.
               This value is set by the server when the pkg is uploaded.
             ENDDESC
           }
