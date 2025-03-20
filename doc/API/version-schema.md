@@ -37,6 +37,7 @@ TODO: Document the different contexts and which keys are used in each.
   "reboot": false,
   "release_date": null,
   "released_by": null,
+  "sha_512": "hex-string-goes-here",
   "skipped_by": null,
   "skipped_date": null,
   "standalone": true,
