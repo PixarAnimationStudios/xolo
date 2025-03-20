@@ -518,7 +518,7 @@ module Xolo
           # Don't cache this in an instance var, it changes during the
           # life of our title instance
           # jamf_ted_patch_source.available_titles.map { |t| t[:name_id] }
-          # Also NOTE: it "available" means not only enabled
+          # Also NOTE: "available" means not only enabled
           # in the title editor, but also not already active in jamf.
           # So any given title will either be here or in
           # jamf_active_ted_titles, but never both.
