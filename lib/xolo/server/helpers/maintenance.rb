@@ -150,23 +150,64 @@ module Xolo
           Xolo::Server.logger.info "Cleanup request response: #{response.code} #{response.body}"
         end
 
-        # Cleanup versions.
+        # Cleanup things that need to be cleaned up
         # @return [void]
         ################################
-        def cleanup_versions
+        def run_cleanup
           if Xolo::Server.shutting_down?
-            log_info 'Not starting cleanup, server is shutting down'
+            log_info 'Cleanup: Not starting cleanup, server is shutting down'
             return
           end
           # TODO: Use Concurrent ruby rather than this instance variable
           mutex = Xolo::Server::Helpers::Maintenance.cleanup_mutex
 
           if mutex.locked?
-            log_warn 'Cleanup already running, skipping this run'
+            log_warn 'Cleanup: already running, skipping this run'
             return
           end
           mutex.lock
-          log_info 'Running Cleanup...'
+          log_info 'Cleanup: starting'
+
+          # add new cleanup tasks/methods here
+          accept_title_editor_eas
+          cleanup_versions
+
+          log_info 'Cleanup: complete'
+        ensure
+          mutex&.unlock
+        end
+
+        # look for any titles that need their Title Editor EA's accepted,
+        # and auto accept them if we need to
+        # @return [void]
+        ######################################
+        def accept_title_editor_eas
+          unless Xolo::Server.config.jamf_auto_accept_xolo_eas
+            log_info 'Cleanup: The xolo server is not configured to auto-accept Title Editor EAs'
+            return
+          end
+
+          log_info 'Cleanup: Looking for Title Editor EAs to auto-accept'
+
+          # TODO: Be DRY with this stuff and similar in title_jamf_access.rb
+          Xolo::Server::Title.all_titles.each do |title|
+            title_obj = instantiate_title title
+            next unless title_obj.jamf_patch_ea_needs_acceptance?
+
+            log_info "Cleanup: Auto-accepting Title Editor EA for title '#{title}'"
+            title_obj.accept_patch_ea_in_jamf_via_api
+          rescue StandardError => e
+            log_error "Cleanup: Error auto-accepting Title Editor EA for title '#{title}': #{e}"
+          end # Xolo::Server::Title.all_titles.each
+
+          log_info 'Cleanup: Done with Title Editor EAs to auto-accept'
+        end
+
+        # Cleanup versions.
+        # @return [void]
+        ################################
+        def cleanup_versions
+          log_info 'Cleanup: cleaning up deprecated and skipped versions'
 
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
@@ -183,9 +224,7 @@ module Xolo
           end # each title
 
           Xolo::Server::Helpers::Maintenance.last_cleanup = Time.now
-          log_info 'Cleanup complete.'
-        ensure
-          mutex&.unlock
+          log_info 'Cleanup: versions cleanup complete'
         end
 
         # Cleanup a deprecated version.

@@ -603,33 +603,27 @@ module Xolo
 
           # return with warning if we aren't auto-accepting
           unless Xolo::Server.config.jamf_auto_accept_xolo_eas
-            progress "Jamf: IMPORTANT: the version-script ExtAttr for this title '#{ted_ea_key}' must be accepted manually in Jamf Pro",
-                     log: :info
+            msg = "Jamf: IMPORTANT: the version-script ExtAttr for this title '#{ted_ea_key}' must be accepted manually in Jamf Pro"
+            progress msg, log: :info
             return
           end
 
-          patchdata = <<~ENDPATCHDATA
-            {
-              "extensionAttributes": [
-                {
-                  "accepted": true,
-                  "eaId": "#{ted_ea_key}"
-                }
-              ]
-            }
-          ENDPATCHDATA
-
+          # this is true if the Jamf server already knows it needs to be accepted
           if jamf_patch_ea_needs_acceptance?
-            progress "Jamf: Auto-accepting use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :debug
-            jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_patch_title_id}", patchdata
+            accept_patch_ea_in_jamf_via_api
             return
           end
 
-          auto_accept_patch_ea_in_thread patchdata
+          # If not, we are here because we expect it will need acceptance soon
+          # So we call this method to wait for Jamf to notice that,
+          # checking in the background for up  to an hour.
+          auto_accept_patch_ea_in_thread
         end
 
+        # Wait for up to an hour for Jamf to notice that our TEd EA needs to be
+        # accepted, and then do it
         #####################
-        def auto_accept_patch_ea_in_thread(patchdata)
+        def auto_accept_patch_ea_in_thread
           # don't do this if there's already one running for this instance
           if @auto_accept_ea_thread&.alive?
             log_debug "Jamf: auto_accept_ea_thread already running. Caller: #{caller_locations.first}"
@@ -649,23 +643,23 @@ module Xolo
             while Time.now < max_time
               sleep 30
 
-              # refresh out jamf connection cuz it might expire if this takes a while, esp if using
+              # refresh our jamf connection cuz it might expire if this takes a while, esp if using
               # an APIClient
               jamf_cnx(refresh: true) if jamf_cnx.token.secs_remaining < 90
 
               log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time}"
               next unless jamf_patch_ea_needs_acceptance?
 
-              jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_patch_title_id}", patchdata
+              accept_patch_ea_in_jamf_via_api
               log_info "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'"
               did_it = true
               break
             end # while
 
-            unless did_it
-              log_error "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate.",
-                        alert: true
-            end
+            return if did_it
+
+            msg = "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate."
+            log_error msg, alert: true
           end # thread
         end
 
@@ -748,6 +742,26 @@ module Xolo
           return unless jamf_patch_title_id
 
           jamf_cnx.jp_get("v2/patch-software-title-configurations/#{jamf_patch_title_id}/extension-attributes").first
+        end
+
+        # API call to accept the version-script EA in Jamf Pro
+        # TODO: when this gets implemented in ruby-jss, use that implementation
+        #
+        # @return [void]
+        ########################
+        def accept_patch_ea_in_jamf_via_api
+          patchdata = <<~ENDPATCHDATA
+            {
+              "extensionAttributes": [
+                {
+                  "accepted": true,
+                  "eaId": "#{ted_ea_key}"
+                }
+              ]
+            }
+          ENDPATCHDATA
+          progress "Jamf: Auto-accepting use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :info
+          jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_patch_title_id}", patchdata
         end
 
         # the script contents of the Jamf Patch EA that comes from our version_script
