@@ -473,6 +473,11 @@ module Xolo
 
             if did_it
               assign_pkg_to_patch_in_jamf
+              # give jamf a moment to catch up and refresh the patch title
+              # so we see the pkg has been assigned
+              sleep 2
+              title_object.jamf_patch_title(refresh: true)
+
               create_patch_policy_in_jamf
             else
               log_error "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate.",
