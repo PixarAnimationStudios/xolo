@@ -498,6 +498,8 @@ module Xolo
           count += 1
         end
         speak 'Upload complete, Final upload to distribution points will happen soon.'
+      rescue StandardError => e
+        handle_processing_error e
       end
 
       # Edit/Update a version in Xolo
