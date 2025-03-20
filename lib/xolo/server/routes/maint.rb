@@ -90,7 +90,7 @@ module Xolo
         post '/maint/cleanup-internal' do
           log_info 'Starting internal cleanup'
 
-          thr = Thread.new { cleanup_versions }
+          thr = Thread.new { run_cleanup }
           thr.name = 'Internal Cleanup Thread'
           result = { result: 'Internal Cleanup Underway' }
           body result
@@ -101,7 +101,7 @@ module Xolo
         post '/maint/cleanup' do
           log_info "Starting manual server cleanup by #{session[:admin]}"
 
-          thr = Thread.new { cleanup_versions }
+          thr = Thread.new { run_cleanup }
           thr.name = 'Manual Cleanup Thread'
           result = { result: 'Manual Cleanup Underway' }
           body result
