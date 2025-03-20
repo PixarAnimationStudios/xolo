@@ -118,23 +118,33 @@ module Xolo
           staged_pkg.delete if staged_pkg.file?
 
           if need_to_sign?(tempfile)
+            # This will put the signed pkg into the staged_pkg location
             sign_uploaded_pkg(tempfile, staged_pkg)
           else
             log_debug "Uploaded .pkg file doesn't need signing, copying tempfile to '#{staged_pkg.basename}'"
+            # Put the signed pkg into the staged_pkg location
             tempfile.pix_cp staged_pkg
           end
+
+          # upload the pkg with the uploader tool defined in config
+          # This will set the checksum and manifest in the JPackage object
+          upload_to_dist_point(version.jamf_package, staged_pkg)
 
           # make note if the pkg is a Distribution package
           version.dist_pkg = pkg_is_distribution?(staged_pkg)
 
-          # upload the pkg with the uploader tool defined in config
-          upload_to_dist_point(version.jamf_package, staged_pkg)
+          # save the manifest just in case
+          version.manifest_file.pix_atomic_write(version.jamf_package.manifest)
+
+          # save the checksum just in case
+          version.sha_512 = version.jamf_package.checksum
 
           # save/update the local data file, since we've done stuff to update it
           version.save_local_data
 
-          # remove the staged pkg. The tmp file will go away on its own.
+          # remove the staged pkg and the tempfile
           staged_pkg.delete
+          tempfile.delete if tempfile.file?
         rescue StandardError => e
           msg = "#{e.class}: #{e}"
           log_error msg
