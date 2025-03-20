@@ -62,38 +62,46 @@ module Xolo
         end
 
         ###############################
+        def session_svr_obj_id
+          return @session_svr_obj_id if @session_svr_obj_id
+
+          @session_svr_obj_id =
+            ("#{session[:xolo_id]}-#{object_id}" if session[:xolo_id])
+        end
+
+        ###############################
         def log_debug(msg, alert: false)
-          logger.debug(session[:xolo_id]) { msg }
+          logger.debug(session_svr_obj_id) { msg }
           send_alert msg, :DEBUG if alert
         end
 
         ###############################
         def log_info(msg, alert: false)
-          logger.info(session[:xolo_id]) { msg }
+          logger.info(session_svr_obj_id) { msg }
           send_alert msg, :INFO if alert
         end
 
         ###############################
         def log_warn(msg, alert: false)
-          logger.warn(session[:xolo_id]) { msg }
+          logger.warn(session_svr_obj_id) { msg }
           send_alert msg, :WARNING if alert
         end
 
         ###############################
         def log_error(msg, alert: false)
-          logger.error(session[:xolo_id]) { msg }
+          logger.error(session_svr_obj_id) { msg }
           send_alert msg, :ERROR if alert
         end
 
         ###############################
         def log_fatal(msg, alert: false)
-          logger.fatal(session[:xolo_id]) { msg }
+          logger.fatal(session_svr_obj_id) { msg }
           send_alert msg, :FATAL if alert
         end
 
         ###############################
         def log_unknown(msg, alert: false)
-          logger.unknown(session[:xolo_id]) { msg }
+          logger.unknown(session_svr_obj_id) { msg }
           send_alert msg, :UNKNOWN if alert
         end
 
