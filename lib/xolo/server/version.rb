@@ -88,16 +88,17 @@ module Xolo
       ######################
 
       # @pararm title [String] the title for the version
-      # @return [Pathname]  The directory containing version JSON files for a title
+      # @return [Pathname]  The directory containing subdirectories for each version of a title.
+      #   They contain JSON and other files for the versions.
       ######################
       def self.version_dir(title)
         Xolo::Server::Title.title_dir(title) + VERSIONS_DIRNAME
       end
 
       # @pararm title [String] the title for the versions
-      # @return [Array<Pathname>] A list of all known versions for a title
+      # @return [Array<Pathname>] All version directories for a title
       ######################
-      def self.version_files(title)
+      def self.version_dirs(title)
         vdir = version_dir(title)
         vdir.directory? ? vdir.children : []
       end
@@ -107,7 +108,20 @@ module Xolo
       #   just the basenames of all the version files with the extension removed
       ######################
       def self.all_versions(title)
-        version_files(title).map { |c| c.basename.to_s.delete_suffix '.json' }
+        version_dirs(title).map { |c| c.basename.to_s }
+      end
+
+      # The the local directory containing various files
+      # specific to the given version of a title
+      #
+      # @pararm title [String] the title for the version
+      #
+      # @pararm version [String] the version we care about
+      #
+      # @return [Pathname]
+      #####################
+      def self.data_dir(title, version)
+        version_dir(title) + version
       end
 
       # The the local JSON file containing the current values
@@ -119,8 +133,21 @@ module Xolo
       #
       # @return [Pathname]
       #####################
-      def self.version_data_file(title, version)
-        version_dir(title) + "#{version}.json"
+      def self.data_file(title, version)
+        data_dir(title, version) + "#{version}.json"
+      end
+
+      # The the local xml plist file containing the
+      # .pkg manifest for the given version of a title
+      #
+      # @pararm title [String] the title for the version
+      #
+      # @pararm version [String] the version we care about
+      #
+      # @return [Pathname]
+      #####################
+      def self.manifest_file(title, version)
+        data_dir(title, version) + "#{version}.manifest.plist"
       end
 
       # Instantiate from the local JSON file containing the current values
@@ -137,7 +164,7 @@ module Xolo
       #   from the on-disk JSON file
       ######################
       def self.load(title, version)
-        new parse_json(version_data_file(title, version).read)
+        new parse_json(data_file(title, version).read)
       end
 
       # @param patch_id [String] the id number of the patch we are looking for
@@ -435,11 +462,25 @@ module Xolo
         server_app_instance.jamf_cnx refresh: refresh
       end
 
-      # The data file for this version
+      # The data directory for this version
       # @return [Pathname]
       #########################
-      def version_data_file
-        self.class.version_data_file title, version
+      def data_dir
+        self.class.data_dir title, version
+      end
+
+      # The JSON data file for this version
+      # @return [Pathname]
+      #########################
+      def data_file
+        self.class.data_file title, version
+      end
+
+      # The manifest plist file for this version
+      # @return [Pathname]
+      #########################
+      def manifest_file
+        self.class.manifest_file title, version
       end
 
       # TODO: maybe pass in an appropriate Windoo::SoftwareTitle, so
@@ -680,13 +721,13 @@ module Xolo
       # @return [void]
       ##########################
       def save_local_data
-        self.class.version_dir(title).mkpath
+        data_dir.mkpath
 
         self.modification_date = Time.now
         self.modified_by = admin
         log_debug "Version '#{version}' of Title '#{title}' noting modification by #{modified_by}"
 
-        file = version_data_file
+        file = data_file
         log_debug "Saving local version data to: #{file}"
         file.pix_atomic_write to_json
       end
@@ -712,7 +753,7 @@ module Xolo
 
         # delete the local data
         progress 'Deleting version data from the Xolo server', log: :info
-        version_data_file.delete
+        data_dir.rmtree
         log_change msg: 'Version Deleted'
 
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
