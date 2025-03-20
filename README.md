@@ -24,4 +24,4 @@ For detailed documentation about Xolo:
 
 - Setting up Xolo in your environment - Running a Xolo server.
 - xadm, the Xolo admin tool for managing titles and patches/versions
-- xolo, the Xolo client tool for manually installing & uninstalling on managed Macs
+- xolo, the Xolo client tool for manually installing & uninstalling titles on managed Macs
