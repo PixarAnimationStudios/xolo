@@ -142,6 +142,9 @@ module Xolo
           # save/update the local data file, since we've done stuff to update it
           version.save_local_data
 
+          # log the upload
+          version.log_change msg: "Uploaded pkg file '#{staged_pkg.basename}'"
+
           # remove the staged pkg and the tempfile
           staged_pkg.delete
           tempfile.delete if tempfile.file?
