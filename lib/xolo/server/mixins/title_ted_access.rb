@@ -178,9 +178,9 @@ module Xolo
           req_change = requirement_change
           return unless req_change
 
-          new_app_name = changes_for_update[:app_name][:new]
-          new_app_bundle_id = changes_for_update[:app_bundle_id][:new]
-          new_ea_script = changes_for_update[:version_script][:new]
+          new_app_name = changes_for_update.dig :app_name, :new
+          new_app_bundle_id = changes_for_update.dig :app_bundle_id, :new
+          new_ea_script = changes_for_update.dig :version_script, :new
 
           case req_change
           when :app_to_ea
@@ -286,7 +286,11 @@ module Xolo
         def update_ted_ea(script)
           progress "Title Editor: Updating Extension Attribute from version_script for title '#{title}'", log: :info
 
-          ted_title.extensionAttribute.script = script
+          if ted_title.extensionAttribute
+            ted_title.extensionAttribute.script = script
+          else
+            create_ted_ea(script)
+          end
           @need_to_accept_xolo_ea_in_jamf = true
         end
 
@@ -398,8 +402,18 @@ module Xolo
             sleep 5
             ted_title(refresh: true).enable
             break
-          rescue Windoo::MissingDataError
-            log_debug "Title Editor: Looping up to #{Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs while re-enabling SoftwareTitle '#{title}'"
+          rescue Windoo::MissingDataError => e
+            log_debug "Title Editor: Looping up to #{Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs while re-enabling SoftwareTitle '#{title}': #{e}"
+
+            # make sure all patches are enabled, even tho at least one should have been
+            # enabled at the start of this method
+            begin
+              log_debug "Title Editor: Force-enablng all patches for title #{title}"
+              ted_title.patches.each(&:enable)
+            rescue StandardError
+              nil
+            end
+
             nil
           end
         end

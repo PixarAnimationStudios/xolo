@@ -129,6 +129,7 @@ module Xolo
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_group
+
           delete_normal_ea_from_jamf unless version_script_contents
 
           if jamf_ted_title_active?
@@ -359,7 +360,12 @@ module Xolo
         # @return [Array<Jamf::Criteriable::Criterion>]
         ###################################
         def jamf_installed_group_criteria
-          have_vers_script = changes_for_update.dig(:version_script, :new) || version_script
+          have_vers_script =
+            if changes_for_update&.dig :version_script
+              changes_for_update[:version_script][:new]
+            else
+              version_script
+            end
 
           # If we have a version_script, use the ea
           if have_vers_script
@@ -439,7 +445,6 @@ module Xolo
         ########################
         def jamf_normal_ea
           return @jamf_normal_ea if @jamf_normal_ea
-          return unless version_script
 
           if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
             @jamf_normal_ea = Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
@@ -658,7 +663,7 @@ module Xolo
 
             return if did_it
 
-            msg = "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate."
+            msg = "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs. Please investigate."
             log_error msg, alert: true
           end # thread
         end
