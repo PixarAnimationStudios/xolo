@@ -688,8 +688,9 @@ module Xolo
         # @return [void]
         ##########################
         def update_jamf_pkg_reboot
-          progress "Jamf: Updating reboot setting for Jamf::JPackage '#{jamf_pkg_name}'", log: :debug
-          jamf_package.rebootRequired = reboot
+          new_reboot = changes_for_update&.key?(:reboot) ? changes_for_update[:reboot][:new] : reboot
+          progress "Jamf: Updating reboot setting for Jamf::JPackage '#{jamf_pkg_name}' to '#{new_reboot}'", log: :debug
+          jamf_package.rebootRequired = new_reboot
           jamf_package.save
         end
 
@@ -697,8 +698,10 @@ module Xolo
         # @return [void]
         ##########################
         def update_jamf_pkg_min_os
-          progress "Jamf: Updating os_requirement for Jamf::JPackage '#{jamf_pkg_name}'", log: :debug
-          jamf_package.osRequirements = ">=#{min_os}"
+          new_min = changes_for_update&.key?(:min_os) ? changes_for_update[:min_os][:new] : min_os
+          progress "Jamf: Updating os_requirement for Jamf::JPackage '#{jamf_pkg_name}' to '#{new_min}'",
+                   log: :debug
+          jamf_package.osRequirements = ">=#{new_min}"
           jamf_package.save
         end
 
