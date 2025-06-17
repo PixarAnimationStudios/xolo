@@ -57,7 +57,7 @@ module Xolo
         image/jpeg
         image/png
         image/gif
-      ]
+      ].freeze
 
       # Module methods
       ##############################
@@ -167,7 +167,9 @@ module Xolo
           # run the validation, which raises an error if invalid, or returns
           # the converted value if OK - the converted value replaces the original in the
           # cmd_opts
+          # puts "Validating #{key}, value '#{cli_cmd_opts[key]}', with #{validation_method}" if debug?
           cli_cmd_opts[key] = send validation_method, cli_cmd_opts[key]
+          # puts "Valid Value for #{key} is now '#{cli_cmd_opts[key]}'" if debug?
         end
 
         # if we are here, eveything on the commandline checked out, so now
@@ -561,16 +563,18 @@ module Xolo
         raise_invalid_data_error val, e.to_s
       end
 
-      # @param val [Object] The value to validate
+      # @param val [String] The value to validate
       #
-      # @return [Gem::Version] The valid value
+      # @return [String] The valid value
       ##########################
       def validate_min_os(val)
         # inherit if needed
         val = current_opt_values[:min_os] if val == Xolo::NONE || val.pix_empty?
 
-        return val.to_s unless val.pix_empty?
+        # use the default if still empty
+        return val.pix_empty? ? Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS : val.to_s
 
+        # we shouldn't actually get here.
         raise VERSION_ATTRS[:min_os][:invalid_msg]
       rescue StandardError => e
         raise_invalid_data_error val, e.to_s
