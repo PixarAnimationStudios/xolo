@@ -1,6 +1,4 @@
 .DS_Store
-_playground
+_playground*
 *.gem
-/_playground_server
-/_playground-testing
-_playground-client
+
