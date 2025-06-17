@@ -704,6 +704,7 @@ module Xolo
           # make sure these are updated elsewhere if needed,
           # e.g. modification data.
           next if deets[:read_only]
+          next unless deets[:cli]
 
           new_val = new_data_for_update[attr]
           old_val = send(attr)
