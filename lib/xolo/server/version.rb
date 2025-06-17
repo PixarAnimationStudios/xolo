@@ -579,7 +579,7 @@ module Xolo
 
         # new pkg uploads happen in a separate process
       rescue StandardError => e
-        log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.classe}: #{e.message}\nSee server log for details."
+        log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
         raise
