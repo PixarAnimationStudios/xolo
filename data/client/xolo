@@ -51,7 +51,7 @@ export LC_ALL="en_US.UTF-8"
 
 # The version of xolo
 # This should be updated automatically when this script is packaged
-XOLO_VERSION='1.0.0a3'
+XOLO_VERSION='1.0.0a5'
 
 # The usage message for xolo
 USAGE='xolo [options] <command> [<title> [<version>]]'
