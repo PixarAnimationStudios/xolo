@@ -593,8 +593,7 @@ module Xolo
         # If we make it for an hour and never see the expected need for acceptance, we
         # log it and send an alert about it.
         #
-        # TODO: make this a config setting, users should be able to require manual acceptance.
-        # Also - handle it not being accepted yet.
+        # TODO: handle it not being accepted yet, esp if jamf_auto_accept_xolo_eas is false
         #
         # TODO: when this is implemented in ruby-jss, use the implementation
         #
