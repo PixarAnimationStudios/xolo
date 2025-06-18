@@ -166,7 +166,7 @@ module Xolo
           default: DFT_SSL_VERIFY,
           type: :boolean,
           desc: <<~ENDDESC
-            Should the server verify the SSL certificates of machines it communicates with?
+            Should the server verify the SSL certificates of machines it communicates with, such as the Jamf Pro server and the Title Editor server?
           ENDDESC
         },
 
