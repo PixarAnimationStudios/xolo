@@ -71,6 +71,8 @@ module Xolo
             log_file: Xolo::Server::Log::LOG_FILE,
             log_level: Xolo::Server::Log::LEVELS[Xolo::Server.logger.level],
             ruby_version: RUBY_VERSION,
+            gem_path: Gem.paths.path,
+            load_path: $LOAD_PATH,
             xolo_version: Xolo::VERSION,
             ruby_jss_version: Jamf::VERSION,
             windoo_version: Windoo::VERSION,
