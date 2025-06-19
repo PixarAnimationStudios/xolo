@@ -83,6 +83,30 @@ module Xolo
 
       MAX_PKG_DELETION_THREADS = 10
 
+      # STUB PATCH
+      #
+      # We create a fake 'stub' patch with all ted titles
+      # so that we can activate the title before any real version is added
+      # and also accept any EA/version_script, either manually or automatically
+      #
+      # This version should never be available to any mac, and needs no patch
+      # policies or packages.
+      #
+      # It should also never be deleted until the title itself is deleted.
+
+      STUB_PATCH_VERSION = '0.0.0x0'
+
+      # machines that can install this version
+      STUB_PATCH_CAPABILITY_CRITERION_NAME = 'Operating System Version'
+      STUB_PATCH_CAPABILITY_CRITERION_OPERATOR = 'less than or equal'
+      STUB_PATCH_CAPABILITY_CRITERION_VALUE = '10.0'
+
+      # machines that have this version installed
+      STUB_PATCH_COMPONENT_NAME = 'Xolo Stub'
+      STUB_PATCH_COMPONENT_CRITERION_NAME = 'Application Title'
+      STUB_PATCH_COMPONENT_CRITERION_OPERATOR = 'is'
+      STUB_PATCH_COMPONENT_CRITERION_VALUE = 'XoloStub-DoesNotExist.app'
+
       # Class Methods
       ######################
       ######################

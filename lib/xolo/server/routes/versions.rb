@@ -66,6 +66,14 @@ module Xolo
           vers = instantiate_version(data)
           halt_on_existing_version vers.title, vers.version
 
+          if vers.title_object.jamf_patch_ea_awaiting_acceptance? && !Xolo::Server.config.jamf_auto_accept_xolo_eas
+
+            log_info "Jamf: Patch Title '#{title}' activated, but version_script must be manually accepted as a Patch EA before version can be activated. Admin has been notified."
+
+            raise Xolo::ActionRequiredError,
+                  "This title has a version-script, which must be accepted manually in Jamf Pro at #{vers.title_object.jamf_patch_ea_url} under the 'Extension Attribute' tab (click 'Edit'). Please do that and try again"
+          end
+
           log_info "Admin #{session[:admin]} is creating version #{data[:version]} of title '#{params[:title]}'"
 
           Xolo::Server.rw_lock(data[:title], data[:version]).with_write_lock do

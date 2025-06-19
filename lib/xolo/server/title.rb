@@ -708,21 +708,14 @@ module Xolo
         update_local_instance_values
         save_local_data
 
-        # even if we already have a version script, the new data should
+        # if we already have a version script, and it hasn't changed, the new data should
         # contain Xolo::ITEM_UPLOADED. If its nil, we shouldn't
-        # have one at all and should remove the old one.
+        # have one at all and should remove the old one if its there
         delete_version_script_file unless new_data_for_update[:version_script]
 
         # Do This at the end - after all the versions/patches have been updated.
         # Jamf won't see the need for re-acceptance until after the title
         # (and at least one patch) have been re-enabled.
-        #
-        # jamf_ea_matches_version_script is a failsafe:
-        # Does our version script match what jamf sees as the EA?
-        # if not, we might need to (re)accept the version-script EA
-        # if its true or nil, no need to re-accept
-        # if its false, jamf should eventually need us to re-accept
-        #
         accept_xolo_patch_ea_in_jamf if need_to_accept_xolo_ea_in_jamf?
 
         # any new self svc icon will be uploaded in a separate process
