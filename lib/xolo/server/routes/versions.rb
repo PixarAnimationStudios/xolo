@@ -60,6 +60,12 @@ module Xolo
         post '/titles/:title/versions' do
           request.body.rewind
           data = parse_json request.body.read
+
+          unless data[:title] == params[:title]
+            halt 400,
+                 "Path/Data Mismatch! params[:title] => '#{params[:title]}' / data[:title] => '#{data[:title]}'"
+          end
+
           log_debug "Incoming new version data: #{data}"
           log_debug "Incoming new version data: #{data.class}"
 
@@ -68,7 +74,7 @@ module Xolo
 
           if vers.title_object.jamf_patch_ea_awaiting_acceptance? && !Xolo::Server.config.jamf_auto_accept_xolo_eas
 
-            log_info "Jamf: Patch Title '#{title}' activated, but version_script must be manually accepted as a Patch EA before version can be activated. Admin has been notified."
+            log_info "Jamf: Patch Title '#{params[:title]}' version_script must be manually accepted as a Patch EA before version can be activated. Admin has been notified."
 
             raise Xolo::ActionRequiredError,
                   "This title has a version-script, which must be accepted manually in Jamf Pro at #{vers.title_object.jamf_patch_ea_url} under the 'Extension Attribute' tab (click 'Edit'). Please do that and try again"

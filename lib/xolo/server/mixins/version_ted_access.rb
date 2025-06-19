@@ -314,8 +314,8 @@ module Xolo
         # @return [void]
         ##############################
         def enable_ted_patch
-          progress "Title Editor: (Re-)Enabling Patch '#{version} of SoftwareTitle '#{title}'", log: :info
-          ted_patch.enable
+          progress "Title Editor: (Re-)Enabling Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
+          ted_patch(refresh: true).enable
         end
 
         # Delete from the title editor
