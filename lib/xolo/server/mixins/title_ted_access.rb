@@ -101,11 +101,11 @@ module Xolo
           create_and_enable_stub_patch_in_ted(new_title)
 
           sleep 2
-          new_title.enable
+
+          # re-fetch the title from ted and enable it
+          ted_title(refresh: true).enable
 
           self.ted_id_number = ted_title.softwareTitleId
-
-          @ted_title = new_title
         end
 
         # Create and enable the stub patch, so that the title
@@ -167,6 +167,7 @@ module Xolo
         # criterion for versions (the value contains the version).
         #
         # @return [void]
+        ################################
         def create_ted_title_requirements
           # if we have app-based requirements, set them
           if app_name && app_bundle_id
@@ -426,6 +427,7 @@ module Xolo
               app_bundle_id: app_bundle_id,
               ea_name: ea_name
             )
+            vers_obj.enable_ted_patch
           end
         end
 
