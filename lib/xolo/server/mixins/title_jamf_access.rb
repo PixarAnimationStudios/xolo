@@ -83,9 +83,11 @@ module Xolo
             jamf_expire_policy if expiration && !expire_paths.pix_empty?
           end
 
-          # Create the static group that will computers where this title is 'frozen'
+          # Create the static group that will contain computers where this title is 'frozen'
           # Just calling this will create it if it doesn't exist.
           jamf_frozen_group
+
+          activate_patch_title_in_jamf
         end
 
         # Apply any changes to Jamf as needed
@@ -129,7 +131,6 @@ module Xolo
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_group
-
           delete_normal_ea_from_jamf unless version_script_contents
 
           if jamf_ted_title_active?
@@ -470,21 +471,19 @@ module Xolo
 
         # Do we need to accept the xolo ea in jamf?
         #
-        # True if @need_to_accept_xolo_ea_in_jamf is true
-        # or if we have a version script now, and it differs from the jamf normal EA script.
+        # True if
+        # - title activation, and version_script
+        # - any time version_script changes
+        # - any time we switch from bundledata to version_script
         #
-        # False if we don't have a version script now, or if we do and it is the same as the
-        # jamf ea script.
+        # @need_to_accept_xolo_ea_in_jamf is set true by these methods
+        # - Title#create_ted_ea
+        # - Title#update_ted_ea
         #
         # @return [Boolean]
         #########################
         def need_to_accept_xolo_ea_in_jamf?
-          return true if @need_to_accept_xolo_ea_in_jamf
-
-          our_version_script = version_script_contents
-          return false if our_version_script.pix_empty?
-
-          jamf_patch_ea_contents&.chomp != our_version_script.chomp
+          @need_to_accept_xolo_ea_in_jamf
         end
 
         # The Jamf Patch Source that is connected to the Title Editor
@@ -540,16 +539,15 @@ module Xolo
         #
         # This 'subscribes' Jamf to the title in the title editor
         # It must be enabled in the Title Editor first, meaning
-        # it has at least one requirement, and an enabled patch/version.
+        # it has at least one requirement, and at least one enabled patch/version.
+        #
+        # The 'stub' patch version should allow this when we create the title.
         #
         # Xolo should have enabled it in the Title editor before we
         # reach this point.
         #
         ##########################
         def activate_patch_title_in_jamf
-          # nothing to do if there are no versions
-          return if versions.pix_empty?
-
           if jamf_ted_title_active?
             log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
             return
@@ -572,9 +570,6 @@ module Xolo
           # This creates/activates the title if needed
           jamf_patch_title
 
-          return if jamf_patch_ea_matches_version_script?.nil?
-
-          # only call this if we expect jamf to tell us to accept the EA
           accept_xolo_patch_ea_in_jamf
         end
 
@@ -593,8 +588,6 @@ module Xolo
         # If we make it for an hour and never see the expected need for acceptance, we
         # log it and send an alert about it.
         #
-        # TODO: handle it not being accepted yet, esp if jamf_auto_accept_xolo_eas is false
-        #
         # TODO: when this is implemented in ruby-jss, use the implementation
         #
         # NOTE: PATCHing the ea of the title requires CRUD privs for computer ext attrs
@@ -602,18 +595,20 @@ module Xolo
         # @return [void]
         ############################
         def accept_xolo_patch_ea_in_jamf
-          # never do this unless there's at least one version
-          return if version_order.pix_empty?
+          return unless need_to_accept_xolo_ea_in_jamf?
 
           # return with warning if we aren't auto-accepting
           unless Xolo::Server.config.jamf_auto_accept_xolo_eas
-            msg = "Jamf: IMPORTANT: the version-script ExtAttr for this title '#{ted_ea_key}' must be accepted manually in Jamf Pro"
-            progress msg, log: :info
+            msg = "Jamf: IMPORTANT: Before adding any versions, the Extension Attribute (version-script) for this title must be accepted manually in Jamf Pro at #{jamf_patch_ea_url} under the 'Extension Attribute' tab (click 'Edit') "
+            progress msg
+            log_debug 'Admin informed about accepting EA/version-script manually'
             return
           end
 
           # this is true if the Jamf server already knows it needs to be accepted
-          if jamf_patch_ea_needs_acceptance?
+          # so just do it now
+          if jamf_patch_ea_awaiting_acceptance?
+            progress "Jamf: Auto-accepting use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :info
             accept_patch_ea_in_jamf_via_api
             return
           end
@@ -652,7 +647,7 @@ module Xolo
               jamf_cnx(refresh: true) if jamf_cnx.token.secs_remaining < 90
 
               log_debug "Jamf: checking for expected (re)acceptance of version-script ExtensionAttribute '#{ted_ea_key}' since #{start_time}"
-              next unless jamf_patch_ea_needs_acceptance?
+              next unless jamf_patch_ea_awaiting_acceptance?
 
               accept_patch_ea_in_jamf_via_api
               log_info "Jamf: Auto-accepted use of version-script ExtensionAttribute '#{ted_ea_key}'"
@@ -675,7 +670,7 @@ module Xolo
         #
         # @return [Boolean]
         #################################
-        def jamf_patch_ea_needs_acceptance?
+        def jamf_patch_ea_awaiting_acceptance?
           ead = jamf_patch_ea_data
           return unless ead
 
@@ -764,8 +759,8 @@ module Xolo
               ]
             }
           ENDPATCHDATA
-          progress "Jamf: Auto-accepting use of version-script ExtensionAttribute '#{ted_ea_key}'", log: :info
           jamf_cnx.jp_patch "v2/patch-software-title-configurations/#{jamf_patch_title_id}", patchdata
+          log_debug "Jamf: Auto-accepted ExtensionAttribute '#{ted_ea_key}'"
         end
 
         # the script contents of the Jamf Patch EA that comes from our version_script

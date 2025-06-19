@@ -40,6 +40,8 @@ module Xolo
 
       class KeychainError < RuntimeError; end
 
+      class ActionRequiredError < RuntimeError; end
+
       # Connections & Access
 
       class ConnectionError < RuntimeError; end

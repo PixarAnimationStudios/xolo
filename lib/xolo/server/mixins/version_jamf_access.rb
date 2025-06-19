@@ -191,8 +191,6 @@ module Xolo
           jamf_auto_install_policy
           jamf_manual_install_policy
 
-          title_object.activate_patch_title_in_jamf
-
           activate_patch_version_in_jamf
         end
 

@@ -76,7 +76,8 @@ module Xolo
           @ted_title
         end
 
-        # Create this title in the title editor
+        # Create this title in the title editor, along with a stub patch that allows us to enable it
+        # so we can activate it in Jamf and accept an EA if needed
         #
         # @return [Windoo::SoftwareTitle]
         ##########################
@@ -97,8 +98,57 @@ module Xolo
           progress "Title Editor: Creating SoftwareTitle '#{title}'", log: :info
           create_ted_title_requirements
 
+          create_and_enable_stub_patch_in_ted(new_title)
+
+          sleep 2
+          new_title.enable
+
           self.ted_id_number = ted_title.softwareTitleId
+
           @ted_title = new_title
+        end
+
+        # Create and enable the stub patch, so that the title
+        # can be enabled in Jamf, and if needed, any EA accepted
+        # @param new_title [Windoo::SoftwareTitle] The newly created title
+        # @return [void]
+        ####################################
+        def create_and_enable_stub_patch_in_ted(new_title)
+          progress(
+            "Title Editor: Creating Stub version #{Xolo::Server::Version::STUB_PATCH_VERSION} for title '#{title}', to allow activation in Jamf",
+            log: :info
+          )
+
+          # the patch
+          new_title.patches.add_patch(
+            version: Xolo::Server::Version::STUB_PATCH_VERSION,
+            minimumOperatingSystem: Xolo::Server::Version::DEFAULT_MIN_OS,
+            releaseDate: Time.now
+          )
+          stub_patch = new_title.patches.first
+
+          # the capabilites
+          stub_patch.capabilities.add_criterion(
+            name: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_NAME,
+            operator: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_OPERATOR,
+            value: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_VALUE
+          )
+
+          # the component
+          stub_patch.add_component(
+            name: Xolo::Server::Version::STUB_PATCH_COMPONENT_NAME,
+            version: Xolo::Server::Version::STUB_PATCH_VERSION
+          )
+
+          comp = stub_patch.component
+          comp.criteria.add_criterion(
+            name: Xolo::Server::Version::STUB_PATCH_COMPONENT_CRITERION_NAME,
+            operator: Xolo::Server::Version::STUB_PATCH_COMPONENT_CRITERION_OPERATOR,
+            value: Xolo::Server::Version::STUB_PATCH_COMPONENT_CRITERION_VALUE
+          )
+
+          # enable the patch
+          stub_patch.enable
         end
 
         # Create the requirements for a new title in the Title Editor
@@ -288,17 +338,17 @@ module Xolo
 
           if ted_title.extensionAttribute
             ted_title.extensionAttribute.script = script
+            @need_to_accept_xolo_ea_in_jamf = true
           else
             create_ted_ea(script)
           end
-          @need_to_accept_xolo_ea_in_jamf = true
         end
 
         # Delete the extension attribute from the title editor
         # @return [void]
         ##############################
         def delete_ted_ea
-          progress "Title Editor: Deleting Extension Attribute for title '#{title}'", log: :info
+          progress "Title Editor: Deleting Extension Attribute (version_script) for title '#{title}'", log: :info
           ted_title.delete_extensionAttribute
         end
 
