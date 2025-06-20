@@ -1099,29 +1099,37 @@ module Xolo
           # remove members of excluded groups from the list of targets
           remove_exclusions_from_deploy(all_targets, removals)
 
-          # deploy the package to the computers
-          jamf_package.deploy_via_mdm computer_ids: all_targets
+          if all_targets.empty?
+            log_info "Jamf: No valid computers to deploy to for version '#{version}' of title '#{title}'."
+            queued_cmds = []
+            deploy_errs = []
 
-          # convert ids to names for the response
-          comp_ids_to_names = Jamf::Computer.map_all(:id, to: :name, cnx: jamf_cnx)
+          else
+            # deploy the package to the computers
+            jamf_package.deploy_via_mdm computer_ids: all_targets
+            # convert ids to names for the response
+            comp_ids_to_names = Jamf::Computer.map_all(:id, to: :name, cnx: jamf_cnx)
 
-          jamf_package.deploy_response[:queuedCommands].map! do |qc|
-            { device: comp_ids_to_names[qc[:device]], commandUuid: qc[:commandUuid] }
+            queued_cmds = jamf_package.deploy_response[:queuedCommands].map do |qc|
+              { device: comp_ids_to_names[qc[:device]], commandUuid: qc[:commandUuid] }
+            end
+
+            deploy_errs = jamf_package.deploy_response[:errors].map do |err|
+              { device: comp_ids_to_names[err[:device]], reason: err[:reason] }
+            end
+
+            log_info "Jamf: Deployed version '#{version}' of title '#{title}' to #{all_targets.size} computers via MDM"
+
           end
 
-          jamf_package.deploy_response[:errors].map! do |err|
-            { device: comp_ids_to_names[err[:device]], reason: err[:reason] }
-          end
-
-          log_info "Jamf: Deployed version '#{version}' of title '#{title}' to #{all_targets.size} computers via MDM"
           removals.each { |r| log_info "Jamf: Removal #{r}" }
-          jamf_package.deploy_response[:queuedCommands].each { |qc| log_info "Jamf: Queued Command #{qc}" }
-          jamf_package.deploy_response[:errors].each { |err| log_info "Jamf: Error #{err}" }
+          queued_cmds.each { |qc| log_info "Jamf: Queued Command #{qc}" }
+          deploy_errs.each { |err| log_info "Jamf: Error #{err}" }
 
           {
             removals: removals,
-            queuedCommands: jamf_package.deploy_response[:queuedCommands],
-            errors: jamf_package.deploy_response[:errors]
+            queuedCommands: queued_cmds,
+            errors: deploy_errs
           }
         end
 
