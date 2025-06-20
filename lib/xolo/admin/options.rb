@@ -178,6 +178,17 @@ module Xolo
       TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
 
       PATCH_REPORT_OPTS = {
+        summary: {
+          label: 'Summary Only',
+          cli: :S,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show a summary only: how many installs of each version, and how many in total.
+          ENDDESC
+        },
+
         os: {
           label: 'Show Operating System Version',
           cli: :o,
