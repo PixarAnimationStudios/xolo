@@ -77,7 +77,7 @@ module Xolo
           desc: <<~ENDDESC
             Do not ask for confirmation before making changes or using server-
             admin commands.
-            This is mostly used for automating xolo.
+            This is mostly used for automating xadm.
             Ignored if using --walkthru: if you're interacive you must confirm
             your changes.
             WARNING: Be careful that all values are correct.

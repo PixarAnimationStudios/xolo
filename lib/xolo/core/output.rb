@@ -144,6 +144,7 @@ module Xolo
       # Title and header lines are pre-pended with '# ' for easier exclusion
       # when using the report as input for some other program.
       # If the :type is :fixed, so will the column header line.
+      # (however, for parsing this data, try using the --json option)
       #
       # @param lines [Array<Array>] the rows and columns of data
       #
