@@ -655,10 +655,10 @@ module Xolo
               break
             end # while
 
-            return if did_it
-
-            msg = "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs. Please investigate."
-            log_error msg, alert: true
+            unless did_it
+              msg = "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs. Please investigate."
+              log_error msg, alert: true
+            end
           end # thread
         end
 
