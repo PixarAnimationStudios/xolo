@@ -217,8 +217,8 @@ module Xolo
 
           else
             halt_on_missing_version params[:title], params[:version]
-            instantiate_version title: params[:title], version: params[:version]
-
+            version = instantiate_version title: params[:title], version: params[:version]
+            data = version.patch_report
           end
 
           body data
