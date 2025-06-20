@@ -97,7 +97,7 @@ for pkgid in $IDS_TO_UNINSTALL ; do
 
   done
 
-  echo "done deleteing files from $pkgid"
+  echo "done deleting files from $pkgid"
   echo "------------------------------------"
 
 done
