@@ -126,7 +126,10 @@ module Xolo
 
       # the expire policy will run this client command,
       # appending the title
-      CLIENT_EXPIRE_COMMAND = '/usr/local/bin/xolo expire'
+      # We don't specify a full path so that localized installations
+      # will work as long as its in roots default path
+      # e.g. /usr/local/bin  vs /usr/local/pixar/bin
+      CLIENT_EXPIRE_COMMAND = 'xolo expire'
 
       # When we are given a Self Service icon for the title,
       # we might not be ready to upload it to jamf, cuz until we
