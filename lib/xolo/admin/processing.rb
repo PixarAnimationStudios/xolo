@@ -832,18 +832,20 @@ module Xolo
         header_row = ['Version', 'Number of Installs']
         title = "Summary #{rpt_title}"
 
-        data = [['All Versions', data.size]] unless rpt_title.include? 'Version'
+        summary_data = []
+        summary_data << ['All Versions', data.size] unless rpt_title.include? 'Version'
+
         version_counts.keys.sort.reverse.each do |vers|
-          data << [vers, version_counts[vers]]
+          summary_data << [vers, version_counts[vers]]
         end
-        data << ['Unknown', unknown] if unknown.positive? && !rpt_title.include?('Version')
+        summary_data << ['Unknown', unknown] if unknown.positive? && !rpt_title.include?('Version')
 
         if json?
-          puts JSON.pretty_generate(data)
+          puts JSON.pretty_generate(summary_data)
           return
         end
 
-        show_text generate_report(data, header_row: header_row, title: title)
+        show_text generate_report(summary_data, header_row: header_row, title: title)
       end
 
       # Show info about the server status
