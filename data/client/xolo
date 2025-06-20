@@ -956,6 +956,13 @@ function expire() {
 
   # loop thru the paths and see if any have been used recently
   for victim_path in $expire_paths ; do
+
+    # don't expire if any expire path doesn't exist
+    if ! [[ -e "$victim_path" ]] ; then
+      say "Expiration Path: '$victim_path' doesn't exist, not expiring $title."
+      return
+    fi
+
     # if any of the paths are running, we're done
     if [[ -n $(/usr/bin/pgrep -f "$victim_path") ]] ; then
       say "Title $title is not expirable right now: $victim_path is running."
@@ -963,6 +970,10 @@ function expire() {
     fi
 
     # if any of the paths have been used in the defined period, we're done
+    # The Apple Developer Site says: kMDItemLastUsedDate is the date and time
+    # that the file was last used. This value is updated automatically by
+    # LaunchServices everytime a file is opened by double clicking, or by asking
+    # LaunchServices to open a file.
     last_use=$(/usr/bin/mdls -name kMDItemLastUsedDate "$victim_path" -raw)
     # +> 2024-11-25 23:10:00 +0000
 
