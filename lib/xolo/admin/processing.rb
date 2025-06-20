@@ -823,6 +823,7 @@ module Xolo
             unknown += 1
             next
           end
+
           vers = Gem::Version.new(d[:version])
           version_counts[vers] ||= 0
           version_counts[vers] += 1
@@ -831,11 +832,11 @@ module Xolo
         header_row = ['Version', 'Number of Installs']
         title = "Summary #{rpt_title}"
 
-        data = [['All Versions', data.size]]
+        data = [['All Versions', data.size]] unless rpt_title.include? 'Version'
         version_counts.keys.sort.reverse.each do |vers|
           data << [vers, version_counts[vers]]
         end
-        data << ['Unknown', unknown] if unknown.positive?
+        data << ['Unknown', unknown] if unknown.positive? && !rpt_title.include?('Version')
 
         if json?
           puts JSON.pretty_generate(data)
