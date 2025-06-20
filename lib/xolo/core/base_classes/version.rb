@@ -451,7 +451,7 @@ module Xolo
           #   @return [String] The display name of the Jamf Package object that installs this version.
           #     'xolo-<title>-<version>'
           jamf_pkg_name: {
-            label: 'Jamf Package',
+            label: 'Jamf Package Name',
             type: :string,
             do_not_inherit: true,
             cli: false,
@@ -464,7 +464,7 @@ module Xolo
           #   @return [String] The id of the Jamf Package object that installs this version.
           #      This is an integer in a string, as are all IDs in the Jamf Pro API.
           jamf_pkg_id: {
-            label: 'Jamf Package',
+            label: 'Jamf Package ID',
             type: :string,
             read_only: true,
             do_not_inherit: true,
