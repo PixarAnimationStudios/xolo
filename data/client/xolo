@@ -769,11 +769,11 @@ function install() {
   validate_version
 
     if [[ -n "$version" ]] ; then
-     say "Installing version $version of title $title"
-  else
-     say "Installing released version of title: $title"
-  fi
-r
+      say "Installing version $version of title $title"
+    else
+      say "Installing released version of title: $title"
+    fi
+
   run_jamf_policy_trigger "xolo-${title}-${version}-manual-install"
 }
 
