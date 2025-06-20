@@ -21,6 +21,8 @@ Arguments:
   version:   The version of the title you are working with. e.g. '12.34.5'
 
 Options:
+  -S, --summary     Show a summary only: how many installs of each version, and how many in total.
+
   -o, --os          Report the Operating System Version of the computer.
 
   -b, --building    Report the Building of the computer.

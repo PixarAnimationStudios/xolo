@@ -758,6 +758,19 @@ module Xolo
           all_versions = true
         end
 
+        if data.empty?
+
+          puts "# #{rpt_title}"
+          puts '# No Data Found'
+
+          return
+        end
+
+        if cli_cmd_opts.summary
+          display_patch_report_summary(data, rpt_title)
+          return
+        end
+
         if json?
           puts JSON.pretty_generate(data)
           return
@@ -793,6 +806,43 @@ module Xolo
         end
 
         show_text generate_report(data, header_row: header_row, title: rpt_title)
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
+      # Show a summary of the patch report data
+      #
+      # @param data [Array<Hash>] the patch report data
+      # @return [void]
+      ###############################
+      def display_patch_report_summary(data, rpt_title)
+        version_counts = {}
+        unknown = 0
+        data.each do |d|
+          if d[:version] == Xolo::UNKNOWN || d[:version].pix_empty?
+            unknown += 1
+            next
+          end
+          vers = Gem::Version.new(d[:version])
+          version_counts[vers] ||= 0
+          version_counts[vers] += 1
+        end
+
+        header_row = ['Version', 'Number of Installs']
+        title = "Summary #{rpt_title}"
+
+        data = [['All Versions', data.size]]
+        version_counts.keys.sort.reverse.each do |vers|
+          data << [vers, version_counts[vers]]
+        end
+        data << ['Unknown', unknown] if unknown.positive?
+
+        if json?
+          puts JSON.pretty_generate(data)
+          return
+        end
+
+        show_text generate_report(data, header_row: header_row, title: title)
       end
 
       # Show info about the server status
