@@ -624,7 +624,11 @@ module Xolo
         msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to release_groups: #{release_groups_to_use.join(', ')}"
         progress msg, log: :info
         pol = jamf_auto_install_policy
-        pol.scope.set_targets :computer_groups, release_groups_to_use
+        if release_groups_to_use.include? Xolo::TARGET_ALL
+          pol.scope.set_all_targets
+        else
+          pol.scope.set_targets :computer_groups, release_groups_to_use
+        end
         pol.save
 
         # set manual-install policy to self-service if needed
