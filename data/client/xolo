@@ -1025,6 +1025,12 @@ function main() {
     exit 0
   fi
 
+  if [[ "$command" != "refresh" ]] ; then
+    # If we're not refreshing, we need to have the client data file
+    # and it needs to be up to date
+    [[ -f "$CLIENT_DATA_JSON_FILE" ]] || die "No client data file found at $CLIENT_DATA_JSON_FILE.\nPlease run the 'refresh' command to update the client data."
+  fi
+
   [[ -z "$command" ]] && die "No command given.\nUsage: $USAGE\nUse --help for more information."
 
   case "$command" in
