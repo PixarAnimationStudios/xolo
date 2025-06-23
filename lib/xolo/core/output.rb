@@ -160,13 +160,10 @@ module Xolo
       #
       ############################
       def generate_report(lines, type: :fixed, header_row: [], title: nil)
-        unless lines.is_a?(Array) && lines.first.is_a?(Array)
-          raise ArgumentError,
-                'The first argument must be an Array of Arrays'
-        end
-        raise ArgumentError, 'The header_row must be an Array' unless header_row.is_a? Array
+        return Xolo::BLANK if lines.pix_empty?
 
-        return Xolo::BLANK if lines.empty?
+        raise ArgumentError, 'The first argument must be an Array' unless lines.is_a?(Array)
+        raise ArgumentError, 'The header_row must be an Array' unless header_row.is_a? Array
 
         # tab delim is easy
         if type == :tab
