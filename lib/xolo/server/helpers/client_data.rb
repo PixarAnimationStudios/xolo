@@ -61,15 +61,19 @@ module Xolo
         ##############################
         ##############################
 
+        CLIENT_DATA_STR = 'client-data'
+
         # The name of the Jamf Package object that contains the xolo-client-data
         # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
-        CLIENT_DATA_PACKAGE_NAME = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}client-data"
+        CLIENT_DATA_PACKAGE_NAME = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{CLIENT_DATA_STR}"
 
         # The name of the package file that installs the xolo-client-data JSON file
-        CLIENT_DATA_PACKAGE_FILE = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}client-data.pkg"
+        CLIENT_DATA_COMPONENT_PACKAGE_FILE = "#{CLIENT_DATA_PACKAGE_NAME}-component.pkg"
+
+        CLIENT_DATA_PACKAGE_FILE = "#{CLIENT_DATA_PACKAGE_NAME}.pkg"
 
         # The package identifier for the xolo-client-data package
-        CLIENT_DATA_PACKAGE_IDENTIFIER = "com.pixar.#{CLIENT_DATA_PACKAGE_NAME}"
+        CLIENT_DATA_PACKAGE_IDENTIFIER = "com.pixar.xolo.#{CLIENT_DATA_STR}"
 
         # The name of the Jamf::Policy object that installs the xolo-client-data package
         # automatically on all managed Macs
@@ -84,6 +88,9 @@ module Xolo
         # this is the file that is installed onto managed Macs in
         # /Library/Application Support/xolo/
         CLIENT_DATA_FILE = 'client-data.json'
+
+        # The trgger event for the manual policy to update the client data JSON file
+        CLIENT_DATA_MANUAL_POLICY_TRIGGER = 'update-xolo-client-data'
 
         # Module methods
         #
@@ -241,7 +248,7 @@ module Xolo
             pol.frequency = :daily
           elsif pol_name == CLIENT_DATA_MANUAL_POLICY_NAME
             pol.set_trigger_event :checkin, false
-            pol.set_trigger_event :custom, Xolo::CLIENT_DATA_MANUAL_POLICY_TRIGGER
+            pol.set_trigger_event :custom, CLIENT_DATA_MANUAL_POLICY_TRIGGER
             pol.frequency = :ongoing
           else
             err_msg = "Jamf: Invalid policy name '#{pol_name}' must be #{CLIENT_DATA_AUTO_POLICY_NAME} or #{CLIENT_DATA_MANUAL_POLICY_NAME}"
@@ -264,7 +271,8 @@ module Xolo
           pol.flush_logs
         end
 
-        # Create the xolo-client-data package installer file
+        # Create the xolo-client-data package installer file.
+        # The xolo client executable is deployed as a separate thing in a Xolo Title
         #
         # @return [Pathname] the path to the new package file
         #####################
@@ -281,36 +289,60 @@ module Xolo
           client_data_file = xolo_client_dir + CLIENT_DATA_FILE
           client_data_file.pix_save JSON.pretty_generate(client_data_hash)
 
-          # The xolo client executable
-          # NO - it should be deployed separately via a xolo title!
-          #
-          # log_debug 'Copying xolo client app to package'
-          # xolo_client_app_dir = root_dir + 'usr' + 'local' + 'bin'
-          # xolo_client_app_dir.mkpath
-          # xolo_client_app = xolo_client_app_dir + 'xolo'
-          # client_app_source.pix_cp xolo_client_app
-          # # make it executable
-          # xolo_client_app.chmod 0o755
+          # build the component package
+          progress "Jamf: Creating new installer pkg file '#{CLIENT_DATA_PACKAGE_FILE}'", log: :info
 
-          # Create the package
-          pkg_file = pkg_work_dir + CLIENT_DATA_PACKAGE_FILE
+          unlock_signing_keychain
 
-          # NOTE: no need to shellescape the paths, since we are using the
-          # array version of Open3.capture2e
-          #
-          # Also use productbuild instead of pkgbuild, since it's needed
-          # for the package to be deployable via MDM.
-          #
-          # Also, productbuild handles --root differently than pkgbuild
-          # it takes two arguments, the root dir and the destination dir
-          # AND it requires the destination dir to be /System/Volumes/Data/
-          # if you want install the package on the booted volume.
-          # See man productbuild
-          #
-          cmd = ['/usr/bin/productbuild']
+          component_pkg_file = build_component_client_data_pkg_file(root_dir, pkg_version, pkg_work_dir)
+
+          build_dist_client_data_pkg_file(component_pkg_file, pkg_version, pkg_work_dir)
+        end
+
+        # Build the component install pkg with pkgbuild
+        # NOTE: no need to shellescape the paths, since we are using the
+        # array version of Open3.capture2e
+        #
+        # @return [Pathname] the path to the new package file
+        #####################
+        def build_component_client_data_pkg_file(root_dir, pkg_version, pkg_work_dir)
+          outfile = pkg_work_dir + CLIENT_DATA_COMPONENT_PACKAGE_FILE
+
+          cmd = ['/usr/bin/pkgbuild']
           cmd << '--root'
           cmd << root_dir.to_s
-          cmd << '/System/Volumes/Data/'
+          cmd << '--identifier'
+          cmd << CLIENT_DATA_PACKAGE_IDENTIFIER
+          cmd << '--version'
+          cmd << pkg_version
+          cmd << '--install-location'
+          cmd << '/'
+          cmd << '--sign'
+          cmd << Xolo::Server.config.pkg_signing_identity
+          cmd << '--keychain'
+          cmd << Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
+          cmd << outfile.to_s
+
+          log_debug "Command to build component pkg '#{CLIENT_DATA_COMPONENT_PACKAGE_FILE}': #{cmd.join(' ')}"
+
+          stdouterr, exit_status = Open3.capture2e(*cmd)
+          raise "Error creating #{CLIENT_DATA_PACKAGE_FILE}: #{stdouterr}" unless exit_status.success?
+
+          outfile
+        end
+
+        # Build the distribution package for the xolo-client-data JSON file
+        # NOTE: no need to shellescape the paths, since we are using the
+        # array version of Open3.capture2e
+        #
+        # @return [Pathname] the path to the new package file
+        #####################
+        def build_dist_client_data_pkg_file(component_pkg_file, pkg_version, pkg_work_dir)
+          pkg_file = pkg_work_dir + CLIENT_DATA_PACKAGE_FILE
+
+          cmd = ['/usr/bin/productbuild']
+          cmd << '--package'
+          cmd << component_pkg_file.to_s
           cmd << '--identifier'
           cmd << CLIENT_DATA_PACKAGE_IDENTIFIER
           cmd << '--version'
@@ -321,10 +353,8 @@ module Xolo
           cmd << Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
           cmd << pkg_file.to_s
 
-          progress "Jamf: Creating new installer pkg file '#{CLIENT_DATA_PACKAGE_FILE}'", log: :info
-          log_debug "Command to build '#{CLIENT_DATA_PACKAGE_FILE}': #{cmd.join(' ')}"
+          log_debug "Command to build distribution pkg '#{CLIENT_DATA_PACKAGE_FILE}': #{cmd.join(' ')}"
 
-          unlock_signing_keychain
           stdouterr, exit_status = Open3.capture2e(*cmd)
           raise "Error creating #{CLIENT_DATA_PACKAGE_FILE}: #{stdouterr}" unless exit_status.success?
 
