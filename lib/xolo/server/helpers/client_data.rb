@@ -282,13 +282,15 @@ module Xolo
           client_data_file.pix_save JSON.pretty_generate(client_data_hash)
 
           # The xolo client executable
-          log_debug 'Copying xolo client app to package'
-          xolo_client_app_dir = root_dir + 'usr' + 'local' + 'bin'
-          xolo_client_app_dir.mkpath
-          xolo_client_app = xolo_client_app_dir + 'xolo'
-          client_app_source.pix_cp xolo_client_app
-          # make it executable
-          xolo_client_app.chmod 0o755
+          # NO - it should be deployed separately via a xolo title!
+          #
+          # log_debug 'Copying xolo client app to package'
+          # xolo_client_app_dir = root_dir + 'usr' + 'local' + 'bin'
+          # xolo_client_app_dir.mkpath
+          # xolo_client_app = xolo_client_app_dir + 'xolo'
+          # client_app_source.pix_cp xolo_client_app
+          # # make it executable
+          # xolo_client_app.chmod 0o755
 
           # Create the package
           pkg_file = pkg_work_dir + CLIENT_DATA_PACKAGE_FILE
