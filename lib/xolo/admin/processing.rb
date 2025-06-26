@@ -466,6 +466,7 @@ module Xolo
 
         # Upload the pkg, if any?
         upload_pkg(new_vers)
+        speak 'It can take up to 15 minutes for the version to be available via Jamf and Self Service.'
       rescue StandardError => e
         handle_processing_error e
       end
