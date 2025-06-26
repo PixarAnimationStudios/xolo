@@ -107,7 +107,7 @@ module Xolo
           # If those have changed, we need to update it.
           set_installed_group_criteria_in_jamf if need_to_update_installed_group_in_jamf?
 
-          # make sure the uninstall script is correct
+          # Do we need to update (vs delete) the uninstall script?
           if need_to_update_uninstall_script_in_jamf?
 
             set_jamf_uninstall_script_contents
@@ -117,7 +117,7 @@ module Xolo
             jamf_uninstall_policy
 
           # or delete it if no longer needed
-          elsif !uninstall_script_contents
+          elsif need_to_delete_uninstall_script_in_jamf?
             delete_uninstall_pol_and_script
             # can't expire without
           end
@@ -176,20 +176,33 @@ module Xolo
         # do we need to update the uninstall scriptin jamf?
         # true if our incoming changes include :uninstall_script OR :uninstall_ids
         # and the new value of at least one of them is not empty
+        #
         # (in which case we'll delete it)
         #
         # @return [Boolean]
         ########################
         def need_to_update_uninstall_script_in_jamf?
-          return false unless changes_for_update.key?(:uninstall_script) || changes_for_update.key?(:uninstall_ids)
+          if changes_for_update.key?(:uninstall_script)
+            !changes_for_update[:uninstall_script][:new].pix_empty?
+          elsif changes_for_update.key?(:uninstall_ids)
+            !changes_for_update[:uninstall_ids][:new].pix_empty?
+          else
+            false
+          end
+        end
 
-          # if we are here, something's changing, we have one of those keys,
-          # so get the new value....
-          # this might be:
-          # - a String (a new script)
-          # - an Array (a new list of ids)
-          # - nil (we are removing uninstallability)
-          changes_for_update.dig(:uninstall_script, :new) || changes_for_update.dig(:uninstall_ids, :new)
+        # do we need to delete the uninstall script stuff in jamf?
+        #
+        # @return [Boolean]
+        #############################
+        def need_to_delete_uninstall_script_in_jamf?
+          if changes_for_update.key?(:uninstall_script)
+            changes_for_update[:uninstall_script][:new].pix_empty?
+          elsif changes_for_update.key?(:uninstall_ids)
+            changes_for_update[:uninstall_ids][:new].pix_empty?
+          else
+            false
+          end
         end
 
         # do we need to create or delete the expire policy?
