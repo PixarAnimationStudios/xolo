@@ -842,7 +842,7 @@ module Xolo
         summary_data << ['Unknown', unknown] if unknown.positive? && !rpt_title.include?('Version')
 
         if json?
-          puts JSON.pretty_generate(summary_data)
+          puts JSON.pretty_generate(summary_data.to_h)
           return
         end
 
