@@ -34,7 +34,9 @@
 #
 # This really only modifies the Regexp used for the completion_proc to make it
 # case insensitive if desired (adding an 'i' to the end)
-# and sets the prompt when calling Readlin.readline
+# and sets the prompt when calling Readline.readline
+#
+# TODO: Do this 'smartly' as with the monkeypatches in pixar-ruby-extensions
 #
 class HighLine
 
