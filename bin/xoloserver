@@ -100,7 +100,7 @@ class XoloServer
     #   after updating the values
     data_to_save = Xolo::Server.config.raw_data.dup
 
-    Xolo::Server::Configuration::KEYS.each do |k, _v|
+    Xolo::Server::Configuration::KEYS.each_key do |k|
       next unless Xolo::Server.config_opts.key? "#{k}_given".to_sym
 
       new_val = Xolo::Server.config_opts[k]
