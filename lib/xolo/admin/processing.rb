@@ -466,6 +466,7 @@ module Xolo
 
         # Upload the pkg, if any?
         upload_pkg(new_vers)
+        speak 'It can take up to 15 minutes for the version to be available via Jamf and Self Service.'
       rescue StandardError => e
         handle_processing_error e
       end
@@ -841,7 +842,7 @@ module Xolo
         summary_data << ['Unknown', unknown] if unknown.positive? && !rpt_title.include?('Version')
 
         if json?
-          puts JSON.pretty_generate(summary_data)
+          puts JSON.pretty_generate(summary_data.to_h)
           return
         end
 

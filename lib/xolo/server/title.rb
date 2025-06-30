@@ -540,17 +540,15 @@ module Xolo
       def uninstall_script_contents
         return @uninstall_script_contents if defined? @uninstall_script_contents
 
-        log_debug "changes_for_update: #{changes_for_update}"
+        # use any new/incoming value if we have any
+        # this might still be nil or an empty array if we are removing uninstallability
+        curr_script = changes_for_update.dig(:uninstall_script, :new) || changes_for_update.dig(:uninstall_ids, :new)
+        curr_script = nil if curr_script.pix_empty?
 
-        curr_script =
-          if changes_for_update.key?(:uninstall_script) || changes_for_update.key?(:uninstall_ids)
-            # this might still be nil if we are removing uninstallability
-            changes_for_update.dig(:uninstall_script, :new) || changes_for_update.dig(:uninstall_ids, :new)
-          else
-            # the current one, which might be Xolo::ITEM_UPLOADED
-            uninstall_script || uninstall_ids
-          end
+        # otherwise use the existing value
+        curr_script ||= uninstall_script || uninstall_ids
 
+        # now get the actual script
         @uninstall_script_contents =
           if curr_script.pix_empty?
             # removing uninstallability, or it was never added
@@ -562,6 +560,9 @@ module Xolo
             # this will be a new one from the changes_for_update
             generate_uninstall_script curr_script
           end
+
+        # log_debug "Uninstall script contents: #{@uninstall_script_contents}"
+        @uninstall_script_contents
       end
 
       # @param script_or_pkg_ids [String] The new uninstall script, or comma-separated list of pkg IDs
@@ -691,6 +692,8 @@ module Xolo
         @current_action = :updating
         @new_data_for_update = new_data
         @changes_for_update = note_changes_for_update_and_log
+
+        log_debug "Updating Title with these changes: #{changes_for_update}"
 
         if @changes_for_update.pix_empty?
           progress 'No changes to make', log: :info
