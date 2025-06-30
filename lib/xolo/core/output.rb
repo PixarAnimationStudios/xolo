@@ -107,6 +107,7 @@ module Xolo
         lines.join("\n")
       end
 
+      # TODO: Move this out of Xolo::Core
       # Display a list of items in as many columns as possible
       # based on terminal width, e.g. with 3 cols:
       #
