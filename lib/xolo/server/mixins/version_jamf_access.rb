@@ -646,8 +646,7 @@ module Xolo
             cnx: jamf_cnx,
             name: jamf_patch_policy_name,
             patch_title: title_object.jamf_patch_title.id,
-            target_version: version,
-            patch_unknown: true
+            target_version: version
           )
 
           # when first creating a patch policy, its status is always
@@ -660,6 +659,8 @@ module Xolo
           set_policy_exclusions ppol
 
           ppol.allow_downgrade = false
+
+          ppol.patch_unknown = true
 
           ppol.enable
 
