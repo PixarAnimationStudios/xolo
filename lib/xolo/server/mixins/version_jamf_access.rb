@@ -253,12 +253,23 @@ module Xolo
         #
         # @return [void]
         ############################
-        def add_to_self_service
+        def add_to_self_service(pol = nil, release: false)
           return unless title_object.self_service
 
-          pol = jamf_manual_install_policy
+          pol ||= jamf_manual_install_policy
           return unless pol
-          return if pol.in_self_service?
+
+          if pol.in_self_service?
+            # remove the version from the display name when released
+            if release
+              msg = "Jamf: removing version from Self Service display name for manual-install policy '#{pol.name}'"
+              progress msg, log: :info
+              pol.self_service_display_name = title_object.display_name
+              pol.save
+            end
+
+            return
+          end
 
           msg = "Jamf: Version '#{version}': Setting manual-install policy to appear in self-service"
           progress msg, log: :info
@@ -267,7 +278,9 @@ module Xolo
           pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
           pol.add_self_service_category title_object.self_service_category
           pol.self_service_description = title_object.description
-          pol.self_service_display_name = title_object.display_name
+          # use the version in the display name, at least while in pilot,
+          # since piloters may see multiple versions in SSvc
+          pol.self_service_display_name = "#{title_object.display_name} #{version}"
           pol.self_service_install_button_text = 'Install'
 
           # if the policy already is using the correct icon, we're done
@@ -914,11 +927,7 @@ module Xolo
           return unless pol
 
           if ttl_obj.self_service
-            msg = "Jamf: Enabling Self Service for Manual Install Policy '#{jamf_manual_install_policy_name}'."
-            progress msg, log: :info
-
-            pol.add_to_self_service
-            pol.self_service_install_button_text = 'Install'
+            add_to_self_service pol
           else
             msg = "Jamf: Disabling Self Service for Manual Install Policy '#{jamf_manual_install_policy_name}'."
             progress msg, log: :info
