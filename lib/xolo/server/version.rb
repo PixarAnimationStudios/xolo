@@ -632,7 +632,7 @@ module Xolo
         pol.save
 
         # set manual-install policy to self-service if needed
-        add_to_self_service if title_object.self_service
+        add_to_self_service(release: true) if title_object.self_service
 
         # set scope targets of patch policy to all (in patch pols, 'all' means 'all eligible')
         msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to all eligible computers"
