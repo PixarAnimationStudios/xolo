@@ -74,6 +74,8 @@ module Xolo
 
         payload = { admin: admin, password: pw }
 
+        payload[:proxy_admin] = global_opts[:proxy_admin] if global_opts[:proxy_admin]
+
         # provide the hostname to make a persistent Faraday connection object
         # so in the future we just call server_cnx with no hostname to get the same
         # connection object
@@ -132,6 +134,8 @@ module Xolo
 
           cnx.adapter :net_http
         end
+
+        # @server_cnx.headers['X-Proxy-Admin'] = global_opts[:proxy_admin] if global_opts[:proxy_admin]
       end
 
       # A connection for responses that stream the progress of a long server

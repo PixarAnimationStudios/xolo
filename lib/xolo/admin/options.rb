@@ -84,6 +84,35 @@ module Xolo
           ENDDESC
         },
 
+        proxy_admin: {
+          label: 'Proxy Admin',
+          cli: :p,
+          walkthru: false,
+          type: :string,
+          validate: false,
+          desc: <<~ENDDESC
+            Used for automated workflows that connect to the xolo server using a
+            service account, not a user account. Most such automations have a way to
+            ascertain the identity of the user triggering the automation. They can use
+            that name here, and then it will be used on the server combined with the
+            actually authenticated service acct name for use in logging and status.
+
+            For example, if you have a GitLab CI job that runs xadm commands, it will
+            connect to the xolo server using a service account such as 'xolo-gitlab-runner'.
+            That job can get the name of the GitLab user triggering the job from an
+            environment variable, and then pass that as the value of this option, like so:
+
+            `xadm --proxy-admin $GITLAB_USER_NAME add-title "Google Chrome"`
+
+            On the xolo server, the user will be recorded as
+
+            'gitlabuser via xolo-gitlab-runner'
+
+            which will be used as the "added_by" value for the new title, and will show up
+            in the various logs.
+          ENDDESC
+        },
+
         # TODO: a command that will output the contents of a
         # previous progress stream file, if it still exists
         quiet: {
