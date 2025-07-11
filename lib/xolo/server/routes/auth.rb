@@ -73,11 +73,11 @@ module Xolo
 
           # Set the session values
           session[:xolo_id] = "#{Time.now.to_i}#{SecureRandom.alphanumeric 3}"
-          session[:admin] = admin
+          session[:admin] = payload[:proxy_admin] ? "#{payload[:proxy_admin]} via #{admin}" : admin
           session[:authenticated] = true
-          log_info "Authenticated admin '#{admin}' from #{request.ip}"
+          log_info "Authenticated admin '#{session[:admin]}' from #{request.ip}"
 
-          body({ admin: admin, authenticated: true })
+          body({ admin: admin, authenticated: true, proxy_admin: payload[:proxy_admin] })
         end
 
         # Log out the current admin
