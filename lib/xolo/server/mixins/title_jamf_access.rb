@@ -1195,7 +1195,10 @@ module Xolo
           ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
           return unless ea_id
 
-          @jamf_normal_ea_url = "#{jamf_gui_url}/computerExtensionAttributes.html?id=#{ea_id}&o=r"
+          # Jamf Changed the URL!
+          # @jamf_normal_ea_url = "#{jamf_gui_url}/computerExtensionAttributes.html?id=#{ea_id}&o=r"
+
+          @jamf_normal_ea_url = "#{jamf_gui_url}/view/settings/computer-management/computer-extension-attributes/#{ea_id}"
         end
 
         # @return [String] the URL for the uninstall script in Jamf Pro
