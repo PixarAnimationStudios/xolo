@@ -78,7 +78,7 @@ module Xolo
             Do not ask for confirmation before making changes or using server-
             admin commands.
             This is mostly used for automating xadm.
-            Ignored if using --walkthru: if you're interacive you must confirm
+            Ignored if using --walkthru: if you're interactive you must confirm
             your changes.
             WARNING: Be careful that all values are correct.
           ENDDESC
@@ -97,18 +97,18 @@ module Xolo
             that name here, and then it will be used on the server combined with the
             actually authenticated service acct name for use in logging and status.
 
-            For example, if you have a GitLab CI job that runs xadm commands, it will
-            connect to the xolo server using a service account such as 'xolo-gitlab-runner'.
-            That job can get the name of the GitLab user triggering the job from an
-            environment variable, and then pass that as the value of this option, like so:
+            For example, if you have a CI/CD job that runs xadm commands, it will
+            connect to the xolo server using a service account such as 'xolo-cicd-runner'.
+            That job can get the name of the user triggering the job from an environment
+            variable, (or elsewhere) and pass that as the value of this option, like so:
 
-            `xadm --proxy-admin $GITLAB_USER_NAME add-title "Google Chrome"`
+              xadm --proxy-admin $CICD_USER_NAME add-version my-title 1.2.3 [options...]
 
             On the xolo server, the user will be recorded as
 
-            'gitlabuser via xolo-gitlab-runner'
+              cicduser-via-xolo-cicd-runner
 
-            which will be used as the "added_by" value for the new title, and will show up
+            which will be used as the "added_by" value for the new version, and will show up
             in the various logs.
           ENDDESC
         },
