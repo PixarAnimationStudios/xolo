@@ -113,8 +113,6 @@ module Xolo
           ENDDESC
         },
 
-        # TODO: a command that will output the contents of a
-        # previous progress stream file, if it still exists
         quiet: {
           label: 'Quiet',
           cli: :q,
@@ -156,11 +154,14 @@ module Xolo
       }.freeze
 
       # The xadm commands
+      #############################
+
       # TODO: add commands for:
       # - upload a manifest for a version
       # - get the status of an MDM command given a uuid
       # - get the code of a version script
       # - get the code of an uninstall script
+      # - output the contents of a previous progress stream file, if it still exists
 
       LIST_TITLES_CMD = 'list-titles'
       ADD_TITLE_CMD = 'add-title'
