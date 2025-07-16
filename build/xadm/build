@@ -32,7 +32,11 @@ echo "Building the xadm package for version $xolo_version and adding it to the x
 # copy the new one into the tmp dir of the pkg root
 # NOTE: the highline gem is already there
 echo "Copying the xolo gem to the tmp dir of the pkg root"
-cp "$xolo_src_dir"/xolo-*.gem "$root_tmp_dir"
+mkdir -p "$root_tmp_dir"
+echo "Contents of $root_tmp_dir before copy:"
+ls -l "$root_tmp_dir"
+
+cp "$xolo_src_dir"/xolo-*.gem "$root_tmp_dir" || exit 1
 
 # remove any finder crap from the pkg root
 echo "Removing any Finder metadata from the pkg root"
