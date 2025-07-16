@@ -67,8 +67,6 @@ xadm --proxy-admin "$GITLAB_USER_LOGIN" --auto-confirm --debug add-version xadm 
    --pkg-to-upload "$dist_pkg"  \
    --publish-date "$(date +'%F %T')" \
    --min-os 13.0 \
-   --pilot-groups "$PILOT_GROUP"
-
-  echo "+++>>>>  xadm exited with status $?"
+   --pilot-groups "$PILOT_GROUP" || exit 1
 
 echo "Done building and adding the xadm package to the xadm title for piloting."
