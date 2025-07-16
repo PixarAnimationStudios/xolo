@@ -115,4 +115,5 @@ rescue => e
     warn 'Backtrace:'
     e.backtrace.each { |l| warn "..#{l}" }
   end
+  exit 1
 end
