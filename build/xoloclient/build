@@ -31,12 +31,12 @@ echo "Building the xoloclient package or version $xolo_version and adding it to 
 
 # Update the version in the client code
 echo "Updating the XOLO_VERSION in the xolo client source code to $xolo_version"
-ruby  -i -pe "sub(/^XOLO_VERSION=.*$/, 'XOLO_VERSION=\"$xolo_version\"')" "$xolo_client_src"
+ruby  -i -pe "sub(/^XOLO_VERSION=.*$/, 'XOLO_VERSION=\"$xolo_version\"')" "$xolo_client_src" || exit 1
 
 # copy it into the bin dir of the pkg root
 echo "Copying the xolo client source to the bin directory of the pkg root"
 rm -f "$bin_dir/xolo"
-cp "$xolo_client_src" "$bin_dir/xolo"
+cp "$xolo_client_src" "$bin_dir/xolo" || exit 1
 chmod 755 "$bin_dir/xolo"
 
 # build the pkg
@@ -54,7 +54,7 @@ pkgbuild --root "$pkg_root" \
   --version $xolo_version \
   --sign "$SIGNING_ID" \
   --install-location / \
-  "$component_pkg"
+  "$component_pkg" || exit 1
 
 # build the distribution package
 echo "Building the distribution package"
@@ -62,7 +62,7 @@ productbuild --package "$component_pkg" \
   --identifier $PKG_ID \
   --version $xolo_version \
   --sign "$SIGNING_ID" \
-  "$dist_pkg"
+  "$dist_pkg" || exit 1
 
 # add the new version to the xolo title for piloting
 echo "Adding the new version $xolo_version to the xolo title for piloting"
@@ -71,6 +71,6 @@ xadm --proxy-admin "$GITLAB_USER_LOGIN" --auto-confirm --debug add-version xoloc
    --pkg-to-upload "$dist_pkg"  \
    --publish-date $(date +%F) \
    --min-os 13.0 \
-   --pilot-groups "$PILOT_GROUP"
+   --pilot-groups "$PILOT_GROUP" || exit 1
 
 echo "Done building and adding the xoloclient package to the xolo title for piloting."
