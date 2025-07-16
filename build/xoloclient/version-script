@@ -1,0 +1,3 @@
+#!/bin/zsh
+
+echo "<result>$(xolo --version)</result>"

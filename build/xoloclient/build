@@ -1,0 +1,76 @@
+#!/bin/zsh
+
+
+# constants
+
+SIGNING_ID="Developer ID Installer: Pixar Animation Studios (F3G5LR2F93)"
+
+PKG_ID='com.pixar.xolo.client'
+
+PILOT_GROUP='Dogcows Macs - All'
+
+# vars
+
+xolo_src_dir="$(dirname "$0")/../.."
+
+xolo_client_src="$xolo_src_dir/data/client/xolo"
+
+xolo_version=$(ruby -r $xolo_src_dir/lib/xolo/core/version.rb -e 'puts Xolo::Core::Version::VERSION')
+
+xoloclient_dir="$xolo_src_dir/build/xoloclient"
+
+pkg_root="$xoloclient_dir/pkgroot"
+
+bin_dir="$pkg_root/usr/local/pixar/bin"
+
+component_pkg="$xoloclient_dir/xoloclient.pkg"
+
+dist_pkg="$xoloclient_dir/xoloclient-dist.pkg"
+
+echo "Building the xoloclient package or version $xolo_version and adding it to the xolo title for piloting"
+
+# Update the version in the client code
+echo "Updating the XOLO_VERSION in the xolo client source code to $xolo_version"
+ruby  -i -pe "sub(/^XOLO_VERSION=.*$/, 'XOLO_VERSION=\"$xolo_version\"')" "$xolo_client_src"
+
+# copy it into the bin dir of the pkg root
+echo "Copying the xolo client source to the bin directory of the pkg root"
+rm -f "$bin_dir/xolo"
+cp "$xolo_client_src" "$bin_dir/xolo"
+chmod 755 "$bin_dir/xolo"
+
+# build the pkg
+rm -f "$xoloclient_dir/*.pkg"
+
+# remove any finder crap from the pkg root
+echo "Removing any Finder metadata from the pkg root"
+find "$pkg_root" -name .DS_Store -delete
+
+
+# build the component package
+echo "Building the component package"
+pkgbuild --root "$pkg_root" \
+  --identifier "$PKG_ID" \
+  --version $xolo_version \
+  --sign "$SIGNING_ID" \
+  --install-location / \
+  "$component_pkg"
+
+# build the distribution package
+echo "Building the distribution package"
+productbuild --package "$component_pkg" \
+  --identifier $PKG_ID \
+  --version $xolo_version \
+  --sign "$SIGNING_ID" \
+  "$dist_pkg"
+
+# add the new version to the xolo title for piloting
+echo "Adding the new version $xolo_version to the xolo title for piloting"
+xadm --proxy-admin "$GITLAB_USER_LOGIN" --auto-confirm --debug add-version xoloclient $xolo_version \
+   --standalone \
+   --pkg-to-upload "$dist_pkg"  \
+   --publish-date $(date +%F) \
+   --min-os 13.0 \
+   --pilot-groups "$PILOT_GROUP"
+
+echo "Done building and adding the xoloclient package to the xolo title for piloting."

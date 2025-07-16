@@ -1,0 +1,45 @@
+#!/bin/zsh
+
+# read in the Pixar Pre-defined vars & functions
+############################################################
+LIB_FILE="/usr/local/pixar/lib/pixarlib.sh"
+if ! [ -f "$LIB_FILE" ] ; then
+  echo "Can't find shared header file $LIB_FILE. Please ensure this mac is up to date."
+  exit 2
+fi
+source $LIB_FILE
+
+# use site_ruby, since these are non-standard on pixar macs
+# and if they are put into the default GEM_HOME, they will be removed by
+# mac-ruby.
+SITE_RUBY='/usr/local/pixar/lib/ruby/gems/site_ruby'
+
+export GEM_HOME="$SITE_RUBY"
+
+# uninstall old highline
+logme 'Uninstalling old Highline'
+/usr/local/pixar/bin/gem uninstall highline -a -i "$SITE_RUBY" | logstream
+
+# Install highline
+logme 'Installing Highline'
+/usr/local/pixar/bin/gem install /tmp/highline-*.gem \
+  -i "$SITE_RUBY" \
+  --no-document | logstream
+
+
+# remove the old xolo gem
+logme 'Uninstalling old Xolo gem'
+/usr/local/pixar/bin/gem uninstall xolo -a -i "$SITE_RUBY" | logstream
+
+# install xolo
+logme 'Installing Xolo'
+/usr/local/pixar/bin/gem install /tmp/xolo-*.gem \
+     -i "$SITE_RUBY" \
+     --no-wrappers \
+     -n /usr/local/pixar/bin \
+     --ignore-dependencies \
+     --no-document | logstream
+
+logme 'all done'
+
+exit 0

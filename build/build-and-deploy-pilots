@@ -1,0 +1,55 @@
+#!/bin/zsh
+
+# IMPORTANT: This code is not from from this location in the repository.
+# it is manually installed on the gitlab runner in /usr/local/pixar/bin/build-and-deploy-xolo-pilots
+# and is run from there by the ci pipeline.
+#
+# The current working directory when it is run should be ths xolo source directory
+
+# build new gem and .pkgs for an update to xolo
+# and add them to the xadm and xoloclient titles for piloting
+
+# constants
+PIXAR_GEMS_URL='http://gems.pixar.com:9292'
+
+# vars
+xolo_src_dir="$(pwd)"
+
+
+echo "Building and deploying xolo pilots from $xolo_src_dir"
+echo output of ls:
+ls -l .
+
+
+exit 0
+
+xolo_version=$(ruby -r $xolo_src_dir/lib/xolo/core/version.rb -e 'puts Xolo::Core::Version::VERSION')
+
+
+# build the gem  we should already be in the xolo source directory
+
+echo "Building the gem"
+gem_filename=$(/usr/local/pixar/bin/gem build ./xolo.gemspec | grep File: | cut -f2 -d ':' | tr -d ' ')
+gem_file="$xolo_src_dir/$gem_filename"
+
+# upload it to gems.pixar.com
+echo "Uploading $gem_filename to $PIXAR_GEMS_URL"
+curl -X POST -d '_method=DELETE' "$PIXAR_GEMS_URL/gems/$gem_filename"
+/usr/local/pixar/bin/gem push "$gem_filename" --host "$PIXAR_GEMS_URL"
+echo "Uploaded $gem_gem_filename to $PIXAR_GEMS_URL"
+
+# Build the and deploy for xadm
+"$build_dir/xadm/build"
+
+# build and deploy for xoloclient
+"$build_dir/xoloclient/build"
+
+# spit out the shell commands to install the new gem on the
+# test (or production) server from gems.pixar.com
+
+echo "To install the new xolo gem on the server, run this as root"
+echo "    lcu com.pixar.xoloserver"
+echo "    export GEM_HOME='/usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby'"
+echo "    /usr/local/pixar/bin/gem uninstall xolo --all -n /usr/local/bin --ignore-dependencies --executables"
+echo "    /usr/local/pixar/bin/gem install xolo --version $xolo_version -i /usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby --no-doc --ignore-dependencies --no-wrappers -n /usr/local/bin --source '$PIXAR_GEMS_URL'"
+echo "    lcl com.pixar.xoloserver"
