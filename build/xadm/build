@@ -32,10 +32,6 @@ echo "Building the xadm package for version $xolo_version and adding it to the x
 # copy the new one into the tmp dir of the pkg root
 # NOTE: the highline gem is already there
 echo "Copying the xolo gem to the tmp dir of the pkg root"
-mkdir -p "$root_tmp_dir"
-echo "Contents of $root_tmp_dir before copy:"
-ls -l "$root_tmp_dir"
-
 cp "$xolo_src_dir"/xolo-*.gem "$root_tmp_dir" || exit 1
 
 # remove any finder crap from the pkg root
@@ -54,7 +50,7 @@ pkgbuild --root "$pkg_root" \
   --sign "$SIGNING_ID" \
   --scripts "$pkg_scripts_dir" \
   --install-location / \
-  "$component_pkg"
+  "$component_pkg" || exit 1
 
 # build the distribution package
 echo "Building the distribution package"
@@ -62,7 +58,7 @@ productbuild --package "$component_pkg" \
   --identifier "$PKG_ID" \
   --version $xolo_version \
   --sign "$SIGNING_ID" \
-  "$dist_pkg"
+  "$dist_pkg" || exit 1
 
 # add the version
 echo "Adding the new version to xadm"
@@ -71,6 +67,6 @@ xadm --proxy-admin "$GITLAB_USER_LOGIN" --auto-confirm --debug add-version xadm 
    --pkg-to-upload "$dist_pkg"  \
    --publish-date "$(date +'%F %T')" \
    --min-os 13.0 \
-   --pilot-groups "$PILOT_GROUP"
+   --pilot-groups "$PILOT_GROUP" || exit 1
 
 echo "Done building and adding the xadm package to the xadm title for piloting."

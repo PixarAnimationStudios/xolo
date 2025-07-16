@@ -34,10 +34,10 @@ curl -X POST -d '_method=DELETE' "$PIXAR_GEMS_URL/gems/$gem_filename"
 echo "Uploaded $gem_gem_filename to $PIXAR_GEMS_URL"
 
 # Build the and deploy for xadm
-"$xolo_src_dir/build/xadm/build"
+"$xolo_src_dir/build/xadm/build" || exit 1
 
 # build and deploy for xoloclient
-"$xolo_src_dir/build/xoloclient/build"
+"$xolo_src_dir/build/xoloclient/build" || exit 1
 
 # spit out the shell commands to install the new gem on the
 # test (or production) server from gems.pixar.com
