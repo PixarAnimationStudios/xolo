@@ -78,14 +78,41 @@ module Xolo
             Do not ask for confirmation before making changes or using server-
             admin commands.
             This is mostly used for automating xadm.
-            Ignored if using --walkthru: if you're interacive you must confirm
+            Ignored if using --walkthru: if you're interactive you must confirm
             your changes.
             WARNING: Be careful that all values are correct.
           ENDDESC
         },
 
-        # TODO: a command that will output the contents of a
-        # previous progress stream file, if it still exists
+        proxy_admin: {
+          label: 'Proxy Admin',
+          cli: :p,
+          walkthru: false,
+          type: :string,
+          validate: false,
+          desc: <<~ENDDESC
+            Used for automated workflows that connect to the xolo server using a
+            service account, not a user account. Most such automations have a way to
+            ascertain the identity of the user triggering the automation. They can use
+            that name here, and then it will be used on the server combined with the
+            actually authenticated service acct name for use in logging and status.
+
+            For example, if you have a CI/CD job that runs xadm commands, it will
+            connect to the xolo server using a service account such as 'xolo-cicd-runner'.
+            That job can get the name of the user triggering the job from an environment
+            variable, (or elsewhere) and pass that as the value of this option, like so:
+
+              xadm --proxy-admin $CICD_USER_NAME add-version my-title 1.2.3 [options...]
+
+            On the xolo server, the user will be recorded as
+
+              cicduser-via-xolo-cicd-runner
+
+            which will be used as the "added_by" value for the new version, and will show up
+            in the various logs.
+          ENDDESC
+        },
+
         quiet: {
           label: 'Quiet',
           cli: :q,
@@ -127,11 +154,14 @@ module Xolo
       }.freeze
 
       # The xadm commands
+      #############################
+
       # TODO: add commands for:
       # - upload a manifest for a version
       # - get the status of an MDM command given a uuid
       # - get the code of a version script
       # - get the code of an uninstall script
+      # - output the contents of a previous progress stream file, if it still exists
 
       LIST_TITLES_CMD = 'list-titles'
       ADD_TITLE_CMD = 'add-title'
