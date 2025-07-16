@@ -62,6 +62,7 @@ module Xolo
         # State
         ##########
         get '/maint/state' do
+          require 'concurrent/version'
           state = {
             executable: Xolo::Server::EXECUTABLE_FILENAME,
             start_time: Xolo::Server.start_time,
@@ -71,9 +72,15 @@ module Xolo
             log_file: Xolo::Server::Log::LOG_FILE,
             log_level: Xolo::Server::Log::LEVELS[Xolo::Server.logger.level],
             ruby_version: RUBY_VERSION,
-            xolo_version: Xolo::VERSION,
-            ruby_jss_version: Jamf::VERSION,
-            windoo_version: Windoo::VERSION,
+            gems: {
+              xolo_version: Xolo::VERSION,
+              ruby_jss_version: Jamf::VERSION,
+              windoo_version: Windoo::VERSION,
+              sinatra_version: Sinatra::VERSION,
+              thin_version: Thin::VERSION::STRING,
+              concurrent_ruby_version: Concurrent::VERSION,
+              faraday_version: Faraday::VERSION
+            },
             gem_path: Gem.paths.path,
             load_path: $LOAD_PATH,
             config: Xolo::Server.config.to_h_private,
@@ -91,6 +98,7 @@ module Xolo
         ################
         post '/maint/cleanup-internal' do
           log_info 'Starting internal cleanup'
+          session[:admin] = 'Automated Cleanup'
 
           thr = Thread.new { run_cleanup }
           thr.name = 'Internal Cleanup Thread'
@@ -103,6 +111,7 @@ module Xolo
         post '/maint/cleanup' do
           log_info "Starting manual server cleanup by #{session[:admin]}"
 
+          session[:admin] = "Cleanup by #{session[:admin]}"
           thr = Thread.new { run_cleanup }
           thr.name = 'Manual Cleanup Thread'
           result = { result: 'Manual Cleanup Underway' }
@@ -139,6 +148,7 @@ module Xolo
           payload = parse_json request.body.read
           level = payload[:level]
 
+          log_info "Setting log level to #{level} by #{session[:admin]}"
           Xolo::Server.set_log_level level, admin: session[:admin]
 
           result = { result: "Log level set to #{level}" }
