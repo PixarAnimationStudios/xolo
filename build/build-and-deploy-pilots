@@ -17,11 +17,6 @@ xolo_src_dir="$(pwd)"
 
 
 echo "Building and deploying xolo pilots from $xolo_src_dir"
-echo output of ls:
-ls -l .
-
-
-exit 0
 
 xolo_version=$(ruby -r $xolo_src_dir/lib/xolo/core/version.rb -e 'puts Xolo::Core::Version::VERSION')
 
@@ -39,14 +34,16 @@ curl -X POST -d '_method=DELETE' "$PIXAR_GEMS_URL/gems/$gem_filename"
 echo "Uploaded $gem_gem_filename to $PIXAR_GEMS_URL"
 
 # Build the and deploy for xadm
-"$build_dir/xadm/build"
+"$xolo_src_dir/build/xadm/build"
 
 # build and deploy for xoloclient
-"$build_dir/xoloclient/build"
+"$xolo_src_dir/build/xoloclient/build"
 
 # spit out the shell commands to install the new gem on the
 # test (or production) server from gems.pixar.com
 
+echo "================================================================"
+echo "================================================================"
 echo "To install the new xolo gem on the server, run this as root"
 echo "    lcu com.pixar.xoloserver"
 echo "    export GEM_HOME='/usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby'"
