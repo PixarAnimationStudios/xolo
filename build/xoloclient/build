@@ -11,13 +11,13 @@ PILOT_GROUP='Dogcows Macs - All'
 
 # vars
 
-xolo_src_dir="$(dirname "$0")/../.."
+xoloclient_dir="$(dirname "$0")"
+
+xolo_src_dir="$xoloclient_dir/../.."
 
 xolo_client_src="$xolo_src_dir/data/client/xolo"
 
 xolo_version=$(ruby -r $xolo_src_dir/lib/xolo/core/version.rb -e 'puts Xolo::Core::Version::VERSION')
-
-xoloclient_dir="$xolo_src_dir/build/xoloclient"
 
 pkg_root="$xoloclient_dir/pkgroot"
 

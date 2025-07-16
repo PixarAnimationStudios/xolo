@@ -11,11 +11,11 @@ PILOT_GROUP="xadm-piloters"
 
 # vars
 
-xolo_src_dir="$(dirname "$0")/../.."
+xadm_dir="$(dirname "$0")"
+
+xolo_src_dir="$xadm_dir/../.."
 
 xolo_version=$(ruby -r $xolo_src_dir/lib/xolo/core/version.rb -e 'puts Xolo::Core::Version::VERSION')
-
-xadm_dir="$xolo_src_dir/build/xadm"
 
 pkg_root="$xadm_dir/pkgroot"
 
@@ -32,7 +32,6 @@ echo "Building the xadm package for version $xolo_version and adding it to the x
 # copy the new one into the tmp dir of the pkg root
 # NOTE: the highline gem is already there
 echo "Copying the xolo gem to the tmp dir of the pkg root"
-rm -f "$root_tmp_dir"/xolo-*.gem
 cp "$xolo_src_dir"/xolo-*.gem "$root_tmp_dir"
 
 # remove any finder crap from the pkg root
