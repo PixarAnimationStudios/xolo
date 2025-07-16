@@ -145,14 +145,14 @@ module Xolo
             label: 'Minimum OS',
             cli: :o,
             type: :string,
-            required: true,
+            required: false,
             validate: true,
             default: DEFAULT_MIN_OS,
             changelog: true,
             ted_attribute: :minimumOperatingSystem,
             invalid_msg: "Not a valid OS version! Cannont be empty or '#{Xolo::NONE}'",
             desc: <<~ENDDESC
-              The lowest version of macOS able to run this version of this title. Required, will be #{DEFAULT_MIN_OS} if not specified.
+              The lowest version of macOS able to run this version of this title. Defaults to #{DEFAULT_MIN_OS}.
             ENDDESC
           },
 
