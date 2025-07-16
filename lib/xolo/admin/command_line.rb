@@ -106,7 +106,8 @@ module Xolo
           # This actually sets the optimist global options and their help blurbs
           #
           Xolo::Admin::Options::GLOBAL_OPTIONS.each do |opt_key, deets|
-            opt opt_key, deets[:desc], short: deets[:cli]
+            type = deets[:type] ? :string : :boolean
+            opt opt_key, deets[:desc], short: deets[:cli], type: type
           end
           stop_on Xolo::Admin::Options::COMMANDS.keys
 
