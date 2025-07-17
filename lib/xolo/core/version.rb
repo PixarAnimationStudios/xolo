@@ -29,7 +29,7 @@ module Xolo
 
     module Version
 
-      VERSION = '1.0.0b3'.freeze
+      VERSION = '1.0.0b4'.freeze
 
     end
 
