@@ -41,12 +41,32 @@ echo "Uploaded $gem_gem_filename to $PIXAR_GEMS_URL"
 
 # spit out the shell commands to install the new gem on the
 # test (or production) server from gems.pixar.com
+cat << BLOCK
+================================================================
+================================================================
+To install the new xolo gem on the server, run this as root
 
-echo "================================================================"
-echo "================================================================"
-echo "To install the new xolo gem on the server, run this as root"
-echo "    lcu com.pixar.xoloserver"
-echo "    export GEM_HOME='/usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby'"
-echo "    /usr/local/pixar/bin/gem uninstall xolo --all -n /usr/local/bin --ignore-dependencies --executables"
-echo "    /usr/local/pixar/bin/gem install xolo --version $xolo_version -i /usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby --no-doc --ignore-dependencies --no-wrappers -n /usr/local/bin --source '$PIXAR_GEMS_URL'"
-echo "    lcl com.pixar.xoloserver"
+
+  export GEM_HOME='/usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby'
+
+  lcu com.pixar.xoloserver
+
+  /usr/local/pixar/bin/gem uninstall xolo \\
+    --all \\
+    -i "\$GEM_HOME" \\
+    -n /usr/local/bin \\
+    --ignore-dependencies \\
+    --executables
+
+  /usr/local/pixar/bin/gem install xolo \\
+    --version $xolo_version \\
+    -i "\$GEM_HOME" \\
+    --no-doc \\
+    --ignore-dependencies \\
+    --no-wrappers \\
+    -n /usr/local/bin \\
+    --clear-sources \\
+    --source '$PIXAR_GEMS_URL'
+
+    lcl com.pixar.xoloserver
+BLOCK
