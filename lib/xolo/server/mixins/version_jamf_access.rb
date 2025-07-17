@@ -490,9 +490,11 @@ module Xolo
               title_object.jamf_patch_title(refresh: true)
 
               create_patch_policy_in_jamf
+              msg = "Jamf: Version '#{version}' of title '#{title}' is now visible in Jamf Pro. Package assigned and Patch policy created."
+              log_info msg, alert: true
             else
-              log_error "Jamf: Expected to (re)accept version-script ExtensionAttribute '#{ted_ea_key}', but Jamf hasn't seen the change in over an hour. Please investigate.",
-                        alert: true
+              msg = "Jamf: ERROR: Version '#{version}' of title '#{title}' has not become visible from the Title Editor in over #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} seconds. The package has not been assigned, and no patch policy was created."
+              log_error msg, alert: true
             end
           end # thread
         end
