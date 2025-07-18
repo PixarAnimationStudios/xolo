@@ -46,8 +46,7 @@ cat << BLOCK
 ================================================================
 To install the new xolo gem on the server, run this as root
 
-
-  export GEM_HOME='/usr/local/pixar/ruby/versions/3.3.0/lib/ruby/gems/site_ruby'
+  export GEM_HOME='/usr/local/pixar/ruby/current/lib/ruby/gems/site_ruby/'
 
   lcu com.pixar.xoloserver
 
