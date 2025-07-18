@@ -6,11 +6,6 @@
   <true/>
   <key>Label</key>
   <string>com.pixar.xoloserver</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>GEM_PATH</key>
-    <string>/usr/local/pixar/ruby/versions/3.3.0/lib/ruby/site_ruby/gems</string>
-  </dict>
   <key>ProgramArguments</key>
   <array>
     <string>/usr/local/bin/xoloserver</string>
