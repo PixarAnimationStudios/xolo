@@ -143,7 +143,7 @@ module Xolo
         # result = { result: 'posted to start cleanup' }
 
         # send_email(
-        #   to: 'chrisl@pixar.com',
+        #   to: 'xolo@pixar.com',
         #   subject: 'Test Email from Xolo Server',
         #   msg: 'This is a test email from the Xolo Server'
         # )
