@@ -64,8 +64,8 @@ Gem::Specification.new do |s|
   # s.add_runtime_dependency 'ruby-jss', '~>2.0'
   # s.add_runtime_dependency 'windoo', '~>1.0'
   # s.add_runtime_dependency 'sinatra', '~>1.0'
-  # s.add_runtime_dependency 'thin', '~>1.0' # will use event machine and more
   # sinatra-contrib
+  # s.add_runtime_dependency 'thin', '~>1.0' # will use event machine and more
   # concurrent ruby
   # net-smtp
 end
