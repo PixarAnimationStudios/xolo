@@ -1,3 +1,4 @@
 .DS_Store
 _playground*
 xolo-*.gem
+.gitlab-ci.yml
