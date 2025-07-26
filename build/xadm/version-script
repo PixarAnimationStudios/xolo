@@ -1,8 +1,0 @@
-#!/bin/zsh
-
-# for this to work as an Extension Attribute, xadm must be in the PATH and
-# the GEM_PATH must be set so that xadm works in a non-interactive/non-login shell
-
-which xadm &>/dev/null && result=$(xadm --version)
-
-echo "<result>$result</result>"
