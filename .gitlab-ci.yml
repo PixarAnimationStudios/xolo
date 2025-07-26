@@ -1,20 +1,12 @@
+# This file should be ignored by local instances, and only exist in Pixar's gitlab environment
 stages:
   - test
-  - pilot
 
 test:
   stage: test
   tags:
     - macback
   script:
-    - /usr/local/pixar/bin/build-and-deploy-xolo-pilots
+    - echo "TBA - other stages will trigger pipelines in the xolo-deploy repo"
   when: manual
 
-pilot:
-  stage: pilot
-  tags:
-    - macback
-  script:
-    - /usr/local/pixar/bin/build-and-deploy-xolo-pilots
-  rules:
-    - if: $CI_COMMIT_BRANCH == "pilot"
