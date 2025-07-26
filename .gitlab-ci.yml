@@ -1,0 +1,12 @@
+# This file should be ignored by local instances, and only exist in Pixar's gitlab environment
+stages:
+  - test
+
+test:
+  stage: test
+  tags:
+    - macback
+  script:
+    - echo "TBA - other stages will trigger pipelines in the xolo-deploy repo"
+  when: manual
+
