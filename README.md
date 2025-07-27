@@ -35,5 +35,5 @@ For detailed documentation about Xolo:<br/>
   - Running a xolo server
   - deploying `xadm`
   - deploying `xolo`
-- xadm, the Xolo admin tool for managing titles and patches/versions
+- xadm, the Xolo admin tool for managing titles and patches/versions via automated or interactive command-line
 - xolo, the Xolo client tool for manually installing & uninstalling titles on managed Macs   
