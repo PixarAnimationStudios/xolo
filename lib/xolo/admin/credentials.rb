@@ -90,7 +90,7 @@ module Xolo
       rescue Xolo::KeychainError
         raise unless @security_exit_status.exitstatus == SEC_STATUS_NO_GUI_ERROR
 
-        question = "Keychain not accessible.\nPlease enter the xolo admin password for #{ENV['USER']}: "
+        question = "Keychain not accessible.\nPlease enter the xolo admin password for #{config.admin}: "
         highline_cli.ask(question) do |q|
           q.echo = false
         end
