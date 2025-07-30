@@ -159,6 +159,29 @@ module Xolo
           conf_file.chmod 0o600
         end
 
+        # If the given string starts with a pipe (|) then
+        # remove the pipe and execute the remainder, returning
+        # its stdout.
+        #
+        # If the given string is a readble file path, return
+        # its contents.
+        #
+        # Otherwise, the string is the desired data, so just return it.
+        #
+        # @param str [String] a command, file path, or string
+        #
+        # @return [String] The std output of the command, file contents, or string
+        #
+        ###############
+        def data_from_command_file_or_string(str)
+          return `#{str.delete_prefix(PIPE)}`.chomp if str.start_with? PIPE
+
+          path = Pathname.new(str)
+          return path.read.chomp if path.file? && path.readable?
+
+          str
+        end
+
         # Private Instance Methods
         #####################################
         #####################################
@@ -194,29 +217,6 @@ module Xolo
             v = send(keys[k][:load_method], v) if keys[k][:load_method]
             send "#{k}=", v
           end
-        end
-
-        # If the given string starts with a pipe (|) then
-        # remove the pipe and execute the remainder, returning
-        # its stdout.
-        #
-        # If the given string is a readble file path, return
-        # its contents.
-        #
-        # Otherwise, the string is the desired data, so just return it.
-        #
-        # @param str [String] a command, file path, or string
-        #
-        # @return [String] The std output of the command, file contents, or string
-        #
-        ###############
-        def data_from_command_file_or_string(str)
-          return `#{str.delete_prefix(PIPE)}`.chomp if str.start_with? PIPE
-
-          path = Pathname.new(str)
-          return path.read.chomp if path.file? && path.readable?
-
-          str
         end
 
       end # class Configuration

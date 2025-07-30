@@ -77,6 +77,8 @@ module Xolo
       #
       ##############################################
       def fetch_pw
+        return config.data_from_command_file_or_string(config.pw) if config.no_gui
+
         cmd = ['find-generic-password']
         cmd << '-s'
         cmd << XOLO_CREDS_SVC
@@ -104,7 +106,7 @@ module Xolo
       #
       # @param pw [String] The password to store
       #
-      # @return [void]
+      # @return [String] the location where the password is stored
       ##############################################
       def store_pw(acct, pw)
         # delete the item first if its there

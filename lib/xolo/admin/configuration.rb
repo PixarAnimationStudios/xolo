@@ -50,6 +50,7 @@ module Xolo
 
       CREDENTIALS_NEEDED = '<credentials needed>'
       CREDENTIALS_IN_KEYCHAIN = '<stored in keychain>'
+      CREDENTIALS_STORED = '<stored>'
 
       # See Xolo::Core::BaseClasses::Configuration for required values
       # when used to access the config file.
@@ -71,6 +72,26 @@ module Xolo
             The hostname of the Xolo Server to interact with,
             e.g. 'xolo.myschool.edu'
             Enter 'x' to exit.
+          ENDDESC
+        },
+
+        # @!attribute pw
+        #   @return [String]
+        no_gui: {
+          required: false,
+          label: 'Non-GUI mode',
+          type: :boolean,
+          validate: :validate_boolean,
+          walkthru_na: :pw_na,
+          secure_interactive_input: true,
+          desc: <<~ENDDESC
+            If you are configuring xadm for a non-GUI environment, such as a CI workflow,
+            set this to true. This will prevent xadm from trying to access the keychain.
+
+            The password value can then be set to:
+            - A command prefixed with '|' that will be executed to get the password from stdout,
+            - A path to a readable file containing the password,
+            - Or the password itself, which will be stored in the xadm config file
           ENDDESC
         },
 
@@ -99,26 +120,22 @@ module Xolo
           invalid_msg: 'Incorrect username or password, or user not allowed.',
           desc: <<~ENDDESC
             The password for connecting to the Xolo server. The same that
-            you would use to connect to Jamf Pro. Enter 'x' to exit.
-          ENDDESC
-        },
+            you would use to connect to Jamf Pro.
+            It will be stored in your login keychain for use in your terminal or
+            other MacOS GUI applications, such as XCode.
 
-        # @!attribute pw
-        #   @return [String]
-        no_gui: {
-          required: false,
-          label: 'Will xadm be running without a GUI env?',
-          type: :boolean,
-          validate: true,
-          walkthru_na: :pw_na,
-          secure_interactive_input: true,
-          desc: <<~ENDDESC
-            If you are configuring xadm for a non-GUI environment, such as a CI workflow,
-            set this to true. This will prevent xadm from trying to access the keychain.
-            The password will be stored in the config file instead, and the file will be
-            only readable by the user who created it.
-            NOTE: This is not as secure, and should only be used in a trusted automated
-            environment.
+            If you are configuring a non-GUI environment, such as a CI workflow,
+            set 'Non-GUI mode' to true.
+
+            In that case, if you start this value with a vertical bar '|', everything
+            after the bar is a command that will be executed to get the password from stdout.
+            This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used.
+
+            Otherwise the password is stored directly in the xadm config file.
+
+            Enter 'x' to exit if you are in an unknown password loop.
           ENDDESC
         },
 
