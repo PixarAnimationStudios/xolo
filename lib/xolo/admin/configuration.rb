@@ -105,6 +105,25 @@ module Xolo
 
         # @!attribute pw
         #   @return [String]
+        no_gui: {
+          required: false,
+          label: 'Will xadm be running without a GUI env?',
+          type: :boolean,
+          validate: true,
+          walkthru_na: :pw_na,
+          secure_interactive_input: true,
+          desc: <<~ENDDESC
+            If you are configuring xadm for a non-GUI environment, such as a CI workflow,
+            set this to true. This will prevent xadm from trying to access the keychain.
+            The password will be stored in the config file instead, and the file will be
+            only readable by the user who created it.
+            NOTE: This is not as secure, and should only be used in a trusted automated
+            environment.
+          ENDDESC
+        },
+
+        # @!attribute pw
+        #   @return [String]
         editor: {
           label: 'Preferred editor',
           type: :string,

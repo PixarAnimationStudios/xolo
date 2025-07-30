@@ -69,7 +69,7 @@ module Xolo
         return @highline_cli if @highline_cli
 
         @highline_cli ||= HighLine.new
-        @highline_cli.wrap_at = terminal_word_wrap
+        @highline_cli.wrap_at = terminal_word_wrap if STDOUT.tty?
         @highline_cli
       end
 
