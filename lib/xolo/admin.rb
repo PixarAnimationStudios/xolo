@@ -25,9 +25,17 @@
 
 require 'xolo'
 
+require 'openssl'
 require 'faraday'
 require 'faraday/multipart'
 require 'highline'
+
+# Monkeypatch OpenSSL::SSL::SSLContext to ignore unexpected EOF errors
+# happens with openssl v3 ??
+# see https://stackoverflow.com/questions/76183622/since-a-ruby-container-upgrade-we-expirience-a-lot-of-opensslsslsslerror
+if OpenSSL::SSL.const_defined?(:OP_IGNORE_UNEXPECTED_EOF)
+  OpenSSL::SSL::SSLContext::DEFAULT_PARAMS[:options] |= OpenSSL::SSL::OP_IGNORE_UNEXPECTED_EOF
+end
 
 # Yes we're using a OpenStruct for our @opts, even though it's very slow.
 # It isn't so slow that it's a problem for processing a CLI tool.
