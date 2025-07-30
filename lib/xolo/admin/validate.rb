@@ -723,24 +723,29 @@ module Xolo
           val = Xolo::BLANK
           return
         end
-
+        pw = val
         hostname = walkthru? ? walkthru_cmd_opts[:hostname] : cli_cmd_opts[:hostname]
         admin = walkthru? ? walkthru_cmd_opts[:admin] : cli_cmd_opts[:admin]
+        no_gui = walkthru? ? walkthru_cmd_opts[:no_gui] : cli_cmd_opts[:no_gui]
 
         raise Xolo::MissingDataError, 'hostname must be set before password' if hostname.pix_empty?
         raise Xolo::MissingDataError, 'admin username must be set before password' if admin.pix_empty?
 
-        payload = { admin: admin, password: val }.to_json
+        pw = config.data_from_command_file_or_string(pw) if no_gui
+
+        payload = { admin: admin, password: pw }.to_json
         begin
           server_cnx(host: hostname).post Xolo::Admin::Connection::LOGIN_ROUTE, payload
         rescue Faraday::UnauthorizedError
           raise_invalid_data_error 'User/Password', 'Username or Password is incorrect'
         end
 
-        # store the passwd in the keychain
+        # return the value for storage in the config file if no_gui is true
+        return val if no_gui
+
         store_pw admin, val
 
-        # The passwd is never stored in the config, this is:
+        # return a placeholder value saying that the password is stored in the keychain
         Xolo::Admin::Configuration::CREDENTIALS_IN_KEYCHAIN
       end
 
