@@ -109,6 +109,7 @@ begin
   debug ||= app.global_opts.debug
 
   app.run
+  exit 0
 rescue => e
   warn "Error: #{e.class.name.split('::').last}: #{e}"
   if debug
