@@ -68,7 +68,6 @@ Gem::Specification.new do |s|
   # Dependencies for both xadm and the server
   s.add_runtime_dependency 'faraday', '~> 2.8'
   s.add_runtime_dependency 'faraday-multipart', '~> 1.0'
-  s.add_runtime_dependency 'faraday-net-http', '~> 3.0'
   s.add_runtime_dependency 'pixar-ruby-extensions', '~> 1.11'
   s.add_runtime_dependency 'zeitwerk', '~> 2.6'
 
