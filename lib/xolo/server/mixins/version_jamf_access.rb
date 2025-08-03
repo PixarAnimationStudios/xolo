@@ -552,6 +552,7 @@ module Xolo
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
           pol.frequency = :ongoing
+          pol.recon = true
 
           # manual install policy is always available manually install
           # anywhere except the exclusions.
@@ -603,6 +604,7 @@ module Xolo
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
           pol.frequency = :once_per_computer
+          pol.recon = true
 
           # while in pilot, only pilot groups are targets
           set_policy_pilot_groups pol
