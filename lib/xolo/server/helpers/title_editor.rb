@@ -92,7 +92,7 @@ module Xolo
             pw: Xolo::Server.config.ted_api_pw,
             open_timeout: Xolo::Server.config.ted_open_timeout,
             timeout: Xolo::Server.config.ted_timeout,
-            keep_alive: true
+            keep_alive: false
           )
 
           log_debug "Title Editor: Connected at #{@ted_cnx.base_url}, user '#{Xolo::Server.config.ted_api_user}'. KeepAlive: #{@ted_cnx.keep_alive?}, Expires: #{@ted_cnx.token.expires}. cnxID: #{@ted_cnx.object_id}"
