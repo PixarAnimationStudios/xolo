@@ -908,7 +908,7 @@ function display_title_if_installed_by_version_script() {
   [[ -n "$version_script" ]] || return
 
   debug "Running version script for $title"
-  vsout=$(eval "$version_script")
+  vsout=$(eval "$version_script" 2>/dev/null)
   debug "Version Script Output: '$vsout'"
   [[ -n "$vsout" ]] || return
 
