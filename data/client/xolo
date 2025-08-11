@@ -705,6 +705,9 @@ function run_jamf_policy_trigger() {
   be_verbose && jamf_verbose='-verbose'
   be_quiet && jamf_quiet='> /dev/null'
 
+  # be quiet will not be set if we're running 'refresh' from the CLI
+  [[ -n "$refresh_from_cli" ]] || jamf_quiet='> /dev/null'
+
     # TODO: look at the output of the policy run to see if it was successful
   # and report possible reasons for failure, esp if no policy was found for
   # the trigger
@@ -719,7 +722,7 @@ function refresh_client_data() {
   # if we've already refreshed during this run, we're done
   [[ -n "$client_data_refreshed" ]] && return
 
-  say "Refreshing client data..."
+  [[ -n "$refresh_from_cli" ]] && say "Refreshing client data..."
 
   run_jamf_policy_trigger $UPDATE_CLIENT_DATA_TRIGGER
 
@@ -1070,6 +1073,7 @@ function main() {
       ;;
     refresh|r)
       debug "processing command 'refresh'"
+      refresh_from_cli=1
       refresh_client_data
       ;;
     list-titles|lt)
