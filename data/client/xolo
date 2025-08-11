@@ -51,7 +51,7 @@ export LC_ALL="en_US.UTF-8"
 
 # The version of xolo
 # This should be updated automatically when this script is packaged
-XOLO_VERSION="1.0.0b1"
+XOLO_VERSION="1.0.0b10"
 
 # The usage message for xolo
 USAGE='xolo [options] <command> [<title> [<version>]]'
@@ -321,6 +321,9 @@ function get_installed_apps() {
 } # end installed_apps
 
 # Extract data from the client-data.json file
+#
+# TODO: Once we only support macOS 15 (Sequoia) and higher, we
+# can use /usr/bin/jq to parse the JSON file instead of using JXA.
 #
 # $1 = a string of javascript that extracts your desired info from
 # the client-data.json file, which has already been parsed into
@@ -713,9 +716,14 @@ function run_jamf_policy_trigger() {
 # Refresh the client data
 ###############################
 function refresh_client_data() {
+  # if we've already refreshed during this run, we're done
+  [[ -n "$client_data_refreshed" ]] && return
+
   say "Refreshing client data..."
 
   run_jamf_policy_trigger $UPDATE_CLIENT_DATA_TRIGGER
+
+  client_data_refreshed=1
 }
 
 # validate that the title exists
@@ -728,6 +736,9 @@ function validate_title() {
 
   # die if no title given
   [[ -z "$title" ]] && die "No title given.\nUsage: $USAGE\nUse --help for more information."
+
+  # make sure the JSON data file is up to date
+  refresh_client_data
 
   # die if no such title
   # all titles in an array
@@ -907,15 +918,24 @@ function display_title_if_installed_by_version_script() {
 
   [[ -n "$version_script" ]] || return
 
+  # Save it to a file, make it executable, run it capturing the output, then delete the file
+  tmp_file=$(mktemp -t xolo.$title)
+  touch "$tmp_file"
+  chmod 700 "$tmp_file"
+  echo "$version_script" > "$tmp_file"
+
   debug "Running version script for $title"
-  vsout=$(eval "$version_script" 2>/dev/null)
+  vsout=$("$tmp_file" 2>/dev/null)
   debug "Version Script Output: '$vsout'"
+
+  rm -f "$tmp_file"
+
   [[ -n "$vsout" ]] || return
 
   # the output should be something like
   # <result>version</result> if installed, and
   # <result></result> if not installed
-  [[ "$vsout" =~ '>([^[:space:]]+)<' ]] && app_vers=$match[1]
+  [[ "$vsout" =~ '<result>(.*)</result>' ]] && app_vers=$match[1]
   [[ -n "$app_vers" ]] || return
 
   if [[ -n "$no_versions" ]] ; then
