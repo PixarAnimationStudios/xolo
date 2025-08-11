@@ -722,7 +722,7 @@ function refresh_client_data() {
   # if we've already refreshed during this run, we're done
   [[ -n "$client_data_refreshed" ]] && return
 
-  [[ -n "$refresh_from_cli" ]] && say "Refreshing client data..."
+  [[ -n "$refresh_from_cli" ]] && say "Refreshing client data..." || debug "Refreshing client data..."
 
   run_jamf_policy_trigger $UPDATE_CLIENT_DATA_TRIGGER
 
