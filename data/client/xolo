@@ -927,7 +927,7 @@ function display_title_if_installed_by_version_script() {
   chmod 700 "$tmp_file"
   echo "$version_script" > "$tmp_file"
 
-  debug "Running version script for $title"
+  debug "Running version script for $title from $tmp_file"
   vsout=$("$tmp_file" 2>/dev/null)
   debug "Version Script Output: '$vsout'"
 
