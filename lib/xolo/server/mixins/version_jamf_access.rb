@@ -497,6 +497,7 @@ module Xolo
               log_error msg, alert: true
             end
           end # thread
+          @activate_patch_version_thread.name = "activate_patch_version_thread-#{title}-#{version}"
         end
 
         # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
