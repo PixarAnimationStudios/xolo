@@ -673,6 +673,7 @@ module Xolo
               log_error msg, alert: true
             end
           end # thread
+          @auto_accept_ea_thread.name = "auto_accept_ea_thread for #{title}"
         end
 
         # Does the Jamf Title currently need its EA to be accepted, according to Jamf Pro?
