@@ -854,7 +854,9 @@ module Xolo
       # @return [void]
       ###############################
       def server_status
-        data = server_cnx.get(SERVER_STATUS_ROUTE).body
+        route = cli_cmd_opts.extended ? "#{SERVER_STATUS_ROUTE}?extended=true" : SERVER_STATUS_ROUTE
+
+        data = server_cnx.get(route).body
 
         if json?
           puts JSON.pretty_generate(data)
@@ -863,7 +865,9 @@ module Xolo
 
         require 'pp'
 
-        puts '# Xolo Server Status'
+        header = +'# Xolo Server Status'
+        header << ' (extended)' if cli_cmd_opts.extended
+        puts header
         puts '##################################################'
         pp data
         nil

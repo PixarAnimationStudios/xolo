@@ -64,7 +64,6 @@ module Xolo
         get '/maint/state' do
           require 'concurrent/version'
           state = {
-            executable: Xolo::Server::EXECUTABLE_FILENAME,
             start_time: Xolo::Server.start_time,
             uptime: (Time.now - Xolo::Server.start_time).to_i.pix_humanize_secs,
             app_env: Xolo::Server.app_env,
@@ -81,13 +80,16 @@ module Xolo
               concurrent_ruby_version: Concurrent::VERSION,
               faraday_version: Faraday::VERSION
             },
-            gem_path: Gem.paths.path,
-            load_path: $LOAD_PATH,
-            config: Xolo::Server.config.to_h_private,
-            pkg_deletion_pool: Xolo::Server::Version.pkg_deletion_pool_info,
-            object_locks: Xolo::Server.object_locks,
-            threads: Xolo::Server.thread_info
+            config: Xolo::Server.config.to_h_private
           }
+
+          if params[:extended]
+            state[:gem_path] = Gem.paths.path
+            state[:load_path] = $LOAD_PATH
+            state[:object_locks] = Xolo::Server.object_locks
+            state[:pkg_deletion_pool] = Xolo::Server::Version.pkg_deletion_pool_info
+            state[:threads] = Xolo::Server.thread_info
+          end
 
           body state
         end
