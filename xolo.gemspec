@@ -36,13 +36,12 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://pixaranimationstudios.github.io/xolo/'
   s.date        = Time.now.strftime('%Y-%m-%d')
 
-  # s.license     = 'Nonstandard'
   s.license     = 'LicenseRef-LICENSE.txt'
 
   s.summary     = 'Automation and Standardization for Jamf Pro Patch Management'
   s.description = <<~EODDESC
     == Xolo
-    Xolo (sorta pronounced 'show-low') is an http server and set of command-line tools for macOS that provide automatable access to the package deployment and patch management aspects of {Jamf Pro}[https://www.jamf.com/products/jamf-pro/] and the {Jamf Title Editor}[https://learn.jamf.com/en-US/bundle/title-editor/page/About_Title_Editor.html]. It enhances Jamf Pro's abilities in many ways:
+    Xolo (sorta pronounced 'show-low') is an https server and set of command-line tools for macOS that provide automatable access to the package deployment and patch management aspects of {Jamf Pro}[https://www.jamf.com/products/jamf-pro/] and the {Jamf Title Editor}[https://learn.jamf.com/en-US/bundle/title-editor/page/About_Title_Editor.html]. It enhances Jamf Pro's abilities in many ways:
 
       - Management of titles and versions/patches is scriptable and automatable, allowing developers and admins to integrate with CI/CD workflows.
       - Simplifies and standardizes the complex, multistep manual process of managing titles and patches using the Title Editor and Patch Management web interfaces.
@@ -74,7 +73,7 @@ Gem::Specification.new do |s|
   # Only for xadm
   #
   # TODO: if we want to require ruby 3.0+, then we can go to highline v 3.0+
-  # until then, 2.0.3 or 2.1.0 are fine.
+  # until then, highline 2.0.3 or 2.1.0 are fine.
   #
   # TODO: Add docs for installing these manually before installing
   # xolo
