@@ -300,6 +300,37 @@ module Xolo
         }
       }.freeze
 
+      DEPLOY_VERSION_OPTIONS = {
+        groups: {
+          label: 'Computer group whose computers will be targeted',
+          cli: :g,
+          validate: :validate_deploy_groups,
+          type: :string,
+          multi: true,
+          readline_prompt: 'Group Name',
+          readline: :jamf_computer_group_names,
+          desc: <<~ENDDESC
+            One or more Jamf Computer Group names or ids whose members will receive the MDM deployment.
+
+            When using the --groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+          ENDDESC
+        }
+      }.freeze
+
+      SERVER_STATUS_OPTIONS = {
+        extended: {
+          label: 'Show Extended Status',
+          cli: :e,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Include more status information about the server, including the current
+            GEM_PATH, $LOAD_PATH, current object locks, and existing threads.
+          ENDDESC
+        }
+      }.freeze
+
       # The commands that xadm understands
       # For each command there is a hash of details, with these possible keys:
       #
@@ -515,22 +546,7 @@ module Xolo
             the MDM command.
           ENDLONG
           display: "#{DEPLOY_VERSION_CMD} title version [computer ...]",
-          opts: {
-            groups: {
-              label: 'Computer group whose computers will be targeted',
-              cli: :g,
-              validate: :validate_deploy_groups,
-              type: :string,
-              multi: true,
-              readline_prompt: 'Group Name',
-              readline: :jamf_computer_group_names,
-              desc: <<~ENDDESC
-                One or more Jamf Computer Group names or ids whose members will receive the MDM deployment.
-
-                When using the --groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
-              ENDDESC
-            }
-          },
+          opts: DEPLOY_VERSION_OPTIONS,
           target: :version,
           process_method: :deploy_version,
           confirmation: true
@@ -628,10 +644,10 @@ module Xolo
           long_desc: <<~ENDLONG,
             Requires server-admin privileges.
             Displays the current status of the server, including uptime, log level,
-            versions of various libraries, configuration, threads, and more.
+            versions of various libraries, configuration, more.
           ENDLONG
           display: SERVER_STATUS_CMD,
-          opts: {},
+          opts: SERVER_STATUS_OPTIONS,
           arg_banner: :none,
           process_method: :server_status
         },

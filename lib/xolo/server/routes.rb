@@ -149,8 +149,8 @@ module Xolo
         # )
         # result = { result: 'message sent' }
 
-        client_data_testing
-        update_client_data
+        # client_data_testing
+        # update_client_data
 
         result = { result: 'test' }
 
