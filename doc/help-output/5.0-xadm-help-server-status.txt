@@ -4,10 +4,13 @@ Command:
 Description:
   Requires server-admin privileges.
   Displays the current status of the server, including uptime, log level,
-  versions of various libraries, configuration, threads, and more.
+  versions of various libraries, configuration, more.
 
 Usage:
   xadm server-status [options]
 
 Options:
-  -h, --help    Show this messag
+  -e, --extended    Include more status information about the server, including the current
+                    GEM_PATH, $LOAD_PATH, current object locks, and existing threads.
+
+  -h, --help        Show this message
