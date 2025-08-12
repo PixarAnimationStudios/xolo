@@ -49,6 +49,17 @@ module Xolo
         #######################
         ######################
 
+        # The default minimum OS for versions
+        # # @return [String] the default minimum OS for versions
+        #############
+        def default_min_os
+          if Xolo::Server.config.default_min_os.pix_empty?
+            Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS.to_s
+          else
+            Xolo::Server.config.default_min_os.to_s
+          end
+        end
+
         # A list of all known versions of a title
         # @return [Array<String>]
         ############

@@ -59,6 +59,20 @@ module Xolo
         image/gif
       ].freeze
 
+      # OS versions (min/max) must match this regex.
+      # - Start of string
+      # - two digits
+      # - optionally
+      #   - a dot
+      #   - one or more digits
+      #   - optionally
+      #     - a dot
+      #     - one or more digits
+      OS_VERSION_RE = /\A\d\d(\.\d+){0,2}\z/.freeze
+
+      # we get the default min os from the server
+      DEFAULT_MIN_OS_ROUTE = '/default_min_os'
+
       # Module methods
       ##############################
       ##############################
@@ -568,14 +582,19 @@ module Xolo
       # @return [String] The valid value
       ##########################
       def validate_min_os(val)
+        puts "val is: '#{val}'"
+
         # inherit if needed
-        val = current_opt_values[:min_os] if val == Xolo::NONE || val.pix_empty?
+        val = current_opt_values[:min_os] if val.pix_empty?
+        puts "val is: '#{val}'"
 
-        # use the default if still empty
-        return val.pix_empty? ? Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS : val.to_s
+        # use the default if still empty or 'none' - we get it from the server
+        val = server_cnx.get(DEFAULT_MIN_OS_ROUTE).body.first.to_s if val.pix_empty? || val == Xolo::NONE
+        puts "val is: '#{val}'"
 
-        # we shouldn't actually get here.
-        raise VERSION_ATTRS[:min_os][:invalid_msg]
+        raise VERSION_ATTRS[:min_os][:invalid_msg] unless val =~ OS_VERSION_RE
+
+        val
       rescue StandardError => e
         raise_invalid_data_error val, e.to_s
       end
@@ -585,9 +604,11 @@ module Xolo
       # @return [Gem::Version] The valid value
       ##########################
       def validate_max_os(val)
-        return val
+        return if val.pix_empty? || val == Xolo::NONE
 
-        raise VERSION_ATTRS[:max_os][:invalid_msg]
+        raise VERSION_ATTRS[:max_os][:invalid_msg] unless val =~ OS_VERSION_RE
+
+        val
       rescue StandardError => e
         raise_invalid_data_error val, e.to_s
       end

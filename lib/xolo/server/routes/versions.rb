@@ -53,6 +53,12 @@ module Xolo
           Xolo.verbose_include includer, self
         end
 
+        # @return [String] The default min_os for versions
+        #################################
+        get '/default_min_os' do
+          body default_min_os.to_s
+        end
+
         # Create a new version from the body content of the request
         #
         # @return [Hash] A response hash
@@ -65,6 +71,7 @@ module Xolo
             halt 400,
                  "Path/Data Mismatch! params[:title] => '#{params[:title]}' / data[:title] => '#{data[:title]}'"
           end
+          data[:min_os] = default_min_os if data[:min_os].pix_empty?
 
           log_debug "Incoming new version data: #{data}"
           log_debug "Incoming new version data: #{data.class}"
@@ -123,6 +130,7 @@ module Xolo
         put '/titles/:title/versions/:version' do
           request.body.rewind
           new_data = parse_json(request.body.read)
+          new_data[:min_os] = default_min_os if new_data[:min_os].pix_empty?
           log_debug "Incoming update version data: #{new_data}"
 
           halt_on_missing_title params[:title]

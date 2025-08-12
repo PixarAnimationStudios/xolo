@@ -306,6 +306,18 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute default_min_os
+        #   @return [String] The default minimum OS for versions
+        default_min_os: {
+          required: false,
+          type: :string,
+          desc: <<~ENDDESC
+            The default minimum OS version for new versions of titles. This is used when a new version is created, and no minimum OS is specified.
+            In Jamf Packages, this will appear in the OS limitations expanded to macOS 40, or lower if a max_os is specified for the version.
+            If not specified here, the default is #{Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS}.
+          ENDDESC
+        },
+
         # @!attribute deprecated_lifetime_days
         #   @return [Integer] How many days after a version is deprecated to keep it
         deprecated_lifetime_days: {
