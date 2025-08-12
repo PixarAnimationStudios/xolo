@@ -1247,7 +1247,10 @@ module Xolo
           return @jamf_package_url if @jamf_package_url
           return unless jamf_pkg_id
 
-          @jamf_package_url = "#{jamf_gui_url}/packages.html?id=#{jamf_pkg_id}&o=r"
+          # @jamf_package_url = "#{jamf_gui_url}/packages.html?id=#{jamf_pkg_id}&o=r"
+
+          @jamf_package_url = "#{jamf_gui_url}/view/settings/computer-management/packages/#{jamf_pkg_id}?tab=general"
+          # https://casper.pixar.com:8443/view/settings/computer-management/packages/12042?tab=general
         end
 
         # @return [String] the URL for the Jamf Pro Policy that does auto-installs of this version

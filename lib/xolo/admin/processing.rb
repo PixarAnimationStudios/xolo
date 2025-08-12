@@ -1004,7 +1004,7 @@ module Xolo
         end
 
         login test: true
-        resp = server_cnx.get('/test').body
+        resp = server_cnx.get('/default_min_os').body.first.to_s
         puts "RESPONSE:\n#{resp}"
         return unless resp[:progress_stream_url_path]
 

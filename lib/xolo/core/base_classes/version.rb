@@ -51,7 +51,7 @@ module Xolo
         #############################
 
         # The title editor requires a value for min os, so use this
-        # as the default
+        # as the default if not specified in the server config
         DEFAULT_MIN_OS = '10.9'
 
         # when this is provided as a killapp, the killapp will
@@ -150,9 +150,9 @@ module Xolo
             default: DEFAULT_MIN_OS,
             changelog: true,
             ted_attribute: :minimumOperatingSystem,
-            invalid_msg: "Not a valid OS version! Cannont be empty or '#{Xolo::NONE}'",
+            invalid_msg: "Not a valid OS version! Must be XX[.YY[.ZZ]] format, e.g. '10.9' or '11.0.1'.",
             desc: <<~ENDDESC
-              The lowest version of macOS able to run this version of this title. Defaults to #{DEFAULT_MIN_OS}.
+              The lowest version of macOS able to run this version of this title. Defaults to a value set in the server config, or #{DEFAULT_MIN_OS}.
             ENDDESC
           },
 
@@ -165,7 +165,7 @@ module Xolo
             validate: true,
             changelog: true,
             # default: Xolo::NONE,
-            invalid_msg: 'Not a valid OS version!',
+            invalid_msg: "Not a valid OS version! Must be XX[.YY[.ZZ]] format, e.g. '10.9' or '11.0.1'.",
             desc: <<~ENDDESC
               The highest version of macOS able to run this version of this title.
             ENDDESC
