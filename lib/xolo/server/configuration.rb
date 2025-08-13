@@ -27,55 +27,31 @@ module Xolo
 
   module Server
 
-    # TODO: Update this text!
+    # A class for working with configuration values for the Xolo server.
     #
-    # A class for working with pre-defined settings & preferences for Xolo
+    # @seealso Xolo::Core::BaseClasses::Configuration
     #
     # This is a singleton class, only one instance can exist at a time.
     #
-    # When the module loads, that instance is created, and is used to provide configuration
-    # values throughout Xolo. It can be accessed via Xolo.config in applications.
+    # When the server loads, that instance is created, and is used to provide configuration
+    # values throughout the server code. It can be accessed via Xolo::Server.config.
     #
-    # @note Many values in Xolo will also have a hard-coded default, if not defined
-    # in the configuration.
-    #
-    # When the Xolo::Server::Configuration instance is created, the {GLOBAL_CONF} file (/etc/xolo.conf)
+    # When the Xolo::Server::Configuration instance is created, the {CONF_FILENAME} file
     # is examined if it exists, and the items in it are loaded into the attributes.
     #
-    # Then the user-specific {USER_CONF} file (~/.xolo.conf) is examined if it exists, and
-    # any attributes defined there will override those values from the {GLOBAL_CONF}.
+    # See {KEYS} for the available attributes
     #
-    # The file format is one attribute per line, thus:
-    #   attr_name: value
-    #
-    # Lines that don't start with a known attribute name followed by a colon are ignored.
-    # If an attribute is defined more than once, the last one wins.
-    #
-    # See {KEYS} for the available attributes, and how they are converted to the appropriate
-    # Ruby class when loaded.
-    #
-    # At any point, the attributes can read or ne changed using standard Ruby getter/setter methods
+    # At any point, the attributes can read or be changed using standard Ruby getter/setter methods
     # matching the name of the attribute,
     # e.g.
     #
     #   # read the current ted_server_name configuration value
-    #   Xolo.config.ted_server_name  # => 'foobar.appcatalog.jamfcloud.com'
+    #   Xolo::Server.config.ted_server_name  # => 'foobar.appcatalog.jamfcloud.com'
     #
     #   # sets the ted_server_name to a new value
-    #   Xolo.config.ted_server_name = 'baz.appcatalog.jamfcloud.com'
+    #   Xolo::Server.config.ted_server_name = 'baz.appcatalog.jamfcloud.com'
     #
     #
-    # The current settings may be saved to the CONF_FILEe, or an arbitrary
-    # file using {#save}.  The argument to {#save} should be either :user, :global, or a String or
-    # Pathname file path.
-    # NOTE: This overwrites any existing file with the current values of the Configuration object.
-    #
-    # To re-load the configuration use {#reload}. This clears the current settings, and re-reads
-    # both the global and user files. If a pathname is provided, e.g.
-    #   Xolo.config.reload '/path/to/other/file'
-    # the current settings are cleared and reloaded from that other file.
-    #
-    # To view the current settings, use {#print}.
     #
     class Configuration < Xolo::Core::BaseClasses::Configuration
 
