@@ -187,6 +187,21 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute alert_tool
+        #   @return [String] A command and its options/args that relays messages from stdin to some means
+        #       of alerting Xolo server admins of a problem or event that would otherwise go unnoticed.
+        #
+        alert_tool: {
+          type: :string,
+          desc: <<~ENDDESC
+            Server errors or other events that happen as part of xadm actions are reported to the xadm user. But sometimes such events happen outside of the scope of a xadm session. While these events will be logged, you might want them reported to a server administrator in real time.
+
+            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
+
+            Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
+          ENDDESC
+        },
+
         # @!attribute pkg_signing_identity
         #   @return [String] The name of the package signing identity to use
         pkg_signing_identity: {
@@ -289,7 +304,7 @@ module Xolo
           type: :string,
           desc: <<~ENDDESC
             The default minimum OS version for new versions of titles. This is used when a new version is created, and no minimum OS is specified.
-            In Jamf Packages, this will appear in the OS limitations expanded to macOS 40, or lower if a max_os is specified for the version.
+            In Jamf Packages, this will appear in the OS limitations expanded to macOS 40, or max_os if specified for the version.
             If not specified here, the default is #{Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS}.
           ENDDESC
         },
@@ -363,7 +378,7 @@ module Xolo
           ENDDESC
         },
 
-        # Jamf Pro Connection
+        # Jamf Pro
         ####################
 
         # @!attribute jamf_hostname
@@ -527,21 +542,6 @@ module Xolo
             After that tool runs, the copy of the .pkg on the server ( '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
 
             An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points. While the packages/upload endpoint of the Jamf Pro API (v11.6+) will upload to the primary distribution point, it won't upload to all the others you might have.
-          ENDDESC
-        },
-
-        # @!attribute alert_tool
-        #   @return [String] A command and its options/args that relays messages from stdin to some means
-        #       of alerting Xolo server admins of a problem or event that would otherwise go unnoticed.
-        #
-        alert_tool: {
-          type: :string,
-          desc: <<~ENDDESC
-            Server errors or other events that happen as part of xadm actions are reported to the xadm user. But sometimes such events happen outside of the scope of a xadm session. While these events will be logged, you might want them reported to a server administrator in real time.
-
-            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
-
-            Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
           ENDDESC
         },
 
