@@ -1029,7 +1029,7 @@ module Xolo
           # progress msg, log: :debug
 
           # # do this in another thread, so we can report the progress while its happening
-          # pkg_del_thr = Thread.new { Jamf::Package.fetch(name: jamf_pkg_name, cnx: jamf_cnx).delete }
+          # pkg_del_thr = Thread.new { Jamf::JPackage.fetch(packageName: jamf_pkg_name, cnx: jamf_cnx).delete }
           # pkg_del_thr.name = "package-deletion-thread-#{session[:xolo_id]}"
           # sleep 15
           # while pkg_del_thr.alive?
@@ -1050,7 +1050,7 @@ module Xolo
         # @return [void]
         #########################
         def delete_pkg_from_jamf
-          pkg_id = Jamf::Package.map_all(:name, to: :id, cnx: jamf_cnx)[jamf_pkg_name]
+          pkg_id = Jamf::JPackage.valid_id packageName: jamf_pkg_name
           return unless pkg_id
 
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
@@ -1071,7 +1071,7 @@ module Xolo
             start = Time.now
             log_info "Jamf: Started threadpool deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{start}"
             jamf_cnx.timeout = 3600
-            Jamf::Package.delete pkg_id, cnx: jamf_cnx
+            Jamf::JPackage.delete pkg_id, cnx: jamf_cnx
             finish = Time.now
             duration = (finish - start).to_i.pix_humanize_secs
             log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}", alert: true
