@@ -72,10 +72,10 @@ module Xolo
         ###############
         get '/jamf/package-names' do
           log_debug "Jamf: Fetching Jamf Package Names for #{session[:admin]}"
-          jcnx = jamf_cnx
-          body Jamf::Package.all_names(cnx: jcnx).sort
+          jamf_cnx
+          body Jamf::JPackage.all_names(cnx: jamf_cnx).sort
         ensure
-          jcnx&.disconnect
+          jamf_cnx&.disconnect
         end
 
         # A list of all current computer groups, excluding those starting with xolo-
