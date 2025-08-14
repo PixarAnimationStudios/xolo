@@ -582,15 +582,11 @@ module Xolo
       # @return [String] The valid value
       ##########################
       def validate_min_os(val)
-        puts "val is: '#{val}'"
-
         # inherit if needed
         val = current_opt_values[:min_os] if val.pix_empty?
-        puts "val is: '#{val}'"
 
         # use the default if still empty or 'none' - we get it from the server
         val = server_cnx.get(DEFAULT_MIN_OS_ROUTE).body.first.to_s if val.pix_empty? || val == Xolo::NONE
-        puts "val is: '#{val}'"
 
         raise VERSION_ATTRS[:min_os][:invalid_msg] unless val =~ OS_VERSION_RE
 
