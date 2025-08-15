@@ -17,7 +17,8 @@ Options:
   -d, --publish-date=<s>     The date this version was released by the publisher.
                              Default is today.
 
-  -o, --min-os=<s>           The lowest version of macOS able to run this version of this title.
+  -o, --min-os=<s>           The lowest version of macOS able to run this version of this title. Defaults to a
+                             value set in the server config, or 10.9.
 
   -O, --max-os=<s>           The highest version of macOS able to run this version of this title.
 
