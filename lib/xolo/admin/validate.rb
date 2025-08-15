@@ -59,6 +59,9 @@ module Xolo
         image/gif
       ].freeze
 
+      # The minimum length of a Titles Description.
+      MIN_TITLE_DESC_LENGTH = 25
+
       # OS versions (min/max) must match this regex.
       # - Start of string
       # - two digits
@@ -253,7 +256,7 @@ module Xolo
       ##########################
       def validate_title_desc(val)
         val = val.to_s.strip
-        return val if val.length >= 20
+        return val if val.length >= MIN_TITLE_DESC_LENGTH
 
         raise_invalid_data_error val, TITLE_ATTRS[:description][:invalid_msg]
       end
