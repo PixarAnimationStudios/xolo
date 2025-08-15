@@ -40,7 +40,8 @@ module Xolo
         # these routes don't need an auth'd session
         NO_AUTH_ROUTES = [
           '/ping',
-          '/auth/login'
+          '/auth/login',
+          '/default_min_os'
         ].freeze
 
         # these route prefixes don't need an auth'd session
