@@ -215,7 +215,7 @@ module Xolo
             changelog: true,
             multiline: true,
             invalid_msg: <<~ENDINV,
-              Not a valid description, must be at least 20 characters.
+              Not a valid description, must be at least #{Xolo::Admin::Validate::MIN_TITLE_DESC_LENGTH} characters.
 
               Provide a useful dscription of what the software does, URLs, developer names, etc.
 
@@ -228,7 +228,7 @@ module Xolo
 
               IMPORTANT: If this title appears in Self Service, the description will be visible to users.
 
-              Must be at least 20 Characters.
+              Must be at least #{Xolo::Admin::Validate::MIN_TITLE_DESC_LENGTH} Characters.
             ENDDESC
           },
 
