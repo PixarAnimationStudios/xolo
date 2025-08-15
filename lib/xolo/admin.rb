@@ -87,6 +87,12 @@ module Xolo
       Xolo.verbose_include includer, self
     end
 
+    # @return [Xolo::Admin::Configuration] our config, available via the module
+    ########################
+    def self.config
+      Xolo::Admin::Configuration.instance
+    end
+
     # Instance Methods
     ##########################
     ##########################
@@ -97,6 +103,8 @@ module Xolo
       @usage ||= "#{EXECUTABLE_FILENAME} [global-options] command [target] [command-options]"
     end
 
+    # @return [Xolo::Admin::Configuration] our config available via the admin app instance
+    ########################
     def config
       Xolo::Admin::Configuration.instance
     end

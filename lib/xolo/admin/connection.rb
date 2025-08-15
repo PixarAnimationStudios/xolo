@@ -81,7 +81,10 @@ module Xolo
         # connection object
         resp = server_cnx.post Xolo::Admin::Connection::LOGIN_ROUTE, payload
 
-        return if resp.success?
+        if resp.success?
+          @logged_in = true
+          return
+        end
 
         case resp.status
         when 401

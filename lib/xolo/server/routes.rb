@@ -60,13 +60,16 @@ module Xolo
         log_debug "Session in before-filter: #{session.inspect}"
 
         # these routes don't need an auth'd session
+        log_debug "Checking if request path '#{request.path}' is in NO_AUTH_ROUTES or NO_AUTH_PREFIXES"
         break if Xolo::Server::Helpers::Auth::NO_AUTH_ROUTES.include? request.path
         break if Xolo::Server::Helpers::Auth::NO_AUTH_PREFIXES.any? { |pfx| request.path.start_with? pfx }
 
         # these routes are expected to be called by the xolo server itself
+        log_debug "Checking if request path '#{request.path}' is in INTERNAL_ROUTES"
         break if Xolo::Server::Helpers::Auth::INTERNAL_ROUTES.include?(request.path) && valid_internal_auth_token?
 
         # these routes are for server admins only, and require an authenticated session
+        log_debug "Checking if request path '#{request.path}' is in SERVER_ADMIN_ROUTES"
         break if Xolo::Server::Helpers::Auth::SERVER_ADMIN_ROUTES.include?(request.path) && valid_server_admin?
 
         # If here, we must have a session cookie marked as 'authenticated'

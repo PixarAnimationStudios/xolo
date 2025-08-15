@@ -70,9 +70,6 @@ module Xolo
       #     - one or more digits
       OS_VERSION_RE = /\A\d\d(\.\d+){0,2}\z/.freeze
 
-      # we get the default min os from the server
-      DEFAULT_MIN_OS_ROUTE = '/default_min_os'
-
       # Module methods
       ##############################
       ##############################
@@ -586,7 +583,7 @@ module Xolo
         val = current_opt_values[:min_os] if val.pix_empty?
 
         # use the default if still empty or 'none' - we get it from the server
-        val = server_cnx.get(DEFAULT_MIN_OS_ROUTE).body.first.to_s if val.pix_empty? || val == Xolo::NONE
+        val = Xolo::Admin::Options.default_min_os if val.pix_empty? || val == Xolo::NONE
 
         raise VERSION_ATTRS[:min_os][:invalid_msg] unless val =~ OS_VERSION_RE
 
