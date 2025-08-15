@@ -48,11 +48,8 @@ module Xolo
 
       # Modification of the ATTRIBUTES constant for how they are handled
       # in the admin app
-      puts "ATTRIBUTES[:min_os][:default]: #{ATTRIBUTES[:min_os][:default]}"
-      puts
       ATTRIBUTES[:min_os][:default] = proc { Xolo::Admin::Options.default_min_os }
-      puts "ATTRIBUTES[:min_os][:default]: #{ATTRIBUTES[:min_os][:default]}"
-      puts
+
       # Class Methods
       #############################
       #############################
