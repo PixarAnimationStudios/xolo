@@ -147,7 +147,6 @@ module Xolo
             type: :string,
             required: false,
             validate: true,
-            # default: DEFAULT_MIN_OS,
             default: proc { Xolo::Admin::Options.default_min_os },
             changelog: true,
             ted_attribute: :minimumOperatingSystem,
