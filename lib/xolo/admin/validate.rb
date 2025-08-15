@@ -256,7 +256,7 @@ module Xolo
       ##########################
       def validate_title_desc(val)
         val = val.to_s.strip
-        return val if val.length >= MIN_TITLE_DESC_LENGTH
+        return val if val.length >= Xolo::Core::BaseClasses::Title::MIN_TITLE_DESC_LENGTH
 
         raise_invalid_data_error val, TITLE_ATTRS[:description][:invalid_msg]
       end
