@@ -147,7 +147,7 @@ module Xolo
             type: :string,
             required: false,
             validate: true,
-            default: proc { Xolo::Admin::Options.default_min_os },
+            default: DEFAULT_MIN_OS,
             changelog: true,
             ted_attribute: :minimumOperatingSystem,
             invalid_msg: "Not a valid OS version! Must be XX[.YY[.ZZ]] format, e.g. '10.9' or '11.0.1'.",
