@@ -7,6 +7,9 @@
 #### Purpose
 Check server availability
 
+#### Notes
+This endpoint does not require authentication.
+
 #### Request
 None
 

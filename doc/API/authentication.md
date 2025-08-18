@@ -12,6 +12,8 @@ Authenticate to the Xolo server and acquire a session cookie.
 #### Notes
 The 'rack.session' cookie that comes back with this or any subequent response, must be included in the next request made for this session.
 
+This endpoint does not require authentication (obviously).
+
 #### Request
 Type: JSON Object  
 Schema: 
