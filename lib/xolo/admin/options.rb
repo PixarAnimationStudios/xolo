@@ -780,9 +780,13 @@ module Xolo
       # @return [String] the default min_os for versions
       ####################
       def self.default_min_os
-        @default_min_os ||= JSON.parse(Faraday.new("https://#{Xolo::Admin.config.hostname}#{DEFAULT_MIN_OS_ROUTE}").get.body).first
+        return @default_min_os if @default_min_os
+
+        url = URI.parse("https://#{Xolo::Admin.config.hostname}#{DEFAULT_MIN_OS_ROUTE}")
+        val_from_server = Faraday.new(url).get.body
+        @default_min_os = JSON.parse(val_from_server, symbolize_names: true)[:min_os]
       rescue StandardError
-        @default_min_os ||= Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS
+        @default_min_os = Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS
       end
 
       # Instance Methods
