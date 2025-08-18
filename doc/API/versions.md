@@ -21,7 +21,7 @@ None
 Type: None
 
 #### Response
-Type: JSON Object with a single String value in 'min_os'
+Type: JSON Object with a single String value in 'min_os'<br/>
 Schema:
 ```
 {
