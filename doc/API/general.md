@@ -10,6 +10,8 @@ Check server availability
 #### Notes
 This endpoint does not require authentication.
 
+This endpoint does not return JSON
+
 #### Request
 None
 
