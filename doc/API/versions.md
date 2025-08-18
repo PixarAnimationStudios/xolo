@@ -1,6 +1,37 @@
 # Endpoints related to Xolo Versions
 
 <!-- ------------------------- -->
+<a id="get_default_min_os"></a>
+## GET /default_min_os
+
+#### Purpose
+Learn the default value for the 'min_os' of versions.
+
+While Xolo defines a hard-coded value, the server may be configured to use a different value. 
+
+This endpoint is how you can get the value to be used, the server-defined one or the hard-coded one.
+
+#### Notes
+This endpoint does not require authentication.
+
+#### Path Parameters
+None
+
+#### Request
+Type: None
+
+#### Response
+Type: JSON Array with a single String value  
+Schema:
+```
+[
+  min_os
+]
+```
+
+
+
+<!-- ------------------------- -->
 <a id="get_versions"></a>
 ## GET /titles/{title}/versions
 
