@@ -21,12 +21,12 @@ None
 Type: None
 
 #### Response
-Type: JSON Array with a single String value  
+Type: JSON Object with a single String value in 'min_os'
 Schema:
 ```
-[
-  min_os
-]
+{
+  "min_os": "version"
+}
 ```
 
 
