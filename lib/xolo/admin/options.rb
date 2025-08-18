@@ -616,7 +616,7 @@ module Xolo
 
         LIST_GROUPS_CMD => {
           desc: 'List all computer groups in Jamf pro',
-          display: "#{LIST_GROUPS_CMD}",
+          display: LIST_GROUPS_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{LIST_GROUPS_CMD}",
           opts: {},
           arg_banner: :none,
@@ -625,7 +625,7 @@ module Xolo
 
         LIST_CATEGORIES_CMD => {
           desc: 'List all categories in Jamf pro',
-          display: "#{LIST_CATEGORIES_CMD}",
+          display: LIST_CATEGORIES_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{LIST_CATEGORIES_CMD}",
           opts: {},
           arg_banner: :none,
