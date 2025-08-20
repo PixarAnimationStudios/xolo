@@ -56,7 +56,8 @@ module Xolo
         # @return [String] The default min_os for versions
         #################################
         get '/default_min_os' do
-          body default_min_os.to_s
+          resp = { min_os: default_min_os.to_s }
+          body resp
         end
 
         # Create a new version from the body content of the request

@@ -18,7 +18,7 @@ Options:
 
                                      IMPORTANT: If this title appears in Self Service, the description will be visible to users.
 
-                                     Must be at least 20 Characters.
+                                     Must be at least 25 Characters.
 
   -P, --publisher=<s>                The company or entity that publishes this title, e.g. 'Apple, Inc.' or 'Pixar Animation
                                      Studios'.

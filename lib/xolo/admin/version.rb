@@ -46,6 +46,10 @@ module Xolo
       # Server route for uploading packages
       UPLOAD_PKG_ROUTE = 'pkg'
 
+      # Modification of the ATTRIBUTES constant for how they are handled
+      # in the admin app
+      ATTRIBUTES[:min_os][:default] = proc { Xolo::Admin::Options.default_min_os }
+
       # Class Methods
       #############################
       #############################

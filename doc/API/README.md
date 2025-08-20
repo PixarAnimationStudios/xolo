@@ -59,6 +59,8 @@ This documentation is preliminary and may never be fully complete.
   - [GET /titles/{title}/changelog](titles.md#changelog)
     Change log for a title and all its versions
 - [Xolo Version Endpoints](versions.md)
+  - [GET /default_min_os](versions.md#get_default_min_os)
+    Get the default value to use as the min_os for versions
   - [GET /titles/{title}/versions](versions.md#get_versions)
     List all version objects belonging to a title
   - [POST /titles/{title}/versions](versions.md#post_versions)

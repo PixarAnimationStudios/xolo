@@ -193,6 +193,8 @@ module Xolo
             t.latest_version
           ]
         end
+        data.sort_by! { |d| d[0].downcase } # sort by title
+
         show_text generate_report(data, header_row: header, title: report_title)
       rescue StandardError => e
         handle_processing_error e
