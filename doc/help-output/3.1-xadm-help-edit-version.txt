@@ -12,15 +12,16 @@ Options:
   -d, --publish-date=<s>     The date this version was released by the publisher.
                              Default is today.
 
-  -o, --min-os=<s>           The lowest version of macOS able to run this version of this title.
+  -o, --min-os=<s>           The lowest version of macOS able to run this version of this title. Defaults to a
+                             value set in the server config, or 10.9.
 
   -O, --max-os=<s>           The highest version of macOS able to run this version of this title.
 
-  -r, --reboot               The installation of this version requires the computer to reboot. Users will be notified before
-                             installation.
+  -r, --reboot               The installation of this version requires the computer to reboot. Users will be
+                             notified before installation.
 
-  -s, --standalone           The installer for this version is a full installer, not an incremental patch that must be installed on
-                             top of an earlier version.
+  -s, --standalone           The installer for this version is a full installer, not an incremental patch that
+                             must be installed on top of an earlier version.
 
   -k, --killapps=<s>         A killapp is an application that cannot be running while this version is installed.
                              If running, installation is delayed, and users are notified to quit.
@@ -57,8 +58,8 @@ Options:
                              yet-to-be-released version using `sudo xolo install <title> <version>`.  The members of the pilot
                              groups are just the ones that will have it auto-installed.
 
-  -u, --pkg-to-upload=<s>    The path to a local copy of the installer package for this version. Will be uploaded to Xolo and then
-                             Jamf Pro, distribution point(s), replacing any previously uploaded.
+  -u, --pkg-to-upload=<s>    The path to a local copy of the installer package for this version. Will be uploaded
+                             to Xolo and then Jamf Pro distribution point(s), replacing any previously uploaded.
 
                              Must be a flat .pkg file, or a .zip compressed old-style bundle package.
 

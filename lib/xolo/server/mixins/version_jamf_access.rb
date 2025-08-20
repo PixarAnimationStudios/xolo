@@ -1050,7 +1050,7 @@ module Xolo
         # @return [void]
         #########################
         def delete_pkg_from_jamf
-          pkg_id = Jamf::JPackage.valid_id packageName: jamf_pkg_name
+          pkg_id = Jamf::JPackage.valid_id packageName: jamf_pkg_name, cnx: jamf_cnx
           return unless pkg_id
 
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"

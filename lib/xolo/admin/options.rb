@@ -621,7 +621,7 @@ module Xolo
 
         LIST_GROUPS_CMD => {
           desc: 'List all computer groups in Jamf pro',
-          display: "#{LIST_GROUPS_CMD}",
+          display: LIST_GROUPS_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{LIST_GROUPS_CMD}",
           opts: {},
           arg_banner: :none,
@@ -630,7 +630,7 @@ module Xolo
 
         LIST_CATEGORIES_CMD => {
           desc: 'List all categories in Jamf pro',
-          display: "#{LIST_CATEGORIES_CMD}",
+          display: LIST_CATEGORIES_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{LIST_CATEGORIES_CMD}",
           opts: {},
           arg_banner: :none,
@@ -764,6 +764,9 @@ module Xolo
         FREEZE_TITLE_CMD, THAW_TITLE_CMD, LIST_FROZEN_CMD, CHANGELOG_CMD
       ].freeze
 
+      # we get the default min os from the server
+      DEFAULT_MIN_OS_ROUTE = '/default_min_os'
+
       # Module methods
       ##############################
       ##############################
@@ -771,6 +774,24 @@ module Xolo
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self
+      end
+
+      # Get the default min_os from the server.
+      # If it's been customized in the server config, you
+      # will get that value, otherwise the Xolo default.
+      # The server route is not protected, so use a one-off faraday
+      # connection to get the value.
+      #
+      # @return [String] the default min_os for versions
+      ####################
+      def self.default_min_os
+        return @default_min_os if @default_min_os
+
+        url = URI.parse("https://#{Xolo::Admin.config.hostname}#{DEFAULT_MIN_OS_ROUTE}")
+        val_from_server = Faraday.new(url).get.body
+        @default_min_os = JSON.parse(val_from_server, symbolize_names: true)[:min_os]
+      rescue StandardError
+        @default_min_os = Xolo::Core::BaseClasses::Version::DEFAULT_MIN_OS
       end
 
       # Instance Methods
@@ -983,7 +1004,7 @@ module Xolo
             opts_defs.each do |key, deets|
               next unless deets[:default]
 
-              @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : eets[:default]
+              @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : deets[:default]
             end
 
           # editing? just use the current values

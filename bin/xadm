@@ -63,23 +63,9 @@ class XoloAdmin
   # Run
   ########################
   def run
-    # during early testing - this will return all kinds of things.
-    if ARGV.include? '--test'
-      # uncomment to test local variables and such, see
-      # the do_local_testing method in processing.rb
-
-      # do_local_testing
-
-      # uncomment to reach out to the server
-      # to test all kinds of things - the connection,
-      # or any values the server might return
-      # see the run_test_route method in processing.rb
-      # and the test_route method in the server
-      #
-      login test: true
-      run_test_route
-      return
-    end
+    # during early testing, this will return all kinds of things.
+    run_tests if ARGV.include? '--test'
+    return if @tests_run
 
     # this line will actuall stay somewhere here in xadm!
     do_walkthru if walkthru?
@@ -90,6 +76,31 @@ class XoloAdmin
 
     send process_method
   end # run
+
+  # do some testing
+  ########################
+  def run_tests
+    # LOCAL TESTING
+    # uncomment to test local variables and such, see
+    # the do_local_testing method in processing.rb
+    # and adjust it as needed to test what needs testing
+    #
+    # do_local_testing
+
+    # SERVER TESTING
+    # uncomment to reach out to the server
+    # to test all kinds of things - the connection,
+    # or any values the server might return
+    #
+    # see the run_test_route method in processing.rb
+    # and the test_route method in the server
+    # and adjust them as needed to test what needs testing
+    #
+    # login test: true
+    # run_test_route
+
+    @tests_run = true
+  end # run_tests
 
 end # class XoloAdmin
 
