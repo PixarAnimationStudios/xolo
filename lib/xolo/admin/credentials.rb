@@ -77,7 +77,7 @@ module Xolo
       #
       ##############################################
       def fetch_pw
-        return config.data_from_command_file_or_string(config.pw) if config.no_gui
+        return config.data_from_command_file_or_string(config.pw, enforce_secure_mode: true) if config.no_gui
 
         cmd = ['find-generic-password']
         cmd << '-s'
@@ -91,6 +91,7 @@ module Xolo
       # when we're running in a non-GUI session, e.g. via ssh.
       rescue Xolo::KeychainError
         raise unless @security_exit_status.exitstatus == SEC_STATUS_NO_GUI_ERROR
+        raise unless STDOUT.isatty
 
         question = "Keychain not accessible.\nPlease enter the xolo admin password for #{config.admin}: "
         highline_cli.ask(question) do |q|

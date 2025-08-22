@@ -748,7 +748,7 @@ module Xolo
         raise Xolo::MissingDataError, 'hostname must be set before password' if hostname.pix_empty?
         raise Xolo::MissingDataError, 'admin username must be set before password' if admin.pix_empty?
 
-        pw = config.data_from_command_file_or_string(pw) if no_gui
+        pw = config.data_from_command_file_or_string(pw, enforce_secure_mode: true) if no_gui
 
         payload = { admin: admin, password: pw }.to_json
         begin
