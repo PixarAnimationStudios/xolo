@@ -768,15 +768,17 @@ module Xolo
 
       # Does the chosen editor exist and is it executable?
       #
-      # @aram val [String] The path to the editor executable.
+      # @aram val [String] The path to the editor executable possibly followed by
+      #   a space and any command line arguments, e.g. 'vim -c "set ft=markdown"'
       #
       # @return [void]
       #######
       def validate_editor(val)
-        val = Pathname.new val
-        return val.to_s if val.executable?
+        tool = val.split(' -')[0].strip
+        tool = Pathname.new tool
+        raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:editor][:invalid_msg] unless tool.executable?
 
-        raise_invalid_data_error val, Xolo::Admin::Configuration::KEYS[:editor][:invalid_msg]
+        val
       end
 
       # Internal Consistency Checks!
