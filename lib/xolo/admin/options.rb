@@ -610,6 +610,18 @@ module Xolo
 
         CONFIG_CMD => {
           desc: 'Configure xadm. Always interactive, implies --walkthru',
+          long_desc: <<~ENDLONG,
+            This will display and allow you to set the configuration for xadm.
+            The command is always interactive, as if you provided --walkthru.
+            Values you set will be saved in the xadm config file,
+            located at ~/Library/Preferences/com.pixar.xolo.admin.config.yaml
+            Your password will be stored in your login keychain.
+
+            The configuration values are:
+
+            #{Xolo::Admin::Configuration.help_desc_text}
+
+          ENDLONG
           display: CONFIG_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{CONFIG_CMD}",
           opts: Xolo::Admin::Configuration.cli_opts,
