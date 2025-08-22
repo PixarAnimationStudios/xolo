@@ -180,6 +180,10 @@ module Xolo
         KEYS
       end
 
+      # The help text for the 'xadm config' command.
+      # Needed because none of the options are available
+      # as CLI options.
+      #########################
       def self.help_desc_text
         text = +''
         KEYS.each_value do |value|
