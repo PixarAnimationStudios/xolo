@@ -768,8 +768,8 @@ module Xolo
 
       # Does the chosen editor exist and is it executable?
       #
-      # @aram val [String] The path to the editor executable possibly followed by
-      #   a space and any command line arguments, e.g. 'vim -c "set ft=markdown"'
+      # @aram val [String] The path to the editor executable, possibly followed by
+      #   a space and any command line arguments, e.g. '/usr/bin/vim -c "set ft=markdown"'
       #
       # @return [void]
       #######

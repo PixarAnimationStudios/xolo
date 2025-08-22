@@ -64,34 +64,14 @@ module Xolo
         #   @return [String]
         hostname: {
           required: true,
-          label: 'Hostname',
+          label: 'Xolo Server Hostname',
           type: :string,
           validate: true,
           invalid_msg: "Invalid hostname, can't connect, or not a Xolo server.",
           desc: <<~ENDDESC
             The hostname of the Xolo Server to interact with,
             e.g. 'xolo.myschool.edu'
-            Enter 'x' to exit.
-          ENDDESC
-        },
-
-        # @!attribute pw
-        #   @return [String]
-        no_gui: {
-          required: false,
-          label: 'Non-GUI mode',
-          type: :boolean,
-          validate: :validate_boolean,
-          walkthru_na: :pw_na,
-          secure_interactive_input: true,
-          desc: <<~ENDDESC
-            If you are configuring xadm for a non-GUI environment, such as a CI workflow,
-            set this to true. This will prevent xadm from trying to access the keychain.
-
-            The password value can then be set to:
-            - A command prefixed with '|' that will be executed to get the password from stdout,
-            - A path to a readable file containing the password,
-            - Or the password itself, which will be stored in the xadm config file
+            Enter 'x' to exit if no attempts are successful.
           ENDDESC
         },
 
@@ -141,19 +121,46 @@ module Xolo
 
         # @!attribute pw
         #   @return [String]
+        no_gui: {
+          required: false,
+          label: 'Non-GUI mode',
+          type: :boolean,
+          validate: :validate_boolean,
+          walkthru_na: :pw_na,
+          secure_interactive_input: true,
+          desc: <<~ENDDESC
+            If you are configuring xadm for a non-GUI environment, such as a CI workflow,
+            set this to true. This will prevent xadm from trying to access the keychain.
+
+            The password value can then be set to:
+            - A command prefixed with '|' that will be executed to get the password from stdout,
+            - A path to a readable file containing the password,
+            - Or the password itself, which will be stored in the xadm config file
+
+            WARNING: Be careful when storing passwords in files.
+          ENDDESC
+        },
+
+        # @!attribute pw
+        #   @return [String]
         editor: {
           label: 'Preferred editor',
           type: :string,
           validate: true,
           invalid_msg: 'That editor does not exist, or is not executable.',
           desc: <<~ENDDESC
-            The editor to use for editing descriptions and other multi-line
+            The editor to use for interactively editing descriptions and other multi-line
             text. Enter the full path to an editor, such as '/usr/bin/vim'. It must
-            take the name of a file to edit as its only argument.
-            You can provide command line options to the editor, such as, such as
-            the -w option for the GUI editor /usr/local/bin/bbedit, which is needed so that
-            the cli tool waits for the editor to finish before continuing.
-            If not set in your config, you will be asked to use one of a few basic ones.
+            take the name of a file to edit as an argument.
+
+            GUI editors are supported, such as /usr/local/bin/bbedit. They will be launched
+            as needed when editing multi-line text.
+            Note that you may need to provide a command line option to the editor to make
+            the cli process wait for the GUI editor to finish. For example, the -w option
+            for bbedit.
+
+            If no editor is set in your config, you will be asked to use one of a few
+            basic ones.
           ENDDESC
         }
 
@@ -171,6 +178,17 @@ module Xolo
       ####################
       def self.cli_opts
         KEYS
+      end
+
+      def self.help_desc_text
+        text = +''
+        KEYS.each_value do |value|
+          text += <<~ENDDESC
+            #{value[:label]}:
+            #{value[:desc].lines.map { |l| "  #{l}" }.join}
+          ENDDESC
+        end
+        text
       end
 
       # Public Instance methods
