@@ -765,7 +765,7 @@ module Xolo
       # @return [String] the edited text.
       ##################
       def edited_multiline_value(editor, desc, text_to_edit)
-        f = Pathname.new(Tempfile.new('highline-test'))
+        f = Pathname.new(Tempfile.new('xadm-multiline'))
         editor_content = "#{desc.chomp}\n#{MULTILINE_HEADER_SEPARATOR}\n#{text_to_edit}"
         f.pix_save editor_content
         system "#{editor} #{f}"
