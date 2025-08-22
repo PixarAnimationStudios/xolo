@@ -14,5 +14,8 @@ Arguments:
   level: The log level to set, one of "debug", "info", "warn", "error", "fatal"
 
 Options:
+  -e, --extended    Include more status information about the server, including the current
+                    GEM_PATH, $LOAD_PATH, current object locks, and existing threads.
+
   -h, --help    Show this message
 
