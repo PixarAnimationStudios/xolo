@@ -26,15 +26,7 @@ Description:
     other MacOS GUI applications, such as XCode.
 
     If you are configuring a non-GUI environment, such as a CI workflow,
-    set 'Non-GUI mode' to true.
-
-    In that case, if you start this value with a vertical bar '|', everything
-    after the bar is a command that will be executed to get the password from stdout.
-    This is useful when using a secret-storage system to manage secrets.
-
-    If the value is a path to a readable file, the file's contents are used.
-
-    Otherwise the password is stored directly in the xadm config file.
+    set 'Non-GUI mode' to true. See the 'Non-GUI mode' option below for details
 
     Enter 'x' to exit if you are in an unknown password loop.
 
@@ -43,8 +35,17 @@ Description:
     set this to true. This will prevent xadm from trying to access the keychain.
 
     The password value can then be set to:
-    - A command prefixed with '|' that will be executed to get the password from stdout,
-    - A path to a readable file containing the password,
+    - A command prefixed with '|' that will be executed to get the password from stdout.
+      This can have any CLI options and arguments you need to get the password.
+      This is useful when using a secret-storage system to manage secrets.
+
+    - A path to an executable file that returns the password to stdout.
+      No arguments are passed, the file is just executed. The file must have only
+      rwx permissions for the user running xadm, i.e. mode 0700.
+
+    - A path to a readable file containing the password, which must have only rw
+      permissions for the user running xadm, i.e. mode 0600.
+
     - Or the password itself, which will be stored in the xadm config file
 
     WARNING: Be careful when storing passwords in files.

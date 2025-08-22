@@ -128,11 +128,14 @@ module Xolo
             - A command prefixed with '|' that will be executed to get the password from stdout.
               This can have any CLI options and arguments you need to get the password.
               This is useful when using a secret-storage system to manage secrets.
+
             - A path to an executable file that returns the password to stdout.
               No arguments are passed, the file is just executed. The file must have only
               rwx permissions for the user running xadm, i.e. mode 0700.
+
             - A path to a readable file containing the password, which must have only rw
               permissions for the user running xadm, i.e. mode 0600.
+
             - Or the password itself, which will be stored in the xadm config file
 
             WARNING: Be careful when storing passwords in files.
