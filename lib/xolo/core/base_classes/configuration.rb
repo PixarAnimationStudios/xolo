@@ -163,23 +163,48 @@ module Xolo
         # remove the pipe and execute the remainder, returning
         # its stdout.
         #
-        # If the given string is a readble file path, return
+        # If the given string is a path to an executable file path, return
+        # its stdout.
+        #
+        # If the given string is a path to a readable file path, return
         # its contents.
         #
         # Otherwise, the string is the desired data, so just return it.
         #
         # @param str [String] a command, file path, or string
         #
+        # @param enforce_secure_mode [Boolean] If true, and the str is
+        #   a path to a file, make sure that the file mode is 700 or 600.
+        #
         # @return [String] The std output of the command, file contents, or string
         #
         ###############
-        def data_from_command_file_or_string(str)
+        def data_from_command_file_or_string(str, enforce_secure_mode: false)
           return `#{str.delete_prefix(PIPE)}`.chomp if str.start_with? PIPE
 
           path = Pathname.new(str)
-          return path.read.chomp if path.file? && path.readable?
+          return str unless path.file?
 
-          str
+          # this will return, e.g. "600" "775" etc as strings
+          mode = format '%o', (path.stat.mode & 0o777)
+
+          if path.executable?
+            if enforce_secure_mode && mode != '700'
+              raise Xolo::Core::Exceptions::PermissionError,
+                    "Executable file #{str} must be mode 0700"
+            end
+            `#{path.to_s.shellescape}`.chomp
+
+          elsif path.readable?
+            if enforce_secure_mode && mode != '600'
+              raise Xolo::Core::Exceptions::PermissionError,
+                    "Readable file #{str} must be mode 0600"
+            end
+            path.read.chomp
+
+          else
+            str
+          end
         end
 
         # Private Instance Methods
