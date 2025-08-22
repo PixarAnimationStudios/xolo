@@ -1,6 +1,68 @@
 Command:
   config, Configure xadm. Always interactive, implies --walkthru
 
+Description:
+  This will display and allow you to set the configuration for xadm.
+  The command is always interactive, as if you provided --walkthru.
+  Values you set will be saved in the xadm config file,
+  located at ~/Library/Preferences/com.pixar.xolo.admin.config.yaml
+  Your password will be stored in your login keychain.
+
+  The configuration values are:
+
+  Xolo Server Hostname:
+    The hostname of the Xolo Server to interact with,
+    e.g. 'xolo.myschool.edu'
+    Enter 'x' to exit if no attempts are successful.
+
+  Username:
+    The Xolo admin username for connecting to the Xolo server.
+    The same that you would use to connect to Jamf Pro.
+
+  Password:
+    The password for connecting to the Xolo server. The same that
+    you would use to connect to Jamf Pro.
+    It will be stored in your login keychain for use in your terminal or
+    other MacOS GUI applications, such as XCode.
+
+    If you are configuring a non-GUI environment, such as a CI workflow,
+    set 'Non-GUI mode' to true.
+
+    In that case, if you start this value with a vertical bar '|', everything
+    after the bar is a command that will be executed to get the password from stdout.
+    This is useful when using a secret-storage system to manage secrets.
+
+    If the value is a path to a readable file, the file's contents are used.
+
+    Otherwise the password is stored directly in the xadm config file.
+
+    Enter 'x' to exit if you are in an unknown password loop.
+
+  Non-GUI mode:
+    If you are configuring xadm for a non-GUI environment, such as a CI workflow,
+    set this to true. This will prevent xadm from trying to access the keychain.
+
+    The password value can then be set to:
+    - A command prefixed with '|' that will be executed to get the password from stdout,
+    - A path to a readable file containing the password,
+    - Or the password itself, which will be stored in the xadm config file
+
+    WARNING: Be careful when storing passwords in files.
+
+  Preferred editor:
+    The editor to use for interactively editing descriptions and other multi-line
+    text. Enter the full path to an editor, such as '/usr/bin/vim'. It must
+    take the name of a file to edit as an argument.
+
+    GUI editors are supported, such as /usr/local/bin/bbedit. They will be launched
+    as needed when editing multi-line text.
+    Note that you may need to provide a command line option to the editor to make
+    the cli process wait for the GUI editor to finish. For example, the -w option
+    for bbedit.
+
+    If no editor is set in your config, you will be asked to use one of a few
+    basic ones.
+
 Usage:
   xadm config
 
