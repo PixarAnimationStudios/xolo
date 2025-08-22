@@ -149,8 +149,11 @@ module Xolo
           desc: <<~ENDDESC
             The editor to use for editing descriptions and other multi-line
             text. Enter the full path to an editor, such as '/usr/bin/vim'. It must
-            take the name of a file as its only argument.
-            If not set in your config, you will be asked which to use.
+            take the name of a file to edit as its only argument.
+            You can provide command line options to the editor, such as, such as
+            the -w option for the GUI editor /usr/local/bin/bbedit, which is needed so that
+            the cli tool waits for the editor to finish before continuing.
+            If not set in your config, you will be asked to use one of a few basic ones.
           ENDDESC
         }
 
