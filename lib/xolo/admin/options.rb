@@ -331,6 +331,20 @@ module Xolo
         }
       }.freeze
 
+      SEARCH_TITLES_OPTIONS = {
+        summary: {
+          label: 'Show less detail, one line per matching title',
+          cli: :s,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only one line per matching title, with just the title name, display name,
+            publisher, contact email, and versions.
+          ENDDESC
+        }
+      }.freeze
+
       # The commands that xadm understands
       # For each command there is a hash of details, with these possible keys:
       #
@@ -560,11 +574,10 @@ module Xolo
         SEARCH_CMD => {
           desc: 'Search for titles.',
           long_desc: <<~ENDLONG,
-            Matches text in title, display name, publisher, app name, bundle ID,
-            or description.
+            Matches text in title, display name, publisher, app name, bundle ID, or description. Displays all those values, plus current versions, for each matching title.
           ENDLONG
           display: "#{SEARCH_CMD} title",
-          opts: {},
+          opts: SEARCH_TITLES_OPTIONS,
           target: :title,
           process_method: :search_titles
         },
