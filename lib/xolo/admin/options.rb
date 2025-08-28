@@ -1014,7 +1014,7 @@ module Xolo
           if add_command?
             # defaults
             opts_defs.each do |key, deets|
-              next unless deets[:default]
+              next if deets[:default].nil?
 
               @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : deets[:default]
             end
@@ -1038,17 +1038,16 @@ module Xolo
               opts_defs.each do |key, deets|
                 next if deets[:do_not_inherit]
 
-                val = pvers.send key
-                next unless val
-
-                @current_opt_values[key] = val
+                @current_opt_values[key] = pvers.send key
               end
+
               # publish date is always today to start with
               @current_opt_values[:publish_date] = Date.today.to_s
+
             # no prev version, so use the defaults
             else
               opts_defs.each do |key, deets|
-                next unless deets[:default]
+                next if deets[:default].nil?
 
                 @current_opt_values[key] = deets[:default].is_a?(Proc) ? deets[:default].call : deets[:default]
               end

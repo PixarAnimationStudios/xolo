@@ -179,6 +179,7 @@ module Xolo
             type: :boolean,
             validate: :validate_boolean,
             ted_attribute: :reboot,
+            default: false,
             changelog: true,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
@@ -192,6 +193,7 @@ module Xolo
             cli: :s,
             type: :boolean,
             validate: :validate_boolean,
+            default: true,
             ted_attribute: :standalone,
             changelog: true,
             desc: <<~ENDDESC
