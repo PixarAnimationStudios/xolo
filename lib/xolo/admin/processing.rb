@@ -833,7 +833,7 @@ module Xolo
 
         # See note above about the order of items in each sub-array
         data = data.map do |d|
-          last_contact = Time.parse(d[:lastContactTime]).strftime('%F %T')
+          last_contact = Time.parse(d[:lastContactTime]).localtime.strftime('%F %T')
           comp_ary = [d[:computerName], d[:username]]
           comp_ary << d[:version] if all_versions
           comp_ary << last_contact
