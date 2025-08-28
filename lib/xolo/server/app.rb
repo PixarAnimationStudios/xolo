@@ -66,6 +66,7 @@ module Xolo
 
       ##########
       configure do
+        Xolo::Server.logger.debug 'Configuring Server App'
         set :server, :thin
         set :bind, '0.0.0.0'
         set :port, 443
@@ -94,10 +95,13 @@ module Xolo
       # Run !
       ################
       def self.run!(**options, &block)
+        Xolo::Server.logger.info 'Server App Starting Up'
+
         setup
 
         super do |server|
           server.ssl = true
+          # verify peer is false so that we don't require client certs
           server.ssl_options = {
             cert_chain_file: Xolo::Server::Configuration::SSL_CERT_FILE.to_s,
             private_key_file: Xolo::Server::Configuration::SSL_KEY_FILE.to_s,
@@ -115,7 +119,6 @@ module Xolo
         setup_ssl
 
         Xolo::Server.start_time = Time.now
-        Xolo::Server.logger.info 'Starting Up'
 
         Xolo::Server::Log.log_rotation_timer_task.execute
         Xolo::Server::Helpers::Maintenance.cleanup_timer_task.execute
@@ -126,6 +129,7 @@ module Xolo
 
       ##########################
       def self.setup_ssl
+        Xolo::Server.logger.debug 'Setting up SSL certificates'
         Xolo::Server::Configuration::SSL_DIR.mkpath
         Xolo::Server::Configuration::SSL_DIR.chmod 0o700
         Xolo::Server::Configuration::SSL_CERT_FILE.pix_save Xolo::Server.config.ssl_cert
