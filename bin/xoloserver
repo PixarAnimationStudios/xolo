@@ -49,6 +49,7 @@ class XoloServer
 
     # Run the Server
     if Xolo::Server.config_opts.empty?
+      Xolo::Server.logger.info "Starting version #{Xolo::VERSION} in #{Xolo::Server.app_env} mode"
       Xolo::Server::App.run!
 
     # Set config
