@@ -67,7 +67,7 @@ module Xolo
       CONF_FILENAME = 'config.yaml'
       BACKUP_FILE_TIMESTAMP_FORMAT = '%Y%m%d%H%M%S.%N'
       BACKUP_FILE_EXPIRATION_DAYS = 30
-      BACKUP_FILE_EXPIRATION_SECS = 120 # BACKUP_FILE_EXPIRATION_DAYS * 24 * 60 * 60
+      BACKUP_FILE_EXPIRATION_SECS = BACKUP_FILE_EXPIRATION_DAYS * 24 * 60 * 60
 
       # We don't store the ssl data in a Dir.tmpdir because those will be deleted
       # out from under the server if they aren't accessed within 3 days.
