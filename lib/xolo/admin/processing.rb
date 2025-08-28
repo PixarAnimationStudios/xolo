@@ -98,7 +98,7 @@ module Xolo
       #  - app_name
       #  - app_bundle_id
       #
-      # will output the results showing those attributes.
+      # will output the results showing those attributes
       #
       # If json? is true, will output the results as a JSON array of hashes
       # containing the full title object.
@@ -110,43 +110,82 @@ module Xolo
       def search_titles
         search_str = cli_cmd.title
         titles = Xolo::Admin::Title.all_title_objects(server_cnx)
+
         results = []
         titles.each do |t|
-          SEARCH_ATTRIBUTES.each do |attr|
-            next unless t.send(attr).to_s =~ /#{search_str}/i
+          next unless SEARCH_ATTRIBUTES.any? { |attr| t.send(attr).to_s =~ /#{search_str}/i }
 
-            results <<
-              if json?
-                t.to_h
-              else
-                # [t.title, t.display_name, t.publisher, t.app_name, "#{t.app_bundle_id}\n=> #{t.description}"]
-                titleout = +'#---------------------------------------'
-                titleout << "\nTitle: #{t.title}"
-                titleout << "\nDisplay Name: '#{t.display_name}"
-                titleout << "\nPublisher: #{t.publisher}"
-                titleout << "\nApp: #{t.app_name}\nBundleID: #{t.app_bundle_id}" if t.app_name
-                titleout << "\nDescription:"
-                titleout << "\n#{t.description}"
-                titleout
-              end # json?
+          if json?
+            results << t.to_h
+            next
+          end
 
-            break
-          end # SEARCH_ATTRIBUTES.each
+          results << title_search_result_str(t, one_line: cli_cmd_opts.summary)
         end # titles.each
 
+        # if json?, output it and we're done
         if json?
           puts JSON.pretty_generate(results)
           return
         end
 
-        # report_title = "All titles matching '#{search_str}'"
-        # header = %w[Title Display Publisher AppName BundleID]
-        # show_text generate_report(results, header_row: header, title: report_title)
+        # no results?
+        if results.empty?
+          puts "# No titles matching '#{search_str}'"
+          return
+        end
 
+        # results found
         puts "# All titles matching '#{search_str}'"
-        puts results.join("\n\n")
+        if cli_cmd_opts.summary
+          header = %w[Title Display Publisher Contact Versions]
+          show_text generate_report(results, header_row: header, title: nil)
+        else
+          puts results.join("\n\n")
+        end
       rescue StandardError => e
         handle_processing_error e
+      end
+
+      # From a title, get a String for use in a search report, either
+      # multiline or single line
+      # @param title [Xolo::Admin::Title] the title
+      # @param one_line [Boolean] whether to use single line format
+      # @return [String] the string to display for the search result
+      ###################################
+      def title_search_result_str(title, one_line: false)
+        versions = versions_str(title)
+        if one_line
+          [title.title, title.display_name, title.publisher, title.contact_email, versions]
+        else
+          titleout = +'#---------------------------------------'
+          titleout << "\nTitle: #{title.title}"
+          titleout << "\nDisplay Name: '#{title.display_name}"
+          titleout << "\nPublisher: #{title.publisher}"
+          titleout << "\nApp: #{title.app_name}\nBundleID: #{title.app_bundle_id}" if title.app_name
+          titleout << "\nVersions: #{versions}"
+          titleout << "\nDescription:"
+          titleout << "\n#{title.description}"
+          titleout
+        end # json?
+      end
+
+      # From a title, get a String with current versions of a title, comma separated
+      # with the current released version marked
+      # @param title [Xolo::Admin::Title] the title
+      # @return [String] the versions string
+      ##################################
+      def versions_str(title)
+        versions = []
+        title.version_order.each do |v|
+          versions <<
+            if v.to_s == title.released_version.to_s
+              "#{v} (released)"
+            else
+              v
+            end
+        end
+        versions.join(', ')
       end
 
       # update the adm config file using the values from 'xadm config'
