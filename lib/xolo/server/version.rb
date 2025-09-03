@@ -631,14 +631,12 @@ module Xolo
         end
         pol.save
 
-        # set manual-install policy to self-service if needed
-        add_to_self_service(release: true) if title_object.self_service
-
         # set scope targets of patch policy to all (in patch pols, 'all' means 'all eligible')
         msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to all eligible computers"
         progress msg, log: :info
         ppol = jamf_patch_policy
         ppol.scope.set_all_targets
+
         # if rollback, make sure the patch policy is set to 'allow downgrade'
         if rollback
           msg = "Jamf: Version '#{version}': Setting patch policy to allow downgrade"

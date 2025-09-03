@@ -309,6 +309,11 @@ module Xolo
       # @return [String] the name of the smart group
       attr_reader :jamf_frozen_group_name
 
+      # The name of the policy that does initial manual or self-service
+      # installs of the currently-released version of this title.
+      # It will be named 'xolo-<title>-install'
+      attr_reader :jamf_manual_install_released_policy_name
+
       # If a title is uninstallable, it will have a script in Jamf
       # named 'xolo-<title>-uninstall'
       #
@@ -390,6 +395,9 @@ module Xolo
         @changes_for_update = {}
         @jamf_installed_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
         @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
+
+        @jamf_manual_install_released_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-install"
+
         @jamf_uninstall_script_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
         @jamf_uninstall_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
         @jamf_expire_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_EXPIRE_SUFFIX}"
@@ -943,6 +951,7 @@ module Xolo
           raise Xolo::InvalidDataError,
                 "Version '#{version_to_release}' of title '#{title}' is already released"
         end
+
         unless versions.include? version_to_release
           raise Xolo::NoSuchItemError,
                 "No version '#{version_to_release}' for title '#{title}'"
@@ -958,12 +967,18 @@ module Xolo
 
         rollback = vobj_current_release && vobj_to_release < vobj_current_release
 
-        progress "Rolling back from version #{released_version}", log: :debug if rollback
+        progress "Rolling back from version #{released_version}", log: :info if rollback
 
         all_versions.each do |vobj|
           # This is the one we are releasing
           if vobj == vobj_to_release
             vobj.release rollback: rollback
+
+            # update the jamf_manual_install_released_policy
+            pol = jamf_manual_install_released_policy
+            pol.package_ids.each { |pid| pol.remove_package pid }
+            pol.add_package vobj.jamf_package_name
+            pol.save
 
           # This one is older than the one we're releasing
           # so its either deprecated or skipped
