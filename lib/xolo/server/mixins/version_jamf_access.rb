@@ -707,29 +707,6 @@ module Xolo
           jamf_manual_install_policy.save
         end
 
-        # Update the SSvc Icon for the policies used by this version
-        #
-        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
-        #   if nil, we'll instantiate it now
-        #
-        # @return [void]
-        ###############################
-        def update_ssvc_icon(ttl_obj: nil)
-          ttl_obj ||= title_object
-          # update manual install policy
-
-          log_debug "Jamf: Updating SSvc Icon for Manual Install Policy '#{jamf_manual_install_policy_name}'"
-          pol = jamf_manual_install_policy
-          return unless pol
-
-          pol.upload :icon, ttl_obj.ssvc_icon_file
-          progress "Jamf: Updated Icon for Manual Install Policy '#{jamf_manual_install_policy_name}'",
-                   log: :debug
-
-          # TODO: When we figure out if we want patch policies to use
-          # ssvc - they will need to be updated also
-        end
-
         # Update all the pilot_groups policy scopes for this version when
         # either the title or version has changed them
         #
