@@ -164,6 +164,8 @@ module Xolo
       #
       JPAPI_PATCH_REPORT_RSRC = 'patch-report'
 
+      SELF_SERVICE_INSTALL_BTN_TEXT = 'Install'
+
       # Class Methods
       ######################
       ######################
@@ -344,7 +346,7 @@ module Xolo
       # @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
 
-      # when applying updates, the new data is stored
+      # when applying updates, the new data from xadm is stored
       # here so it can be accessed by update-methods
       # and compared to the current instance values
       # both for updating the title, and the versions
@@ -354,7 +356,7 @@ module Xolo
 
       # Also when applying updates, this will hold the
       # changes being made: the differences between
-      # tne current attributs and the new_data_for_update
+      # tne current attributes and the new_data_for_update
       # We'll figure this out at the start of the update
       # and can use it later to
       # 1) avoid doing things we don't need to
@@ -430,6 +432,12 @@ module Xolo
       ###################
       def updating?
         current_action == :updating
+      end
+
+      # @return [Boolean] Are we repairing this title?
+      ###################
+      def repairing?
+        current_action == :repairing
       end
 
       # @return [Boolean] Are we deleting this title?
@@ -939,7 +947,7 @@ module Xolo
 
       # Release a version of this title
       #
-      # @param version [String] the version to release
+      # @param version_to_release [String] the version to release
       #
       # @return [void]
       ##########################
@@ -947,18 +955,39 @@ module Xolo
         lock
         @current_action = :releasing
 
+        validate_release(version_to_release)
+
+        progress "Releasing version #{version_to_release} of title '#{title}'", log: :info
+
+        update_versions_for_release
+
+        # update the title
+        self.released_version = version_to_release
+        save_local_data
+      ensure
+        unlock
+      end
+
+      # are we OK releasing a given version?
+      # @return [void]
+      ######################################
+      def validate_release(version_to_release)
         if released_version == version_to_release
           raise Xolo::InvalidDataError,
                 "Version '#{version_to_release}' of title '#{title}' is already released"
         end
 
-        unless versions.include? version_to_release
-          raise Xolo::NoSuchItemError,
-                "No version '#{version_to_release}' for title '#{title}'"
-        end
+        return if versions.include? version_to_release
 
-        progress "Releasing version #{version_to_release} of title '#{title}'", log: :info
+        raise Xolo::NoSuchItemError,
+              "No version '#{version_to_release}' for title '#{title}'"
+      end
 
+      # Update all versions when releasing one
+      # @param version_to_release [String] the version to release
+      # @return [void]
+      ##############################
+      def update_versions_for_release(version_to_release)
         # get the Version objects and figure out our starting point, but process
         # them in reverse order so that we don't have two released versions at once
         all_versions = version_objects.reverse
@@ -972,42 +1001,107 @@ module Xolo
         all_versions.each do |vobj|
           # This is the one we are releasing
           if vobj == vobj_to_release
-            vobj.release rollback: rollback
-
-            # update the jamf_manual_install_released_policy
-            pol = jamf_manual_install_released_policy
-            pol.package_ids.each { |pid| pol.remove_package pid }
-            pol.add_package vobj.jamf_package_name
-            pol.save
+            release_version(vobj, rollback: rollback)
 
           # This one is older than the one we're releasing
           # so its either deprecated or skipped
           elsif vobj < vobj_to_release
-            # don't do anything if the status is already deprecated or skipped
-            # but if its released, we need to deprecate it
-            vobj.deprecate if vobj.status == Xolo::Server::Version::STATUS_RELEASED
-            # and skip it if its in pilot
-            vobj.skip if vobj.status == Xolo::Server::Version::STATUS_PILOT
+            deprecate_or_skip_version(vobj)
 
           # this one is newer than the one we're releasing
+          # revert to pilot if appropriate
           else
-            # do nothing if its in pilot
-            next if vobj.status == Xolo::Server::Version::STATUS_PILOT
-
-            # this should be redundant with the above?
-            next unless rollback
-
-            # if we're here, we're rolling back to something older than this
-            # version, and this version is currently released, deprecated or skipped.
-            # We need to reset it to pilot.
-            vobj.reset_to_pilot
+            reset_version_to_pilot(vobj)
 
           end # if vobj == vobj_to_release
         end # all_versions.each
+      end
 
-        # update the title
-        self.released_version = version_to_release
-        save_local_data
+      # release a specific version
+      # @param vobj [Xolo::Server::Version] the version object to be released
+      # @return [void]
+      #######################################
+      def release_version(vobj, rollback:)
+        vobj.release rollback: rollback
+
+        # update the jamf_manual_install_released_policy to install this version
+        pol = jamf_manual_install_released_policy
+        pol.package_ids.each { |pid| pol.remove_package pid }
+        pol.add_package vobj.jamf_package_name
+        pol.save
+      end
+
+      # Deprecate or skip a version
+      # @param vobj [Xolo::Server::Version] the version object to be deprecated or skipped
+      # @return [void]
+      #######################################
+      def deprecate_or_skip_version(vobj)
+        # don't do anything if the status is already deprecated or skipped
+
+        # but if its released, we need to deprecate it
+        vobj.deprecate if vobj.status == Xolo::Server::Version::STATUS_RELEASED
+
+        # and skip it if its in pilot
+        vobj.skip if vobj.status == Xolo::Server::Version::STATUS_PILOT
+      end
+
+      # reset a version to pilot status, this happens when rolling back
+      # (releasing a version older than the current release)
+      # @param vobj [Xolo::Server::Version] the version object to be deprecated or skipped
+      # @return [void]
+      #############################
+      def reset_version_to_pilot(vobj)
+        # do nothing if its in pilot
+        return if vobj.status == Xolo::Server::Version::STATUS_PILOT
+
+        # this should be redundant with the above?
+        return unless rollback
+
+        # if we're here, we're rolling back to something older than this
+        # version, and this version is currently released, deprecated or skipped.
+        # We need to reset it to pilot.
+        vobj.reset_to_pilot
+      end
+
+      # Repair this title, and optionally all of its versions.
+      #
+      # Look at the Title Editor title object, and ensure it's correct based on the local data file.
+      #   - display name
+      #   - publisher
+      #   - EA or app-data
+      #     - ea name 'xolo-<title>'
+      #   - requirement criteria
+      #   - stub version if needed
+      #   - enabled
+      #
+      # Then look at the various Jamf objects pertaining to this title, and ensure they are correct
+      #   - Accept Patch EA
+      #   - Normal EA 'xolo-<title>-installed-version'
+      #   - title-installed smart group 'xolo-<title>-installed'
+      #   - frozen static group 'xolo-<title>-frozen'
+      #   - manual/SSvc install-current-release policy 'xolo-<title>-install'
+      #     - trigger 'xolo-<title>-install'
+      #     - ssvc icon
+      #     - ssvc category
+      #     - description
+      #   - if uninstallable
+      #     - uninstall script 'xolo-<title>-uninstall'
+      #     - uninstall policy 'xolo-<title>-uninstall'
+      #     - if expirable
+      #       - expire policy 'xolo-<title>-expire'
+      #         - trigger  'xolo-<title>-expire'
+      #
+      # @param repair_versions [Boolean] run the repair method on all versions?
+      # @return [void]
+      ##################################
+      def repair(repair_versions: false)
+        lock
+        @current_action = :repairing
+        repair_ted_title
+        repair_jamf_title_objects
+        return unless repair_versions
+
+        version_objects.each { |vobj| vobj.repair }
       ensure
         unlock
       end
