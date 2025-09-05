@@ -118,17 +118,23 @@ module Xolo
         # @return [void]
         ##########################
         def set_patch_killapps
-          # creating a new patch? Just use the current values
-          if current_action == :creating
+          # creating a new patch
+          if creating?
             kapps = killapps
 
-          elsif current_action == :updating
-            return unless changes_for_update[:killapps]
+          # updating - delete and replace with any new ones
+          elsif updating?
+            return unless changes_for_update.key? :killapps
 
             kapps = changes_for_update[:killapps][:new]
-
-            # delete the existing
             ted_patch.killApps.delete_all_killApps
+
+          # repairing delete and replace with current, to ensure values are correct.
+          elsif repairing?
+            kapps = killapps
+            ted_patch.killApps.delete_all_killApps
+          else
+            return
           end
           return if kapps.pix_empty?
 
@@ -158,14 +164,13 @@ module Xolo
         ##########################
         def set_patch_capabilites
           # creating a new patch? Just use the current values
-          if current_action == :creating
+          if creating?
             min = min_os
             max = max_os
-            return unless min || max
 
           # updating an existing patch? Use the new values if they exist
           # noting that a nil new value for max_os means its being removed
-          elsif current_action == :updating
+          elsif updating?
             return unless changes_for_update&.key?(:max_os) || changes_for_update&.key?(:min_os)
 
             # min gets reset even if it didn't change and it can't be empty.
@@ -177,9 +182,17 @@ module Xolo
 
             # delete the existing criteria
             ted_patch.capabilities.delete_all_criteria
+
+          elsif repairing?
+            min = min_os
+            max = max_os
+            # delete the existing criteria
+            ted_patch.capabilities.delete_all_criteria
+
           else
             return
           end
+          return unless min || max
 
           msg = "Title Editor: Setting min_os capability for Patch '#{version}' of SoftwareTitle '#{title}' to '#{min}'"
           progress msg, log: :info
@@ -214,6 +227,8 @@ module Xolo
         # @param ea_name [String] the name of the EA to use in EA-based requirements (the ted_ea_key)
         #   Cannot be used with app_name or app_bundle_id
         #
+        # @param ttl_obj [Xolo::Server::Title]  the title object with the values
+        #
         # This is a collection of criteria that define which computers
         # have this version installed
         #
@@ -245,7 +260,7 @@ module Xolo
         # get the param values for patch component criteria from the title object,
         # which may be setting them via an update
         #
-        # @param ttl_obj [Xolo::Server::Title] the title object that may have the values
+        # @param ttl_obj [Xolo::Server::Title] the title object with the values
         # @return [Array] the values for the component criteria
         ##########################
         def get_patch_component_criteria_params(ttl_obj)
@@ -340,6 +355,27 @@ module Xolo
         ###################################
         def ted_patch_url
           "https://#{Xolo::Server.config.ted_hostname}/patches/#{ted_id_number}"
+        end
+
+        # Ensure all the TEd items for this version are correct based on the server data.
+        #########################
+        def repair_ted_patch
+          progress "Title Editor: Repairing Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
+          Xolo::Server::Version::ATTRIBUTES.each do |attr, deets|
+            ted_attribute = deets[:ted_attribute]
+            next unless ted_attribute
+
+            real_val = send(attr)
+            ted_val = ted_patch.send(ted_attribute)
+            next if ted_val == real_val
+
+            # These changes happen in real time on the Title Editor server, no need to #save
+            progress "Title Editor: Repairing patch attribute '#{ted_attribute}': #{ted_val} -> #{real_val}"
+            ted_patch.send "#{ted_attribute}=", real_val
+          end
+          set_patch_killapps
+          set_patch_capabilites
+          set_ted_patch_component_criteria ttl_obj: title_object
         end
 
       end # VersionTedAccess
