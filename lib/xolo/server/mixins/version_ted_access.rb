@@ -363,6 +363,7 @@ module Xolo
           progress "Title Editor: Repairing Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
           Xolo::Server::Version::ATTRIBUTES.each do |attr, deets|
             ted_attribute = deets[:ted_attribute]
+            # if there's no ted_attribute, this isn't a value stored in the Title Editor
             next unless ted_attribute
 
             real_val = send(attr)
@@ -376,6 +377,7 @@ module Xolo
           set_patch_killapps
           set_patch_capabilites
           set_ted_patch_component_criteria ttl_obj: title_object
+          enable_ted_patch unless ted_patch(refresh: true).enabled?
         end
 
       end # VersionTedAccess

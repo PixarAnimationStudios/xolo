@@ -287,7 +287,11 @@ module Xolo
 
           log_debug "Jamf: setting release scope targets for #{pol.class} '#{pol.name}' to: #{targets.join ', '}"
 
-          pol.scope.set_targets :computer_groups, targets
+          if targets.include? Xolo::TARGET_ALL
+            pol.scope.set_all_targets
+          else
+            pol.scope.set_targets :computer_groups, targets
+          end
         end
 
         # set excluded groups in a [patch] policy object's scope
@@ -601,6 +605,91 @@ module Xolo
 
           update_jamf_pkg_reboot if changes_for_update&.key? :reboot
           update_jamf_pkg_min_os if changes_for_update&.key? :min_os
+        end
+
+        # Validate and fix any Jamf::JPackage objects that
+        # related to this version:
+        # - the Jamf::JPackage
+        # - the auto-install policy
+        # - the manual-install policy
+        # - the patch policy
+        #########################################
+        def repair_jamf_version_objects
+          # package object
+          # If these values are all correct, nothing will be saved
+          jamf_package.packageName = jamf_pkg_name
+          jamf_package.fileName = "#{jamf_pkg_name}.pkg"
+          jamf_package.osRequirements = ">=#{min_os}"
+          jamf_package.notes = jamf_pkg_notes
+          jamf_package.rebootRequired = reboot
+          jamf_package.categoryId = jamf_xolo_category_id
+          jamf_package.save
+
+          # auto-install policy
+          pol = jamf_auto_install_policy
+          pol.name = jamf_auto_install_policy_name
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.set_trigger_event :checkin, true
+          pol.set_trigger_event :custom, Xolo::BLANK
+          pol.frequency = :once_per_computer
+          pol.recon = true
+
+          pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
+          pol.add_package jamf_pkg_name
+
+          set_policy_exclusions pol
+
+          if pilot?
+            set_policy_pilot_groups pol
+          else
+            set_policy_release_groups pol
+          end
+
+          if pilot? || released?
+            pol.enable
+          else
+            pol.disable
+          end
+
+          pol.save
+
+          # manual-install policy
+          pol = jamf_manual_install_policy
+          pol.name = jamf_manual_install_policy_name
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.set_trigger_event :checkin, false
+          pol.set_trigger_event :custom, jamf_manual_install_trigger
+          pol.frequency = :ongoing
+          pol.recon = true
+
+          pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
+          pol.add_package jamf_pkg_name
+
+          set_policy_to_all_targets pol
+          set_policy_exclusions pol
+
+          pol.enable
+          pol.save
+
+          # patch policy
+          assign_pkg_to_patch_in_jamf
+
+          ppol = jamf_patch_policy
+          ppol.name = jamf_patch_policy_name
+          ppol.patch_title = title_object.jamf_patch_title.id
+          ppol.target_version = version
+          if pilot?
+            set_policy_pilot_groups ppol
+          else
+            ppol.scope.set_all_targets
+          end
+
+          if pilot? || released?
+            ppol.enable
+          else
+            ppol.disable
+          end
+          ppol.save
         end
 
         # update the reboot setting for the Jamf::JPackage
