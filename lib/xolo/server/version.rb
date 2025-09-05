@@ -353,22 +353,34 @@ module Xolo
         title_object.version_order.reverse.index version
       end
 
-      # @return [Boolean] Are we creating this title?
+      # @return [Boolean] Are we creating this version?
       ###################
       def creating?
         current_action == :creating
       end
 
-      # @return [Boolean] Are we updating this title?
+      # @return [Boolean] Are we updating this version?
       ###################
       def updating?
         current_action == :updating
       end
 
-      # @return [Boolean] Are we deleting this title?
+      # @return [Boolean] Are we repairing this version?
+      ###################
+      def repairing?
+        current_action == :repairing
+      end
+
+      # @return [Boolean] Are we deleting this version?
       ###################
       def deleting?
         current_action == :deleting
+      end
+
+      # @return [Boolean] Are we releasing this version?
+      ###################
+      def releasing?
+        current_action == :releasing
       end
 
       # The scope target groups to use in policies and patch policies during pilot
@@ -611,6 +623,39 @@ module Xolo
         unlock
       end
 
+      # Repair this version.
+      # Look at the Title Editor patch object, and ensure it's correct based on the local data file.
+      #   - version order
+      #   - min os
+      #   - max os
+      #   - standalone
+      #   - reboot
+      #   - release date
+      #   - killapps
+      #   - component criteria
+      #     - component name '<title>'
+      #   - capability criteria
+      #   - enabled
+      #
+      # Then look at the various Jamf objects pertaining to this version, and ensure they are correct
+      #   - package object 'xolo-<title>-<version>'
+      #     - filename 'xolo-<title>-<version>.pkg'
+      #     - description
+      #     - os limitations
+      #   - auto install policy 'xolo-<title>-<version>-auto-install'
+      #   - manual install policy  'xolo-<title>-<version>-manual-install'
+      #   - patch policy 'xolo-<title>-<version>'
+      #
+      ##################################
+      def repair
+        lock
+        @current_action = :repairing
+        repair_ted_patch
+        repair_jamf_version_objects
+      ensure
+        unlock
+      end
+
       # Release this version, possibly rolling back from a previously newer version
       #
       # @param rollback [Boolean] If true, this version is being released as a rollback
@@ -619,7 +664,7 @@ module Xolo
       #########################
       def release(rollback:)
         lock
-
+        @current_action = :releasing
         # set scope targets of auto-install policy to release-groups
         msg = "Jamf: Version '#{version}': Setting scope targets of auto-install policy to release_groups: #{release_groups_to_use.join(', ')}"
         progress msg, log: :info
@@ -631,14 +676,12 @@ module Xolo
         end
         pol.save
 
-        # set manual-install policy to self-service if needed
-        add_to_self_service(release: true) if title_object.self_service
-
         # set scope targets of patch policy to all (in patch pols, 'all' means 'all eligible')
         msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to all eligible computers"
         progress msg, log: :info
         ppol = jamf_patch_policy
         ppol.scope.set_all_targets
+
         # if rollback, make sure the patch policy is set to 'allow downgrade'
         if rollback
           msg = "Jamf: Version '#{version}': Setting patch policy to allow downgrade"
