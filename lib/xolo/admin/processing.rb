@@ -724,11 +724,15 @@ module Xolo
 
         Xolo::Admin::Title::ATTRIBUTES.each do |attr, deets|
           next if deets[:hide_from_info]
+          # description is handled specially below
+          next if attr == :description
 
           value = title.send attr
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap
         end
+        puts '- Description:'
+        title.description.lines.each { |line| puts "  #{line.chomp}" } unless title.description.pix_empty?
 
         puts '#'
         puts '# Web App URLs'
