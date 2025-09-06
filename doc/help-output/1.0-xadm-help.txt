@@ -79,6 +79,7 @@ Commands:
   search               Search for titles.
   info                 Show details about a title, or a version of a title
   report               Show a patch-report for a title, or a version of a title
+  repair               Ensure all Title Editor and Jamf Objects exist and are correctly configured
   changelog            Show the changelog for a title
   config               Configure xadm. Always interactive, implies --walkthru
   list-groups          List all computer groups in Jamf pro

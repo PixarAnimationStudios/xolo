@@ -83,6 +83,34 @@ Schema:
   }
 ``` 
 
+<a id="repair_title"></a>
+## POST /titles/{title}/repair
+
+#### Purpose
+Repair the Title Editor and Jamf Pro objects for a title, and optionally all of its versions.
+
+#### Path Parameters
+`title` - the desired title
+
+#### Request
+Type: JSON Object  
+Schema: 
+```
+{ 
+  "repair_versions": boolean 
+}
+```
+
+#### Response
+Type: JSON Object with stream path  
+Schema:
+```
+  {
+    "status": 'running',
+    "progress_stream_url_path": "path/for/streaming/output"
+  }
+``` 
+
 <!-- ------------------------- -->
 <a id="delete_title"></a>
 ## DELETE /titles/{title}
