@@ -651,6 +651,7 @@ module Xolo
         lock
         @current_action = :repairing
         log_change msg: "Repairing version '#{version}'"
+        progress "Starting repair of version '#{version}' of title '#{title}'", log: :debug
 
         repair_ted_patch
         repair_jamf_version_objects
