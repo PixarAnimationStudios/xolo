@@ -625,7 +625,7 @@ module Xolo
         #############################
         def repair_jamf_package
           # If these values are all correct, nothing will be saved
-          progress "Repairing Jamf::JPackage '#{jamf_pkg_name}'", log: :info
+          progress "Jamf: Repairing Package '#{jamf_pkg_name}'", log: :info
           jamf_package.packageName = jamf_pkg_name
           jamf_package.fileName = "#{jamf_pkg_name}.pkg"
           jamf_package.osRequirements = ">=#{min_os}"
@@ -638,7 +638,7 @@ module Xolo
         # repair the auto-install policy only
         #############################
         def repair_jamf_auto_install_policy
-          progress "Repairing Auto Install Policy '#{jamf_auto_install_policy_name}'", log: :info
+          progress "Jamf: Repairing Auto Install Policy '#{jamf_auto_install_policy_name}'", log: :info
           pol = jamf_auto_install_policy
           pol.name = jamf_auto_install_policy_name
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
@@ -670,7 +670,7 @@ module Xolo
         # repair the manual-install policy only
         #############################
         def repair_jamf_manual_install_policy
-          progress "Repairing Manual Install Policy '#{jamf_manual_install_policy_name}'", log: :info
+          progress "Jamf: Repairing Manual Install Policy '#{jamf_manual_install_policy_name}'", log: :info
           pol = jamf_manual_install_policy
           pol.name = jamf_manual_install_policy_name
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
@@ -686,7 +686,8 @@ module Xolo
           set_policy_exclusions pol
 
           # These policies shouldn't be in ssvc
-          pol.remove_from_self_service
+          # only the title's jamf_manual_install_released_policy is
+          pol.remove_from_self_service if pol.in_self_service?
           pol.enable
           pol.save
         end
@@ -694,7 +695,7 @@ module Xolo
         # repair the patch policy only
         #############################
         def repair_jamf_patch_policy
-          progress "Repairing Patch Policy '#{jamf_patch_policy_name}'", log: :info
+          progress "Jamf: Repairing Patch Policy '#{jamf_patch_policy_name}'", log: :info
           assign_pkg_to_patch_in_jamf
 
           ppol = jamf_patch_policy
@@ -761,12 +762,6 @@ module Xolo
           # ensure patch policy is NOT set to 'allow downgrade'
           ppol.allow_downgrade = false
           ppol.save
-
-          pol = jamf_manual_install_policy
-          return unless pol.in_self_service?
-
-          progress "Jamf: Removing #{reason} version '#{version}' from Self Service"
-          pol.remove_from_self_service
         end
 
         # Create or fetch the Jamf::JPackage object for this version
@@ -811,16 +806,6 @@ module Xolo
           jamf_patch_policy.allow_downgrade = false
           jamf_patch_policy.enable
           jamf_patch_policy.save
-
-          # remove the manual install policy from self service, if needed
-          return unless title_object.self_service
-          return unless jamf_manual_install_policy.in_self_service?
-
-          msg = "Jamf: Version '#{version}': Removing manual-install policy from Self Service"
-          progress msg, log: :info
-
-          jamf_manual_install_policy.remove_from_self_service
-          jamf_manual_install_policy.save
         end
 
         # Update all the pilot_groups policy scopes for this version when

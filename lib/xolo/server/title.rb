@@ -1097,14 +1097,18 @@ module Xolo
       def repair(repair_versions: false)
         lock
         @current_action = :repairing
-        msg = repair_versions ? 'Repairing title and all versions' : 'Repairing title'
-        log_change msg: msg
+        chg_log_msg = repair_versions ? 'Repairing title and all versions' : 'Repairing title only'
+        log_change msg: chg_log_msg
 
+        progress "Starting repair of title '#{title}'"
         repair_ted_title
         repair_jamf_title_objects
         return unless repair_versions
 
-        version_objects.each { |vobj| vobj.repair }
+        version_objects.each do |vobj|
+          progress '#########'
+          vobj.repair
+        end
       ensure
         unlock
       end

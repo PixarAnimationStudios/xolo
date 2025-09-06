@@ -317,6 +317,7 @@ module Xolo
 
         # Configure the settings for the manual_install_released_policy
         # @param pol [Jamf::Policy] the policy we are configuring
+        # @return [void]
         ###################
         def configure_manual_install_released_policy(pol)
           rel_vers = version_object(released_version)
@@ -340,13 +341,19 @@ module Xolo
           log_debug "Setting exclusions for manual install policy for current release: #{excls}"
           pol.scope.set_exclusions :computer_groups, excls
 
-          add_title_to_self_service(pol) if self_service
-
+          if self_service
+            if pol.in_self_service?
+              configure_pol_for_self_service(pol)
+            else
+              add_title_to_self_service(pol)
+            end
+          end
           pol.enable
         end
 
         # Add the jamf_manual_install_released_policy to self service if needed
         # @param pol [Jamf::Policy] The jamf_manual_install_released_policy, which may not be saved yet.
+        # @return [void]
         ##################################
         def add_title_to_self_service(pol = nil)
           return unless self_service
@@ -357,8 +364,15 @@ module Xolo
           progress msg, log: :info
 
           pol.add_to_self_service
+          configure_pol_for_self_service(pol)
+        end
 
-          # clear existing categories
+        # configure the self-service settings of the manual_install_released_policy
+        # @param pol [Jamf::Policy] The jamf_manual_install_released_policy, which may not be saved yet.
+        # @return [void]
+        ############################
+        def configure_pol_for_self_service(pol)
+          # clear existing categories, re-add correct one
           pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
           pol.add_self_service_category self_service_category
 
