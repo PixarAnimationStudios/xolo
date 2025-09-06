@@ -143,6 +143,27 @@ module Xolo
           end
         end
 
+        # run 'repair' on a title
+        # to do all versions, body should be JSON { "repair_versions": true }
+        ######################
+        post '/titles/:title/repair' do
+          request.body.rewind
+          data = request.body.read.strip
+          do_versions = data.pix_empty? ? false : parse_json(data)[:repair_versions]
+
+          addendum = do_versions ? ' and all versions' : ' (title only)'
+          log_debug "Admin #{session[:admin]} is repairing title '#{params[:title]}'#{addendum}"
+
+          halt_on_missing_title params[:title]
+          halt_on_locked_title params[:title]
+          title = instantiate_title params[:title]
+
+          with_streaming do
+            title.repair repair_versions: do_versions
+            update_client_data
+          end
+        end
+
         # Delete an existing title
         # @return [Hash] A response hash
         #################################

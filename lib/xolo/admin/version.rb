@@ -166,6 +166,15 @@ module Xolo
         resp.body
       end
 
+      # Repair this version
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash] the response body from the server
+      ####################
+      def repair(cnx)
+        resp = cnx.post "#{self.class.server_route(title, version)}/repair"
+        resp.body
+      end
+
       # Delete this title from the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response from the server

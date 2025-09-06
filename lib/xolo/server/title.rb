@@ -518,7 +518,7 @@ module Xolo
         return @version_script_contents if defined? @version_script_contents
 
         curr_script =
-          if changes_for_update.key? :version_script
+          if changes_for_update&.key? :version_script
             # new, incoming script
             changes_for_update[:version_script][:new]
           else
@@ -1097,6 +1097,9 @@ module Xolo
       def repair(repair_versions: false)
         lock
         @current_action = :repairing
+        msg = repair_versions ? 'Repairing title and all versions' : 'Repairing title'
+        log_change msg: msg
+
         repair_ted_title
         repair_jamf_title_objects
         return unless repair_versions
@@ -1118,7 +1121,7 @@ module Xolo
         raise Xolo::ServerError, 'Server is shutting down' if Xolo::Server.shutting_down?
 
         while locked?
-          log_debug "Waiting for update lock on title '#{title}'..."
+          log_debug "Waiting for update lock on title '#{title}'..." if (Time.now.to_i % 10).zero?
           sleep 0.33
         end
         Xolo::Server.object_locks[title] ||= { versions: {} }
@@ -1138,7 +1141,7 @@ module Xolo
         log_debug "Unlocked title '#{title}' for updates"
       end
 
-      # Add more data to our hash
+      # Add more server-specific data to our hash
       ###########################
       def to_h
         hash = super

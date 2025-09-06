@@ -208,8 +208,22 @@ module Xolo
         rescue StandardError => e
           msg = "#{e.class}: #{e}"
           log_error msg
-          e.backtrace.each { |line| log_error "..#{line}" }
           halt 400, { status: 400, error: msg }
+        end
+
+        # run 'repair' on a version
+        ######################
+        post '/titles/:title/versions/:version/repair' do
+          log_debug "Admin #{session[:admin]} is repairing version '#{params[:version]}' of title '#{params[:title]}'"
+          halt_on_missing_version params[:title], params[:version]
+          halt_on_locked_version params[:title], params[:version]
+
+          vers = instantiate_version title: params[:title], version: params[:version]
+
+          with_streaming do
+            vers.repair
+            update_client_data
+          end
         end
 
         # Return info about all the computers with a given version of a title installed
