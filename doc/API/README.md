@@ -42,6 +42,8 @@ This documentation is preliminary and may never be fully complete.
     Fetch a title object
   - [PUT /titles/{title}](titles.md#put_title)
     Update a title object
+  - [POST /titles/{title}/repair](titles.md#repair_title)  
+    Repair the Title Editor and Jamf Pro objects for a title, and optionally all of its versions.
   - [DELETE /titles/{title}](titles.md#delete_title)
     Delete a title object and all its versions
   - [POST /titles/{title}/ssvc-icon](titles.md#upload_ssvc_icon)
@@ -71,6 +73,8 @@ This documentation is preliminary and may never be fully complete.
     Update a version object
   - [PATCH /titles/{title}/release/{version}](versions.md#release_version)
     Release a version of a title
+  - [POST /titles/{title}/versions/{version}/repair](versions.md#repair_version)  
+    Repair the Title Editor and Jamf Pro objects for a version.
   - [DELETE /titles/{title}/versions/{version}](versions.md#delete_version)
     Delete a version of a title
   - [POST /titles/{title}/versions/{version}/pkg](versions.md#upload_pkg)
