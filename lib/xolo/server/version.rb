@@ -843,7 +843,9 @@ module Xolo
         raise Xolo::ServerError, 'Server is shutting down' if Xolo::Server.shutting_down?
 
         while locked?
-          log_debug "Waiting for update lock on Version '#{version}' of title '#{title}'..."
+          if (Time.now.to_i % 5).zero?
+            log_debug "Waiting for update lock on Version '#{version}' of title '#{title}'..."
+          end
           sleep 0.33
         end
         Xolo::Server.object_locks[title] ||= { versions: {} }
