@@ -361,6 +361,7 @@ module Xolo
         #########################
         def repair_ted_patch
           progress "Title Editor: Repairing Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
+
           Xolo::Server::Version::ATTRIBUTES.each do |attr, deets|
             ted_attribute = deets[:ted_attribute]
             # if there's no ted_attribute, this isn't a value stored in the Title Editor

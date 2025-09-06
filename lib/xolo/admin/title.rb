@@ -166,12 +166,23 @@ module Xolo
         resp.body
       end
 
-      # Update this title to the server
+      # Release a version of this title.
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @param version [String] the version to release
       # @return [Hash] the response body from the server
       ####################
       def release(cnx, version:)
         resp = cnx.patch "#{SERVER_ROUTE}/#{title}/release/#{version}", {}
+        resp.body
+      end
+
+      # Repair this title, and optionally all its versions
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @param versions [Boolean] if true, repair all versions of this title
+      # @return [Hash] the response body from the server
+      ####################
+      def repair(cnx, versions: false)
+        resp = cnx.post "#{SERVER_ROUTE}/#{title}/repair", { repair_versions: versions }
         resp.body
       end
 

@@ -577,7 +577,7 @@ module Xolo
           # 'pilot' so the scope targets are the pilot groups, if any.
           # When the version is released, the patch policy will be
           # rescoped to all targets (limited by eligibility)
-          ppol.scope.set_targets :computer_groups, pilot_groups_to_use
+          set_policy_pilot_groups ppol
 
           # exclusions are for always
           set_policy_exclusions ppol
@@ -609,14 +609,23 @@ module Xolo
 
         # Validate and fix any Jamf::JPackage objects that
         # related to this version:
-        # - the Jamf::JPackage
+        # - the package object
         # - the auto-install policy
         # - the manual-install policy
         # - the patch policy
         #########################################
         def repair_jamf_version_objects
-          # package object
+          repair_jamf_package
+          repair_jamf_auto_install_policy
+          repair_jamf_manual_install_policy
+          repair_jamf_patch_policy
+        end
+
+        # repair the package object only
+        #############################
+        def repair_jamf_package
           # If these values are all correct, nothing will be saved
+          progress "Repairing Jamf::JPackage '#{jamf_pkg_name}'", log: :info
           jamf_package.packageName = jamf_pkg_name
           jamf_package.fileName = "#{jamf_pkg_name}.pkg"
           jamf_package.osRequirements = ">=#{min_os}"
@@ -624,8 +633,12 @@ module Xolo
           jamf_package.rebootRequired = reboot
           jamf_package.categoryId = jamf_xolo_category_id
           jamf_package.save
+        end
 
-          # auto-install policy
+        # repair the auto-install policy only
+        #############################
+        def repair_jamf_auto_install_policy
+          progress "Repairing Auto Install Policy '#{jamf_auto_install_policy_name}'", log: :info
           pol = jamf_auto_install_policy
           pol.name = jamf_auto_install_policy_name
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
@@ -652,8 +665,12 @@ module Xolo
           end
 
           pol.save
+        end
 
-          # manual-install policy
+        # repair the manual-install policy only
+        #############################
+        def repair_jamf_manual_install_policy
+          progress "Repairing Manual Install Policy '#{jamf_manual_install_policy_name}'", log: :info
           pol = jamf_manual_install_policy
           pol.name = jamf_manual_install_policy_name
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
@@ -668,27 +685,37 @@ module Xolo
           set_policy_to_all_targets pol
           set_policy_exclusions pol
 
+          # These policies shouldn't be in ssvc
+          pol.remove_from_self_service
           pol.enable
           pol.save
+        end
 
-          # patch policy
+        # repair the patch policy only
+        #############################
+        def repair_jamf_patch_policy
+          progress "Repairing Patch Policy '#{jamf_patch_policy_name}'", log: :info
           assign_pkg_to_patch_in_jamf
 
           ppol = jamf_patch_policy
           ppol.name = jamf_patch_policy_name
-          ppol.patch_title = title_object.jamf_patch_title.id
           ppol.target_version = version
+
           if pilot?
             set_policy_pilot_groups ppol
           else
             ppol.scope.set_all_targets
           end
 
+          # exclusions are for always
+          set_policy_exclusions ppol
+
           if pilot? || released?
             ppol.enable
           else
             ppol.disable
           end
+
           ppol.save
         end
 

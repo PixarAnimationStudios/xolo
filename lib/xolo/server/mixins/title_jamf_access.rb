@@ -308,17 +308,26 @@ module Xolo
           msg = "Jamf: Creating manual install policy for current release: '#{jamf_manual_install_released_policy_name}'"
           progress msg, log: :info
 
+          pol = Jamf::Policy.create name: jamf_manual_install_released_policy_name, cnx: jamf_cnx
+
+          configure_manual_install_released_policy(pol)
+          pol.save
+          pol
+        end
+
+        # Configure the settings for the manual_install_released_policy
+        # @param pol [Jamf::Policy] the policy we are configuring
+        ###################
+        def configure_manual_install_released_policy(pol)
           rel_vers = version_object(released_version)
 
-          pol = Jamf::Policy.create name: jamf_manual_install_released_policy_name, cnx: jamf_cnx
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_released_policy_name
           pol.frequency = :ongoing
           pol.recon = true
-          pol.add_package rel_vers.jamf_package_name
+          pol.add_package rel_vers.jamf_pkg_id
           pol.scope.set_all_targets
-
           # figure out the exclusions.
           # explicit exlusions for the title
           excls = excluded_groups.dup
@@ -328,15 +337,12 @@ module Xolo
           # plus any forces group from the server config
           excls << valid_forced_exclusion_group_name if valid_forced_exclusion_group_name
           # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
-
           log_debug "Setting exclusions for manual install policy for current release: #{excls}"
           pol.scope.set_exclusions :computer_groups, excls
 
           add_title_to_self_service(pol) if self_service
 
           pol.enable
-          pol.save
-          pol
         end
 
         # Add the jamf_manual_install_released_policy to self service if needed
@@ -350,17 +356,20 @@ module Xolo
           msg = "Jamf: Adding Manual Install Policy '#{pol.name}' to Self Service."
           progress msg, log: :info
 
+          pol.add_to_self_service
+
           # clear existing categories
           pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
           pol.add_self_service_category self_service_category
 
           pol.self_service_description = description
           pol.self_service_display_name = display_name
-          pol.self_service_install_button_text = SELF_SERVICE_INSTALL_BTN_TEXT
+          pol.self_service_install_button_text = Xolo::Server::Title::SELF_SERVICE_INSTALL_BTN_TEXT
           return unless ssvc_icon_file
 
+          pol.save # won't do anything unless needed, but has to exist before we can upload icons
           pol.upload :icon, ssvc_icon_file
-          self.ssvc_icon_id = Jamf::Policy.fetch(id: pol_id, cnx: jamf_cnx).icon.id
+          self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
         end
 
         # Update whether or not we are in self service, based on the setting in the title
@@ -449,22 +458,28 @@ module Xolo
             return if deleting?
 
             progress "Jamf: Creating Uninstall policy: '#{jamf_uninstall_policy_name}'", log: :info
-
             @jamf_uninstall_policy = Jamf::Policy.create name: jamf_uninstall_policy_name, cnx: jamf_cnx
-            @jamf_uninstall_policy.category = Xolo::Server::JAMF_XOLO_CATEGORY
-            @jamf_uninstall_policy.add_script jamf_uninstall_script_name
-            @jamf_uninstall_policy.set_trigger_event :checkin, false
-            @jamf_uninstall_policy.set_trigger_event :custom, jamf_uninstall_policy_name
-            @jamf_uninstall_policy.scope.add_target(:computer_group, jamf_installed_group_name)
-            if valid_forced_exclusion_group_name
-              @jamf_uninstall_policy.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
-            end
-            @jamf_uninstall_policy.frequency = :ongoing
-            @jamf_uninstall_policy.enable
+            configure_uninstall_policy(jamf_uninstall_policy)
             @jamf_uninstall_policy.save
           end
 
           @jamf_uninstall_policy
+        end
+
+        # Configure the uninstall policy
+        # @param pol [Jamf::Policy] the policy to configure
+        ############################
+        def configure_uninstall_policy(pol)
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.add_script jamf_uninstall_script_name
+          pol.set_trigger_event :checkin, false
+          pol.set_trigger_event :custom, jamf_uninstall_policy_name
+          pol.scope.add_target(:computer_group, jamf_installed_group_name)
+          if valid_forced_exclusion_group_name
+            pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
+          end
+          pol.frequency = :ongoing
+          pol.enable
         end
 
         # Create or fetch the policy that expires a title
@@ -482,20 +497,27 @@ module Xolo
             progress "Jamf: Creating Expiration policy: '#{jamf_expire_policy_name}'", log: :info
 
             @jamf_expire_policy = Jamf::Policy.create name: jamf_expire_policy_name, cnx: jamf_cnx
-            @jamf_expire_policy.category = Xolo::Server::JAMF_XOLO_CATEGORY
-            @jamf_expire_policy.run_command = "#{Xolo::Server::Title::CLIENT_EXPIRE_COMMAND} #{title}"
-            @jamf_expire_policy.set_trigger_event :checkin, true
-            @jamf_expire_policy.set_trigger_event :custom, jamf_expire_policy_name
-            @jamf_expire_policy.scope.add_target(:computer_group, jamf_installed_group_name)
-            if valid_forced_exclusion_group_name
-              @jamf_expire_policy.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
-            end
-            @jamf_expire_policy.frequency = :daily
-            @jamf_expire_policy.enable
+            configure_expiration_policy @jamf_expire_policy
             @jamf_expire_policy.save
           end
 
           @jamf_expire_policy
+        end
+
+        # Configure the expiration policy
+        # @param pol [Jamf::Policy] the policy to configure
+        #########################
+        def configure_expiration_policy(pol)
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.run_command = "#{Xolo::Server::Title::CLIENT_EXPIRE_COMMAND} #{title}"
+          pol.set_trigger_event :checkin, true
+          pol.set_trigger_event :custom, jamf_expire_policy_name
+          pol.scope.add_target(:computer_group, jamf_installed_group_name)
+          if valid_forced_exclusion_group_name
+            pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
+          end
+          pol.frequency = :daily
+          pol.enable
         end
 
         # Create or fetch he smartgroup in jamf that contains all macs
@@ -1257,6 +1279,89 @@ module Xolo
           comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
 
           members
+        end
+
+        # Repair this title in Jamf Pro
+        # - TODO: activate title in patch mgmt
+        #   - TODO: Accept Patch EA
+        # - Normal EA 'xolo-<title>-installed-version'
+        # - title-installed smart group 'xolo-<title>-installed'
+        # - frozen static group 'xolo-<title>-frozen'
+        # - manual/SSvc install-current-release policy 'xolo-<title>-install'
+        #   - trigger 'xolo-<title>-install'
+        #   - ssvc icon
+        #   - ssvc category
+        #   - description
+        # - if uninstallable
+        #   - uninstall script 'xolo-<title>-uninstall'
+        #   - uninstall policy 'xolo-<title>-uninstall'
+        #   - if expirable
+        #     - expire policy 'xolo-<title>-expire'
+        #       - trigger  'xolo-<title>-expire'
+        #
+        ###############################################
+        def repair_jamf_title_objects
+          progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
+          repair_normal_ea_in_jamf
+          set_installed_group_criteria_in_jamf
+          repair_jamf_uninstall_script_and_policy
+          repair_expire_policy_in_jamf
+          repair_frozen_group
+          repair_manual_install_released_policy
+        end
+
+        # repair the jamf_manual_install_released_policy - the
+        # policy that installs whatever is the current release
+        #############################
+        def repair_manual_install_released_policy
+          return unless released_version
+
+          progress 'Jamf: Repairing the manual/Self Service install policy for the current release'
+          pol = jamf_manual_install_released_policy
+          configure_manual_install_released_policy(pol)
+          pol.save
+        end
+
+        # repair the frozen group
+        ###################
+        def repair_frozen_group
+          progress 'Jamf: Repairing frozen static group'
+          # This creates it if it doesn't exist. Nothing more we can do here.
+          jamf_frozen_group
+        end
+
+        # repair the expire policy in jamf
+        #####################
+        def repair_expire_policy_in_jamf
+          if expiration && !expire_paths.pix_empty?
+            progress "Jamf: Repairing expiration policy '#{jamf_expire_policy_name}'"
+            configure_expiration_policy(jamf_expire_policy)
+            jamf_expire_policy.save
+          else
+            delete_expire_policy
+          end
+        end
+
+        # repair the uninstall script and policy in jamf
+        #####################
+        def repair_jamf_uninstall_script_and_policy
+          if uninstall_script_contents
+            set_jamf_uninstall_script_contents
+            configure_uninstall_policy jamf_uninstall_policy
+            jamf_uninstall_policy.save
+          else
+            delete_uninstall_pol_and_script
+          end
+        end
+
+        # Repair the 'normal' EA in jamf to match our version_script
+        ########################
+        def repair_normal_ea_in_jamf
+          if version_script_contents.pix_empty?
+            delete_normal_ea_from_jamf
+          else
+            set_normal_ea_script_in_jamf
+          end
         end
 
         # Get the patch report for this title.

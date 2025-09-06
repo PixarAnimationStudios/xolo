@@ -182,6 +182,7 @@ module Xolo
       SEARCH_CMD = 'search' # search for titles
       CHANGELOG_CMD = 'changelog' # show the changelog for a title
       REPORT_CMD = 'report' # report on installations
+      REPAIR_CMD = 'repair' # run repair on titles or versions
       CONFIG_CMD = 'config' # configure xadm
 
       LIST_GROUPS_CMD = 'list-groups'
@@ -207,7 +208,7 @@ module Xolo
       TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
       TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
 
-      PATCH_REPORT_OPTS = {
+      PATCH_REPORT_OPTIONS = {
         summary: {
           label: 'Summary Only',
           cli: :S,
@@ -313,6 +314,19 @@ module Xolo
             One or more Jamf Computer Group names or ids whose members will receive the MDM deployment.
 
             When using the --groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+          ENDDESC
+        }
+      }.freeze
+
+      REPAIR_OPTIONS = {
+        versions: {
+          label: 'Repair all versions',
+          cli: :v,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            When repairing a title, also repair all of its versions.
           ENDDESC
         }
       }.freeze
@@ -605,9 +619,33 @@ module Xolo
             NOTE: When using --json, all options are included in the data.
           ENDDESC
           display: "#{REPORT_CMD} title [version]",
-          opts: PATCH_REPORT_OPTS,
+          opts: PATCH_REPORT_OPTIONS,
           target: :title_or_version,
           process_method: :patch_report
+        },
+
+        REPAIR_CMD => {
+          desc: 'Ensure all Title Editor and Jamf Objects exist and are correctly configured',
+          long_desc: <<~ENDDESC,
+            For each title and version in Xolo, there are many objects in the Title Editor and Jamf Pro,
+            including patch definitions, criteria, policies, patch policies, computer groups, extension attributes and so on.
+
+            Normally these are created, updated, and deleted as needed by the Xolo server. However,
+            sometimes things can get out-of-whack.
+
+            This process will ensure the necessary Title Editor and Jamf Pro objects exist and have the
+            correct settings for the given title or version.
+
+            When specifying only a title, just the objects related to the title are repaired, not its versions.
+            If you want to repair all the versions as well, use the --versions option.
+
+            When specifying a title and a version, only that version is repaired.
+          ENDDESC
+          display: "#{REPAIR_CMD} title [version]",
+          opts: REPAIR_OPTIONS,
+          target: :title_or_version,
+          process_method: :repair,
+          confirmation: true
         },
 
         CHANGELOG_CMD => {
@@ -786,7 +824,7 @@ module Xolo
       MUST_EXIST_COMMANDS = [
         EDIT_TITLE_CMD, EDIT_VERSION_CMD,
         DELETE_TITLE_CMD, DELETE_VERSION_CMD, RELEASE_VERSION_CMD,
-        FREEZE_TITLE_CMD, THAW_TITLE_CMD, LIST_FROZEN_CMD, CHANGELOG_CMD
+        FREEZE_TITLE_CMD, THAW_TITLE_CMD, LIST_FROZEN_CMD, CHANGELOG_CMD, REPAIR_CMD
       ].freeze
 
       # we get the default min os from the server

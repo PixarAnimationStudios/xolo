@@ -777,6 +777,37 @@ module Xolo
         handle_processing_error e
       end
 
+      # run a repair on a title or version
+      #
+      # @return [void]
+      ###############################
+      def repair
+        if cli_cmd.version
+          conf_msg = "Repair Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}'"
+        else
+          conf_msg =  +"Repair Title '#{cli_cmd.title}'"
+          conf_msg << ' and all of its versions' if opts_to_process[:versions]
+        end
+
+        return unless confirmed?(conf_msg)
+
+        if cli_cmd.version
+          vers = Xolo::Admin::Version.fetch cli_cmd.title, cli_cmd.version, server_cnx
+          response_data = vers.repair server_cnx
+        else
+          title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+          response_data = title.repair server_cnx, versions: opts_to_process[:versions]
+        end
+        if debug?
+          puts "DEBUG: response_data: #{response_data}"
+          puts
+        end
+
+        display_progress response_data[:progress_stream_url_path]
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
       # Show the patch report for a title or version in xolo
       #
       # @return [void]

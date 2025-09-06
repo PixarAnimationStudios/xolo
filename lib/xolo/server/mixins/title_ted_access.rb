@@ -174,7 +174,7 @@ module Xolo
             set_ted_title_requirement app_name: app_name, app_bundle_id: app_bundle_id
           elsif version_script
             # if we have a version_script, set it
-            create_ted_ea version_script
+            create_ted_ea version_script_contents
             set_ted_title_requirement ea_name: ted_ea_key
           else
             raise Xolo::MissingDataError,
@@ -485,6 +485,50 @@ module Xolo
         #####################
         def ted_title_url
           "https://#{Xolo::Server.config.ted_hostname}/softwaretitles/#{ted_id_number}"
+        end
+
+        # repair this title in the title editor
+        # - display name
+        # - publisher
+        # - requirements, EA or App Data
+        # - stub version if needed
+        # - enabled
+        # @return [void]
+        ############################
+        def repair_ted_title
+          progress "Title Editor: Repairing SoftwareTitle '#{title}'", log: :info
+
+          # TODO: version order??
+
+          # loop through the attributes that are in the Title Editor
+          Xolo::Server::Title::ATTRIBUTES.each do |attr, deets|
+            ted_attribute = deets[:ted_attribute]
+            next unless ted_attribute
+
+            ted_val = ted_title.send ted_attribute
+            real_val = send attr
+            next if ted_val == real_val
+
+            progress "Title Editor: Repairing title attribute '#{ted_attribute}': #{ted_val} -> #{real_val}", log: :info
+
+            ted_title.send "#{ted_attribute}=", real_val
+          end # Xolo::Server::Title::ATTRIBUTES.each
+
+          # requirements
+          create_ted_title_requirements
+
+          # make sure there's at least one patch
+          if ted_title.patches.empty?
+            create_and_enable_stub_patch_in_ted(ted_title)
+          else
+            # make sure at least one patch is enabled
+            unless ted_title.patches.to_a.any?(&:enabled?)
+              progress "Title Editor: Enabling at least the first patch for title '#{title}'", log: :info
+              ted_title.patches.first.enable
+            end
+          end
+
+          ted_title.enable unless ted_title(refresh: true).enabled?
         end
 
       end # TitleEditorTitle

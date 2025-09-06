@@ -650,6 +650,8 @@ module Xolo
       def repair
         lock
         @current_action = :repairing
+        log_change msg: "Repairing version '#{version}'"
+
         repair_ted_patch
         repair_jamf_version_objects
       ensure
