@@ -783,16 +783,23 @@ function install() {
   if [[ -z "$version" ]] ; then
     version=$(released_version_for_title $title)
     [[ -z "$version" ]] && die "No current release for title: $title. Specify a version to install."
+
+    # This trigger always installs the current release via a single policy for the title
+    install_trigger="xolo-${title}-install"
+  else
+    # this is the trigger for a specific version of a title.
+    install_trigger="xolo-${title}-${version}-manual-install"
   fi
+
   validate_version
 
-    if [[ -n "$version" ]] ; then
-      say "Installing version $version of title $title"
-    else
-      say "Installing released version of title: $title"
-    fi
+  if [[ -n "$version" ]] ; then
+    say "Installing version $version of title $title"
+  else
+    say "Installing released version of title: $title"
+  fi
 
-  run_jamf_policy_trigger "xolo-${title}-${version}-manual-install"
+  run_jamf_policy_trigger "${install_trigger}"
 }
 
 # Unnstall a title
