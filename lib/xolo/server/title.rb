@@ -959,7 +959,7 @@ module Xolo
 
         progress "Releasing version #{version_to_release} of title '#{title}'", log: :info
 
-        update_versions_for_release
+        update_versions_for_release version_to_release
 
         # update the title
         self.released_version = version_to_release
@@ -1025,9 +1025,12 @@ module Xolo
         vobj.release rollback: rollback
 
         # update the jamf_manual_install_released_policy to install this version
+        msg = "Jamf: Setting policy #{jamf_manual_install_released_policy_name} to install the package for version '#{vobj.version}'"
+        progress msg, log: :info
+
         pol = jamf_manual_install_released_policy
         pol.package_ids.each { |pid| pol.remove_package pid }
-        pol.add_package vobj.jamf_package_name
+        pol.add_package vobj.jamf_pkg_id
         pol.save
       end
 

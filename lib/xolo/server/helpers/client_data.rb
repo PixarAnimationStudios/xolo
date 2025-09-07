@@ -290,7 +290,7 @@ module Xolo
           client_data_file.pix_save JSON.pretty_generate(client_data_hash)
 
           # build the component package
-          progress "Jamf: Creating new installer pkg file '#{CLIENT_DATA_PACKAGE_FILE}'", log: :info
+          progress "Jamf: Creating new client-data pkg file '#{CLIENT_DATA_PACKAGE_FILE}'", log: :info
 
           unlock_signing_keychain
 
