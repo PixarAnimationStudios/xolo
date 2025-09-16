@@ -377,6 +377,10 @@ module Xolo
       #   one of :creating, :updating, :deleting
       attr_accessor :current_action
 
+      # @return [String] If current action is :releasing, this is the
+      #   version being released
+      attr_accessor :releasing_version
+
       # version_order is defined in ATTRIBUTES
       alias versions version_order
 
@@ -939,6 +943,7 @@ module Xolo
       def release(version_to_release)
         lock
         @current_action = :releasing
+        @releasing_version = version_to_release
 
         validate_release(version_to_release)
 
