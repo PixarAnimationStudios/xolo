@@ -120,10 +120,12 @@ module Xolo
           if need_to_sign?(tempfile)
             # This will put the signed pkg into the staged_pkg location
             sign_uploaded_pkg(tempfile, staged_pkg)
+            log_debug "Signing complete, deleting temp file '#{tempfile}'"
+            tempfile.delete if tempfile.file?
           else
-            log_debug "Uploaded .pkg file doesn't need signing, copying tempfile to '#{staged_pkg.basename}'"
+            log_debug "Uploaded .pkg file doesn't need signing, moving tempfile to '#{staged_pkg.basename}'"
             # Put the signed pkg into the staged_pkg location
-            tempfile.pix_cp staged_pkg
+            tempfile.rename staged_pkg
           end
 
           # upload the pkg with the uploader tool defined in config
