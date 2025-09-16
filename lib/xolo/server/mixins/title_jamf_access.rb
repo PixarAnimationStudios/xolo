@@ -291,7 +291,7 @@ module Xolo
               return if deleting?
 
               # do we have a released version?
-              return unless released_version
+              return unless releasing? || released_version
 
               create_manual_install_released_policy_in_jamf
             end
@@ -320,7 +320,9 @@ module Xolo
         # @return [void]
         ###################
         def configure_manual_install_released_policy(pol)
-          rel_vers = version_object(released_version)
+          desired_vers = releasing_version || released_version
+
+          rel_vers = version_object(desired_vers)
 
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, false
