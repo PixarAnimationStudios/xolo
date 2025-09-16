@@ -371,7 +371,9 @@ module Xolo
         # @param pol [Jamf::Policy] The jamf_manual_install_released_policy, which may not be saved yet.
         # @return [void]
         ############################
-        def configure_pol_for_self_service(pol)
+        def configure_pol_for_self_service(pol = nil)
+          pol ||= jamf_manual_install_released_policy
+
           # clear existing categories, re-add correct one
           pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
           pol.add_self_service_category self_service_category
