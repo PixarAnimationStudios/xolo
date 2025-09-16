@@ -77,7 +77,7 @@ module Xolo
           log_info "Processing uploaded SelfService icon for #{params[:title]}"
           title = instantiate_title params[:title]
           title.save_ssvc_icon(tempfile, filename)
-          title.update_ssvc_icon_in_version_policies
+          title.configure_pol_for_self_service if title.self_service
         rescue StandardError => e
           msg = "#{e.class}: #{e}"
           log_error msg

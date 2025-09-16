@@ -891,21 +891,6 @@ module Xolo
         unlock
       end
 
-      # If we have any versions, and we are using self service,
-      # update all relevant policies with a newly-uploaded icon
-      #
-      # @return [void]
-      ###################################
-      def update_ssvc_icon_in_version_policies
-        return unless self_service
-        return if version_order.pix_empty?
-
-        icon_file = ssvc_icon_file
-        return unless icon_file
-
-        version_objects.each { |vo| vo.update_ssvc_icon(ttl_obj: self) }
-      end
-
       # Delete the version script file
       #
       # @return [void]
