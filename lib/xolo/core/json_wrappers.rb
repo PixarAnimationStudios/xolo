@@ -48,8 +48,9 @@ module Xolo
       # end
 
       # A wrapper for JSON.parse that always uses :symbolize_names
+      # and ensures UTF-8 encoding
       def parse_json(str)
-        JSON.parse str, symbolize_names: true
+        JSON.parse str.force_encoding('UTF-8'), symbolize_names: true
       end
 
     end # JSON
