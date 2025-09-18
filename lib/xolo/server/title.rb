@@ -254,6 +254,7 @@ module Xolo
       #   from the on-disk JSON file
       ######################
       def self.load(title)
+        log_debug "Loading title '#{title}' from file"
         new parse_json(title_data_file(title).read)
       end
 
