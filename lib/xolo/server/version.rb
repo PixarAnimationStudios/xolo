@@ -188,6 +188,7 @@ module Xolo
       #   from the on-disk JSON file
       ######################
       def self.load(title, version)
+        log_debug "Loading version '#{version}' of title '#{title}' from file"
         new parse_json(data_file(title, version).read)
       end
 
