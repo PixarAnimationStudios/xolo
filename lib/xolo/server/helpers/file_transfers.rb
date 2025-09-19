@@ -77,7 +77,7 @@ module Xolo
           log_info "Processing uploaded SelfService icon for #{params[:title]}"
           title = instantiate_title params[:title]
           title.save_ssvc_icon(tempfile, filename)
-          title.update_ssvc_icon_in_version_policies
+          title.configure_pol_for_self_service if title.self_service
         rescue StandardError => e
           msg = "#{e.class}: #{e}"
           log_error msg
@@ -120,10 +120,12 @@ module Xolo
           if need_to_sign?(tempfile)
             # This will put the signed pkg into the staged_pkg location
             sign_uploaded_pkg(tempfile, staged_pkg)
+            log_debug "Signing complete, deleting temp file '#{tempfile}'"
+            tempfile.delete if tempfile.file?
           else
-            log_debug "Uploaded .pkg file doesn't need signing, copying tempfile to '#{staged_pkg.basename}'"
+            log_debug "Uploaded .pkg file doesn't need signing, moving tempfile to '#{staged_pkg.basename}'"
             # Put the signed pkg into the staged_pkg location
-            tempfile.pix_cp staged_pkg
+            tempfile.rename staged_pkg
           end
 
           # upload the pkg with the uploader tool defined in config

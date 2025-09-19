@@ -254,6 +254,7 @@ module Xolo
       #   from the on-disk JSON file
       ######################
       def self.load(title)
+        Xolo::Server.logger.debug "Loading title '#{title}' from file"
         new parse_json(title_data_file(title).read)
       end
 
@@ -376,6 +377,10 @@ module Xolo
       # @return [Symbol] The current action being taken on this title
       #   one of :creating, :updating, :deleting
       attr_accessor :current_action
+
+      # @return [String] If current action is :releasing, this is the
+      #   version being released
+      attr_accessor :releasing_version
 
       # version_order is defined in ATTRIBUTES
       alias versions version_order
@@ -891,21 +896,6 @@ module Xolo
         unlock
       end
 
-      # If we have any versions, and we are using self service,
-      # update all relevant policies with a newly-uploaded icon
-      #
-      # @return [void]
-      ###################################
-      def update_ssvc_icon_in_version_policies
-        return unless self_service
-        return if version_order.pix_empty?
-
-        icon_file = ssvc_icon_file
-        return unless icon_file
-
-        version_objects.each { |vo| vo.update_ssvc_icon(ttl_obj: self) }
-      end
-
       # Delete the version script file
       #
       # @return [void]
@@ -954,6 +944,7 @@ module Xolo
       def release(version_to_release)
         lock
         @current_action = :releasing
+        @releasing_version = version_to_release
 
         validate_release(version_to_release)
 
