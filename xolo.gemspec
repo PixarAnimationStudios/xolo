@@ -47,26 +47,22 @@ Gem::Specification.new do |s|
 
   # TODO: test and try to use newer versions of all these dependencies.
 
-  # Dependencies for both xadm and the server
+  # Core dependencies for both xadm and the server
   s.add_runtime_dependency 'faraday', '~> 2.8'
   s.add_runtime_dependency 'faraday-multipart', '~> 1.0'
+  s.add_runtime_dependency 'highline', '~>2.1'
   s.add_runtime_dependency 'pixar-ruby-extensions', '~> 1.11'
   s.add_runtime_dependency 'zeitwerk', '~> 2.5'
 
-  # Only for xadm
-  #
   # TODO: if we want to require ruby 3.0+, then we can go to highline v 3.0+
-  # until then, highline 2.0.3 or 2.1.0 are fine.
-  #
-  # TODO: Add docs for installing these manually before installing
-  # xolo
-  #
-  # s.add_runtime_dependency 'highline', '~>2.1'
+  # until then, highline 2.1.0 is fine.
 
   # Only for the server
   #
   # TODO: Add docs for installing these manually before installing
   # xolo
+  #
+  # OR, more properly, Split out the core, server, and xadm into separate gems
   #
   # s.add_runtime_dependency 'ruby-jss', '~> 4.2'
   # s.add_runtime_dependency 'windoo', '~> 1.0'
