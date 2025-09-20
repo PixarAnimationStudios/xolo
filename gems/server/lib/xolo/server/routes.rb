@@ -33,9 +33,7 @@ module Xolo
       # pre-process
       ##############
       before do
-        if Xolo::Server.shutting_down? && !request.path.start_with?('/streamed_progress/')
-          halt 503, { status: 503, error: 'Server is shutting down' }
-        end
+        halt 503, { status: 503, error: 'Server is shutting down' } if Xolo::Server.shutting_down? && !request.path.start_with?('/streamed_progress/')
 
         adm = session[:admin] ? ", admin '#{session[:admin]}'" : Xolo::BLANK
         log_info "Processing #{request.request_method} #{request.path} from #{request.ip}#{adm}"
@@ -115,7 +113,7 @@ module Xolo
 
         stream do |stream_out|
           stream_progress(stream_file: stream_file, stream: stream_out)
-        rescue StandardError => e
+        rescue => e
           stream_out << "ERROR DURING PROGRESS STREAM: #{e.class}: #{e}"
         ensure
           stream_out.close
@@ -148,3 +146,11 @@ module Xolo
   end #  Server
 
 end # module Xolo
+
+require 'xolo/server/routes/auth'
+require 'xolo/server/routes/jamf_pro'
+require 'xolo/server/routes/maint'
+require 'xolo/server/routes/title_editor'
+require 'xolo/server/routes/titles'
+require 'xolo/server/routes/uploads'
+require 'xolo/server/routes/versions'

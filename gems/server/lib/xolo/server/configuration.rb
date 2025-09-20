@@ -54,7 +54,7 @@ module Xolo
 
       # We don't store the ssl data in a Dir.tmpdir because those will be deleted
       # out from under the server if they aren't accessed within 3 days.
-      SSL_DIR = Xolo::Server::DATA_DIR + 'ssl'
+      SSL_DIR = Xolo::Server::Constants::DATA_DIR + 'ssl'
       SSL_CERT_FILENAME = 'cert.pem'
       SSL_KEY_FILENAME = 'key.pem'
       SSL_CERT_FILE = SSL_DIR + SSL_CERT_FILENAME
@@ -63,7 +63,7 @@ module Xolo
       DFT_SSL_VERIFY = true
 
       PKG_SIGNING_KEYCHAIN_FILENAME = 'xolo-pkg-signing.keychain-db'
-      PKG_SIGNING_KEYCHAIN = Xolo::Server::DATA_DIR + PKG_SIGNING_KEYCHAIN_FILENAME
+      PKG_SIGNING_KEYCHAIN = Xolo::Server::Constants::DATA_DIR + PKG_SIGNING_KEYCHAIN_FILENAME
 
       PIPE = '|'
 
@@ -71,7 +71,7 @@ module Xolo
 
       # if this file exists, the server is in developer mode, and some things do or don't happen
       # see {#developer_mode?}
-      DEV_MODE_FILE = Xolo::Server::DATA_DIR + 'dev_mode'
+      DEV_MODE_FILE = Xolo::Server::Constants::DATA_DIR + 'dev_mode'
 
       # Attributes
       #####################################
@@ -628,7 +628,7 @@ module Xolo
       # @return [Pathname] The file that stores configuration values
       #######################
       def conf_file
-        @conf_file ||= Xolo::Server::DATA_DIR + CONF_FILENAME
+        @conf_file ||= Xolo::Server::Constants::DATA_DIR + CONF_FILENAME
       end
 
       ###############
@@ -673,7 +673,7 @@ module Xolo
       # @return [Pathname] The directory where the Xolo server stores data
       ##################
       def data_dir
-        Xolo::Server::DATA_DIR
+        Xolo::Server::Constants::DATA_DIR
       end
 
       # @return [Pathname] The file where Xolo server log entries are written

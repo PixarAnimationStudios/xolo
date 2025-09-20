@@ -33,7 +33,7 @@ module Xolo
         "#{datetime.strftime DATETIME_FORMAT} #{severity}#{progname}: #{msg}\n"
       end
 
-      LOG_DIR = Xolo::Server::DATA_DIR + 'logs'
+      LOG_DIR = Xolo::Server::Constants::DATA_DIR + 'logs'
       LOG_FILE_NAME = 'xoloserver.log'
       LOG_FILE = LOG_DIR + LOG_FILE_NAME
 
@@ -188,7 +188,7 @@ module Xolo
 
         # touch the last rotation file
         LAST_ROTATION_FILE.pix_touch
-      rescue StandardError => e
+      rescue => e
         logger.error "Error rotating logs: #{e}"
         e.backtrace.each { |l| logger.error "..#{l}" }
       ensure
