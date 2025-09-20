@@ -6,12 +6,19 @@
 
 # frozen_string_literal: true
 
-require 'xolo'
+# Requires
+#########################################
 
+# This file is the entry point for loading the Xolo Admin code
+#
+# You can and should require the convenience file 'xolo-admin.rb'
+#
+#    require 'xolo-admin'
+#
+
+# Standard Libraries
+######
 require 'openssl'
-require 'faraday'
-require 'faraday/multipart'
-require 'highline'
 
 # Monkeypatch OpenSSL::SSL::SSLContext to ignore unexpected EOF errors
 # happens with openssl v3 ??
@@ -19,6 +26,10 @@ require 'highline'
 if OpenSSL::SSL.const_defined?(:OP_IGNORE_UNEXPECTED_EOF)
   OpenSSL::SSL::SSLContext::DEFAULT_PARAMS[:options] |= OpenSSL::SSL::OP_IGNORE_UNEXPECTED_EOF
 end
+
+require 'faraday'
+require 'faraday/multipart'
+require 'highline'
 
 # Yes we're using a OpenStruct for our @opts, even though it's very slow.
 # It isn't so slow that it's a problem for processing a CLI tool.
@@ -42,10 +53,10 @@ require 'io/console'
 #
 require 'optimist_with_insert_blanks'
 
-# A small monkeypatch that allows Readline completion
-# of Highline.ask to optionally use a prompt and be
-# case insensitive
-require 'xolo/admin/highline_terminal'
+# Xolo Admin code - order matters here
+# more loaded below
+require 'xolo/core'
+require 'xolo/admin/configuration'
 
 module Xolo
 
@@ -95,3 +106,26 @@ module Xolo
   end
 
 end
+
+# the rest of the Xolo Admin code - order matters here
+require 'xolo/admin/credentials'
+
+require 'xolo/admin/title'
+require 'xolo/admin/version'
+
+require 'xolo/admin/options'
+require 'xolo/admin/interactive'
+require 'xolo/admin/command_line'
+require 'xolo/admin/processing'
+require 'xolo/admin/progress_history'
+require 'xolo/admin/validate'
+
+require 'xolo/admin/connection'
+require 'xolo/admin/cookie_jar'
+require 'xolo/admin/jamf_pro'
+require 'xolo/admin/title_editor'
+
+# A small monkeypatch that allows Readline completion
+# of Highline.ask to optionally use a prompt and be
+# case insensitive
+require 'xolo/admin/highline_terminal'

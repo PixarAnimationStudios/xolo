@@ -24,7 +24,7 @@ module Xolo
       # GET .../<version> to get the data for a single version
       # PUT .../<version> to update a version with new data
       # DELETE .../<version> to delete a version from the title
-      SERVER_ROUTE = "/titles/#{Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER}/versions"
+      SERVER_ROUTE = "/titles/#{Xolo::Admin::Title::TARGET_TITLE_PLACEHOLDER}/versions"
 
       # Server route for uploading packages
       UPLOAD_PKG_ROUTE = 'pkg'
@@ -49,7 +49,7 @@ module Xolo
       # @return [Xolo::Admin::Title]
       ####################
       def self.server_route(title, version = nil)
-        route = SERVER_ROUTE.sub(Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER, title)
+        route = SERVER_ROUTE.sub(Xolo::Admin::Title::TARGET_TITLE_PLACEHOLDER, title)
         route << "/#{version}" if version
         route
       end

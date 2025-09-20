@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
 
   s.name        = proj_name
   s.version     = Xolo::Core::Version::VERSION
-  s.authors = ['Chris Lasell']
+  s.authors     = ['Chris Lasell']
   s.email       = 'xolo@pixar.com'
   s.homepage    = 'http://pixaranimationstudios.github.io/xolo/'
   s.date        = Time.now.strftime('%Y-%m-%d')
@@ -62,5 +62,5 @@ Gem::Specification.new do |s|
 
   # Rdoc
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
-  s.rdoc_options << '--title' << 'Windoo' << '--line-numbers' << '--main' << 'README.md'
+  s.rdoc_options << '--title' << 'Xolo-Server' << '--line-numbers' << '--main' << 'README.md'
 end

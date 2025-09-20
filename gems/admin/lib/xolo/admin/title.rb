@@ -36,6 +36,8 @@ module Xolo
 
       UPLOAD_ICON_ROUTE = 'ssvc-icon'
 
+      TARGET_TITLE_PLACEHOLDER = 'TARGET_TITLE_PH'
+
       # Class Methods
       #############################
       #############################

@@ -22,17 +22,11 @@ require 'json'
 # Other Gems to include at this level
 require 'pixar-ruby-extensions'
 
-# Internal requires
-require 'xolo/core/base_classes/configuration'
-require 'xolo/core/base_classes/server_object'
-require 'xolo/core/base_classes/title'
-require 'xolo/core/base_classes/version'
+# Internal requires - order matters
+require 'xolo/core/loading'
+require 'xolo/core/version'
 require 'xolo/core/constants'
 require 'xolo/core/exceptions'
-require 'xolo/core/json_wrappers'
-require 'xolo/core/loading'
-require 'xolo/core/output'
-require 'xolo/core/version'
 
 # The main module
 module Xolo
@@ -43,3 +37,10 @@ module Xolo
   include Xolo::Core::Exceptions
 
 end # module Xolo
+
+require 'xolo/core/json_wrappers'
+require 'xolo/core/base_classes/configuration'
+require 'xolo/core/base_classes/server_object'
+require 'xolo/core/base_classes/title'
+require 'xolo/core/base_classes/version'
+require 'xolo/core/output'

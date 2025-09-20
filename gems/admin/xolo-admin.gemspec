@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
 
   # files
   s.files = Dir['lib/**/*.rb']
+  s.files += Dir['data/**/*']
 
   # executables
   s.executables << 'xadm'
@@ -59,5 +60,5 @@ Gem::Specification.new do |s|
 
   # Rdoc
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
-  s.rdoc_options << '--title' << 'Windoo' << '--line-numbers' << '--main' << 'README.md'
+  s.rdoc_options << '--title' << 'Xolo-Admin' << '--line-numbers' << '--main' << 'README.md'
 end

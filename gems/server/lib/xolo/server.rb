@@ -6,17 +6,9 @@
 
 # frozen_string_literal: true
 
-# This file is the entry point for loading the Xolo Server.
-#
-# Do not require this file directly unless you've already done:
-#
-#    require 'xolo'
-#
-# because the top-level xolo.rb file must set up autoloading and
-# load the Core module first.
+# This file is the entry point for loading the Xolo Server
 #
 # You can and should require the convenience file 'xolo-server.rb'
-# to load things in the correct order:
 #
 #    require 'xolo-server'
 
@@ -39,12 +31,12 @@ require 'net/smtp'
 # Gems
 ######
 
+require 'ruby-jss'
+require 'windoo'
 require 'sinatra/base'
 require 'sinatra/custom_logger'
 require 'sinatra/extension' # see https://sinatrarb.com/contrib/extension
 require 'thin'
-require 'ruby-jss'
-require 'windoo'
 require 'concurrent/hash'
 require 'concurrent/atomic/reentrant_read_write_lock'
 require 'concurrent/executor/thread_pool_executor'
@@ -110,7 +102,7 @@ module Xolo
   #   - Handles initial installation and patching of software on the
   #     managed client Macs via Policies and Patch Policies.
   #
-  # The Xolo server also implements a webhook handling server that specifically
+  # The Xolo server also (eventually) implements a webhook handling server that specifically
   # handles PatchSoftwareTitleUpdated events from the Jamf Pro server. This allows
   # for the automatic packaging, piloting, and maintenance of titles using
   # tools such as AutoPkg.
