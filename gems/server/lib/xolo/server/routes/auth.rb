@@ -23,7 +23,6 @@ module Xolo
         #    register Xolo::Server::<Module>
         # Doing it this way allows us to split the code into a logical
         # file structure, without re-opening the Sinatra::Base server app,
-        # and let zeitwork do the requiring of those files
         extend Sinatra::Extension
 
         # when this module is included
