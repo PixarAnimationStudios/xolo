@@ -20,7 +20,7 @@
 #
 #    require 'xolo-server'
 
-require 'xolo'
+require 'xolo/core'
 
 # Standard Libraries
 ######
@@ -49,6 +49,46 @@ require 'concurrent/hash'
 require 'concurrent/atomic/reentrant_read_write_lock'
 require 'concurrent/executor/thread_pool_executor'
 require 'concurrent/timer_task'
+
+# Xolo Server
+######
+require 'xolo/server/constants'
+require 'xolo/server/configuration'
+require 'xolo/server/command_line'
+require 'xolo/server/log'
+require 'xolo/server/object_locks'
+require 'xolo/server/title'
+require 'xolo/server/version'
+
+require 'xolo/server/mixins/changelog'
+require 'xolo/server/mixins/title_jamf_access'
+require 'xolo/server/mixins/title_ted_access'
+require 'xolo/server/mixins/version_jamf_access'
+require 'xolo/server/mixins/version_ted_access'
+
+require 'xolo/server/helpers/log'
+require 'xolo/server/helpers/auth'
+require 'xolo/server/helpers/notification'
+require 'xolo/server/helpers/pkg_signing'
+require 'xolo/server/helpers/progress_streaming'
+require 'xolo/server/helpers/title_editor'
+require 'xolo/server/helpers/jamf_pro'
+require 'xolo/server/helpers/titles'
+require 'xolo/server/helpers/versions'
+require 'xolo/server/helpers/client_data'
+require 'xolo/server/helpers/file_transfers'
+require 'xolo/server/helpers/maintenance'
+
+require 'xolo/server/app'
+
+require 'xolo/server/routes'
+require 'xolo/server/routes/auth'
+require 'xolo/server/routes/jamf_pro'
+require 'xolo/server/routes/maint'
+require 'xolo/server/routes/title_editor'
+require 'xolo/server/routes/titles'
+require 'xolo/server/routes/uploads'
+require 'xolo/server/routes/versions'
 
 module Xolo
 

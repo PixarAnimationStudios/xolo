@@ -12,13 +12,32 @@ module Xolo
 
     module Loading
 
+      # touch this file to make zeitwerk and mixins send text to stderr as things load
+      # or get mixed in
+      VERBOSE_LOADING_FILE = Pathname.new('/tmp/xolo-verbose-loading')
+
+      # Or, set this ENV var to also make zeitverk and mixins send text to stderr
+      VERBOSE_LOADING_ENV = 'XOLO_VERBOSE_LOADING'
+
+      # touch this file to make zeitwek  eager-load everything when the gem is required.
+      EAGER_LOAD_FILE = Pathname.new('/tmp/xolo-zeitwerk-eager-load')
+
       def self.extended(extender)
         Xolo.verbose_extend extender, self
       end
 
-      # Use the load_msg method defined for Zeitwerk
+      # Only look at the filesystem once.
+      def verbose_loading?
+        return @verbose_loading unless @verbose_loading.nil?
+
+        @verbose_loading = VERBOSE_LOADING_FILE.file?
+        @verbose_loading ||= ENV.include? VERBOSE_LOADING_ENV
+        @verbose_loading
+      end
+
+      # Send a message to stderr if verbose loading is enabled
       def load_msg(msg)
-        XoloZeitwerkConfig.load_msg msg
+        warn msg if verbose_loading?
       end
 
       # Mention that a module is being included into something

@@ -4,7 +4,5 @@
 #    at the root of this project.
 #
 
-# Shortcut for the two steps below
-
-require 'xolo'
+# Shortcut xolo-server => xolo/server
 require 'xolo/server'

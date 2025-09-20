@@ -4,17 +4,17 @@
 #    at the root of this project.
 #
 
-proj_name = 'xolo-core'
+proj_name = 'xolo'
 lib_dir = 'xolo'
 
-require "./lib/#{lib_dir}/core/version"
+require "./lib/#{lib_dir}/server/version"
 
 Gem::Specification.new do |s|
   # General
 
   s.name        = proj_name
-  s.version     = Xolo::Core::Version::VERSION
-  s.authors     = ['Chris Lasell']
+  s.version     = # Xolo::Core::Version::VERSION
+    s.authors = ['Chris Lasell']
   s.email       = 'xolo@pixar.com'
   s.homepage    = 'http://pixaranimationstudios.github.io/xolo/'
   s.date        = Time.now.strftime('%Y-%m-%d')
@@ -35,21 +35,45 @@ Gem::Specification.new do |s|
 
     "Xolo" is the short name for the Mexican hairless dog breed {'xoloitzcuintle'}[https://en.wikipedia.org/wiki/Xoloitzcuintle] (show-low-itz-kwint-leh), as personified by Dante in the 2017 Pixar film _Coco_.
 
-    The xolo/core gem provides the core functionality used by both the xadm command-line tool and the xoloserver https server.
+    The xoloserver gem provides the core functionality used by both the xadm command-line tool and the xoloserver https server.
   EODDESC
 
   s.required_ruby_version = '>= 2.6.3'
 
-  # ruby files
+  # files
   s.files = Dir['lib/**/*.rb']
+
+  # executables
+  s.executables << 'xadm'
+  s.executables << 'xoloserver'
 
   # TODO: test and try to use newer versions of all these dependencies.
 
   # Core dependencies for both xadm and the server
   s.add_runtime_dependency 'faraday', '~> 2.8'
   s.add_runtime_dependency 'faraday-multipart', '~> 1.0'
+  s.add_runtime_dependency 'highline', '~>2.1'
   s.add_runtime_dependency 'pixar-ruby-extensions', '~> 1.11'
+  s.add_runtime_dependency 'zeitwerk', '~> 2.5'
 
-  # other files
-  s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
+  # TODO: if we want to require ruby 3.0+, then we can go to highline v 3.0+
+  # until then, highline 2.1.0 is fine.
+
+  # Only for the server
+  #
+  # TODO: Add docs for installing these manually before installing
+  # xolo
+  #
+  # OR, more properly, Split out the core, server, and xadm into separate gems
+  #
+  # s.add_runtime_dependency 'ruby-jss', '~> 4.2'
+  # s.add_runtime_dependency 'windoo', '~> 1.0'
+  # s.add_runtime_dependency 'sinatra', '~> 3.2'
+  # s.add_runtime_dependency 'sinatra-contrib', '~> 3.2'
+  # s.add_runtime_dependency 'thin', '~> 1.8'
+  # concurrent-ruby is a dependency of ruby-jss, so we don't need to add it here.
+
+  # Rdoc
+  s.extra_rdoc_files = ['README.md', 'LICENSE.txt', 'CHANGES.md']
+  s.rdoc_options << '--title' << 'Windoo' << '--line-numbers' << '--main' << 'README.md'
 end
