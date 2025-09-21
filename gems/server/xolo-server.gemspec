@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
 
   # files
   s.files = Dir['lib/**/*.rb']
+  s.files += Dir['data/**/*']
 
   # executables
   s.executables << 'xoloserver'
