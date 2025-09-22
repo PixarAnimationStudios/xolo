@@ -27,8 +27,7 @@ module Xolo
         # and then 'register' them in the server with
         #    register Xolo::Server::<Module>
         # Doing it this way allows us to split the code into a logical
-        # file structure, without re-opening the Sinatra::Base server app,
-        # and let xeitwork do the requiring of those files
+        # file structure, without re-opening the Sinatra::Base server app
         extend Sinatra::Extension
 
         # when this module is included
@@ -248,9 +247,7 @@ module Xolo
             jamf_installed_group_url: title.jamf_installed_group_url,
             jamf_frozen_group_url: title.jamf_frozen_group_url
           }
-          if title.released_version
-            data[:jamf_manual_install_released_policy_url] = title.jamf_manual_install_released_policy_url
-          end
+          data[:jamf_manual_install_released_policy_url] = title.jamf_manual_install_released_policy_url if title.released_version
 
           if title.uninstallable?
             data[:jamf_uninstall_script_url] = title.jamf_uninstall_script_url
