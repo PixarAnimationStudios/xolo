@@ -360,10 +360,10 @@ module Xolo
           progress "Jamf: Repairing Package '#{jamf_pkg_name}'", log: :info
           jamf_package.packageName = jamf_pkg_name
           jamf_package.fileName = "#{jamf_pkg_name}.pkg"
-          jamf_package.osRequirements = ">=#{min_os}"
-          jamf_package.notes = jamf_package_notes
           jamf_package.rebootRequired = reboot
+          jamf_package.notes = jamf_package_notes
           jamf_package.categoryId = jamf_xolo_category_id
+          jamf_package.osRequirements = ">=#{min_os}"
           jamf_package.save
         end
 
@@ -452,37 +452,25 @@ module Xolo
         #########################
         def create_jamf_auto_install_policy
           progress "Jamf: Creating Auto Install Policy: #{jamf_auto_install_policy_name}", log: :debug
-
           pol = Jamf::Policy.create name: jamf_auto_install_policy_name, cnx: jamf_cnx
-
-          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.add_package jamf_pkg_name
-          pol.set_trigger_event :checkin, true
-          pol.set_trigger_event :custom, Xolo::BLANK
-          pol.frequency = :once_per_computer
-          pol.retry_event = :checkin
-          pol.retry_attempts = 5
-          pol.recon = true
-
-          # while in pilot, only pilot groups are targets
-          set_policy_pilot_groups pol
-
-          # exclusions are for always
-          set_policy_exclusions pol
-
-          pol.enable
+          configure_jamf_auto_install_policy(pol)
           pol.save
           pol
         end
 
         # repair the auto-install policy only
-        # TODO: Be DRY, make a method that configures the policy
-        # to be used by this method and create_jamf_auto_install_policy
         #############################
         def repair_jamf_auto_install_policy
           progress "Jamf: Repairing Auto Install Policy '#{jamf_auto_install_policy_name}'", log: :info
           pol = jamf_auto_install_policy
-          pol.name = jamf_auto_install_policy_name
+          configure_jamf_auto_install_policy(pol)
+          pol.save
+        end
+
+        # Configure the given policy as the auto-install policy for this version
+        # @param pol [Jamf::Policy] the policy to configure
+        ################################
+        def configure_jamf_auto_install_policy(pol)
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
@@ -494,21 +482,22 @@ module Xolo
           pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
           pol.add_package jamf_pkg_name
 
+          # exclusions are for always
           set_policy_exclusions pol
 
+          # set the scope targets based on status
           if pilot?
             set_policy_pilot_groups pol
           else
             set_policy_release_groups pol
           end
 
+          # enable or disable based on status
           if pilot? || released?
             pol.enable
           else
             pol.disable
           end
-
-          pol.save
         end
 
         # @return [String] the URL for the Jamf Pro Policy that does auto-installs of this version
@@ -552,33 +541,24 @@ module Xolo
           progress "Jamf: Creating Manual Install Policy: #{jamf_manual_install_policy_name}", log: :info
 
           pol = Jamf::Policy.create name: jamf_manual_install_policy_name, cnx: jamf_cnx
-
-          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.add_package jamf_pkg_name
-          pol.set_trigger_event :checkin, false
-          pol.set_trigger_event :custom, jamf_manual_install_trigger
-          pol.frequency = :ongoing
-          pol.recon = true
-
-          # manual install policy is always available manually install
-          # anywhere except the exclusions.
-          set_policy_to_all_targets(pol)
-
-          # exclusions are for always
-          set_policy_exclusions pol
-
-          pol.enable
+          configure_jamf_manual_install_policy(pol)
           pol.save
-
           pol
         end
 
         # repair the manual-install policy only
         #############################
         def repair_jamf_manual_install_policy
-          progress "Jamf: Repairing Manual Install Policy '#{jamf_manual_install_policy_name}'", log: :info
           pol = jamf_manual_install_policy
-          pol.name = jamf_manual_install_policy_name
+          progress "Jamf: Repairing Manual Install Policy '#{jamf_manual_install_policy_name}'", log: :info
+          configure_jamf_manual_install_policy(pol)
+          pol.save
+        end
+
+        # Configure the given policy as the manual-install policy for this version
+        # @param pol [Jamf::Policy] the policy to configure
+        ##########################
+        def configure_jamf_manual_install_policy(pol)
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
@@ -595,7 +575,6 @@ module Xolo
           # only the title's jamf_manual_install_released_policy is
           pol.remove_from_self_service if pol.in_self_service?
           pol.enable
-          pol.save
         end
 
         # @return [String] the URL for the Jamf Pro Policy that does manual installs of this version
