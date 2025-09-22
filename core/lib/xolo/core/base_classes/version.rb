@@ -543,7 +543,7 @@ module Xolo
 
         ######################
         def pilot?
-          status == STATUS_PILOT
+          status == STATUS_PILOT || status.nil?
         end
 
         ######################
