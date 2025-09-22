@@ -132,7 +132,8 @@ module Xolo
             end
           end
 
-          changelog_data
+          # reverse the order so the most recent change is first
+          changelog_data.reverse
         end
 
         # Copy the changelog file to the backup directory
