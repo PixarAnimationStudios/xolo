@@ -188,7 +188,7 @@ module Xolo
           result = vers.deploy_via_mdm targets
 
           body result
-        rescue StandardError => e
+        rescue => e
           msg = "#{e.class}: #{e}"
           log_error msg
           halt 400, { status: 400, error: msg }
@@ -241,9 +241,11 @@ module Xolo
           vers = instantiate_version title: params[:title], version: params[:version]
           data = {
             ted_patch_url: vers.ted_patch_url,
+            jamf_version_installed_group: vers.jamf_installed_group_url,
             jamf_auto_install_policy_url: vers.jamf_auto_install_policy_url,
             jamf_manual_install_policy_url: vers.jamf_manual_install_policy_url,
-            jamf_patch_policy_url: vers.jamf_patch_policy_url,
+            jamf_auto_re_install_policy_url: vers.jamf_auto_reinstall_policy_url,
+            jamf_patch_policy_url: vers.jamf_auto_reinstall_policy_url,
             jamf_package_url: vers.jamf_package_url
           }
           body data

@@ -246,11 +246,24 @@ module Xolo
       # Jamf object names start with this
       attr_reader :jamf_obj_name_pfx
 
+      # For each version there will be a smart group containing all macs
+      # that have that version of the title installed. The smart group
+      # will be named 'xolo-<title>-<version>-installed'
+      #
+      # It will be used as the target for the auto-reinstall
+      #
+      # @return [String] the name of the smart group
+      attr_reader :jamf_installed_group_name
+
       # Jamf auto-install policies are named this
       attr_reader :jamf_auto_install_policy_name
 
       # Jamf manual install policies are named this
       attr_reader :jamf_manual_install_policy_name
+
+      # Jamf auto re-install policies are named this
+      attr_reader :jamf_auto_reinstall_policy_name
+
       # the custom trigger is the same
       alias jamf_manual_install_trigger jamf_manual_install_policy_name
 
@@ -305,8 +318,11 @@ module Xolo
 
         @jamf_pkg_name ||= @jamf_obj_name_pfx
 
+        @jamf_installed_group_name = "#{jamf_obj_name_pfx}#{JAMF_SMART_GROUP_NAME_INSTALLED_SFX}"
+
         @jamf_auto_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_AUTO_INSTALL_SFX}"
         @jamf_manual_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_MANUAL_INSTALL_SFX}"
+        @jamf_auto_reinstall_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_AUTO_REINSTALL_SFX}"
 
         @jamf_patch_policy_name = @jamf_obj_name_pfx
 
@@ -598,7 +614,7 @@ module Xolo
         save_local_data
 
         # new pkg uploads happen in a separate process
-      rescue StandardError => e
+      rescue => e
         log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
@@ -828,9 +844,7 @@ module Xolo
         raise Xolo::ServerError, 'Server is shutting down' if Xolo::Server.shutting_down?
 
         while locked?
-          if (Time.now.to_i % 5).zero?
-            log_debug "Waiting for update lock on Version '#{version}' of title '#{title}'..."
-          end
+          log_debug "Waiting for update lock on Version '#{version}' of title '#{title}'..." if (Time.now.to_i % 5).zero?
           sleep 0.33
         end
         Xolo::Server.object_locks[title] ||= { versions: {} }

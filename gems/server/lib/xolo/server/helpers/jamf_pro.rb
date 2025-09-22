@@ -97,10 +97,15 @@ module Xolo
           @jamf_cnx
         end
 
-        # The id of
+        # The id of the 'xolo' category in Jamf Pro.s
         #
         def jamf_xolo_category_id
-          @jamf_xolo_category_id ||= Jamf::Category.valid_id(Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).to_s
+          @jamf_xolo_category_id ||=
+            if Jamf::Category.all_names(cnx: jamf_cnx).include? Xolo::Server::JAMF_XOLO_CATEGORY
+              Jamf::Category.valid_id(Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).to_s
+            else
+              Jamf::Category.create(name: Xolo::Server::JAMF_XOLO_CATEGORY, cnx: jamf_cnx).save
+            end
         end
 
         # if there's a forced_exclusion group defined in the server config

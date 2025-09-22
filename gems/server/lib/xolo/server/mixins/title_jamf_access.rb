@@ -476,9 +476,7 @@ module Xolo
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_uninstall_policy_name
           pol.scope.add_target(:computer_group, jamf_installed_group_name)
-          if valid_forced_exclusion_group_name
-            pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
-          end
+          pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
           pol.frequency = :ongoing
           pol.enable
         end
@@ -514,9 +512,7 @@ module Xolo
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, jamf_expire_policy_name
           pol.scope.add_target(:computer_group, jamf_installed_group_name)
-          if valid_forced_exclusion_group_name
-            pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name]
-          end
+          pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
           pol.frequency = :daily
           pol.enable
         end

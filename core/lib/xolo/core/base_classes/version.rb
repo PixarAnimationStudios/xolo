@@ -472,6 +472,32 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute creation_date
+          #   @return [Time] The date this version was created.
+          reupload_date: {
+            label: 'Latest Pkg Re-Upload Date',
+            type: :time,
+            do_not_inherit: true,
+            cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              The last time the .pkg for this version was re-uploaded, after the initial upload.
+            ENDDESC
+          },
+
+          # @!attribute modified_by
+          #   @return [String] The login of the admin who last modified this version.
+          reuploaded_by: {
+            label: 'Latest Pkg Re-Uploaded By',
+            type: :string,
+            cli: false,
+            do_not_inherit: true,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              The login of the admin who last re-uploaded the .pkg for this version, after the initial upload.
+            ENDDESC
+          },
+
           # @!attribute dist_pkg
           #   @return [Boolean] Is the most recently uploaded package a Distribution package? If so it can be used
           #      for MDM deployment.

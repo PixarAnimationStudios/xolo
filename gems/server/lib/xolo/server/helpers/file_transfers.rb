@@ -61,7 +61,7 @@ module Xolo
           title = instantiate_title params[:title]
           title.save_ssvc_icon(tempfile, filename)
           title.configure_pol_for_self_service if title.self_service
-        rescue StandardError => e
+        rescue => e
           msg = "#{e.class}: #{e}"
           log_error msg
           e.backtrace.each { |line| log_error "..#{line}" }
@@ -79,6 +79,18 @@ module Xolo
           # the Xolo::Server::Version that owns this pkg
           version = instantiate_version title: params[:title], version: params[:version]
           version.lock
+
+          # is this a re-upload? True if pkg_to_upload as any value in it
+          if version.pkg_to_upload.pix_empty?
+            action = 'Uploading'
+            re_uploading = false
+          else
+            re_uploading = true
+            action = 'Re-uploading'
+            version.reupload_date = Time.now
+            version.reuploaded_by = session[:admin]
+            version.log_change msg: "Re-uploading pkg file as requested by #{session[:admin]}"
+          end
 
           # the original uploaded filename
           orig_filename = params[:file][:filename]
@@ -115,6 +127,11 @@ module Xolo
           # This will set the checksum and manifest in the JPackage object
           upload_to_dist_point(version.jamf_package, staged_pkg)
 
+          # This will make the version start a thread
+          # that will wait some period of time (to allow for pkg uploads
+          # to complete) before enabling the reinstall policy
+          version.wait_to_enable_reinstall_policy if re_uploading
+
           # make note if the pkg is a Distribution package
           version.dist_pkg = pkg_is_distribution?(staged_pkg)
 
@@ -128,12 +145,12 @@ module Xolo
           version.save_local_data
 
           # log the upload
-          version.log_change msg: "Uploaded pkg file '#{staged_pkg.basename}'"
+          version.log_change msg: "#{action} pkg file '#{staged_pkg.basename}'"
 
           # remove the staged pkg and the tempfile
           staged_pkg.delete
           tempfile.delete if tempfile.file?
-        rescue StandardError => e
+        rescue => e
           msg = "#{e.class}: #{e}"
           log_error msg
           e.backtrace.each { |line| log_error "..#{line}" }
@@ -177,7 +194,7 @@ module Xolo
             jpkg.upload pkg_file # this will update the checksum and manifest automatically, and save back to the server
             log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
           else
-            log_debug "Jamf: Regeneratin manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+            log_debug "Jamf: Regenerating manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
             jpkg.generate_manifest(pkg_file)
 
             log_debug "Jamf: Recalculating checksum for package '#{jpkg.packageName}' from #{pkg_file.basename}"
