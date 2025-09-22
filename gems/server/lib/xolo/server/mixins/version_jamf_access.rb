@@ -212,6 +212,24 @@ module Xolo
           # Changing those is very rare, and ill-advised, so we can skip that for now.
         end
 
+        # Validate and fix any Jamf::JPackage objects that
+        # related to this version:
+        # - the package object
+        # - the installed-group
+        # - the auto-install policy
+        # - the manual-install policy
+        # - the auto-reinstall policy
+        # - the patch policy
+        #########################################
+        def repair_jamf_version_objects
+          repair_jamf_package
+          repair_jamf_installed_group
+          repair_jamf_auto_install_policy
+          repair_jamf_manual_install_policy
+          repair_jamf_auto_reinstall_policy
+          repair_jamf_patch_policy
+        end
+
         # Delete an entire version from Jamf Pro
         # This includes the package, the manual install policy, the auto install policy,
         # and the patch policy.
@@ -261,6 +279,12 @@ module Xolo
 
           # msg = "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at  #{Time.now.strftime '%F %T'}"
           # progress msg, log: :debug
+        end
+
+        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
+        ################
+        def jamf_gui_url
+          @jamf_gui_url ||= title_object.jamf_gui_url
         end
 
         #######  The Jamf Package Object
@@ -781,6 +805,38 @@ module Xolo
           @jamf_auto_reinstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
         end
 
+        # This will start a thread
+        # that will wait some period of time (to allow for pkg uploads
+        # to complete) before enabling and flushing the logs for the reinstall policy.
+        # This will make all macs with this version installed get it re-installed.
+        # @return [void]
+        def wait_to_enable_reinstall_policy
+          # TODO: some setting to determine how long to wait?
+          # - If uploading via the Jamf API, we need to give it time
+          #   to then upload the file to the cloud distribution point
+          # - If uploading via a custom tool, we need to give that
+          #   tool time to re-upload to wherever it uploads to
+          # - May need to wait for other non-jamf/non-xolo processes
+          #   to sync the package to other distribution points. This
+          #   might be very site-specific.
+
+          # For now, we wait 15 minutes.
+          wait_time = 15 * 60
+
+          @enable_reinstall_policy_thread = Thread.new do
+            log_debug "Jamf: Starting enable_reinstall_policy_thread: waiting #{wait_time} seconds before enabling reinstall policy for version #{version} of title #{title}"
+            sleep wait_time
+
+            log_debug "Jamf: enable_reinstall_policy_thread: enabling and flushing logs for reinstall policy for version #{version} of title #{title}"
+
+            pol = jamf_auto_reinstall_policy
+            pol.enable
+            pol.flush_logs
+            pol.save
+          end
+          @enable_reinstall_policy_thread.name = "enable_reinstall_policy_thread-#{title}-#{version}"
+        end
+
         #######  The Jamf Patch Policy
         ###########################################
         ###########################################
@@ -895,17 +951,9 @@ module Xolo
           @jamf_manual_install_policy_url = "#{jamf_gui_url}/patchDeployment.html?softwareTitleId=#{title_id}&id=#{pol_id}&o=r"
         end
 
-        ################
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        ################
+        #######  General Policy Handling
+        ###########################################
+        ###########################################
 
         # set target groups in a pilot [patch] policy object's scope
         # REMEMBER TO SAVE THE POLICY LATER
@@ -984,122 +1032,6 @@ module Xolo
 
           exclusions.uniq!
           pol.scope.set_exclusions :computer_groups, exclusions
-        end
-
-        # @return [Jamf::PatchTitle::Version] The Jamf::PatchTitle::Version for this
-        # Xolo version
-        #####################
-        def jamf_patch_version
-          return @jamf_patch_version if @jamf_patch_version
-
-          # NOTE: in the line below, use the title_object's call to #jamf_patch_title
-          # because that will cache the Jamf::PatchTitle instance, and we need to
-          # use it to save changes to its Versions.
-          # Using the class method won't cache the instance we will need in the
-          # future.
-          @jamf_patch_version = title_object.jamf_patch_title.versions[version]
-          return @jamf_patch_version if @jamf_patch_version
-
-          # TODO: wait for it to appear when adding?
-          msg = "Jamf: Version '#{version}' of Title '#{title}' is not visible in Jamf. Is the Patch enabled in the Title Editor?"
-          log_error msg
-          raise Xolo::NoSuchItemError, msg
-        end
-
-        # Wait until the version is visible from the title editor
-        # then assign the pkg to it in Jamf Patch,
-        # and create the patch policy.
-        #
-        # Do this in a thread so the xadm user doesn't wait up to ?? minutes.
-        #
-        # @return [void]
-        #########################
-        def activate_patch_version_in_jamf
-          # don't do this if there's already one running for this instance
-          if @activate_patch_version_thread&.alive?
-            log_debug "Jamf: activate_patch_version_thread already running. Caller: #{caller_locations.first}"
-            return
-          end
-
-          msg = "Jamf: Will assign Jamf pkg '#{jamf_pkg_name}' and create the patch policy when this version becomes visible to Jamf Pro from the Title Editor."
-          progress msg, log: :debug
-
-          @activate_patch_version_thread = Thread.new do
-            log_debug "Jamf: Starting activate_patch_version_thread waiting for version #{version} of title #{title} to become visible from the title editor"
-
-            start_time = Time.now
-            max_time = start_time + Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
-            start_time = start_time.strftime '%F %T'
-
-            did_it = false
-
-            while Time.now < max_time
-              sleep 15
-              log_debug "Jamf: checking for version #{version} of title #{title} to become visible from the title editor since #{start_time}"
-
-              # check for the existence of the jamf_patch_title every time, since it might have gone away
-              # if the title was deleted while this was happening.
-              next unless title_object.jamf_patch_title(refresh: true) && title_object.jamf_patch_title.versions.key?(version)
-
-              did_it = true
-              break
-            end
-
-            if did_it
-              assign_pkg_to_patch_in_jamf
-              # give jamf a moment to catch up and refresh the patch title
-              # so we see the pkg has been assigned
-              sleep 2
-              title_object.jamf_patch_title(refresh: true)
-
-              create_jamf_patch_policy
-              msg = "Jamf: Version '#{version}' of title '#{title}' is now visible in Jamf Pro. Package assigned and Patch policy created."
-              log_info msg, alert: true
-            else
-              msg = "Jamf: ERROR: Version '#{version}' of title '#{title}' has not become visible from the Title Editor in over #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} seconds. The package has not been assigned, and no patch policy was created."
-              log_error msg, alert: true
-            end
-          end # thread
-          @activate_patch_version_thread.name = "activate_patch_version_thread-#{title}-#{version}"
-        end
-
-        # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
-        # This 'activates' the version in Jamf Patch, and must happen before
-        # patch policies can be created
-        #
-        # Jamf::PatchTitle::Version objects are contained in the matching
-        # Jamf::PatchTitle, and to make or save changes, we have to fetch the title,
-        # update the version, and save the title.
-        #
-        # NOTE: This can't happen until Jamf see's the version in the title editor
-        # otherwise you'll get an error. The methods that call this should ensure
-        # the version is visible.
-        #
-        # @return [void]
-        ########################################
-        def assign_pkg_to_patch_in_jamf
-          log_info "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'"
-
-          jamf_patch_version.package = jamf_pkg_name
-          title_object.jamf_patch_title.save
-        end
-
-        # Validate and fix any Jamf::JPackage objects that
-        # related to this version:
-        # - the package object
-        # - the installed-group
-        # - the auto-install policy
-        # - the manual-install policy
-        # - the auto-reinstall policy
-        # - the patch policy
-        #########################################
-        def repair_jamf_version_objects
-          repair_jamf_package
-          repair_jamf_installed_group
-          repair_jamf_auto_install_policy
-          repair_jamf_manual_install_policy
-          repair_jamf_auto_reinstall_policy
-          repair_jamf_patch_policy
         end
 
         # Disable the auto-install and patch policies for this version when it
@@ -1240,6 +1172,119 @@ module Xolo
           set_policy_exclusions(pol, ttl_obj: ttl_obj)
           pol.save
         end
+
+        #######  General Jamf Patch Handling
+        ###########################################
+        ###########################################
+
+        # @return [Jamf::PatchTitle::Version] The Jamf::PatchTitle::Version for this
+        # Xolo version
+        #####################
+        def jamf_patch_version
+          return @jamf_patch_version if @jamf_patch_version
+
+          # NOTE: in the line below, use the title_object's call to #jamf_patch_title
+          # because that will cache the Jamf::PatchTitle instance, and we need to
+          # use it to save changes to its Versions.
+          # Using the class method won't cache the instance we will need in the
+          # future.
+          @jamf_patch_version = title_object.jamf_patch_title.versions[version]
+          return @jamf_patch_version if @jamf_patch_version
+
+          # TODO: wait for it to appear when adding?
+          msg = "Jamf: Version '#{version}' of Title '#{title}' is not visible in Jamf. Is the Patch enabled in the Title Editor?"
+          log_error msg
+          raise Xolo::NoSuchItemError, msg
+        end
+
+        # Wait until the version is visible from the title editor
+        # then assign the pkg to it in Jamf Patch,
+        # and create the patch policy.
+        #
+        # Do this in a thread so the xadm user doesn't wait up to ?? minutes.
+        #
+        # @return [void]
+        #########################
+        def activate_patch_version_in_jamf
+          # don't do this if there's already one running for this instance
+          if @activate_patch_version_thread&.alive?
+            log_debug "Jamf: activate_patch_version_thread already running. Caller: #{caller_locations.first}"
+            return
+          end
+
+          msg = "Jamf: Will assign Jamf pkg '#{jamf_pkg_name}' and create the patch policy when this version becomes visible to Jamf Pro from the Title Editor."
+          progress msg, log: :debug
+
+          @activate_patch_version_thread = Thread.new do
+            log_debug "Jamf: Starting activate_patch_version_thread waiting for version #{version} of title #{title} to become visible from the title editor"
+
+            start_time = Time.now
+            max_time = start_time + Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
+            start_time = start_time.strftime '%F %T'
+
+            did_it = false
+
+            while Time.now < max_time
+              sleep 15
+              log_debug "Jamf: checking for version #{version} of title #{title} to become visible from the title editor since #{start_time}"
+
+              # check for the existence of the jamf_patch_title every time, since it might have gone away
+              # if the title was deleted while this was happening.
+              next unless title_object.jamf_patch_title(refresh: true) && title_object.jamf_patch_title.versions.key?(version)
+
+              did_it = true
+              break
+            end
+
+            if did_it
+              assign_pkg_to_patch_in_jamf
+              # give jamf a moment to catch up and refresh the patch title
+              # so we see the pkg has been assigned
+              sleep 2
+              title_object.jamf_patch_title(refresh: true)
+
+              create_jamf_patch_policy
+              msg = "Jamf: Version '#{version}' of title '#{title}' is now visible in Jamf Pro. Package assigned and Patch policy created."
+              log_info msg, alert: true
+            else
+              msg = "Jamf: ERROR: Version '#{version}' of title '#{title}' has not become visible from the Title Editor in over #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} seconds. The package has not been assigned, and no patch policy was created."
+              log_error msg, alert: true
+            end
+          end # thread
+          @activate_patch_version_thread.name = "activate_patch_version_thread-#{title}-#{version}"
+        end
+
+        # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
+        # This 'activates' the version in Jamf Patch, and must happen before
+        # patch policies can be created
+        #
+        # Jamf::PatchTitle::Version objects are contained in the matching
+        # Jamf::PatchTitle, and to make or save changes, we have to fetch the title,
+        # update the version, and save the title.
+        #
+        # NOTE: This can't happen until Jamf see's the version in the title editor
+        # otherwise you'll get an error. The methods that call this should ensure
+        # the version is visible.
+        #
+        # @return [void]
+        ########################################
+        def assign_pkg_to_patch_in_jamf
+          log_info "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'"
+
+          jamf_patch_version.package = jamf_pkg_name
+          title_object.jamf_patch_title.save
+        end
+
+        # Get the patch report for this version
+        # @return [Arrah<Hash>] Data for each computer with this version of this title installed
+        ######################
+        def patch_report
+          title_object.patch_report vers: version
+        end
+
+        #######  MDM Deployment
+        ###########################################
+        ###########################################
 
         # Install this version on a one or more computers via MDM.
         #
@@ -1386,51 +1431,6 @@ module Xolo
               removals << { device: member[:name], group: nil, reason: "In excluded group '#{group}'" }
             end
           end # excluded_groups_to_use.each
-        end
-
-        # Get the patch report for this version
-        # @return [Arrah<Hash>] Data for each computer with this version of this title installed
-        ######################
-        def patch_report
-          title_object.patch_report vers: version
-        end
-
-        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
-        ################
-        def jamf_gui_url
-          @jamf_gui_url ||= title_object.jamf_gui_url
-        end
-
-        # This will start a thread
-        # that will wait some period of time (to allow for pkg uploads
-        # to complete) before enabling and flushing the logs for the reinstall policy.
-        # This will make all macs with this version installed get it re-installed.
-        # @return [void]
-        def wait_to_enable_reinstall_policy
-          # TODO: some setting to determine how long to wait?
-          # - If uploading via the Jamf API, we need to give it time
-          #   to then upload the file to the cloud distribution point
-          # - If uploading via a custom tool, we need to give that
-          #   tool time to re-upload to wherever it uploads to
-          # - May need to wait for other non-jamf/non-xolo processes
-          #   to sync the package to other distribution points. This
-          #   might be very site-specific.
-
-          # For now, we wait 15 minutes.
-          wait_time = 15 * 60
-
-          @enable_reinstall_policy_thread = Thread.new do
-            log_debug "Jamf: Starting enable_reinstall_policy_thread: waiting #{wait_time} seconds before enabling reinstall policy for version #{version} of title #{title}"
-            sleep wait_time
-
-            log_debug "Jamf: enable_reinstall_policy_thread: enabling and flushing logs for reinstall policy for version #{version} of title #{title}"
-
-            pol = jamf_auto_reinstall_policy
-            pol.enable
-            pol.flush_logs
-            pol.save
-          end
-          @enable_reinstall_policy_thread.name = "enable_reinstall_policy_thread-#{title}-#{version}"
         end
 
       end # VersionJamfAccess
