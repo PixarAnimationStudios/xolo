@@ -461,7 +461,7 @@ module Xolo
           pol.set_trigger_event :custom, Xolo::BLANK
           pol.frequency = :once_per_computer
           pol.retry_event = :checkin
-          pol.retry_attempts = 10
+          pol.retry_attempts = 5
           pol.recon = true
 
           # while in pilot, only pilot groups are targets
@@ -488,7 +488,7 @@ module Xolo
           pol.set_trigger_event :custom, Xolo::BLANK
           pol.frequency = :once_per_computer
           pol.retry_event = :checkin
-          pol.retry_attempts = 10
+          pol.retry_attempts = 5
           pol.recon = true
 
           pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
@@ -777,7 +777,7 @@ module Xolo
           pol.set_trigger_event :custom, Xolo::BLANK
           pol.frequency = :once_per_computer
           pol.retry_event = :checkin
-          pol.retry_attempts = 10
+          pol.retry_attempts = 5
           pol.scope.set_targets :computer_groups, jamf_installed_group
 
           # exclusions are for always
