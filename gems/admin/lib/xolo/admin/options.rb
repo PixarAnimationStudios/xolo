@@ -712,7 +712,7 @@ module Xolo
         },
 
         HELP_CMD => {
-          desc: 'Get help for a specifc command',
+          desc: 'Get help for a specific command',
           display: 'help command',
           opts: {},
           no_login: true
