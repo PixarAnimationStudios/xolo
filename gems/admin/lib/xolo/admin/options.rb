@@ -174,6 +174,7 @@ module Xolo
 
       LIST_GROUPS_CMD = 'list-groups'
       LIST_CATEGORIES_CMD = 'list-categories'
+      SAVE_CLIENT_CODE_CMD = 'save-client'
 
       SERVER_STATUS_CMD = 'server-status'
       HELP_CMD = 'help'
@@ -685,6 +686,29 @@ module Xolo
           opts: {},
           arg_banner: :none,
           process_method: :list_categories
+        },
+
+        SAVE_CLIENT_CODE_CMD => {
+          desc: 'Save the xolo client tool to a directory for packaging and deployment.',
+          long_desc: <<~ENDLONG,
+            Saves the 'xolo' client tool to the specified directory. If no
+            directory is given, saves to /tmp/. The version saved is the same
+            version as the xadm tool you are running.
+
+            Once saved, you can package and deploy the client tool to your
+            managed Macs in whatever way is appropriate for your environment.
+
+            'xolo' is a command-line tool for installing and otherwise working
+            with xolo-managed software on managed Macs. It is a single-file zsh script.
+            Fundamentally, it is a wrapper around the 'jamf policy' command, but it
+            also provides additional functionality.
+            See 'xolo help' for details.
+          ENDLONG
+          display: SAVE_CLIENT_CODE_CMD,
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} #{SAVE_CLIENT_CODE_CMD} [/path/to/dir]",
+          opts: {},
+          arg_banner: :none,
+          process_method: :save_client_code
         },
 
         HELP_CMD => {

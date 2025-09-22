@@ -245,6 +245,9 @@ module Xolo
         # if we are here and any part of ARGV is --help, nothing more to do.
         return if ARGV.include?(Xolo::Admin::Options::HELP_OPT)
 
+        # if we are saving the client code, we don't need to log in
+        return if cli_cmd.command == Xolo::Admin::Options::SAVE_CLIENT_CODE_CMD
+
         # log in now, cuz we need the server to validate the rest of the
         # command line
         #

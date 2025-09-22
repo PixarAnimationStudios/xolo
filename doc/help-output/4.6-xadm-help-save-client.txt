@@ -1,0 +1,22 @@
+Command:
+  save-client, Save the xolo client tool to a directory for packaging and deployment.
+
+Description:
+  Saves the 'xolo' client tool to the specified directory. If no
+  directory is given, saves to /tmp/. The version saved is the same
+  version as the xadm tool you are running.
+
+  Once saved, you can package and deploy the client tool to your
+  managed Macs in whatever way is appropriate for your environment.
+
+  'xolo' is a command-line tool for installing and otherwise working
+  with xolo-managed software on Macs. It is a single-file zsh script.
+  Fundamentally, it is a wrapper around the 'jamf policy' command,
+  but it also provides additional functionality.
+  See 'xolo help' for details.
+
+Usage:
+  xadm save-client [/path/to/dir]
+
+Options:
+  -h, --help    Show this message

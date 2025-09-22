@@ -1049,6 +1049,35 @@ module Xolo
         list_in_cols 'Categories in Jamf Pro:', jamf_category_names.sort_by(&:downcase)
       end
 
+      # Save the xolo client tool from the gem's data dir to a
+      # desired dir or /tmp
+      #
+      # @return [void]
+      ##########################
+      def save_client_code
+        dest_dir = ARGV.shift
+        dest_dir ||= '/tmp'
+        dest_dir = Pathname.new(dest_dir).expand_path
+        unless dest_dir.directory? && dest_dir.writable?
+          raise ArgumentError,
+                "Destination directory '#{dest_dir}' does not exist or is not writable"
+        end
+
+        this_file = Pathname.new(__FILE__).expand_path
+        # This file is .../gems/xolo-admin-<vers>/lib/xolo/admin/processing.rb
+        # so....
+        # parent1 = admin
+        # parent2 - xolo
+        # parent3 = lib
+        # parent4 = xolo-admin-<vers>
+        # and we want xolo-admin-<vers>/data/client/xolo
+        src = this_file.parent.parent.parent.parent + 'data/client/xolo'
+        dest = dest_dir + 'xolo'
+
+        src.pix_cp dest
+        puts "Saved 'xolo' client tool to '#{dest}'"
+      end
+
       # run the cleanup
       # get the /test route to do whatever testing it does
       # during testing - this will return all kinds of things.
