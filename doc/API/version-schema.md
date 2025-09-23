@@ -32,7 +32,7 @@ TODO: Document the different contexts and which keys are used in each.
   "pilot_groups": [
     "chrisltest-smartgroup"
   ],
-  "pkg_to_upload": "/Users/chrisl/git/xolo-titles/xolotest/xolotest-100.pkg",
+  "pkg_to_upload": "XoloTest.pkg",
   "publish_date": "2024-12-02 00:00:00 -0800",
   "reboot": false,
   "release_date": null,

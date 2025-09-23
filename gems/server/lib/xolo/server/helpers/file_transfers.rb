@@ -141,6 +141,9 @@ module Xolo
           # save the checksum just in case
           version.sha_512 = version.jamf_package.checksum
 
+          # don't save the admins local path to the pkg, just the filename they uploaded
+          version.pkg_to_upload = orig_filename
+
           # save/update the local data file, since we've done stuff to update it
           version.save_local_data
 
