@@ -782,7 +782,7 @@ module Xolo
           pol.frequency = :once_per_computer
           pol.retry_event = :checkin
           pol.retry_attempts = 5
-          pol.scope.set_targets :computer_groups, jamf_installed_group
+          pol.scope.set_targets :computer_groups, [jamf_installed_group_name]
 
           # exclusions are for always
           set_policy_exclusions pol
