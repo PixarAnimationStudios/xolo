@@ -1,0 +1,114 @@
+#!/usr/bin/env ruby
+
+# Copyright 2025 Pixar
+#
+#    Licensed under the terms set forth in the LICENSE.txt file available at
+#    at the root of this project.
+#
+
+# frozen_string_literal: true
+
+require 'xolo/admin'
+
+# The App
+#####################
+class XoloAdmin
+
+  # Mixins
+  #####################################
+  #####################################
+
+  include Xolo::Admin
+  include Xolo::Core::JSONWrappers
+  include Xolo::Core::Output
+  include Xolo::Admin::CommandLine
+  include Xolo::Admin::Connection
+  include Xolo::Admin::Processing
+  include Xolo::Admin::Credentials
+  include Xolo::Admin::Interactive
+  include Xolo::Admin::Options
+  include Xolo::Admin::Validate
+  include Xolo::Admin::JamfPro
+  include Xolo::Admin::TitleEditor
+  include Xolo::Admin::ProgressHistory
+
+  # Constructor
+  ###################
+  def initialize
+    # all bets are off during early testing
+    return if ARGV.include? '--test'
+
+    # This will log us in to the xolo server
+    # if the command needs it.
+    parse_cli
+  end
+
+  # Run
+  ########################
+  def run
+    # during early testing, this will return all kinds of things.
+    run_tests if ARGV.include? '--test'
+    return if @tests_run
+
+    # this line will actuall stay somewhere here in xadm!
+    do_walkthru if walkthru?
+    return if @walkthru_cancelled
+
+    process_method = cmd_details[:process_method]
+    return unless process_method
+
+    send process_method
+  end # run
+
+  # do some testing
+  ########################
+  def run_tests
+    # LOCAL TESTING
+    # uncomment to test local variables and such, see
+    # the do_local_testing method in processing.rb
+    # and adjust it as needed to test what needs testing
+    #
+    # do_local_testing
+
+    # SERVER TESTING
+    # uncomment to reach out to the server
+    # to test all kinds of things - the connection,
+    # or any values the server might return
+    #
+    # see the run_test_route method in processing.rb
+    # and the test_route method in the server
+    # and adjust them as needed to test what needs testing
+    #
+    # login test: true
+    # run_test_route
+
+    @tests_run = true
+  end # run_tests
+
+end # class XoloAdmin
+
+# MAIN
+#####################
+begin
+  # if --debug is given anywhere, move it to the front of ARGV
+  # which is where Optimist expects it
+  #
+  # -d must be given as a global opt (before the command)
+  # in order to mean --debug
+  #
+  debug = ARGV.delete '--debug'
+  ARGV.unshift debug if debug
+
+  app = XoloAdmin.new
+  debug ||= app.global_opts.debug
+
+  app.run
+  exit 0
+rescue => e
+  warn "Error: #{e.class.name.split('::').last}: #{e}"
+  if debug
+    warn 'Backtrace:'
+    e.backtrace.each { |l| warn "..#{l}" }
+  end
+  exit 1
+end
