@@ -45,6 +45,11 @@ module Xolo
         # changes
         JAMF_POLICY_NAME_AUTO_REINSTALL_SFX = '-auto-reinstall'
 
+        # How long to wait after a pkg re-upload before creating/enabling/flushing
+        # the auto-reinstall policy
+        # See TODO in #wait_to_enable_reinstall_policy
+        JAMF_AUTO_REINSTALL_WAIT_SECS = 15 * 60
+
         # POLICIES, PATCH POLICIES, SCOPING
         #############################
         #
@@ -182,13 +187,15 @@ module Xolo
           # this will create the JPackage object
           jamf_package
 
-          # This wil create the installed smart group
-          jamf_installed_group
+          # The
+          # - jamf_installed_group
+          # - jamf_auto_reinstall_policy
+          # aren't needed until there's a pkg re-upload
+          # and they will be created then if they doesn't already exist
 
           # these will create the policies
           jamf_auto_install_policy
           jamf_manual_install_policy
-          jamf_auto_reinstall_policy
 
           activate_patch_version_in_jamf
         end
@@ -206,11 +213,16 @@ module Xolo
           update_jamf_pkg_reboot if changes_for_update&.key? :reboot
           update_jamf_pkg_min_os if changes_for_update&.key? :min_os
 
-          # TODO: Update the critera for the jamf_installed_group IF the title
-          # has changed how it determines installed versions, e.g. by adding or
-          # changing a version_script or app_bundle_id
-          # Changing those is very rare, and ill-advised, so we will implement
-          # this later.
+          # TODO: Update the critera for the jamf_installed_group IF
+          #
+          # - the group exists AND
+          # - the title has changed how it determines installed versions, e.g. by adding or
+          #   changing a version_script or app_bundle_id
+          #   Changing those is very rare, and ill-advised, so we will implement
+          #   this later.
+          #
+          # if jamf_installed_group_exist?
+          # end
         end
 
         # Validate and fix any Jamf::JPackage objects that
@@ -224,10 +236,10 @@ module Xolo
         #########################################
         def repair_jamf_version_objects
           repair_jamf_package
-          repair_jamf_installed_group
+          repair_jamf_installed_group # wont happen if no reupload_date
           repair_jamf_auto_install_policy
           repair_jamf_manual_install_policy
-          repair_jamf_auto_reinstall_policy
+          repair_jamf_auto_reinstall_policy # wont happen if no reupload_date
           repair_jamf_patch_policy
         end
 
@@ -242,7 +254,12 @@ module Xolo
           log_debug "Deleting Version '#{version}' from Jamf"
 
           # The Policies
-          pols = [jamf_manual_install_policy, jamf_auto_install_policy, jamf_auto_reinstall_policy, jamf_patch_policy]
+          pols = [
+            jamf_manual_install_policy,
+            jamf_auto_install_policy,
+            jamf_auto_reinstall_policy,
+            jamf_patch_policy
+          ]
           pols.each do |pol|
             next unless pol
 
@@ -448,6 +465,12 @@ module Xolo
         ###########################################
         ###########################################
 
+        # @return [Boolean] does the jamf_auto_install_policy exist?
+        ###########################
+        def jamf_auto_install_policy_exist?
+          Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
+        end
+
         # Create or fetch the auto install policy for this version
         # If we are deleting and it doesn't exist, return nil.
         #
@@ -455,7 +478,7 @@ module Xolo
         ##########################
         def jamf_auto_install_policy
           @jamf_auto_install_policy ||=
-            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_install_policy_name
+            if jamf_auto_install_policy_exist?
               Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
             else
               return if deleting?
@@ -540,6 +563,12 @@ module Xolo
         ###########################################
         ###########################################
 
+        # @return [Boolean] does the jamf_manual_install_policy exist?
+        ###########################
+        def jamf_manual_install_policy_exist?
+          Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
+        end
+
         # Create or fetch the manual install policy for this version
         # If we are deleting and it doesn't exist, return nil.
         #
@@ -547,7 +576,7 @@ module Xolo
         ##########################
         def jamf_manual_install_policy
           @jamf_manual_install_policy ||=
-            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_manual_install_policy_name
+            if jamf_manual_install_policy_exist?
               Jamf::Policy.fetch(name: jamf_manual_install_policy_name, cnx: jamf_cnx)
             else
               return if deleting?
@@ -617,6 +646,12 @@ module Xolo
         ###########################################
         ###########################################
 
+        # @return [Boolean] does the jamf_installed_group exist?
+        #########################
+        def jamf_installed_group_exist?
+          Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_group_name
+        end
+
         # Create or fetch the smart group of macs with this version installed
         # If we are deleting and it doesn't exist, return nil
         #
@@ -625,16 +660,17 @@ module Xolo
         def jamf_installed_group
           return @jamf_installed_group if @jamf_installed_group
 
-          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_group_name
+          if jamf_installed_group_exist?
             @jamf_installed_group = Jamf::ComputerGroup.fetch(
               name: jamf_installed_group_name,
               cnx: jamf_cnx
             )
           else
             return if deleting?
+            # don't create unless there's been a re-upload of the pkg
+            return unless reupload_date
 
             create_jamf_installed_group
-
           end
           @jamf_installed_group
         end
@@ -657,8 +693,11 @@ module Xolo
         end
 
         # Reset the configuration of the jamf_installed_group
+        # but only if there's been a re-upload of the pkg
         #########################
         def repair_jamf_installed_group
+          return unless reupload_date
+
           configure_jamf_installed_group jamf_installed_group
           jamf_installed_group.save
         end
@@ -738,6 +777,12 @@ module Xolo
         ###########################################
         ###########################################
 
+        # @return [Boolean] does the jamf_auto_reinstall_policy exist?
+        ##########################
+        def jamf_auto_reinstall_policy_exist?
+          Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_reinstall_policy_name
+        end
+
         # Create or fetch the auto re-install policy for this version
         # If we are deleting and it doesn't exist, return nil.
         #
@@ -745,10 +790,12 @@ module Xolo
         ##########################
         def jamf_auto_reinstall_policy
           @jamf_auto_reinstall_policy ||=
-            if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_reinstall_policy_name
+            if jamf_auto_reinstall_policy_exist?
               Jamf::Policy.fetch(name: jamf_auto_reinstall_policy_name, cnx: jamf_cnx)
             else
               return if deleting?
+              # don't create unless there's been a re-upload of the pkg
+              return unless reupload_date
 
               create_jamf_auto_reinstall_policy
             end
@@ -768,6 +815,8 @@ module Xolo
         # Reset the configuration of the jamf_installed_group
         #########################
         def repair_jamf_auto_reinstall_policy
+          return unless reupload_date
+
           progress "Jamf: Repairing Auto Re-Install Policy: #{jamf_auto_reinstall_policy_name}", log: :debug
           configure_jamf_auto_reinstall_policy jamf_auto_reinstall_policy
         end
@@ -823,7 +872,7 @@ module Xolo
           #   might be very site-specific.
 
           # For now, we wait 15 minutes.
-          wait_time = 15 * 60
+          wait_time = JAMF_AUTO_REINSTALL_WAIT_SECS
 
           @enable_reinstall_policy_thread = Thread.new do
             log_debug "Jamf: Starting enable_reinstall_policy_thread: waiting #{wait_time} seconds before enabling reinstall policy for version #{version} of title #{title}"
@@ -1170,12 +1219,14 @@ module Xolo
             pol.save
           end
 
-          # - update the auto reinstall policy
-          pol = jamf_auto_reinstall_policy
-          if pol
-            progress "Jamf: Updating excluded groups for Auto ReInstall Policy '#{jamf_auto_reinstall_policy_name}'."
-            set_policy_exclusions(pol, ttl_obj: ttl_obj)
-            pol.save
+          # - update the auto reinstall policy, but only if it exists
+          if jamf_auto_reinstall_policy_exist?
+            pol = jamf_auto_reinstall_policy
+            if pol
+              progress "Jamf: Updating excluded groups for Auto ReInstall Policy '#{jamf_auto_reinstall_policy_name}'."
+              set_policy_exclusions(pol, ttl_obj: ttl_obj)
+              pol.save
+            end
           end
 
           # - update the patch policy
