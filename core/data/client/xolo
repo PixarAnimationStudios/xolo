@@ -174,6 +174,7 @@ function parse_cli() {
     {q,-quiet}=be_quiet \
     {d,-debug}=debugging_on \
     {n,-no-versions}=no_versions \
+    {r,-recon}=do_recon \
     {V,-version}=show_xolo_version || \
     die 'Unknonwn Options or Args.'
 
@@ -183,6 +184,7 @@ function parse_cli() {
   be_quiet=$be_quiet[-1]
   debugging_on=$debugging_on[-1]
   no_versions=$no_versions[-1]
+  do_recon=$do_recon[-1]
   show_xolo_version=$show_xolo_version[-1]
 
   # if debugging is on, verbose is also on
@@ -687,20 +689,35 @@ function run_jamf_policy_trigger() {
   local jamf_quiet=''
   local cmd
 
+  # debug means verbose
   if be_verbose ; then
     jamf_verbose='-verbose'
   else
-     be_quiet && jamf_quiet='> /dev/null'
-    # be quiet will not be set if we're running 'refresh' from the CLI
-    [[ "$command" = 'refresh' ]] || jamf_quiet='> /dev/null'
+    # if told to be quiet, do so
+    if be_quiet ; then
+      jamf_quiet=1
+
+    # but if we're refreshing client data as part of
+    # another command, always be quiet.
+    elif [[ $policy_trigger == $UPDATE_CLIENT_DATA_TRIGGER && "$command" != 'refresh' ]] ; then
+      jamf_quiet=1
+    fi
   fi
 
-    # TODO: look at the output of the policy run to see if it was successful
-  # and report possible reasons for failure, esp if no policy was found for
-  # the trigger
-  cmd="$JAMF policy -trigger $policy_trigger $jamf_options $jamf_verbose $jamf_quiet"
+
+  cmd="$JAMF policy -trigger $policy_trigger $jamf_options $jamf_verbose"
   debug "Running jamf policy command: $cmd"
-  eval $cmd
+
+  if [[ -n $jamf_quiet ]] ; then
+    policy_output=$( eval "$cmd" )
+  else
+    policy_output=$( eval "$cmd" | tee /dev/tty )
+  fi
+
+  [[ $policy_output =~ 'Submitting log to https://' ]] && return 0
+
+  # callers can examine $policy_output if they want to see what happened
+  return 1
 }
 
 # Refresh the client data
@@ -779,12 +796,22 @@ function install() {
   validate_version
 
   if [[ -n "$version" ]] ; then
-    say "Installing version $version of title $title"
+    thing_being_installed="version $version of title $title"
   else
-    say "Installing released version of title: $title"
+    thing_being_installed="released version of title $title"
   fi
+  say "Installing $thing_being_installed"
 
-  run_jamf_policy_trigger "${install_trigger}"
+  if run_jamf_policy_trigger "${install_trigger}" ; then
+    run_recon
+    say "Done, installed $thing_being_installed"
+  else
+    if [[ $policy_output =~ 'No policies were found for the' ]] ; then
+      die "Title $title is excluded for this computer or is not installable via xolo"
+    else
+      die "Install of title $title failed."
+    fi
+  fi
 }
 
 # Unnstall a title
@@ -795,7 +822,32 @@ function uninstall() {
   validate_title
   say "Uninstalling title $title..."
 
-  run_jamf_policy_trigger "xolo-${title}-uninstall"
+  if run_jamf_policy_trigger "xolo-${title}-uninstall" ; then
+    run_recon
+    say "Done, title $title uninstalled"
+  else
+    if [[ $policy_output =~ 'No policies were found for the' ]] ; then
+      die "Title $title is not uninstallable via xolo"
+    else
+      die "Uninstall of title $title failed."
+    fi
+  fi
+}
+
+# run a jamf recon if requested
+#
+#############################
+function run_recon() {
+  [[ -n "$do_recon" ]] || return 0
+
+  say 'Running jamf recon...'
+  if be_verbose ; then
+    $JAMF recon -verbose
+  elif be_quiet ; then
+    $JAMF recon &> /dev/null
+  else
+    $JAMF recon
+  fi
 }
 
 # Update installed titles or install new ones
@@ -806,9 +858,14 @@ function uninstall() {
 function update() {
   say "Updating installed titles, or installing newly scoped ones..."
 
-  cmd="$JAMF policy"
-  debug "Running jamf policy command: $cmd"
-  eval $cmd
+  debug "Running jamf policy..."
+    if be_verbose ; then
+    $JAMF policy -verbose
+  elif be_quiet ; then
+    $JAMF policy &> /dev/null
+  else
+    $JAMF policy
+  fi
 }
 
 # List all known titles and their versions and statuses

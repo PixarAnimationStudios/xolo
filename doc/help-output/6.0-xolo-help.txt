@@ -4,14 +4,16 @@ Usage:
   xolo [options] <command> [<title> [<version>]]
 
 Options:
-  -h, -H, --help: Show this help message.
-  -v, --verbose: Enable verbose mode, extra information will be printed.
-  -q, --quiet: Enable quiet mode, only errors will be printed to stderr.
-  -d, --debug: Enable debug mode, extra debug information will be printed.
+  -h, -H, --help:    Show this help message.
+  -v, --verbose:     Enable verbose mode, extra information will be printed.
+  -q, --quiet:       Enable quiet mode, only errors will be printed to stderr.
+  -d, --debug:       Enable debug mode, extra debug information will be printed.
+  -r, --recon:       With 'install' or 'uninstall' run a 'jamf recon' after the
+                     operation completes successfully.
   -n, --no-versions: With the 'list-titles' and 'list-installed' commands,
-                       do not show the versions available, or the version
-                       installed, respectively.
-  -V, --version: Show the version of xolo.
+                     do not show the versions available, or the version
+                     installed, respectively.
+  -V, --version:     Show the version of xolo.
 
   NOTE: Debug mode will also enable verbose mode. Both debug and verbose modes
   override quiet mode.
