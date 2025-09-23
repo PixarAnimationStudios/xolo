@@ -311,7 +311,7 @@ module Xolo
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_released_policy_name
           pol.frequency = :ongoing
-          pol.recon = true
+          pol.recon = false
           pol.add_package rel_vers.jamf_pkg_id
           pol.scope.set_all_targets
           # figure out the exclusions.

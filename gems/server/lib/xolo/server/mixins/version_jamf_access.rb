@@ -502,7 +502,7 @@ module Xolo
           pol.frequency = :once_per_computer
           pol.retry_event = :checkin
           pol.retry_attempts = 5
-          pol.recon = true
+          pol.recon = false
 
           pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
           pol.add_package jamf_pkg_name
@@ -588,7 +588,7 @@ module Xolo
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_trigger
           pol.frequency = :ongoing
-          pol.recon = true
+          pol.recon = false
 
           pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
           pol.add_package jamf_pkg_name
@@ -780,6 +780,7 @@ module Xolo
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
           pol.frequency = :once_per_computer
+          pol.recon = false
           pol.retry_event = :checkin
           pol.retry_attempts = 5
           pol.scope.set_targets :computer_groups, [jamf_installed_group_name]
