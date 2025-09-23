@@ -209,7 +209,8 @@ module Xolo
           # TODO: Update the critera for the jamf_installed_group IF the title
           # has changed how it determines installed versions, e.g. by adding or
           # changing a version_script or app_bundle_id
-          # Changing those is very rare, and ill-advised, so we can skip that for now.
+          # Changing those is very rare, and ill-advised, so we will implement
+          # this later.
         end
 
         # Validate and fix any Jamf::JPackage objects that
@@ -1021,11 +1022,12 @@ module Xolo
 
           # the initial auto-install policies must also exclude any mac with the title
           # already installed
-          # But the manual install policy should never exclude it - so that
-          # one-off macs can install or re-install at any time.
+          #
+          # But the manual-install policy and the auto-reinstall should never exclude it - so that
+          # it can be manually installed or automatically re-installed whenever needed
           if pol.is_a?(Jamf::Policy) && pol.name == jamf_auto_install_policy_name
             # calling ttl_obj.jamf_installed_group will create the group if needed
-            exclusions << ttl_obj.jamf_installed_group.name
+            exclusions << ttl_obj.jamf_installed_group_name
           end
 
           log_debug "Jamf: updating exclusions for #{pol.class} '#{pol.name}' to: #{exclusions.join ', '}"
@@ -1048,6 +1050,9 @@ module Xolo
           pol = jamf_auto_install_policy
           pol.disable
           pol.save
+
+          # don't disable the auto-reinstall policy - it may be needed
+          # for any re-uploads of the pkg for this version, even if deprecated/skipped
 
           progress "Jamf: Disabling patch policy for #{reason} version '#{version}'"
           ppol = jamf_patch_policy
@@ -1163,8 +1168,16 @@ module Xolo
             set_policy_exclusions(pol, ttl_obj: ttl_obj)
             pol.save
           end
-          # - update the patch policy
 
+          # - update the auto reinstall policy
+          pol = jamf_auto_reinstall_policy
+          if pol
+            progress "Jamf: Updating excluded groups for Auto ReInstall Policy '#{jamf_auto_reinstall_policy_name}'."
+            set_policy_exclusions(pol, ttl_obj: ttl_obj)
+            pol.save
+          end
+
+          # - update the patch policy
           pol = jamf_patch_policy
           return unless pol
 
