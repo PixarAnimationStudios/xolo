@@ -326,7 +326,7 @@ module Xolo
           # figure out the exclusions.
           #
           # explicit exlusions for the title
-          excls = changes_for_update&.key?(:excluded_groups) ? changes_for_update[:excluded_groups][:new] : excluded_groups.dup
+          excls = changes_for_update&.key?(:excluded_groups) ? changes_for_update[:excluded_groups][:new].dup : excluded_groups.dup
           excls ||= []
           # plus the frozen group
           excls << jamf_frozen_group_name
