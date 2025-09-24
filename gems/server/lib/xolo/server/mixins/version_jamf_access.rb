@@ -864,6 +864,9 @@ module Xolo
         # This will make all macs with this version installed get it re-installed.
         # @return [void]
         def wait_to_enable_reinstall_policy
+          return if @enable_reinstall_policy_thread&.alive?
+          return unless reupload_date
+
           # TODO: some setting to determine how long to wait?
           # - If uploading via the Jamf API, we need to give it time
           #   to then upload the file to the cloud distribution point

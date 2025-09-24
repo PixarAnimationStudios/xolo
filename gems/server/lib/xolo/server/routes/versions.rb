@@ -241,13 +241,14 @@ module Xolo
           vers = instantiate_version title: params[:title], version: params[:version]
           data = {
             ted_patch_url: vers.ted_patch_url,
-            jamf_version_installed_group: vers.jamf_installed_group_url,
             jamf_auto_install_policy_url: vers.jamf_auto_install_policy_url,
             jamf_manual_install_policy_url: vers.jamf_manual_install_policy_url,
-            jamf_auto_re_install_policy_url: vers.jamf_auto_reinstall_policy_url,
-            jamf_patch_policy_url: vers.jamf_auto_reinstall_policy_url,
+            jamf_patch_policy_url: vers.jamf_patch_policy_url,
             jamf_package_url: vers.jamf_package_url
           }
+          data[:jamf_version_installed_group] = vers.jamf_installed_group_url if vers.jamf_installed_group_exist?
+          data[:jamf_auto_reinstall_policy_url] = vers.jamf_auto_reinstall_policy_url if vers.jamf_auto_reinstall_policy_exist?
+
           body data
         end
 

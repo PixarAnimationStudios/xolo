@@ -472,8 +472,34 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute creation_date
-          #   @return [Time] The date this version was created.
+          # @!attribute upload_date
+          #   @return [Time] Timestamp of the original pkg upload
+          upload_date: {
+            label: 'Original Pkg Upload Date',
+            type: :time,
+            do_not_inherit: true,
+            cli: false,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              The time the first .pkg for this version was uploaded.
+            ENDDESC
+          },
+
+          # @!attribute uploaded_by
+          #   @return [String] The login of the admin who uploaded the original pkg
+          uploaded_by: {
+            label: 'Original Pkg Uploaded By',
+            type: :string,
+            cli: false,
+            do_not_inherit: true,
+            read_only: true, # maintained by the server, not editable by xadm TODO: same as cli: false??
+            desc: <<~ENDDESC
+              The login of the admin who last uploaded the first .pkg for this version.
+            ENDDESC
+          },
+
+          # @!attribute reupload_date
+          #   @return [Time] Timestamp of the latest pkg reupload
           reupload_date: {
             label: 'Latest Pkg Re-Upload Date',
             type: :time,
@@ -485,8 +511,8 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute modified_by
-          #   @return [String] The login of the admin who last modified this version.
+          # @!attribute reuploaded_by
+          #   @return [String] The login of the admin who reuploaded the latest pkg
           reuploaded_by: {
             label: 'Latest Pkg Re-Uploaded By',
             type: :string,

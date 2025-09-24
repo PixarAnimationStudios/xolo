@@ -22,6 +22,10 @@ TODO: Document the different contexts and which keys are used in each.
   "jamf_pkg_file": "xolo-xolotest-1.0.0.pkg",
   "jamf_pkg_id": 11231,
   "jamf_pkg_name": "xolo-xolotest-1.0.0",
+  "uploaded_by": "chrisl",
+  "upload_date": "2024-12-02 15:37:34 -0800",
+  "reuploaded_by": "chrisl",
+  "reupload_date": "2024-12-02 15:37:34 -0800",
   "killapps": [
     "XoloTest.app;com.pixar.xolotest"
   ],

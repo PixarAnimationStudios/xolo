@@ -72,6 +72,7 @@ module Xolo
         # Handle an uploaded pkg installer
         # TODO: wrap this in a thread, it might be very slow for large pkgs.
         # TODO: Also, when threaded, how to report errors?
+        # TODO: Split this into smaller methods
         #############################
         def process_incoming_pkg
           log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
@@ -80,16 +81,14 @@ module Xolo
           version = instantiate_version title: params[:title], version: params[:version]
           version.lock
 
-          # is this a re-upload? True if pkg_to_upload as any value in it
-          if version.pkg_to_upload.pix_empty?
+          # is this a re-upload? True if upload_date as any value in it
+          if version.upload_date.pix_empty?
             action = 'Uploading'
             re_uploading = false
           else
             re_uploading = true
             action = 'Re-uploading'
-            version.reupload_date = Time.now
-            version.reuploaded_by = session[:admin]
-            version.log_change msg: "Re-uploading pkg file as requested by #{session[:admin]}"
+            version.log_change msg: 'Re-uploading pkg file'
           end
 
           # the original uploaded filename
@@ -127,10 +126,19 @@ module Xolo
           # This will set the checksum and manifest in the JPackage object
           upload_to_dist_point(version.jamf_package, staged_pkg)
 
-          # This will make the version start a thread
-          # that will wait some period of time (to allow for pkg uploads
-          # to complete) before enabling the reinstall policy
-          version.wait_to_enable_reinstall_policy if re_uploading
+          if re_uploading
+            # These must be set before calling wait_to_enable_reinstall_policy
+            version.reupload_date = Time.now
+            version.reuploaded_by = session[:admin]
+
+            # This will make the version start a thread
+            # that will wait some period of time (to allow for pkg uploads
+            # to complete) before enabling the reinstall policy
+            version.wait_to_enable_reinstall_policy
+          else
+            version.upload_date = Time.now
+            version.uploaded_by = session[:admin]
+          end
 
           # make note if the pkg is a Distribution package
           version.dist_pkg = pkg_is_distribution?(staged_pkg)
