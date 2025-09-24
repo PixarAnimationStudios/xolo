@@ -318,13 +318,15 @@ module Xolo
           pol.set_trigger_event :custom, jamf_manual_install_released_policy_name
           pol.frequency = :ongoing
           pol.recon = false
-          pol.add_package rel_vers.jamf_pkg_id
           pol.scope.set_all_targets
 
-          # figure out the exclusions.
+          pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
+          pol.add_package rel_vers.jamf_pkg_id
 
+          # figure out the exclusions.
+          #
           # explicit exlusions for the title
-          excls = excluded_groups.dup
+          excls = changes_for_update&.key?(:excluded_groups) ? changes_for_update[:excluded_groups][:new] : excluded_groups.dup
           excls ||= []
           # plus the frozen group
           excls << jamf_frozen_group_name
