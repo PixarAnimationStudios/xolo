@@ -698,6 +698,8 @@ module Xolo
         def repair_jamf_installed_group
           return unless reupload_date
 
+          progress "Jamf: Repairing smart group '#{jamf_installed_group_name}'", log: :info
+
           configure_jamf_installed_group jamf_installed_group
           jamf_installed_group.save
         end
