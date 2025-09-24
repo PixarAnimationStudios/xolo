@@ -90,6 +90,12 @@ module Xolo
           # If those have changed, we need to update it.
           set_installed_group_criteria_in_jamf if need_to_update_installed_group_in_jamf?
 
+          # if the exclusions have changed update the manual install released policy
+          if changes_for_update[:excluded_groups]
+            progress "Jamf: Updating excluded groups for Manual Released Policy '#{jamf_manual_install_released_policy_name}'."
+            configure_manual_install_released_policy(jamf_manual_install_released_policy)
+          end
+
           # Do we need to update (vs delete) the uninstall script?
           if need_to_update_uninstall_script_in_jamf?
 
@@ -314,16 +320,19 @@ module Xolo
           pol.recon = false
           pol.add_package rel_vers.jamf_pkg_id
           pol.scope.set_all_targets
+
           # figure out the exclusions.
+
           # explicit exlusions for the title
           excls = excluded_groups.dup
           excls ||= []
           # plus the frozen group
           excls << jamf_frozen_group_name
-          # plus any forces group from the server config
+          # plus any forced group from the server config
           excls << valid_forced_exclusion_group_name if valid_forced_exclusion_group_name
           # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
           log_debug "Setting exclusions for manual install policy for current release: #{excls}"
+
           pol.scope.set_exclusions :computer_groups, excls
 
           if self_service
