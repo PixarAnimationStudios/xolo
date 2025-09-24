@@ -56,18 +56,16 @@ module Xolo
         get '/jamf/package-names' do
           log_debug "Jamf: Fetching Jamf Package Names for #{session[:admin]}"
           jamf_cnx
-          body Jamf::JPackage.all_names(cnx: jamf_cnx).sort
+          body Jamf::JPackage.all_names(:refresh, cnx: jamf_cnx).sort
         ensure
           jamf_cnx&.disconnect
         end
 
-        # A list of all current computer groups, excluding those starting with xolo-
+        # A list of all current computer groups
         ###############
         get '/jamf/computer-group-names' do
           log_debug "Jamf: Fetching Jamf ComputerGroup Names for #{session[:admin]}"
-          body Jamf::ComputerGroup.all_names(cnx: jamf_cnx).reject { |g|
-                 g.start_with? Xolo::Server::JAMF_OBJECT_NAME_PFX
-               }.sort
+          body Jamf::ComputerGroup.all_names(:refresh, cnx: jamf_cnx).sort
         ensure
           jamf_cnx&.disconnect
         end
@@ -77,7 +75,7 @@ module Xolo
         get '/jamf/category-names' do
           log_debug "Jamf: Fetching Jamf Category Names for #{session[:admin]}"
           jcnx = jamf_cnx
-          body Jamf::Category.all_names(cnx: jcnx).sort
+          body Jamf::Category.all_names(:refresh, cnx: jcnx).sort
         ensure
           jcnx&.disconnect
         end
