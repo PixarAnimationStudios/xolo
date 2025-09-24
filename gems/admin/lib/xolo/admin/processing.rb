@@ -143,7 +143,7 @@ module Xolo
         else
           titleout = +'#---------------------------------------'
           titleout << "\nTitle: #{title.title}"
-          titleout << "\nDisplay Name: '#{title.display_name}"
+          titleout << "\nDisplay Name: #{title.display_name}"
           titleout << "\nPublisher: #{title.publisher}"
           titleout << "\nApp: #{title.app_name}\nBundleID: #{title.app_bundle_id}" if title.app_name
           titleout << "\nVersions: #{versions}"
