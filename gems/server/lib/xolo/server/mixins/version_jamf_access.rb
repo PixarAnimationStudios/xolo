@@ -361,7 +361,8 @@ module Xolo
 
         # @return [String] the 'notes' text for the Jamf::JPackage object for this version
         #############################
-        def jamf_package_notes
+        def jamf_package_notes(ttl_obj: nil)
+          ttl_obj ||= title_object
           pkg_notes = Xolo::Server::Version::JAMF_PKG_NOTES_PREFIX.sub(
             Xolo::Server::Version::JAMF_PKG_NOTES_VERS_PH,
             version
@@ -370,8 +371,18 @@ module Xolo
             Xolo::Server::Version::JAMF_PKG_NOTES_TITLE_PH,
             title
           )
-          pkg_notes << title_object.description
+          desc = ttl_obj.changes_for_update.dig(:description, :new) || ttl_obj.description
+          pkg_notes << desc
           pkg_notes
+        end
+
+        # update the description for the Jamf::JPackage
+        # @return [void]
+        def update_jamf_package_notes(ttl_obj: nil)
+          ttl_obj ||= title_object
+          progress "Jamf: Updating notes for Jamf::JPackage '#{jamf_pkg_name}'", log: :debug
+          jamf_package.notes = jamf_package_notes(ttl_obj: ttl_obj)
+          jamf_package.save
         end
 
         # update the reboot setting for the Jamf::JPackage
@@ -415,6 +426,7 @@ module Xolo
           return @jamf_package_url if @jamf_package_url
           return unless jamf_pkg_id
 
+          # the old url
           # @jamf_package_url = "#{jamf_gui_url}/packages.html?id=#{jamf_pkg_id}&o=r"
 
           @jamf_package_url = "#{jamf_gui_url}/view/settings/computer-management/packages/#{jamf_pkg_id}?tab=general"

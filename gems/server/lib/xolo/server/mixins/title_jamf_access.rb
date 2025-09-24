@@ -122,6 +122,7 @@ module Xolo
           # this has to happen after updating the installed_group
           delete_normal_ea_from_jamf unless version_script_contents
 
+          update_description_in_jamf
           update_ssvc
           update_ssvc_category
           # TODO: deal with icon changes: if changes_for_update&.key? :self_service_icon
@@ -150,6 +151,7 @@ module Xolo
           version_objects.each do |vers_obj|
             vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update&.key? :release_groups
             vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key? :excluded_groups
+            vers_obj.update_jamf_package_notes(ttl_obj: self) if need_to_update_description?
             # vers_obj.update_ssvc(ttl_obj: self) if changes_for_update&.key? :self_service
             # vers_obj.update_ssvc_category(ttl_obj: self) if changes_for_update&.key? :self_service_category
           end
@@ -218,6 +220,15 @@ module Xolo
           else
             false
           end
+        end
+
+        # do we need to update the description?
+        # True if our incoming changes include :description
+        #
+        # @return [Boolean]
+        ###################################
+        def need_to_update_description?
+          changes_for_update.key?(:description)
         end
 
         # do we need to create or delete the expire policy?
@@ -382,6 +393,29 @@ module Xolo
           pol.save # won't do anything unless needed, but has to exist before we can upload icons
           pol.upload :icon, ssvc_icon_file
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
+        end
+
+        # Update the description in Jamfy places it appears
+        # At the moment, this is only the manual install policy
+        # if its in self service. The package notes are updated
+        # by the versions themselves via the
+        # update_versions_for_title_changes_in_jamf method
+        #
+        # @return [void]
+        #########################
+        def update_description_in_jamf
+          return unless need_to_update_description?
+
+          # Update the manual install policy
+          return unless self_service
+
+          pol = jamf_manual_install_released_policy
+          return unless pol
+
+          progress "Jamf: Updating Description for Self Service in policy '#{pol.name}'.", log: :info
+          new_desc = changes_for_update[:description][:new] || description
+          pol.self_service_description = new_desc
+          pol.save
         end
 
         # Update whether or not we are in self service, based on the setting in the title

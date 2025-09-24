@@ -695,14 +695,13 @@ module Xolo
         @new_data_for_update = new_data
         @changes_for_update = note_changes_for_update_and_log
 
-        log_debug "Updating Title with these changes: #{changes_for_update}"
-
         if @changes_for_update.pix_empty?
           progress 'No changes to make', log: :info
           return
         end
 
         log_info "Updating title '#{title}' for admin '#{admin}'"
+        log_debug "Updating title with these changes: #{changes_for_update}"
 
         # changelog - log the changes now, and
         # if there is an error, we'll log that too
@@ -729,7 +728,7 @@ module Xolo
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
         #
-      rescue StandardError => e
+      rescue => e
         log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
 
         # re-raise for proper error handling in the server app
