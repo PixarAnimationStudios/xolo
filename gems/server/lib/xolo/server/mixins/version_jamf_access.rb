@@ -909,13 +909,19 @@ module Xolo
         ###########################################
         ###########################################
 
+        # @return [Boolean] does the jamf_patch_policy exist?
+        ###########################
+        def jamf_patch_policy_exist?
+          Jamf::PatchPolicy.all_names(:refresh, cnx: jamf_cnx).include? jamf_patch_policy_name
+        end
+
         # Fetch or create the patch policy for this version
         # If we are deleting and it doesn't exist, return nil.
         # @return [Jamf::PatchPolicy, nil] The patch policy for this version, if it exists
         ##########################
         def jamf_patch_policy
           @jamf_patch_policy ||=
-            if Jamf::PatchPolicy.all_names(cnx: jamf_cnx).include? jamf_patch_policy_name
+            if jamf_patch_policy_exist?
               Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
             else
               return if deleting?
@@ -975,7 +981,8 @@ module Xolo
 
           ppol.save
 
-          ppol
+          # refetch it rather than using the one we just created
+          Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
         end
 
         # repair the patch policy only
