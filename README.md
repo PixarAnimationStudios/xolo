@@ -1,6 +1,6 @@
 # Xolo - CLI and Automated Package and Patch Management for Jamf Pro
 
-<img src="data/images/dante.png" alt="Dante the xolo dog from the film Coco" width="200" height="200">
+<img src="http://pixaranimationstudios.github.io/xolo-home/images/dante.png" alt="Dante the xolo dog from the film Coco" width="200" height="200">
 
 Xolo (sorta pronounced 'show-low') is an http server and set of command-line tools for macOS that provide automatable access to the package deployment and patch management aspects of [Jamf Pro](https://www.jamf.com/products/jamf-pro/) and the [Jamf Title Editor](https://learn.jamf.com/en-US/bundle/title-editor/page/About_Title_Editor.html). It enhances Jamf Pro's abilities in many ways:
 
@@ -26,14 +26,11 @@ which provides a ruby SDK for interacting with the
 - [windoo](http://pixaranimationstudios.github.io/windoo/index.html), providing a ruby SDK for interacting with the 
 [REST API of the Title Editor](https://developer.jamf.com/jamf-pro/reference/gettokenclaims).
 
-See the xolo.gemspec file for other open-source tools and libraries used by Xolo.
+See the xolo-admin.gemspec and xolo-server.gemspec files for other open-source tools and libraries used by Xolo.
 
 For detailed documentation about Xolo:<br/>
 (yet to be written....)
 
-- Setting up xolo in your environment 
-  - Running a xolo server
-  - deploying `xadm`
-  - deploying `xolo`
-- xadm, the Xolo admin tool for managing titles and patches/versions via automated or interactive command-line
-- xolo, the Xolo client tool for manually installing & uninstalling titles on managed Macs   
+- xoloserver, the https server that makes it all go
+- xadm, the Xolo admin tool for managing titles and versions via option-based or interactive command-line
+- xolo, the Xolo client tool for manually working with titles and versions on managed Macs   
