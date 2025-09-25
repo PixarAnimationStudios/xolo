@@ -646,6 +646,7 @@ module Xolo
       #   - manual install policy  'xolo-<title>-<version>-manual-install'
       #   - patch policy 'xolo-<title>-<version>'
       #
+      # Then look at the xolo metadata, and fix whatever is needed
       ##################################
       def repair
         lock
@@ -655,6 +656,21 @@ module Xolo
 
         repair_ted_patch
         repair_jamf_version_objects
+
+        # If there's a reupload, but no original, make the orig the same as the re
+        unless upload_date
+          if reupload_date && reuploaded_by
+            new_date = reupload_date
+            new_by = reuploaded_by
+          else
+            new_date = Time.parse '2025-02-15'
+            new_by = 'buzzlightyear'
+          end
+          progress "Fixing original upload date: #{new_date}, by: #{new_by}", log: :debug
+          self.upload_date = new_date
+          self.uploaded_by = new_by
+          save_local_data
+        end
       ensure
         unlock
       end
