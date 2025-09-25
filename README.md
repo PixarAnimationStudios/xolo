@@ -19,11 +19,11 @@ Unlike d3, xolo is built around 'pure-Jamf' processes, and everything it does ca
 
 Xolo is built with two of our other open-source projects:
 
-- [ruby-jss](http://pixaranimationstudios.github.io/ruby-jss/index.html), 
+- [ruby-jss](http://github.com/PixarAnimationStudios/ruby-jss), 
 which provides a ruby SDK for interacting with the 
 [REST APIs of Jamf Pro](https://developer.jamf.com/jamf-pro/reference/classic-api)
 
-- [windoo](http://pixaranimationstudios.github.io/windoo/index.html), providing a ruby SDK for interacting with the 
+- [windoo](http://github.com/PixarAnimationStudios/windoo), providing a ruby SDK for interacting with the 
 [REST API of the Title Editor](https://developer.jamf.com/jamf-pro/reference/gettokenclaims).
 
 See the xolo-admin.gemspec and xolo-server.gemspec files for other open-source tools and libraries used by Xolo.
