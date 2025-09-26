@@ -309,7 +309,7 @@ module Xolo
             displayName: ted_ea_key,
             script: script
           )
-          @need_to_accept_xolo_ea_in_jamf = true
+          @need_to_accept_jamf_patch_ea = true
         end
 
         # Update the EA in the Title Editor
@@ -322,7 +322,7 @@ module Xolo
 
           if ted_title.extensionAttribute
             ted_title.extensionAttribute.script = script
-            @need_to_accept_xolo_ea_in_jamf = true
+            @need_to_accept_jamf_patch_ea = true
           else
             create_ted_ea(script)
           end
@@ -355,9 +355,7 @@ module Xolo
         # @return [void]
         ##############################
         def set_ted_title_requirement(app_name: nil, app_bundle_id: nil, ea_name: nil)
-          unless (app_name && app_bundle_id) || ea_name
-            raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id'
-          end
+          raise Xolo::MissingDataError, 'Must provide either ea_name or app_name & app_bundle_id' unless (app_name && app_bundle_id) || ea_name
 
           type = ea_name ? 'Extension Attribute (version_script)' : 'App'
 
@@ -430,9 +428,7 @@ module Xolo
           # loop until the enablement goes thru
           breaktime = Time.now + Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
           loop do
-            if Time.now > breaktime
-              raise Xolo::TimeoutError, "Title Editor: Timed out waiting for SoftwareTitle '#{title}' to enable"
-            end
+            raise Xolo::TimeoutError, "Title Editor: Timed out waiting for SoftwareTitle '#{title}' to enable" if Time.now > breaktime
 
             sleep 5
             ted_title(refresh: true).enable
@@ -445,7 +441,7 @@ module Xolo
             begin
               log_debug "Title Editor: Force-enablng all patches for title #{title}"
               ted_title.patches.each(&:enable)
-            rescue StandardError
+            rescue
               nil
             end
 

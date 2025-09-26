@@ -178,8 +178,8 @@ module Xolo
             next unless title_obj.jamf_patch_ea_awaiting_acceptance?
 
             log_info "Cleanup: Auto-accepting Title Editor EA for title '#{title}'"
-            title_obj.accept_patch_ea_in_jamf_via_api
-          rescue StandardError => e
+            title_obj.accept_jamf_patch_ea_via_api
+          rescue => e
             log_error "Cleanup: Error auto-accepting Title Editor EA for title '#{title}': #{e}"
           end # Xolo::Server::Title.all_titles.each
 

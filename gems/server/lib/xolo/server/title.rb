@@ -723,7 +723,7 @@ module Xolo
         # Do This at the end - after all the versions/patches have been updated.
         # Jamf won't see the need for re-acceptance until after the title
         # (and at least one patch) have been re-enabled.
-        accept_xolo_patch_ea_in_jamf if need_to_accept_xolo_ea_in_jamf?
+        accept_jamf_patch_ea if need_to_accept_jamf_patch_ea?
 
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
