@@ -247,7 +247,7 @@ module Xolo
             jamf_installed_group_url: title.jamf_installed_group_url,
             jamf_frozen_group_url: title.jamf_frozen_group_url
           }
-          data[:jamf_manual_install_released_policy_url] = title.jamf_manual_install_released_policy_url if title.released_version
+          data[:jamf_manual_install_released_policy_url] = title.jamf_manual_install_released_policy_url if title.jamf_manual_install_released_policy.exist?
 
           if title.uninstallable?
             data[:jamf_uninstall_script_url] = title.jamf_uninstall_script_url
