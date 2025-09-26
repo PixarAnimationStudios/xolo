@@ -38,7 +38,7 @@ Gem::Specification.new do |s|
     The xolo-server gem packages the code needed to run `xoloserver`, the sinatra-based HTTPS server at the heart of Xolo.
   EODDESC
 
-  s.required_ruby_version = '>= 2.6.3'
+  s.required_ruby_version = '>= 2.7.0'
 
   # files
   s.files = Dir['lib/**/*.rb']
