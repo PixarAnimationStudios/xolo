@@ -55,6 +55,7 @@ Gem::Specification.new do |s|
 
   # Server-specific dependencies
   s.add_runtime_dependency 'concurrent-ruby', '~> 1.1'
+  s.add_runtime_dependency 'net-smtp', '~> 0.5'
   s.add_runtime_dependency 'ruby-jss', '~> 4.2'
   s.add_runtime_dependency 'sinatra', '~> 3.2'
   s.add_runtime_dependency 'sinatra-contrib', '~> 3.2'
