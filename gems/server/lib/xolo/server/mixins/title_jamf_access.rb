@@ -45,13 +45,19 @@ module Xolo
         ##############################
         ##############################
 
+        #######  The Xolo Title itself
+        ###########################################
+        ###########################################
+
         # Create title-level things in jamf when creating a title.
         #
         # @return [void]
         ################################
         def create_title_in_jamf
           # ORDER MATTERS
-          set_normal_ea_script_in_jamf if version_script
+
+          # create the normal ea if needed
+          jamf_normal_ea if version_script
 
           # must happen after the normal ea is created
           set_installed_group_criteria_in_jamf
@@ -84,7 +90,7 @@ module Xolo
 
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_group
-          set_normal_ea_script_in_jamf if need_to_update_normal_ea_in_jamf?
+          configure_jamf_normal_ea if need_to_update_normal_ea_in_jamf?
 
           # this smart group might use the normal-EA or might use app data
           # If those have changed, we need to update it.
@@ -120,7 +126,7 @@ module Xolo
 
           # If we don't use a version script anymore, delete the normal EA
           # this has to happen after updating the installed_group
-          delete_normal_ea_from_jamf unless version_script_contents
+          delete_jamf_normal_ea unless version_script_contents
 
           update_description_in_jamf
           update_ssvc
@@ -132,6 +138,47 @@ module Xolo
           else
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
           end
+        end
+
+        # Repair this title in Jamf Pro
+        # - TODO: activate title in patch mgmt
+        #   - TODO: Accept Patch EA
+        # - Normal EA 'xolo-<title>-installed-version'
+        # - title-installed smart group 'xolo-<title>-installed'
+        # - frozen static group 'xolo-<title>-frozen'
+        # - manual/SSvc install-current-release policy 'xolo-<title>-install'
+        #   - trigger 'xolo-<title>-install'
+        #   - ssvc icon
+        #   - ssvc category
+        #   - description
+        # - if uninstallable
+        #   - uninstall script 'xolo-<title>-uninstall'
+        #   - uninstall policy 'xolo-<title>-uninstall'
+        #   - if expirable
+        #     - expire policy 'xolo-<title>-expire'
+        #       - trigger  'xolo-<title>-expire'
+        #
+        ###############################################
+        def repair_jamf_title_objects
+          progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
+          repair_jamf_normal_ea
+          set_installed_group_criteria_in_jamf
+          repair_jamf_uninstall_script_and_policy
+          repair_expire_policy_in_jamf
+          repair_frozen_group
+          repair_manual_install_released_policy
+        end
+
+        # Delete an entire title from Jamf Pro
+        ########################
+        def delete_title_from_jamf
+          # ORDER MATTERS
+          delete_expire_policy
+          delete_uninstall_pol_and_script
+          delete_frozen_group_from_jamf
+          delete_installed_group_from_jamf
+          delete_jamf_normal_ea
+          delete_patch_title_from_jamf
         end
 
         # If any title changes require updates to existing versions in
@@ -157,6 +204,175 @@ module Xolo
           end
         end
 
+        # Update the description in Jamfy places it appears
+        # At the moment, this is only the manual install policy
+        # if its in self service. The package notes are updated
+        # by the versions themselves via the
+        # update_versions_for_title_changes_in_jamf method
+        #
+        # @return [void]
+        #########################
+        def update_description_in_jamf
+          return unless need_to_update_description?
+
+          # Update the manual install policy
+          return unless self_service
+
+          pol = jamf_manual_install_released_policy
+          return unless pol
+
+          progress "Jamf: Updating Description for Self Service in policy '#{pol.name}'.", log: :info
+          new_desc = changes_for_update[:description][:new] || description
+          pol.self_service_description = new_desc
+          pol.save
+        end
+
+        # do we need to update the description?
+        # True if our incoming changes include :description
+        #
+        # @return [Boolean]
+        ###################################
+        def need_to_update_description?
+          changes_for_update.key?(:description)
+        end
+
+        # do we need to create or delete the expire policy?
+        # True if our incoming changes include :expiration
+        #
+        # Ignore the expire paths - even when disabling expiration
+        # they can stay there, they won't mean anything.
+        #
+        # @return [Boolean]
+        ###################################
+        def need_to_update_expiration?
+          changes_for_update.key?(:expiration)
+        end
+
+        # Get the patch report for this title.
+        # It's the JPAPI report data with each hash having a frozen: key added
+        #
+        # TODO: rework this when all the paging stuff is handled by ruby-jss
+        #
+        # @param vers [String, nil] Limit the report to a specific version
+        #
+        # @return [Arrah<Hash>] Data for each computer with any version of this title installed
+        ######################
+        def patch_report(vers: nil)
+          vers = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION if vers == Xolo::UNKNOWN
+          vers &&= CGI.escape vers.to_s
+
+          page_size = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_JPAPI_PAGE_SIZE
+          page = 0
+          paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
+          paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
+
+          report = []
+          loop do
+            data = jamf_cnx.jp_get(paged_rsrc)[:results]
+            log_debug "GOT #{paged_rsrc}  >>> results size: #{data.size}"
+            break if data.empty?
+
+            report += data
+            page += 1
+            paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
+            paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
+          end
+
+          # log_debug "REPORT: #{report}"
+
+          frozen_comps = frozen_computers.keys
+          report.each do |h|
+            h[:frozen] = frozen_comps.include? h[:computerName]
+            h[:version] = Xolo::UNKNOWN if h[:version] == Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION
+          end
+          report
+        end
+
+        #######  The'Normal" Extension Attribute
+        ###########################################
+        ###########################################
+
+        # @return [Boolean] Does the 'normal' EA exist in jamf?
+        #########################
+        def jamf_normal_ea_exist?
+          Jamf::ComputerExtensionAttribute.all_names(:refresh, cnx: jamf_cnx).include? jamf_normal_ea_name
+        end
+
+        # Create or fetch the 'normal' EA in jamf
+        # If we are deleting and it doesn't exist, return nil.
+        #
+        # @return [Jamf::ComputerExtensionAttribute] The 'normal' Jamf ComputerExtensionAttribute for this title
+        ########################
+        def jamf_normal_ea
+          return @jamf_normal_ea if @jamf_normal_ea
+
+          if jamf_normal_ea_exist?
+            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
+
+          else
+            return if deleting?
+
+            msg = "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart groups"
+            progress msg, log: :info
+
+            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.create(
+              name: jamf_normal_ea_name,
+              cnx: jamf_cnx
+            )
+            @jamf_normal_ea.save
+
+          end
+          @jamf_normal_ea
+        end
+
+        # Configure the 'normal' EA that matches the Patch EA for this title,
+        # so that it can be used in smart groups and adv. searches.
+        # (Patch EAs aren't available for use in smart group critera)
+        #
+        # If we have one already but are deleting it, that happens elsewhere
+        #
+        # @return [void]
+        ################################
+        def configure_jamf_normal_ea
+          progress "Jamf: Configuring regular extension attribute '#{jamf_normal_ea_name}'", log: :info
+
+          jamf_normal_ea.description = "The version of xolo title '#{title}' installed on the machine"
+          jamf_normal_ea.data_type = :string
+
+          # this is our incoming or already-existing EA script
+          if version_script_contents.pix_empty?
+            # nothing to do if its nil, if we need to delete it, that'll happen later
+          else
+            jamf_normal_ea.enabled = true
+            jamf_normal_ea.input_type = 'script'
+            jamf_normal_ea.script = version_script_contents
+          end
+
+          jamf_normal_ea.script = scr
+          jamf_normal_ea.save
+        end
+
+        # Repair the 'normal' EA in jamf to match our version_script
+        ########################
+        def repair_jamf_normal_ea
+          if version_script_contents.pix_empty?
+            delete_jamf_normal_ea
+          else
+            configure_jamf_normal_ea
+          end
+        end
+
+        # Delete the 'normal' computer ext attr matching the Patch EA
+        # @return [void]
+        ######################################
+        def delete_jamf_normal_ea
+          ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
+          return unless ea_id
+
+          progress "Jamf: Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
+          Jamf::ComputerExtensionAttribute.delete ea_id, cnx: jamf_cnx
+        end
+
         # do we need to update the normal EA in jamf?
         # true if our incoming changes include :version_script
         # and the new value is not empty (in which case we'll delete it)
@@ -166,6 +382,26 @@ module Xolo
         def need_to_update_normal_ea_in_jamf?
           changes_for_update.key?(:version_script) && !changes_for_update[:version_script][:new].pix_empty?
         end
+
+        # the script contents of the Normal Jamf EA that comes from our version_script
+        # @return [String, nil] nil if there is none
+        ##############################
+        def jamf_normal_ea_contents
+          jamf_normal_ea.script
+        end
+
+        ###################################
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        ###################################
 
         # do we need to update the uninstall scriptin jamf?
         # true if our incoming changes include :uninstall_script OR :uninstall_ids
@@ -197,27 +433,6 @@ module Xolo
           else
             false
           end
-        end
-
-        # do we need to update the description?
-        # True if our incoming changes include :description
-        #
-        # @return [Boolean]
-        ###################################
-        def need_to_update_description?
-          changes_for_update.key?(:description)
-        end
-
-        # do we need to create or delete the expire policy?
-        # True if our incoming changes include :expiration
-        #
-        # Ignore the expire paths - even when disabling expiration
-        # they can stay there, they won't mean anything.
-        #
-        # @return [Boolean]
-        ###################################
-        def need_to_update_expiration?
-          changes_for_update.key?(:expiration)
         end
 
         # do we need to update the 'installed' smart group?
@@ -252,29 +467,6 @@ module Xolo
 
           log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
           sleep 10
-        end
-
-        # Update the description in Jamfy places it appears
-        # At the moment, this is only the manual install policy
-        # if its in self service. The package notes are updated
-        # by the versions themselves via the
-        # update_versions_for_title_changes_in_jamf method
-        #
-        # @return [void]
-        #########################
-        def update_description_in_jamf
-          return unless need_to_update_description?
-
-          # Update the manual install policy
-          return unless self_service
-
-          pol = jamf_manual_install_released_policy
-          return unless pol
-
-          progress "Jamf: Updating Description for Self Service in policy '#{pol.name}'.", log: :info
-          new_desc = changes_for_update[:description][:new] || description
-          pol.self_service_description = new_desc
-          pol.save
         end
 
         # Create or fetch the script that uninstalls this title from a Mac
@@ -460,61 +652,6 @@ module Xolo
           progress "Jamf: Setting the code for the uninstall script '#{jamf_uninstall_script_name}'", log: :info
           jamf_uninstall_script.code = uninstall_script_contents
           jamf_uninstall_script.save
-        end
-
-        # Create or update a 'normal' EA that matches the Patch EA for this title,
-        # so that it can be used in smart groups and adv. searches.
-        # (Patch EAs aren't available for use in smart group critera)
-        #
-        # If we have one already but are deleting it, that happens elsewhere
-        #
-        # @return [void]
-        ################################
-        def set_normal_ea_script_in_jamf
-          msg = "Jamf: Setting regular extension attribute '#{jamf_normal_ea_name}' to use version_script"
-          progress msg, log: :info
-
-          # this is our incoming or already-existing EA script
-          scr = version_script_contents
-
-          # nothing to do if its nil, if we need to delete it, that'll happen later
-          return if scr.pix_empty?
-
-          # nothing to do if it hasn't changed.
-          return if current_action == :updating && !(changes_for_update&.key? :version_script)
-
-          jamf_normal_ea.script = scr
-          jamf_normal_ea.save
-        end
-
-        # Create or fetch the 'normal' EA in jamf
-        # If we are deleting and it doesn't exist, return nil.
-        #
-        # @return [Jamf::ComputerExtensionAttribute] The 'normal' Jamf ComputerExtensionAttribute for this title
-        ########################
-        def jamf_normal_ea
-          return @jamf_normal_ea if @jamf_normal_ea
-
-          if Jamf::ComputerExtensionAttribute.all_names(cnx: jamf_cnx).include? jamf_normal_ea_name
-            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
-
-          else
-            return if deleting?
-
-            msg = "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart group"
-            progress msg, log: :info
-
-            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.create(
-              name: jamf_normal_ea_name,
-              description: "The version of xolo title '#{title}' installed on the machine",
-              data_type: :string,
-              enabled: true,
-              cnx: jamf_cnx
-            )
-            @jamf_normal_ea.save
-
-          end
-          @jamf_normal_ea
         end
 
         # Do we need to accept the xolo ea in jamf?
@@ -822,13 +959,6 @@ module Xolo
           Base64.decode64 jea_data[:scriptContents]
         end
 
-        # the script contents of the Normal Jamf EA that comes from our version_script
-        # @return [String, nil] nil if there is none
-        ##############################
-        def jamf_normal_ea_contents
-          jamf_normal_ea.script
-        end
-
         # The titles active in Jamf Patch Management from the Title Editor
         # This takes into account that other Patch Sources may have titles with the
         # same 'name_id' (the xolo 'title')
@@ -907,18 +1037,6 @@ module Xolo
           @jamf_patch_title
         end
 
-        # Delete an entire title from Jamf Pro
-        ########################
-        def delete_title_from_jamf
-          # ORDER MATTERS
-          delete_expire_policy
-          delete_uninstall_pol_and_script
-          delete_frozen_group_from_jamf
-          delete_installed_group_from_jamf
-          delete_normal_ea_from_jamf
-          delete_patch_title_from_jamf
-        end
-
         # Delete the 'installed' smart group
         # @return [void]
         ######################################
@@ -942,17 +1060,6 @@ module Xolo
 
           progress "Jamf: Deleting static group '#{jamf_frozen_group_name}'", log: :info
           Jamf::ComputerGroup.delete grp_id, cnx: jamf_cnx
-        end
-
-        # Delete the 'normal' computer ext attr matching the Patch EA
-        # @return [void]
-        ######################################
-        def delete_normal_ea_from_jamf
-          ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
-          return unless ea_id
-
-          progress "Jamf: Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
-          Jamf::ComputerExtensionAttribute.delete ea_id, cnx: jamf_cnx
         end
 
         # Delete the patch title
@@ -1132,35 +1239,6 @@ module Xolo
           members
         end
 
-        # Repair this title in Jamf Pro
-        # - TODO: activate title in patch mgmt
-        #   - TODO: Accept Patch EA
-        # - Normal EA 'xolo-<title>-installed-version'
-        # - title-installed smart group 'xolo-<title>-installed'
-        # - frozen static group 'xolo-<title>-frozen'
-        # - manual/SSvc install-current-release policy 'xolo-<title>-install'
-        #   - trigger 'xolo-<title>-install'
-        #   - ssvc icon
-        #   - ssvc category
-        #   - description
-        # - if uninstallable
-        #   - uninstall script 'xolo-<title>-uninstall'
-        #   - uninstall policy 'xolo-<title>-uninstall'
-        #   - if expirable
-        #     - expire policy 'xolo-<title>-expire'
-        #       - trigger  'xolo-<title>-expire'
-        #
-        ###############################################
-        def repair_jamf_title_objects
-          progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
-          repair_normal_ea_in_jamf
-          set_installed_group_criteria_in_jamf
-          repair_jamf_uninstall_script_and_policy
-          repair_expire_policy_in_jamf
-          repair_frozen_group
-          repair_manual_install_released_policy
-        end
-
         # repair the frozen group
         ###################
         def repair_frozen_group
@@ -1191,56 +1269,6 @@ module Xolo
           else
             delete_uninstall_pol_and_script
           end
-        end
-
-        # Repair the 'normal' EA in jamf to match our version_script
-        ########################
-        def repair_normal_ea_in_jamf
-          if version_script_contents.pix_empty?
-            delete_normal_ea_from_jamf
-          else
-            set_normal_ea_script_in_jamf
-          end
-        end
-
-        # Get the patch report for this title.
-        # It's the JPAPI report data with each hash having a frozen: key added
-        #
-        # TODO: rework this when all the paging stuff is handled by ruby-jss
-        #
-        # @param vers [String, nil] Limit the report to a specific version
-        #
-        # @return [Arrah<Hash>] Data for each computer with any version of this title installed
-        ######################
-        def patch_report(vers: nil)
-          vers = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION if vers == Xolo::UNKNOWN
-          vers &&= CGI.escape vers.to_s
-
-          page_size = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_JPAPI_PAGE_SIZE
-          page = 0
-          paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
-          paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
-
-          report = []
-          loop do
-            data = jamf_cnx.jp_get(paged_rsrc)[:results]
-            log_debug "GOT #{paged_rsrc}  >>> results size: #{data.size}"
-            break if data.empty?
-
-            report += data
-            page += 1
-            paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
-            paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
-          end
-
-          # log_debug "REPORT: #{report}"
-
-          frozen_comps = frozen_computers.keys
-          report.each do |h|
-            h[:frozen] = frozen_comps.include? h[:computerName]
-            h[:version] = Xolo::UNKNOWN if h[:version] == Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION
-          end
-          report
         end
 
         # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
