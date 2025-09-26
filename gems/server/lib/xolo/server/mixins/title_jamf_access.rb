@@ -1351,7 +1351,7 @@ module Xolo
 
         # @return [Boolean] Does the jamf_manual_install_released_policy exist?
         #######################
-        def jamf_manual_install_released_policy.exist?
+        def jamf_manual_install_released_policy_exist?
           Jamf::Policy.all_names(:refresh, cnx: jamf_cnx).include? jamf_manual_install_released_policy_name
         end
 
@@ -1363,7 +1363,7 @@ module Xolo
         ##########################
         def jamf_manual_install_released_policy
           @jamf_manual_install_released_policy ||=
-            if jamf_manual_install_released_policy.exist?
+            if jamf_manual_install_released_policy_exist?
               Jamf::Policy.fetch(name: jamf_manual_install_released_policy_name, cnx: jamf_cnx)
             else
               return if deleting?
@@ -1447,7 +1447,6 @@ module Xolo
           else
             add_title_to_self_service(pol)
           end
-          
         end
 
         # repair the jamf_manual_install_released_policy - the
