@@ -973,9 +973,14 @@ module Xolo
           # exclusions are for always
           set_policy_exclusions ppol
 
+          # This will be set to true as needed if
+          # a rollback is being done
           ppol.allow_downgrade = false
 
-          ppol.patch_unknown = true
+          # This should always be false, so that
+          # we don't accidentally downgrade non-xolo test installs,
+          # or server-pushed updates (like with commvault or cisco VPN)
+          ppol.patch_unknown = false
 
           ppol.enable
 
@@ -994,6 +999,11 @@ module Xolo
           ppol = jamf_patch_policy
           ppol.name = jamf_patch_policy_name
           ppol.target_version = version
+
+          # This should always be false, so that
+          # we don't accidentally downgrade non-xolo test installs,
+          # or server-pushed updates (like with commvault or cisco VPN)
+          ppol.patch_unknown = false
 
           if pilot?
             set_policy_pilot_groups ppol
