@@ -27,6 +27,8 @@ module Xolo
 
         DFT_EMAIL_FROM = 'xolo-server-do-not-reply'
 
+        ALERT_TOOL_EMAIL_PREFIX = 'email:'
+
         # Module Methods
         #######################
         #######################
@@ -53,6 +55,7 @@ module Xolo
         ###############################
         def send_alert(msg, level)
           return unless Xolo::Server.config.alert_tool
+          return if send_email_alert(msg, level)
 
           alerter = nil # just in case we need the ensure clause below.
           alerter = IO.popen(Xolo::Server.config.alert_tool, 'w')
@@ -64,6 +67,24 @@ module Xolo
         ensure
           # this flushes the pipe and makes the msg go
           alerter&.close
+        end
+
+        # Send an alert via email
+        # @param msg [String] the message to send
+        # @param level [Symbol] the log level of the message
+        #
+        # @return [Boolean] true if the email was sent, false otherwise
+        ################################
+        def send_email_alert(msg, level)
+          return false unless Xolo::Server.config.smtp_server
+          return false unless Xolo::Server.config.alert_tool.start_with? ALERT_TOOL_EMAIL_PREFIX
+
+          send_email(
+            to: Xolo::Server.config.alert_tool.delete_prefix(ALERT_TOOL_EMAIL_PREFIX).strip,
+            subject: "#{level} ALERT from Xolo Server",
+            msg: msg
+          )
+          true
         end
 
         # Send an email, if the smtp_server is defined in the config.

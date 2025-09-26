@@ -179,9 +179,16 @@ module Xolo
           desc: <<~ENDDESC
             Server errors or other events that happen as part of xadm actions are reported to the xadm user. But sometimes such events happen outside of the scope of a xadm session. While these events will be logged, you might want them reported to a server administrator in real time.
 
-            This value is a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
+            This value is either:
 
-            Fictional example: /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
+            - a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
+
+            - or a string "email:email_address" where email_address is the email address to send alerts to. In this case, the server will send an email to that address using the smtp_server and email_from configuration values.
+
+            Fictional command example:
+               /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
+            Fictional email example:
+               email:xolo-server-admins@myschool.edu
           ENDDESC
         },
 
