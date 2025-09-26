@@ -38,6 +38,7 @@ Gem::Specification.new do |s|
     The xolo-admin gem packages the code needed to run 'xadm', the command-line tool for system administrators to deploy and maintain software titles using Xolo.
   EODDESC
 
+  # seems to work in OS ruby, tho runtime_dependencies need to be manually installed
   s.required_ruby_version = '>= 2.6.3'
 
   # files
