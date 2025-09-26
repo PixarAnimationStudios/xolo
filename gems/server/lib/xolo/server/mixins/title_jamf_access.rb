@@ -290,9 +290,6 @@ module Xolo
             else
               return if deleting?
 
-              # do we have a released version?
-              return unless releasing? || released_version
-
               create_manual_install_released_policy_in_jamf
             end
         end
