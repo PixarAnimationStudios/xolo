@@ -70,6 +70,17 @@ module Xolo
       # Convert the body to JSON unless @no_json is set
       ##############
       after do
+        # log a stack trace if the response status is 4xx or 5xx, or if there's a sinatra.error
+        if response.status >= 400
+          log_error "Response status #{response.status} for #{request.request_method} #{request.path}"
+          if env['sinatra.error']
+            log_error "Sinatra Error message: #{env['sinatra.error'].message}"
+            env['sinatra.error'].backtrace.each { |line| log_error "..#{line}" }
+          end
+          log_error 'Xolo Stack trace:'
+          caller.each { |line| log_error "..#{line}" }
+        end
+
         if @no_json
           log_debug 'NOT converting body to JSON in after filter'
         else
