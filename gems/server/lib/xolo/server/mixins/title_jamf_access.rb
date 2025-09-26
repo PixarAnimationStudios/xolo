@@ -317,10 +317,6 @@ module Xolo
         # @return [void]
         ###################
         def configure_manual_install_released_policy(pol)
-          desired_vers = releasing_version || released_version
-
-          rel_vers = version_object(desired_vers)
-
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_released_policy_name
@@ -328,8 +324,15 @@ module Xolo
           pol.recon = false
           pol.scope.set_all_targets
 
+          # clear any existing packages
           pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
-          pol.add_package rel_vers.jamf_pkg_id
+
+          # don't add a package if there's no released version
+          desired_vers = releasing_version || released_version
+          if desired_vers
+            rel_vers = version_object(desired_vers)
+            pol.add_package rel_vers.jamf_pkg_id
+          end
 
           # figure out the exclusions.
           #
