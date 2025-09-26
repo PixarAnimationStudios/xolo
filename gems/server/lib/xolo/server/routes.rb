@@ -76,9 +76,10 @@ module Xolo
           if env['sinatra.error']
             log_error "Sinatra Error message: #{env['sinatra.error'].message}"
             env['sinatra.error'].backtrace.each { |line| log_error "..#{line}" }
+          else
+            log_error 'Xolo Stack trace:'
+            caller.each { |line| log_error "..#{line}" }
           end
-          log_error 'Xolo Stack trace:'
-          caller.each { |line| log_error "..#{line}" }
         end
 
         if @no_json
