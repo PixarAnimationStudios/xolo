@@ -6,6 +6,15 @@
   <true/>
   <key>Label</key>
   <string>com.pixar.xoloserver</string>
+  <!-- You probably want to set these environment variables
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>GEM_PATH</key>
+    <string></string>
+    <key>PATH</key>
+    <string></string>
+  </dict>
+  -->
   <key>ProgramArguments</key>
   <array>
     <string>/usr/local/bin/xoloserver</string>
