@@ -63,9 +63,9 @@ module Xolo
           set_installed_group_criteria_in_jamf
 
           if uninstall_script || !uninstall_ids.pix_empty?
-            set_jamf_uninstall_script_contents
+            configure_jamf_uninstall_script
             # this creates the policy to use the script
-            # must happen after the installed group is created
+            # must happen after the uninstall script is created
             jamf_uninstall_policy
 
             # this creates the expire policy if needed
@@ -105,15 +105,17 @@ module Xolo
           # Do we need to update (vs delete) the uninstall script?
           if need_to_update_uninstall_script_in_jamf?
 
-            set_jamf_uninstall_script_contents
+            configure_jamf_uninstall_script
+            configure_jamf_uninstall_policy
 
             # this creates the policy to use the script, if needed
             # which needs both the uninstall script and the installed group to exist
             jamf_uninstall_policy
 
           # or delete it if no longer needed
-          elsif need_to_delete_uninstall_script_in_jamf?
-            delete_uninstall_pol_and_script
+          elsif need_to_delete_jamf_uninstall_script?
+            delete_jamf_uninstall_policy
+            delete_jamf_uninstall_script
             # can't expire without
           end
 
@@ -638,18 +640,50 @@ module Xolo
           @jamf_patch_ea_url = "#{jamf_patch_title_url}?tab=extension"
         end
 
-        ###################################
+        #######  The UnInstall Script
+        ###########################################
+        ###########################################
+
+        # @return [Boolean] Does the uninstall script exist in jamf?
+        ##########################
+        def jamf_uninstall_script_exist?
+          Jamf::Script.all_names(:refresh, cnx: jamf_cnx).include? jamf_uninstall_script_name
+        end
+
+        # Create or fetch the script that uninstalls this title from a Mac
         #
+        # @return [Jamf::Script] The Jamf Script for uninstalling this title
+        #####################################
+        def jamf_uninstall_script
+          return @jamf_uninstall_script if @jamf_uninstall_script
+
+          if jamf_uninstall_script_exist?
+            @jamf_uninstall_script = Jamf::Script.fetch name: jamf_uninstall_script_name, cnx: jamf_cnx
+          else
+            return if deleting?
+
+            progress "Jamf: Creating Uninstall script '#{jamf_uninstall_script_name}'", log: :info
+            @jamf_uninstall_script = Jamf::Script.create(
+              name: jamf_uninstall_script_name,
+              cnx: jamf_cnx
+            )
+            @jamf_uninstall_script.save
+          end
+          @jamf_uninstall_script
+        end
+
+        # Configure the uninstall script in jamf with our uninstall_script contents
         #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        ###################################
+        # @return [void]
+        ################################
+        def configure_jamf_uninstall_script
+          # if we don't have an uninstall script, nothing to do, it will be deleted elsewhere
+          return unless uninstall_script_contents
+
+          progress "Jamf: Congfiguring the uninstall script '#{jamf_uninstall_script_name}'", log: :info
+          jamf_uninstall_script.code = uninstall_script_contents
+          jamf_uninstall_script.save
+        end
 
         # do we need to update the uninstall scriptin jamf?
         # true if our incoming changes include :uninstall_script OR :uninstall_ids
@@ -669,19 +703,135 @@ module Xolo
           end
         end
 
+        #########################
+        def delete_jamf_uninstall_script
+          return unless jamf_uninstall_script_exist?
+
+          progress "Jamf: Deleting uninstall script '#{jamf_uninstall_script_name}'", log: :info
+          jamf_uninstall_script.delete
+        end
+
+        # repair the uninstall script and policy in jamf
+        #####################
+        def repair_jamf_uninstall_script
+          if uninstall_script_contents
+            configure_jamf_uninstall_script
+          else
+            delete_uninstall_pol_and_script
+          end
+        end
+
         # do we need to delete the uninstall script stuff in jamf?
         #
         # @return [Boolean]
         #############################
-        def need_to_delete_uninstall_script_in_jamf?
-          if changes_for_update.key?(:uninstall_script)
-            changes_for_update[:uninstall_script][:new].pix_empty?
-          elsif changes_for_update.key?(:uninstall_ids)
-            changes_for_update[:uninstall_ids][:new].pix_empty?
+        def need_to_delete_jamf_uninstall_script?
+          uninstall_script_contents.pix_empty?
+        end
+
+        # @return [String] the URL for the uninstall script in Jamf Pro
+        ######################
+        def jamf_uninstall_script_url
+          return @jamf_uninstall_script_url if @jamf_uninstall_script_url
+          return unless uninstallable?
+
+          scr_id = Jamf::Script.valid_id jamf_uninstall_script_name, cnx: jamf_cnx
+          return unless scr_id
+
+          @jamf_uninstall_script_url = "#{jamf_gui_url}/view/settings/computer-management/scripts/#{scr_id}?tab=script"
+        end
+
+        #######  The Uninstall Policy-
+        ###########################################
+        ###########################################
+
+        # @return [Boolean] Does the jamf_uninstall_policy exist?
+        #########################
+        def jamf_uninstall_policy_exist?
+          Jamf::Policy.all_names(:refresh, cnx: jamf_cnx).include? jamf_uninstall_policy_name
+        end
+
+        # Create or fetch the policy that runs the jamf uninstall script
+        #
+        # @return [Jamf::Policy] The Jamf Policy for uninstalling this title
+        #####################################
+        def jamf_uninstall_policy
+          return @jamf_uninstall_policy if @jamf_uninstall_policy
+
+          if jamf_uninstall_policy_exist?
+            @jamf_uninstall_policy = Jamf::Policy.fetch name: jamf_uninstall_policy_name, cnx: jamf_cnx
           else
-            false
+            return if deleting?
+
+            progress "Jamf: Creating Uninstall policy: '#{jamf_uninstall_policy_name}'", log: :info
+            @jamf_uninstall_policy = Jamf::Policy.create name: jamf_uninstall_policy_name, cnx: jamf_cnx
+            configure_uninstall_policy(jamf_uninstall_policy)
+          end
+
+          @jamf_uninstall_policy
+        end
+
+        # Configure the uninstall policy
+        # @param pol [Jamf::Policy] the policy to configure
+        ############################
+        def configure_uninstall_policy(pol = nil)
+          progress "Jamf: Configuring uninstall policy '#{jamf_uninstall_policy_name}'", log: :info
+          pol ||= jamf_uninstall_policy
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.add_script jamf_uninstall_script_name
+          pol.set_trigger_event :checkin, false
+          pol.set_trigger_event :custom, jamf_uninstall_policy_name
+          pol.scope.add_target(:computer_group, jamf_installed_group_name)
+          pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
+          pol.frequency = :ongoing
+          pol.enable
+          pol.save
+        end
+
+        # repair the uninstall script and policy in jamf
+        #####################
+        def repair_jamf_uninstall_policy
+          if uninstall_script_contents
+            configure_jamf_uninstall_policy
+          else
+            delete_jamf_uninstall_policy
           end
         end
+
+        # delete the policy first if it exists
+
+        #########################
+        def delete_jamf_uninstall_policy
+          return unless jamf_uninstall_policy_exist?
+
+          progress "Jamf: Deleting uninstall policy '#{jamf_uninstall_policy_name}'", log: :info
+          jamf_uninstall_policy.delete
+        end
+
+        # @return [String] the URL for the uninstall policy in Jamf Pro
+        ######################
+        def jamf_uninstall_policy_url
+          return @jamf_uninstall_policy_url if @jamf_uninstall_policy_url
+          return unless uninstallable?
+
+          pol_id = Jamf::Policy.valid_id jamf_uninstall_policy_name, cnx: jamf_cnx
+          return unless pol_id
+
+          @jamf_uninstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
+        end
+
+        ###################################
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        ###################################
 
         # do we need to update the 'installed' smart group?
         # true if our incoming changes include the app_name or app_bundle_id
@@ -715,64 +865,6 @@ module Xolo
 
           log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
           sleep 10
-        end
-
-        # Create or fetch the script that uninstalls this title from a Mac
-        #
-        # @return [Jamf::Script] The Jamf Script for uninstalling this title
-        #####################################
-        def jamf_uninstall_script
-          return @jamf_uninstall_script if @jamf_uninstall_script
-
-          if Jamf::Script.all_names(cnx: jamf_cnx).include? jamf_uninstall_script_name
-            @jamf_uninstall_script = Jamf::Script.fetch name: jamf_uninstall_script_name, cnx: jamf_cnx
-          else
-            return if deleting?
-
-            progress "Jamf: Creating Uninstall script '#{jamf_uninstall_script_name}'", log: :info
-            @jamf_uninstall_script = Jamf::Script.create(
-              name: jamf_uninstall_script_name,
-              script_contents: uninstall_script_contents,
-              cnx: jamf_cnx
-            )
-            @jamf_uninstall_script.save
-          end
-          @jamf_uninstall_script
-        end
-
-        # Create or fetch the policy that runs the jamf uninstall script
-        #
-        # @return [Jamf::Policy] The Jamf Policy for uninstalling this title
-        #####################################
-        def jamf_uninstall_policy
-          return @jamf_uninstall_policy if @jamf_uninstall_policy
-
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_uninstall_policy_name
-            @jamf_uninstall_policy = Jamf::Policy.fetch name: jamf_uninstall_policy_name, cnx: jamf_cnx
-          else
-            return if deleting?
-
-            progress "Jamf: Creating Uninstall policy: '#{jamf_uninstall_policy_name}'", log: :info
-            @jamf_uninstall_policy = Jamf::Policy.create name: jamf_uninstall_policy_name, cnx: jamf_cnx
-            configure_uninstall_policy(jamf_uninstall_policy)
-            @jamf_uninstall_policy.save
-          end
-
-          @jamf_uninstall_policy
-        end
-
-        # Configure the uninstall policy
-        # @param pol [Jamf::Policy] the policy to configure
-        ############################
-        def configure_uninstall_policy(pol)
-          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.add_script jamf_uninstall_script_name
-          pol.set_trigger_event :checkin, false
-          pol.set_trigger_event :custom, jamf_uninstall_policy_name
-          pol.scope.add_target(:computer_group, jamf_installed_group_name)
-          pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
-          pol.frequency = :ongoing
-          pol.enable
         end
 
         # Create or fetch the policy that expires a title
@@ -888,18 +980,6 @@ module Xolo
               )
             ]
           end
-        end
-
-        # Set the script contents of the jamf_uninstall_script, if we have one
-        #
-        # @return [void]
-        ################################
-        def set_jamf_uninstall_script_contents
-          return unless uninstall_script_contents
-
-          progress "Jamf: Setting the code for the uninstall script '#{jamf_uninstall_script_name}'", log: :info
-          jamf_uninstall_script.code = uninstall_script_contents
-          jamf_uninstall_script.save
         end
 
         # The Jamf Patch Source that is connected to the Title Editor
@@ -1106,22 +1186,6 @@ module Xolo
           Jamf::PatchTitle.delete pt_id, cnx: jamf_cnx
         end
 
-        #########################
-        def delete_uninstall_pol_and_script
-          # uninstall the policy first if it exists
-          pol_id = Jamf::Policy.valid_id jamf_uninstall_policy_name, cnx: jamf_cnx
-          if pol_id
-            progress "Jamf: Deleting uninstall policy '#{jamf_uninstall_policy_name}'", log: :info
-            Jamf::Policy.delete pol_id, cnx: jamf_cnx
-          end
-
-          script_id = Jamf::Script.valid_id jamf_uninstall_script_name, cnx: jamf_cnx
-          return unless script_id
-
-          progress "Jamf: Deleteing uninstall script '#{jamf_uninstall_script_name}'", log: :info
-          Jamf::Script.delete script_id, cnx: jamf_cnx
-        end
-
         #############################
         def delete_expire_policy
           pol_id = Jamf::Policy.valid_id jamf_expire_policy_name, cnx: jamf_cnx
@@ -1289,18 +1353,6 @@ module Xolo
           end
         end
 
-        # repair the uninstall script and policy in jamf
-        #####################
-        def repair_jamf_uninstall_script_and_policy
-          if uninstall_script_contents
-            set_jamf_uninstall_script_contents
-            configure_uninstall_policy jamf_uninstall_policy
-            jamf_uninstall_policy.save
-          else
-            delete_uninstall_pol_and_script
-          end
-        end
-
         # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
         ################
         def jamf_gui_url
@@ -1340,30 +1392,6 @@ module Xolo
         #####################
         def jamf_patch_title_url
           @jamf_patch_title_url ||= "#{jamf_gui_url}/view/computers/patch/#{jamf_patch_title_id}"
-        end
-
-        # @return [String] the URL for the uninstall script in Jamf Pro
-        ######################
-        def jamf_uninstall_script_url
-          return @jamf_uninstall_script_url if @jamf_uninstall_script_url
-          return unless uninstallable?
-
-          scr_id = Jamf::Script.valid_id jamf_uninstall_script_name, cnx: jamf_cnx
-          return unless scr_id
-
-          @jamf_uninstall_script_url = "#{jamf_gui_url}/view/settings/computer-management/scripts/#{scr_id}?tab=script"
-        end
-
-        # @return [String] the URL for the uninstall policy in Jamf Pro
-        ######################
-        def jamf_uninstall_policy_url
-          return @jamf_uninstall_policy_url if @jamf_uninstall_policy_url
-          return unless uninstallable?
-
-          pol_id = Jamf::Policy.valid_id jamf_uninstall_policy_name, cnx: jamf_cnx
-          return unless pol_id
-
-          @jamf_uninstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
         end
 
         # @return [String] the URL for the uninstall policy in Jamf Pro
