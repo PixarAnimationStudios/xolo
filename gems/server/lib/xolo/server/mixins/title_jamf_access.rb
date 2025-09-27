@@ -49,6 +49,12 @@ module Xolo
         ###########################################
         ###########################################
 
+        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
+        ################
+        def jamf_gui_url
+          server_app_instance.jamf_gui_url
+        end
+
         # Create title-level things in jamf when creating a title.
         #
         # @return [void]
@@ -177,10 +183,10 @@ module Xolo
           # ORDER MATTERS
           delete_expire_policy
           delete_uninstall_pol_and_script
-          delete_frozen_group_from_jamf
+          delete_jamf_frozen_group
           delete_jamf_installed_group
           delete_jamf_normal_ea
-          delete_patch_title_from_jamf
+          delete_jamf_patch_title
         end
 
         # If any title changes require updates to existing versions in
@@ -955,18 +961,205 @@ module Xolo
           sleep 10
         end
 
-        ###################################
+        # @return [String] the URL for the Frozen statig group in Jamf Pro
+        ######################
+        def jamf_installed_group_url
+          return @jamf_installed_group_url if @jamf_installed_group_url
+
+          gr_id = Jamf::ComputerGroup.valid_id jamf_installed_group_name, cnx: jamf_cnx
+          return unless gr_id
+
+          @jamf_installed_group_url = "#{jamf_gui_url}/smartComputerGroups.html?id=#{gr_id}&o=r"
+        end
+
+        #######  The Frozen Group
+        ###########################################
+        ###########################################
+
+        # @return [Boolean] Does the jamf_frozen_group exist?
+        ###########################
+        def jamf_frozen_group_exist?
+          Jamf::ComputerGroup.all_names(:refresh, cnx: jamf_cnx).include? jamf_frozen_group_name
+        end
+
+        # Create or fetch static in jamf that contains macs with this title 'frozen'
+        # If we are deleting and it doesn't exist, return nil.
+        # There really isn't any configuration or repairing to do, it's just a static group.
         #
+        # @return [Jamf::ComputerGroup, nil] The Jamf ComputerGroup for this title's frozen computers
+        #####################################
+        def jamf_frozen_group
+          return @jamf_frozen_group if @jamf_frozen_group
+
+          if jamf_frozen_group_exist?
+            @jamf_frozen_group = Jamf::ComputerGroup.fetch name: jamf_frozen_group_name, cnx: jamf_cnx
+          else
+            return if deleting?
+
+            progress "Jamf: Creating static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
+
+            @jamf_frozen_group = Jamf::ComputerGroup.create(
+              name: jamf_frozen_group_name,
+              type: :static,
+              cnx: jamf_cnx
+            )
+            @jamf_frozen_group.save
+
+          end
+          @jamf_frozen_group
+        end
+
+        # Freeze or thaw an array of computers for a title
         #
+        # @param action [Symbol] :freeze or :thaw
         #
+        # @param computers [Array<String>, String] The computer name[s] to freeze or thaw. To thaw
+        #   all computers pass Xolo::TARGET_ALL (freeze all is not allowed)
         #
+        # @return [Hash] Keys are computer names, values are Xolo::OK or an error message
+        #################################
+        def freeze_or_thaw_computers(action:, computers:)
+          return unless %i[freeze thaw].include? action
+
+          # convert to an array if it's a single string
+          computers = [computers].flatten
+
+          result, changes_to_log =
+            if action == :thaw
+              thaw_computers(computers: computers)
+            else
+              freeze_computers(computers: computers)
+            end # if action ==
+
+          jamf_frozen_group.save
+
+          unless changes_to_log.empty?
+            action_msg =
+              if action == :freeze
+                "Froze computers: #{changes_to_log.join(', ')}"
+              else
+                "Thawed computers: #{changes_to_log.join(', ')}"
+              end
+
+            log_change msg: action_msg
+          end
+
+          result
+        end
+
+        # freeze some computers
+        # see #freeze_or_thaw_computers
+        ##############
+        def freeze_computers(computers:)
+          result = {}
+          freezes_to_log = []
+
+          comp_names = Jamf::Computer.all_names cnx: jamf_cnx
+          grp_members = jamf_frozen_group.member_names
+
+          computers.each do |comp|
+            if grp_members.include? comp
+              log_info "Not freezing computer '#{comp}' for title '#{title}', already frozen"
+              result[comp] = "#{Xolo::ERROR}: Already frozen"
+            elsif comp_names.include? comp
+              log_info "Freezing computer '#{comp}' for title '#{title}'"
+              jamf_frozen_group.add_member comp
+              result[comp] = Xolo::OK
+              freezes_to_log << comp
+            else
+              log_debug "Cannot freeze computer '#{comp}' for title '#{title}', no such computer"
+              result[comp] = "#{Xolo::ERROR}: No computer with that name"
+            end # if comp_names.include
+          end # computers.each
+
+          [result, freezes_to_log]
+        end
+
+        # thaw some computers
+        # see #freeze_or_thaw_computers
+        ##############
+        def thaw_computers(computers:)
+          result = {}
+          thaws_to_log = []
+
+          if computers.include? Xolo::TARGET_ALL
+            log_info "Thawing all computers for title: '#{title}'"
+            jamf_frozen_group.clear
+            result[Xolo::TARGET_ALL] = Xolo::OK
+            thaws_to_log << Xolo::TARGET_ALL
+          else
+
+            grp_members = jamf_frozen_group.member_names
+            computers.each do |comp|
+              if grp_members.include? comp
+                jamf_frozen_group.remove_member comp
+                log_info "Thawed computer '#{comp}' for title '#{title}'"
+                result[comp] = Xolo::OK
+                thaws_to_log << comp
+              else
+                log_debug "Cannot thaw computer '#{comp}' for title '#{title}', not frozen"
+                result[comp] = "#{Xolo::ERROR}: Not frozen"
+              end # if  grp_members.include? comp
+            end # computers.each
+          end # if computers.include?
+
+          [result, thaws_to_log]
+        end
+
+        # Return the members of the 'frozen' static group for a title
         #
-        #
-        #
-        #
-        #
-        #
-        ###################################
+        # @return [Hash{String => String}] computer name => user name
+        #################################
+        def frozen_computers
+          members = {}
+
+          comps = jamf_frozen_group.member_names
+          comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
+
+          comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
+
+          members
+        end
+
+        # repair the frozen group
+        ###################
+        def repair_frozen_group
+          progress 'Jamf: Ensuring frozen static group exists', log: :debug
+          # This creates it if it doesn't exist. Nothing more we can do here.
+          jamf_frozen_group
+        end
+
+        # Delete the 'frozen' static group
+        # @return [void]
+        ######################################
+        def delete_jamf_frozen_group
+          grp_id = Jamf::ComputerGroup.valid_id jamf_frozen_group_name, cnx: jamf_cnx
+          return unless grp_id
+
+          progress "Jamf: Deleting static group '#{jamf_frozen_group_name}'", log: :info
+          Jamf::ComputerGroup.delete grp_id, cnx: jamf_cnx
+        end
+
+        # @return [String] the URL for the Frozen static group in Jamf Pro
+        ######################
+        def jamf_frozen_group_url
+          return @jamf_frozen_group_url if @jamf_frozen_group_url
+
+          gr_id = Jamf::ComputerGroup.valid_id jamf_frozen_group_name, cnx: jamf_cnx
+          return unless gr_id
+
+          @jamf_frozen_group_url = "#{jamf_gui_url}/staticComputerGroups.html?id=#{gr_id}&o=r"
+        end
+
+        #######  The Expire Policy
+        ###########################################
+        ###########################################
+
+        # @return [Boolean] Does the jamf_expire_policy exist?
+        #########################
+        def jamf_expire_policy_exist?
+          Jamf::Policy.all_names(:refresh, cnx: jamf_cnx).include? jamf_expire_policy_name
+        end
 
         # Create or fetch the policy that expires a title
         #
@@ -975,7 +1168,7 @@ module Xolo
         def jamf_expire_policy
           return @jamf_expire_policy if @jamf_expire_policy
 
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_expire_policy_name
+          if jamf_expire_policy_exist?
             @jamf_expire_policy = Jamf::Policy.fetch name: jamf_expire_policy_name, cnx: jamf_cnx
           else
             return if deleting?
@@ -983,8 +1176,7 @@ module Xolo
             progress "Jamf: Creating Expiration policy: '#{jamf_expire_policy_name}'", log: :info
 
             @jamf_expire_policy = Jamf::Policy.create name: jamf_expire_policy_name, cnx: jamf_cnx
-            configure_expiration_policy @jamf_expire_policy
-            @jamf_expire_policy.save
+            configure_jamf_expire_policy
           end
 
           @jamf_expire_policy
@@ -993,7 +1185,8 @@ module Xolo
         # Configure the expiration policy
         # @param pol [Jamf::Policy] the policy to configure
         #########################
-        def configure_expiration_policy(pol)
+        def configure_jamf_expire_policy
+          pol = jamf_expire_policy
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.run_command = "#{Xolo::Server::Title::CLIENT_EXPIRE_COMMAND} #{title}"
           pol.set_trigger_event :checkin, true
@@ -1002,7 +1195,45 @@ module Xolo
           pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
           pol.frequency = :daily
           pol.enable
+          pol.save
         end
+
+        #############################
+        def delete_expire_policy
+          return unless jamf_expire_policy_exist?
+
+          progress "Jamf: Deleting expiration policy '#{jamf_expire_policy_name}'", log: :info
+          jamf_expire_policy.delete
+        end
+
+        # repair the expire policy in jamf
+        #####################
+        def repair_expire_policy_in_jamf
+          if expiration && !expire_paths.pix_empty?
+            progress "Jamf: Repairing expiration policy '#{jamf_expire_policy_name}'"
+            configure_jamf_expire_policy
+
+          else
+            delete_expire_policy
+          end
+        end
+
+        # @return [String] the URL for the uninstall policy in Jamf Pro
+        ######################
+        def jamf_expire_policy_url
+          return @jamf_expire_policy_url if @jamf_expire_policy_url
+          return unless uninstallable?
+          return unless expiration
+
+          pol_id = Jamf::Policy.valid_id jamf_expire_policy_name, cnx: jamf_cnx
+          return unless pol_id
+
+          @jamf_expire_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
+        end
+
+        #######  The Patch Title
+        ###########################################
+        ###########################################
 
         # The Jamf Patch Source that is connected to the Title Editor
         # This must be manually configured in the Jamf server and the Xolo server
@@ -1053,6 +1284,40 @@ module Xolo
           jamf_ted_available_titles.include? title
         end
 
+        # The titles active in Jamf Patch Management from the Title Editor
+        # This takes into account that other Patch Sources may have titles with the
+        # same 'name_id' (the xolo 'title')
+        # A hash keyed by the title, with values of the jamf title id
+        #
+        # @return [Hash {String =>  Integer}] The xolo titles that are active in Jamf Patch Management
+        ########################
+        def jamf_active_ted_titles(refresh: false)
+          @jamf_active_ted_titles = nil if refresh
+          return @jamf_active_ted_titles if @jamf_active_ted_titles
+
+          @jamf_active_ted_titles = {}
+          active_from_ted = Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).select do |t|
+            t[:source_id] == jamf_ted_patch_source.id
+          end
+          active_from_ted.each { |t| @jamf_active_ted_titles[t[:name_id]] = t[:id] }
+          @jamf_active_ted_titles
+        end
+
+        # @return [Boolean] Is this xolo title currently active in Jamf?
+        ########################
+        def jamf_ted_title_active?
+          jamf_active_ted_titles(refresh: true).key? title
+        end
+
+        # The Jamf ID of the Patch Title for this xolo title
+        # if it has been activated in jamf.
+        #
+        # @return [Integer, nil] The Jamf ID of this title, if it is active in Jamf
+        ########################
+        def jamf_patch_title_id
+          @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
+        end
+
         # create/activate the patch title in Jamf Pro, if not already done.
         #
         # This 'subscribes' Jamf to the title in the title editor
@@ -1089,40 +1354,6 @@ module Xolo
           jamf_patch_title
 
           accept_jamf_patch_ea
-        end
-
-        # The titles active in Jamf Patch Management from the Title Editor
-        # This takes into account that other Patch Sources may have titles with the
-        # same 'name_id' (the xolo 'title')
-        # A hash keyed by the title, with values of the jamf title id
-        #
-        # @return [Hash {String =>  Integer}] The xolo titles that are active in Jamf Patch Management
-        ########################
-        def jamf_active_ted_titles(refresh: false)
-          @jamf_active_ted_titles = nil if refresh
-          return @jamf_active_ted_titles if @jamf_active_ted_titles
-
-          @jamf_active_ted_titles = {}
-          active_from_ted = Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).select do |t|
-            t[:source_id] == jamf_ted_patch_source.id
-          end
-          active_from_ted.each { |t| @jamf_active_ted_titles[t[:name_id]] = t[:id] }
-          @jamf_active_ted_titles
-        end
-
-        # @return [Boolean] Is this xolo title currently active in Jamf?
-        ########################
-        def jamf_ted_title_active?
-          jamf_active_ted_titles(refresh: true).key? title
-        end
-
-        # The Jamf ID of the Patch Title for this xolo title
-        # if it has been activated in jamf.
-        #
-        # @return [Integer, nil] The Jamf ID of this title, if it is active in Jamf
-        ########################
-        def jamf_patch_title_id
-          @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
         end
 
         # Create or fetch the patch title object for this xolo title.
@@ -1169,21 +1400,10 @@ module Xolo
           @jamf_patch_title
         end
 
-        # Delete the 'frozen' static group
-        # @return [void]
-        ######################################
-        def delete_frozen_group_from_jamf
-          grp_id = Jamf::ComputerGroup.valid_id jamf_frozen_group_name, cnx: jamf_cnx
-          return unless grp_id
-
-          progress "Jamf: Deleting static group '#{jamf_frozen_group_name}'", log: :info
-          Jamf::ComputerGroup.delete grp_id, cnx: jamf_cnx
-        end
-
         # Delete the patch title
         # NOTE: jamf api user must have 'delete computer ext. attribs' permmissions
         ##############################
-        def delete_patch_title_from_jamf
+        def delete_jamf_patch_title
           return unless jamf_ted_title_active?
 
           pt_id = Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
@@ -1194,218 +1414,10 @@ module Xolo
           Jamf::PatchTitle.delete pt_id, cnx: jamf_cnx
         end
 
-        #############################
-        def delete_expire_policy
-          pol_id = Jamf::Policy.valid_id jamf_expire_policy_name, cnx: jamf_cnx
-          return unless pol_id
-
-          progress "Jamf: Deleting expiration policy '#{jamf_expire_policy_name}'", log: :info
-          Jamf::Policy.delete pol_id, cnx: jamf_cnx
-        end
-
-        # Freeze or thaw an array of computers for a title
-        #
-        # @param action [Symbol] :freeze or :thaw
-        #
-        # @param computers [Array<String>, String] The computer name[s] to freeze or thaw. To thaw
-        #   all computers pass Xolo::TARGET_ALL (freeze all is not allowed)
-        #
-        # @return [Hash] Keys are computer names, values are Xolo::OK or an error message
-        #################################
-        def freeze_or_thaw_computers(action:, computers:)
-          return unless %i[freeze thaw].include? action
-
-          # convert to an array if it's a single string
-          computers = [computers].flatten
-
-          result, changes_to_log =
-            if action == :thaw
-              thaw_computers(computers: computers)
-            else
-              freeze_computers(computers: computers)
-            end # if action ==
-
-          jamf_frozen_group.save
-
-          unless changes_to_log.empty?
-            action_msg =
-              if action == :freeze
-                "Froze computers: #{changes_to_log.join(', ')}"
-              else
-                "Thawed computers: #{changes_to_log.join(', ')}"
-              end
-
-            log_change msg: action_msg
-          end
-
-          result
-        end
-
-        # Create or fetch static in jamf that contains macs with this title 'frozen'
-        # If we are deleting and it doesn't exist, return nil.
-        #
-        # @return [Jamf::ComputerGroup, nil] The Jamf ComputerGroup for this title's frozen computers
-        #####################################
-        def jamf_frozen_group
-          return @jamf_frozen_group if @jamf_frozen_group
-
-          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_frozen_group_name
-            @jamf_frozen_group = Jamf::ComputerGroup.fetch name: jamf_frozen_group_name, cnx: jamf_cnx
-          else
-            return if deleting?
-
-            progress "Jamf: Creating static group '#{jamf_frozen_group_name}' with no members at the moment", log: :info
-
-            @jamf_frozen_group = Jamf::ComputerGroup.create(
-              name: jamf_frozen_group_name,
-              type: :static,
-              cnx: jamf_cnx
-            )
-            @jamf_frozen_group.save
-
-          end
-          @jamf_frozen_group
-        end
-
-        # thaw some computers
-        # see #freeze_or_thaw_computers
-        ##############
-        def thaw_computers(computers:)
-          result = {}
-          thaws_to_log = []
-
-          if computers.include? Xolo::TARGET_ALL
-            log_info "Thawing all computers for title: '#{title}'"
-            jamf_frozen_group.clear
-            result[Xolo::TARGET_ALL] = Xolo::OK
-            thaws_to_log << Xolo::TARGET_ALL
-          else
-
-            grp_members = jamf_frozen_group.member_names
-            computers.each do |comp|
-              if grp_members.include? comp
-                jamf_frozen_group.remove_member comp
-                log_info "Thawed computer '#{comp}' for title '#{title}'"
-                result[comp] = Xolo::OK
-                thaws_to_log << comp
-              else
-                log_debug "Cannot thaw computer '#{comp}' for title '#{title}', not frozen"
-                result[comp] = "#{Xolo::ERROR}: Not frozen"
-              end # if  grp_members.include? comp
-            end # computers.each
-          end # if computers.include?
-
-          [result, thaws_to_log]
-        end
-
-        # freeze some computers
-        # see #freeze_or_thaw_computers
-        ##############
-        def freeze_computers(computers:)
-          result = {}
-          freezes_to_log = []
-
-          comp_names = Jamf::Computer.all_names cnx: jamf_cnx
-          grp_members = jamf_frozen_group.member_names
-
-          computers.each do |comp|
-            if grp_members.include? comp
-              log_info "Not freezing computer '#{comp}' for title '#{title}', already frozen"
-              result[comp] = "#{Xolo::ERROR}: Already frozen"
-            elsif comp_names.include? comp
-              log_info "Freezing computer '#{comp}' for title '#{title}'"
-              jamf_frozen_group.add_member comp
-              result[comp] = Xolo::OK
-              freezes_to_log << comp
-            else
-              log_debug "Cannot freeze computer '#{comp}' for title '#{title}', no such computer"
-              result[comp] = "#{Xolo::ERROR}: No computer with that name"
-            end # if comp_names.include
-          end # computers.each
-
-          [result, freezes_to_log]
-        end
-
-        # Return the members of the 'frozen' static group for a title
-        #
-        # @return [Hash{String => String}] computer name => user name
-        #################################
-        def frozen_computers
-          members = {}
-
-          comps = jamf_frozen_group.member_names
-          comps_to_users = Jamf::Computer.map_all :name, to: :username, cnx: jamf_cnx
-
-          comps.each { |comp| members[comp] = comps_to_users[comp] || 'unknown' }
-
-          members
-        end
-
-        # repair the frozen group
-        ###################
-        def repair_frozen_group
-          progress 'Jamf: Repairing frozen static group'
-          # This creates it if it doesn't exist. Nothing more we can do here.
-          jamf_frozen_group
-        end
-
-        # repair the expire policy in jamf
-        #####################
-        def repair_expire_policy_in_jamf
-          if expiration && !expire_paths.pix_empty?
-            progress "Jamf: Repairing expiration policy '#{jamf_expire_policy_name}'"
-            configure_expiration_policy(jamf_expire_policy)
-            jamf_expire_policy.save
-          else
-            delete_expire_policy
-          end
-        end
-
-        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
-        ################
-        def jamf_gui_url
-          server_app_instance.jamf_gui_url
-        end
-
-        # @return [String] the URL for the Frozen static group in Jamf Pro
-        ######################
-        def jamf_frozen_group_url
-          return @jamf_frozen_group_url if @jamf_frozen_group_url
-
-          gr_id = Jamf::ComputerGroup.valid_id jamf_frozen_group_name, cnx: jamf_cnx
-          return unless gr_id
-
-          @jamf_frozen_group_url = "#{jamf_gui_url}/staticComputerGroups.html?id=#{gr_id}&o=r"
-        end
-
-        # @return [String] the URL for the Frozen statig group in Jamf Pro
-        ######################
-        def jamf_installed_group_url
-          return @jamf_installed_group_url if @jamf_installed_group_url
-
-          gr_id = Jamf::ComputerGroup.valid_id jamf_installed_group_name, cnx: jamf_cnx
-          return unless gr_id
-
-          @jamf_installed_group_url = "#{jamf_gui_url}/smartComputerGroups.html?id=#{gr_id}&o=r"
-        end
-
         # @return [String] the URL for the Patch Title in Jamf Pro
         #####################
         def jamf_patch_title_url
           @jamf_patch_title_url ||= "#{jamf_gui_url}/view/computers/patch/#{jamf_patch_title_id}"
-        end
-
-        # @return [String] the URL for the uninstall policy in Jamf Pro
-        ######################
-        def jamf_expire_policy_url
-          return @jamf_expire_policy_url if @jamf_expire_policy_url
-          return unless uninstallable?
-          return unless expiration
-
-          pol_id = Jamf::Policy.valid_id jamf_expire_policy_name, cnx: jamf_cnx
-          return unless pol_id
-
-          @jamf_expire_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
         end
 
         #### The Manual/SelfService Policy for the currently released version
@@ -1633,16 +1645,6 @@ module Xolo
           pol.upload :icon, ssvc_icon_file
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
         end
-
-        #####################################
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #####################################
 
       end # TitleJamfPro
 
