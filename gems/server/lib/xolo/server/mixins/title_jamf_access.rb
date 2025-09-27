@@ -82,7 +82,7 @@ module Xolo
           # Just calling this will create it if it doesn't exist.
           jamf_frozen_group
 
-          activate_patch_title_in_jamf
+          activate_jamf_patch_title
         end
 
         # Apply any changes to Jamf as needed
@@ -96,7 +96,7 @@ module Xolo
 
           # do we have a version_script? if so we maintain a 'normal' EA
           # this has to happen before updating the installed_group
-          configure_jamf_normal_ea if need_to_update_normal_ea_in_jamf?
+          configure_jamf_normal_ea if need_to_update_jamf_normal_ea?
 
           # this smart group might use the normal-EA or might use app data
           # If those have changed, we need to update it.
@@ -109,7 +109,7 @@ module Xolo
           end
 
           # Do we need to update (vs delete) the uninstall script?
-          if need_to_update_uninstall_script_in_jamf?
+          if need_to_update_jamf_uninstall_scrip?
 
             configure_jamf_uninstall_script
             configure_jamf_uninstall_policy
@@ -172,7 +172,9 @@ module Xolo
           repair_jamf_normal_ea
           configure_jamf_installed_group
           repair_jamf_uninstall_script_and_policy
-          repair_expire_policy_in_jamf
+          repair_jamf_uninstall_policy
+          repair_jamf_uninstall_script
+          repair_jamf_expire_policy
           repair_frozen_group
           repair_manual_install_released_policy
         end
@@ -182,7 +184,8 @@ module Xolo
         def delete_title_from_jamf
           # ORDER MATTERS
           delete_expire_policy
-          delete_uninstall_pol_and_script
+          delete_jamf_uninstall_policy
+          delete_jamf_uninstall_script
           delete_jamf_frozen_group
           delete_jamf_installed_group
           delete_jamf_normal_ea
@@ -387,7 +390,7 @@ module Xolo
         #
         # @return [Boolean]
         ########################
-        def need_to_update_normal_ea_in_jamf?
+        def need_to_update_jamf_normal_ea?
           changes_for_update.key?(:version_script) && !changes_for_update[:version_script][:new].pix_empty?
         end
 
@@ -699,7 +702,7 @@ module Xolo
         #
         # @return [Boolean]
         ########################
-        def need_to_update_uninstall_script_in_jamf?
+        def need_to_update_jamf_uninstall_scrip?
           if changes_for_update.key?(:uninstall_script)
             !changes_for_update[:uninstall_script][:new].pix_empty?
           elsif changes_for_update.key?(:uninstall_ids)
@@ -723,7 +726,7 @@ module Xolo
           if uninstall_script_contents
             configure_jamf_uninstall_script
           else
-            delete_uninstall_pol_and_script
+            delete_jamf_uninstall_script
           end
         end
 
@@ -1208,7 +1211,7 @@ module Xolo
 
         # repair the expire policy in jamf
         #####################
-        def repair_expire_policy_in_jamf
+        def repair_jamf_expire_policy
           if expiration && !expire_paths.pix_empty?
             progress "Jamf: Repairing expiration policy '#{jamf_expire_policy_name}'"
             configure_jamf_expire_policy
@@ -1330,7 +1333,7 @@ module Xolo
         # reach this point.
         #
         ##########################
-        def activate_patch_title_in_jamf
+        def activate_jamf_patch_title
           if jamf_ted_title_active?
             log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
             return
@@ -1443,7 +1446,7 @@ module Xolo
             else
               return if deleting?
 
-              create_manual_install_released_policy_in_jamf
+              create_jamf_manual_install_released_policy
             end
         end
 
@@ -1465,7 +1468,7 @@ module Xolo
         # desired
         #
         #########################
-        def create_manual_install_released_policy_in_jamf
+        def create_jamf_manual_install_released_policy
           msg = "Jamf: Creating manual install policy for current release: '#{jamf_manual_install_released_policy_name}'"
           progress msg, log: :info
 
