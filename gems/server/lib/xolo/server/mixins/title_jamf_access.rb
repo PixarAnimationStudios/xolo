@@ -57,10 +57,10 @@ module Xolo
           # ORDER MATTERS
 
           # create the normal ea if needed
-          jamf_normal_ea if version_script
+          configure_jamf_normal_ea if version_script
 
           # must happen after the normal ea is created
-          set_installed_group_criteria_in_jamf
+          configure_jamf_installed_group
 
           if uninstall_script || !uninstall_ids.pix_empty?
             configure_jamf_uninstall_script
@@ -94,7 +94,7 @@ module Xolo
 
           # this smart group might use the normal-EA or might use app data
           # If those have changed, we need to update it.
-          set_installed_group_criteria_in_jamf if need_to_update_installed_group_in_jamf?
+          configure_jamf_installed_group if need_to_update_jamf_installed_group?
 
           # if the exclusions have changed update the manual install released policy
           if changes_for_update[:excluded_groups]
@@ -164,7 +164,7 @@ module Xolo
         def repair_jamf_title_objects
           progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
           repair_jamf_normal_ea
-          set_installed_group_criteria_in_jamf
+          configure_jamf_installed_group
           repair_jamf_uninstall_script_and_policy
           repair_expire_policy_in_jamf
           repair_frozen_group
@@ -178,7 +178,7 @@ module Xolo
           delete_expire_policy
           delete_uninstall_pol_and_script
           delete_frozen_group_from_jamf
-          delete_installed_group_from_jamf
+          delete_jamf_installed_group
           delete_jamf_normal_ea
           delete_patch_title_from_jamf
         end
@@ -820,87 +820,14 @@ module Xolo
           @jamf_uninstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
         end
 
-        ###################################
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        ###################################
+        #######  The Installed Group
+        ###########################################
+        ###########################################
 
-        # do we need to update the 'installed' smart group?
-        # true if our incoming changes include the app_name or app_bundle_id
-        #
-        # If they changed at all, we need to update no matter what:
-        #  - if they are now nil, we switched to a version script
-        #
-        #  - if they aren't nil but are different, we need to update
-        #    the group criteria to reflect that.
-        #
-        # Changes to the version script, if it was in use before, don't
-        # require us to change the smart group
-        #
-        #
-        # @return [Boolean]
-        #########################
-        def need_to_update_installed_group_in_jamf?
-          changes_for_update[:app_name] || changes_for_update[:app_bundle_id]
-        end
-
-        # Create or update the smartgroup in jamf that contains all macs
-        # with any version of this title installed.
-        #
-        # @return [void]
-        #####################################
-        def set_installed_group_criteria_in_jamf
-          progress "Jamf: Setting criteria for smart group '#{jamf_installed_group_name}'", log: :info
-
-          jamf_installed_group.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_group_criteria)
-          jamf_installed_group.save
-
-          log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
-          sleep 10
-        end
-
-        # Create or fetch the policy that expires a title
-        #
-        # @return [Jamf::Policy] The Jamf Policy for expiring this title
-        #####################################
-        def jamf_expire_policy
-          return @jamf_expire_policy if @jamf_expire_policy
-
-          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_expire_policy_name
-            @jamf_expire_policy = Jamf::Policy.fetch name: jamf_expire_policy_name, cnx: jamf_cnx
-          else
-            return if deleting?
-
-            progress "Jamf: Creating Expiration policy: '#{jamf_expire_policy_name}'", log: :info
-
-            @jamf_expire_policy = Jamf::Policy.create name: jamf_expire_policy_name, cnx: jamf_cnx
-            configure_expiration_policy @jamf_expire_policy
-            @jamf_expire_policy.save
-          end
-
-          @jamf_expire_policy
-        end
-
-        # Configure the expiration policy
-        # @param pol [Jamf::Policy] the policy to configure
-        #########################
-        def configure_expiration_policy(pol)
-          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.run_command = "#{Xolo::Server::Title::CLIENT_EXPIRE_COMMAND} #{title}"
-          pol.set_trigger_event :checkin, true
-          pol.set_trigger_event :custom, jamf_expire_policy_name
-          pol.scope.add_target(:computer_group, jamf_installed_group_name)
-          pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
-          pol.frequency = :daily
-          pol.enable
+        # @return [Boolean] Does the jamf_installed_group exist?
+        ##########################
+        def jamf_installed_group_exist?
+          Jamf::ComputerGroup.all_names(:refresh, cnx: jamf_cnx).include? jamf_installed_group_name
         end
 
         # Create or fetch he smartgroup in jamf that contains all macs
@@ -912,7 +839,7 @@ module Xolo
         def jamf_installed_group
           return @jamf_installed_group if @jamf_installed_group
 
-          if Jamf::ComputerGroup.all_names(cnx: jamf_cnx).include? jamf_installed_group_name
+          if jamf_installed_group_exist?
             @jamf_installed_group = Jamf::ComputerGroup.fetch(
               name: jamf_installed_group_name,
               cnx: jamf_cnx
@@ -928,8 +855,22 @@ module Xolo
               cnx: jamf_cnx
             )
             @jamf_installed_group.save
+            configure_jamf_installed_group
+            log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
+            sleep 10
           end
           @jamf_installed_group
+        end
+
+        # Set the configuration of jamf_installed_group
+        #
+        # @return [void]
+        #####################################
+        def configure_jamf_installed_group
+          progress "Jamf: Configuring smart group '#{jamf_installed_group_name}'", log: :info
+
+          jamf_installed_group.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_group_criteria)
+          jamf_installed_group.save
         end
 
         # The criteria for the smart group in Jamf that contains all Macs
@@ -980,6 +921,87 @@ module Xolo
               )
             ]
           end
+        end
+
+        # do we need to update the 'installed' smart group?
+        # true if our incoming changes include the app_name or app_bundle_id
+        #
+        # If they changed at all, we need to update no matter what:
+        #  - if they are now nil, we switched to a version script
+        #
+        #  - if they aren't nil but are different, we need to update
+        #    the group criteria to reflect that.
+        #
+        # Changes to the version script, if it was in use before, don't
+        # require us to change the smart group
+        #
+        #
+        # @return [Boolean]
+        #########################
+        def need_to_update_jamf_installed_group?
+          changes_for_update[:app_name] || changes_for_update[:app_bundle_id]
+        end
+
+        # Delete the 'installed' smart group
+        # @return [void]
+        ######################################
+        def delete_jamf_installed_group
+          return unless jamf_installed_group_exist?
+
+          progress "Jamf: Deleting smart group '#{jamf_installed_group_name}'", log: :info
+          jamf_installed_group.delete
+          # give the server time to see the deletion
+          log_debug 'Sleeping to let server see deletion of smart group'
+          sleep 10
+        end
+
+        ###################################
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        ###################################
+
+        # Create or fetch the policy that expires a title
+        #
+        # @return [Jamf::Policy] The Jamf Policy for expiring this title
+        #####################################
+        def jamf_expire_policy
+          return @jamf_expire_policy if @jamf_expire_policy
+
+          if Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_expire_policy_name
+            @jamf_expire_policy = Jamf::Policy.fetch name: jamf_expire_policy_name, cnx: jamf_cnx
+          else
+            return if deleting?
+
+            progress "Jamf: Creating Expiration policy: '#{jamf_expire_policy_name}'", log: :info
+
+            @jamf_expire_policy = Jamf::Policy.create name: jamf_expire_policy_name, cnx: jamf_cnx
+            configure_expiration_policy @jamf_expire_policy
+            @jamf_expire_policy.save
+          end
+
+          @jamf_expire_policy
+        end
+
+        # Configure the expiration policy
+        # @param pol [Jamf::Policy] the policy to configure
+        #########################
+        def configure_expiration_policy(pol)
+          pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          pol.run_command = "#{Xolo::Server::Title::CLIENT_EXPIRE_COMMAND} #{title}"
+          pol.set_trigger_event :checkin, true
+          pol.set_trigger_event :custom, jamf_expire_policy_name
+          pol.scope.add_target(:computer_group, jamf_installed_group_name)
+          pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
+          pol.frequency = :daily
+          pol.enable
         end
 
         # The Jamf Patch Source that is connected to the Title Editor
@@ -1145,20 +1167,6 @@ module Xolo
 
           end
           @jamf_patch_title
-        end
-
-        # Delete the 'installed' smart group
-        # @return [void]
-        ######################################
-        def delete_installed_group_from_jamf
-          grp_id = Jamf::ComputerGroup.valid_id jamf_installed_group_name, cnx: jamf_cnx
-          return unless grp_id
-
-          progress "Jamf: Deleting smart group '#{jamf_installed_group_name}'", log: :info
-          Jamf::ComputerGroup.delete grp_id, cnx: jamf_cnx
-          # give the server time to see the deletion
-          log_debug 'Sleeping to let server see deletion of smart group'
-          sleep 10
         end
 
         # Delete the 'frozen' static group
