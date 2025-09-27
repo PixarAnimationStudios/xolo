@@ -1356,14 +1356,7 @@ module Xolo
         # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
         ################
         def jamf_gui_url
-          return @jamf_gui_url if @jamf_gui_url
-
-          host = Xolo::Server.config.jamf_gui_hostname
-          host ||= Xolo::Server.config.jamf_hostname
-          port = Xolo::Server.config.jamf_gui_port
-          port ||= Xolo::Server.config.jamf_port
-
-          @jamf_gui_url = "https://#{host}:#{port}"
+          server_app_instance.jamf_gui_url
         end
 
         # @return [String] the URL for the Frozen static group in Jamf Pro

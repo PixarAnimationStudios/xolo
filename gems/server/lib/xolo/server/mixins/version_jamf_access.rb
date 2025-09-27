@@ -302,7 +302,7 @@ module Xolo
         # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
         ################
         def jamf_gui_url
-          @jamf_gui_url ||= title_object.jamf_gui_url
+          server_app_instance.jamf_gui_url
         end
 
         #######  The Jamf Package Object

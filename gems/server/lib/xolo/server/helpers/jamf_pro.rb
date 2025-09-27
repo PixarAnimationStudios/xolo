@@ -61,6 +61,19 @@ module Xolo
         ##############################
         ##############################
 
+        # @return [String] The start of the Jamf Pro URL for GUI/WebApp access
+        ################
+        def jamf_gui_url
+          return @jamf_gui_url if @jamf_gui_url
+
+          host = Xolo::Server.config.jamf_gui_hostname
+          host ||= Xolo::Server.config.jamf_hostname
+          port = Xolo::Server.config.jamf_gui_port
+          port ||= Xolo::Server.config.jamf_port
+
+          @jamf_gui_url = "https://#{host}:#{port}"
+        end
+
         # A connection to Jamf Pro via ruby-jss.
         #
         # We don't use the default connection but
