@@ -100,7 +100,8 @@ Options:
                                                are stored in files.
 
   --ssl-verify, --no-ssl-verify                Should the server verify the SSL certificates of
-                                               machines it communicates with?
+                                               machines it communicates with, such as the Jamf Pro
+                                               server and the Title Editor server?
                                                 (default: true)
 
   --admin-jamf-group=<s>                       Required if not already set
@@ -128,13 +129,40 @@ Options:
 
   --log-compress-after-days=<i>                Once a log file is rotated, how many days before it
                                                is compressed? Compressed logs are named
-                                               'xoloserver.log.XX.bz2'. It can be accessed
-                                               using the various bzip2 tools (bzip2, bunzip2,
-                                               bzcat, bzgrep, etc). If this number is negative, or
-                                               larger than log_days_to_keep, no logs will be
-                                               compressed, if it is zero, all older logs will be
-                                               compressed.
+                                               'xoloserver.log.XX.bz2'. It can be accessed using
+                                               the various bzip2 tools (bzip2, bunzip2, bzcat,
+                                               bzgrep, etc). If this number is negative, or larger
+                                               than log_days_to_keep, no logs will be compressed,
+                                               if it is zero, all older logs will be compressed.
                                                 (default: 7)
+
+  --alert-tool=<s>                             Server errors or other events that happen as part of
+                                               xadm actions are reported to the xadm user. But
+                                               sometimes such events happen outside of the scope of
+                                               a xadm session. While these events will be logged,
+                                               you might want them reported to a server
+                                               administrator in real time.
+
+                                               This value is either:
+
+                                               - a command (path to executable plus CLI args) on
+                                               the Xolo server which will accept an error or other
+                                               alert message on standard input and send it
+                                               somewhere where it'll be seen by an appropriate
+                                               audiance, be that an email address, a Slack channel
+                                               - anything you'd like.
+
+                                               - or a string "email:email_address" where
+                                               email_address is the email address to send alerts
+                                               to. In this case, the server will send an email to
+                                               that address using the smtp_server and email_from
+                                               configuration values.
+
+                                               Fictional command example:
+                                                  /path/to/slackerator --sender xolo-server
+                                               --channel xolo-alerts --icon dante
+                                               Fictional email example:
+                                                  email:xolo-server-admins@myschool.edu
 
   --pkg-signing-identity=<s>                   Required if not already set
                                                Xolo needs to be able to sign at least one of the
@@ -195,7 +223,7 @@ Options:
                                                developers.
                                                - While you need to trust your xadm users not to
                                                upload a malicious pkg, this would be true
-                                               even if you deployed the certs to them, so keeping
+                                                 even if you deployed the certs to them, so keeping
                                                the certs on the server is more secure.
 
   --release-to-all-jamf-group=<s>              The name of a Jamf account-group (not a User group)
@@ -237,6 +265,14 @@ Options:
 
                                                This value is required if release_to_all_jamf_group
                                                is set.
+
+  --default-min-os=<s>                         The default minimum OS version for new versions of
+                                               titles. This is used when a new version is created,
+                                               and no minimum OS is specified.
+                                               In Jamf Packages, this will appear in the OS
+                                               limitations expanded to macOS 40, or max_os if
+                                               specified for the version.
+                                               If not specified here, the default is 10.9.
 
   --deprecated-lifetime-days=<i>               When a version is deprecated, it will be
                                                automatically deleted by the nightly cleanup this
@@ -344,6 +380,7 @@ Options:
                                                the Jamf Pro APIs.
                                                TODO: Document the permissions needed by this
                                                account.
+                                               TODO: Allow using api-clients
 
   --jamf-api-pw=<s>                            Required if not already set [Private]
                                                The password for the username that connects to the
@@ -378,14 +415,24 @@ Options:
                                                Jamf distribution point(s) to be available for
                                                installation.
 
-                                               This value is the path to an executable on the xolo
-                                               server that will do that second upload to the
-                                               distribution point(s).
+                                               If this value is 'api', and you are using Jamf Pro
+                                               11.6 or later,  Xolo will use the Jamf API to upload
+                                               the package to your primary distribution point. API
+                                               uploads are only available in Jamf Pro 11.6 and
+                                               later, and will only upload to the primary
+                                               distribution point. Syncing to other distribution
+                                               points is not supported by the API.
+
+                                               If this value is a path, it is to an executable on
+                                               the xolo server that will do the upload to the
+                                               distribution point(s). This tool can be anything you
+                                               like, as long as it can upload a .pkg to the Jamf
+                                               distribution point(s) you use.
 
                                                It will be run with two arguments:
-                                               - The display name of the Jamf Package object the
-                                               .pkg is used with
-                                               - the path to the .pkg file on the Xolo server,
+                                               - First, The display name of the Jamf Package object
+                                               the .pkg is used with
+                                               - Then the path to the .pkg file on the Xolo server,
                                                which will be uploaded
                                                  to the Jamf distribution point(s).
 
@@ -418,31 +465,11 @@ Options:
 
                                                An external tool is used here because every Jamf Pro
                                                customer has different needs for this, e.g. various
-                                               cloud and file-server distribution points, and Jamf
-                                               has not provided asupported way to upload packages
-                                               to all possible Dist Points via the APIs.
-
-                                               There are some unsupported methods, and you are
-                                               welcome to use them in the external tool you provide
-                                               here.  As Jamf supports API-based package uploads,
-                                               xolo will be updated to use them.
-
-  --alert-tool=<s>                             Server errors or other events that happen as part of
-                                               xadm actions are reported to the xadm user. But
-                                               sometimes such events happen outside of the scope of
-                                               a xadm session. While these events will be logged,
-                                               you might want them reported to a server
-                                               administrator in real time.
-
-                                               This value is a command (path to executable plus CLI
-                                               args) on the Xolo server which will accept an error
-                                               or other alert message on standard input and send it
-                                               somewhere where it'll be seen by an appropriate
-                                               audiance, be that an email address, a Slack channel
-                                               - anything you'd like.
-
-                                               Fictional example: /path/to/slackerator --sender
-                                               xolo-server --channel xolo-alerts --icon dante
+                                               cloud and file-server distribution points. While the
+                                               packages/upload endpoint of the Jamf Pro API
+                                               (v11.6+) will upload to the primary distribution
+                                               point, it won't upload to all the others you might
+                                               have.
 
   --forced-exclusion=<s>                       If you have any jamf computers who should never even
                                                know that xolo exists, and should never have any

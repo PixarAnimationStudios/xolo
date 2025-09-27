@@ -350,7 +350,7 @@ module Xolo
           end
 
           banner "\nUsage:"
-          usage = cmd_usage || "#{executable_file} #{cmd_display} [options]"
+          usage = cmd_usage || "#{executable_file} [global options] #{cmd_display} [options]"
           banner "  #{usage}"
 
           unless arg_banner == :none
