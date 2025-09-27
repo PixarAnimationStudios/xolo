@@ -109,7 +109,7 @@ module Xolo
           end
 
           # Do we need to update (vs delete) the uninstall script?
-          if need_to_update_jamf_uninstall_scrip?
+          if need_to_update_jamf_uninstall_script?
 
             configure_jamf_uninstall_script
             configure_jamf_uninstall_policy
@@ -702,7 +702,7 @@ module Xolo
         #
         # @return [Boolean]
         ########################
-        def need_to_update_jamf_uninstall_scrip?
+        def need_to_update_jamf_uninstall_script?
           if changes_for_update.key?(:uninstall_script)
             !changes_for_update[:uninstall_script][:new].pix_empty?
           elsif changes_for_update.key?(:uninstall_ids)
