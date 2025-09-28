@@ -45,9 +45,12 @@ module Xolo
         ##########
         get '/maint/state' do
           require 'concurrent/version'
+          uptime_secs = (Time.now - Xolo::Server.start_time).to_i
+
           state = {
             start_time: Xolo::Server.start_time,
-            uptime: (Time.now - Xolo::Server.start_time).to_i.pix_humanize_secs,
+            uptime: uptime_secs.pix_humanize_secs,
+            uptime_secs: uptime_secs,
             app_env: Xolo::Server.app_env,
             data_dir: Xolo::Server::DATA_DIR,
             log_file: Xolo::Server::Log::LOG_FILE,
