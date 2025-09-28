@@ -68,6 +68,7 @@ module Xolo
 
           host = Xolo::Server.config.jamf_gui_hostname
           host ||= Xolo::Server.config.jamf_hostname
+
           port = Xolo::Server.config.jamf_gui_port
           port ||= Xolo::Server.config.jamf_port
 

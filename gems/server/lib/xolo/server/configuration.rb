@@ -395,7 +395,6 @@ module Xolo
         # @!attribute jamf_gui_hostname
         #   @return [String] The hostname of the Jamf Pro server used for links to the GUI webapp
         jamf_gui_hostname: {
-          required: true,
           type: :string,
           desc: <<~ENDDESC
             The hostname of the Jamf Pro server used for links to the GUI webapp, if different from the jamf_hostname.
@@ -478,7 +477,7 @@ module Xolo
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
