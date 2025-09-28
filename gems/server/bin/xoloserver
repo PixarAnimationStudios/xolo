@@ -8,6 +8,9 @@
 
 # frozen_string_literal: true
 
+# die if not root
+raise 'You must run this program as root (using sudo?)' if Process.uid != 0
+
 require 'xolo/server'
 
 # The Server Wrapper App
