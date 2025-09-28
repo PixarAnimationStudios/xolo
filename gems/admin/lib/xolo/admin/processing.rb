@@ -1079,7 +1079,7 @@ module Xolo
       end
 
       # run the cleanup
-      # get the /test route to do whatever testing it does
+      # get the /test route to do whatever testing it does.
       # during testing - this will return all kinds of things.
       #
       # @return [void]
@@ -1104,11 +1104,7 @@ module Xolo
           display_progress resp[:progress_stream_url_path]
         end
 
-        # test uploads
-        # 1.2 gb
-        large_file = '/dist/caspershare/Packages-DEACTIVATED/SecUpd2020-006HighSierra.pkg'
-
-        pkg_to_upload = Pathname.new large_file
+        pkg_to_upload = Pathname.new '/path/to/some/file.pkg'
         puts "Uploading Test File #{pkg_to_upload.size} bytes... "
         upload_test_file(pkg_to_upload)
 
