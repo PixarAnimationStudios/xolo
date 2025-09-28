@@ -171,7 +171,6 @@ module Xolo
           progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
           repair_jamf_normal_ea
           configure_jamf_installed_group
-          repair_jamf_uninstall_script_and_policy
           repair_jamf_uninstall_policy
           repair_jamf_uninstall_script
           repair_jamf_expire_policy
@@ -774,7 +773,7 @@ module Xolo
 
             progress "Jamf: Creating Uninstall policy: '#{jamf_uninstall_policy_name}'", log: :info
             @jamf_uninstall_policy = Jamf::Policy.create name: jamf_uninstall_policy_name, cnx: jamf_cnx
-            configure_uninstall_policy(jamf_uninstall_policy)
+            configure_jamf_uninstall_policy(jamf_uninstall_policy)
           end
 
           @jamf_uninstall_policy
@@ -783,7 +782,7 @@ module Xolo
         # Configure the uninstall policy
         # @param pol [Jamf::Policy] the policy to configure
         ############################
-        def configure_uninstall_policy(pol = nil)
+        def configure_jamf_uninstall_policy(pol = nil)
           progress "Jamf: Configuring uninstall policy '#{jamf_uninstall_policy_name}'", log: :info
           pol ||= jamf_uninstall_policy
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
