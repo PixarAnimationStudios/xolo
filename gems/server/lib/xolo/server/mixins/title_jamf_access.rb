@@ -105,7 +105,7 @@ module Xolo
           # if the exclusions have changed update the manual install released policy
           if changes_for_update[:excluded_groups]
             progress "Jamf: Updating excluded groups for Manual Released Policy '#{jamf_manual_install_released_policy_name}'."
-            configure_manual_install_released_policy(jamf_manual_install_released_policy)
+            configure_jamf_manual_install_released_policy(jamf_manual_install_released_policy)
           end
 
           # Do we need to update (vs delete) the uninstall script?
@@ -129,7 +129,7 @@ module Xolo
           # NOTE: if the uninstall script was deleted,
           # expiration won't do anything.
           if need_to_update_expiration?
-            changes_for_update.dig(:expiration, :new).to_i.positive? ? jamf_expire_policy : delete_expire_policy
+            changes_for_update.dig(:expiration, :new).to_i.positive? ? jamf_expire_policy : delete_jamf_expire_policy
           end
 
           # If we don't use a version script anymore, delete the normal EA
@@ -175,15 +175,17 @@ module Xolo
           repair_jamf_uninstall_script
           repair_jamf_expire_policy
           repair_frozen_group
-          repair_manual_install_released_policy
+          repair_jamf_manual_install_released_policy
         end
 
         # Delete an entire title from Jamf Pro
+        # alway delete policies first, then scripts, then groups, then EAs, then the patch title
         ########################
         def delete_title_from_jamf
           # ORDER MATTERS
-          delete_expire_policy
+          delete_jamf_expire_policy
           delete_jamf_uninstall_policy
+          delete_jamf_manual_install_released_policy
           delete_jamf_uninstall_script
           delete_jamf_frozen_group
           delete_jamf_installed_group
@@ -1201,7 +1203,7 @@ module Xolo
         end
 
         #############################
-        def delete_expire_policy
+        def delete_jamf_expire_policy
           return unless jamf_expire_policy_exist?
 
           progress "Jamf: Deleting expiration policy '#{jamf_expire_policy_name}'", log: :info
@@ -1216,7 +1218,7 @@ module Xolo
             configure_jamf_expire_policy
 
           else
-            delete_expire_policy
+            delete_jamf_expire_policy
           end
         end
 
@@ -1473,7 +1475,7 @@ module Xolo
 
           pol = Jamf::Policy.create name: jamf_manual_install_released_policy_name, cnx: jamf_cnx
 
-          configure_manual_install_released_policy(pol)
+          configure_jamf_manual_install_released_policy(pol)
           pol.save
           pol
         end
@@ -1482,7 +1484,7 @@ module Xolo
         # @param pol [Jamf::Policy] the policy we are configuring
         # @return [void]
         ###################
-        def configure_manual_install_released_policy(pol)
+        def configure_jamf_manual_install_released_policy(pol)
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_released_policy_name
@@ -1529,13 +1531,22 @@ module Xolo
         # repair the jamf_manual_install_released_policy - the
         # policy that installs whatever is the current release
         #############################
-        def repair_manual_install_released_policy
+        def repair_jamf_manual_install_released_policy
           return unless released_version
 
           progress 'Jamf: Repairing the manual/Self Service install policy for the current release'
           pol = jamf_manual_install_released_policy
-          configure_manual_install_released_policy(pol)
+          configure_jamf_manual_install_released_policy(pol)
           pol.save
+        end
+
+        #############################
+        def delete_jamf_manual_install_released_policy
+          return unless jamf_manual_install_released_policy_exist?
+
+          msg = "Jamf: Deleting  the manual/Self Service install policy for the current release '#{jamf_manual_install_released_policy_name}'"
+          progress msg, log: :info
+          jamf_manual_install_released_policy.delete
         end
 
         # Add the jamf_manual_install_released_policy to self service if needed
