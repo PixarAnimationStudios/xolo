@@ -163,6 +163,8 @@ module Xolo
         #
         ###############
         def data_from_command_file_or_string(str, enforce_secure_mode: false)
+          # if it starts with a pipe, it's a command and args
+          # remove the pipe and execute the rest, returning stdout
           return `#{str.delete_prefix(PIPE)}`.chomp if str.start_with? PIPE
 
           path = Pathname.new(str)
@@ -172,9 +174,9 @@ module Xolo
           mode = format '%o', (path.stat.mode & 0o777)
 
           if path.executable?
-            if enforce_secure_mode && mode != '700'
+            if enforce_secure_mode && !mode.end_with?('00')
               raise Xolo::Core::Exceptions::PermissionError,
-                    "Executable file #{str} must be mode 0700"
+                    "Executable file #{str} must be mode 0700, 0500, or 0100"
             end
             `#{path.to_s.shellescape}`.chomp
 
