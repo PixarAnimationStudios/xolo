@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.version     = Xolo::Core::Version::VERSION
   s.authors     = ['Chris Lasell']
   s.email       = 'xolo@pixar.com'
-  s.homepage    = 'http://pixaranimationstudios.github.io/xolo/'
+  s.homepage    = 'https://pixaranimationstudios.github.io/xolo-home/'
   s.date        = Time.now.strftime('%Y-%m-%d')
 
   s.license     = 'LicenseRef-LICENSE.txt'
