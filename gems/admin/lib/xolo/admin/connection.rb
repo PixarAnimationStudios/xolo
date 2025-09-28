@@ -79,6 +79,17 @@ module Xolo
         raise Xolo::AuthenticationError, 'Invalid username or password'
       end
 
+      # @return [Hash] the SSL options for Faraday connections
+      ##################
+      def ssl_opts
+        # true if nil or true, false if false
+        verify = config.ssl_verify.nil? || config.ssl_verify
+
+        {
+          verify: verify
+        }
+      end
+
       # @pararm host [String] an alternate hostname to use, defaults to config.hostname
       #
       # @return [URI] The server base URL
@@ -107,7 +118,7 @@ module Xolo
         @server_cnx = nil if host
         return @server_cnx if @server_cnx
 
-        @server_cnx = Faraday.new(server_url(host: host)) do |cnx|
+        @server_cnx = Faraday.new(server_url(host: host), ssl: ssl_opts) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
 
@@ -145,7 +156,7 @@ module Xolo
 
         req_opts = { on_data: streaming_proc }
 
-        @streaming_cnx = Faraday.new(server_url(host: host), request: req_opts) do |cnx|
+        @streaming_cnx = Faraday.new(server_url(host: host), request: req_opts, ssl: ssl_opts) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
           cnx.use Xolo::Admin::CookieJar
@@ -168,7 +179,7 @@ module Xolo
         @upload_cnx = nil if host
         return @upload_cnx if @upload_cnx
 
-        @upload_cnx = Faraday.new(server_url(host: host)) do |cnx|
+        @upload_cnx = Faraday.new(server_url(host: host), ssl: ssl_opts) do |cnx|
           cnx.options[:timeout] = TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
 

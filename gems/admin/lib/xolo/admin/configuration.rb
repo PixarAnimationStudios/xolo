@@ -96,6 +96,22 @@ module Xolo
 
         # @!attribute pw
         #   @return [String]
+        ssl_verify: {
+          label: 'Verify SSL Cert',
+          type: :boolean,
+          invalid_msg: '',
+          validate: :validate_boolean,
+          default: true,
+          desc: <<~ENDDESC
+            If your Xolo server is using a self-signed SSL certificate,
+            set this to false, to disable SSL verification.
+
+            Defaults to true, which is recommended for production servers.
+          ENDDESC
+        },
+
+        # @!attribute pw
+        #   @return [String]
         no_gui: {
           required: false,
           label: 'Non-GUI mode',
