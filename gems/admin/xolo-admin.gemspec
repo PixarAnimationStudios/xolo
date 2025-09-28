@@ -7,7 +7,7 @@
 proj_name = 'xolo-admin'
 lib_dir = 'xolo'
 
-require "./lib/#{lib_dir}/core/version"
+require "../../core/lib/#{lib_dir}/core/version"
 
 Gem::Specification.new do |s|
   # General
