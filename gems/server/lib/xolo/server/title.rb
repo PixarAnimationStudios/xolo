@@ -641,7 +641,13 @@ module Xolo
         @version_objects = nil if refresh
         return @version_objects if @version_objects
 
-        @version_objects = version_order.map { |v| version_object v }
+        @version_objects = version_order.map do |v|
+          version_object v
+        rescue Xolo::Core::Exceptions::NoSuchItemError
+          next if deleting?
+
+          raise
+        end
       end
 
       # @return [String] The URL path for the patch report for this title
@@ -900,7 +906,9 @@ module Xolo
         # see each older version as being 'released' again as newer
         # ones are deleted.
         version_objects.reverse.each do |vers|
-          vers.delete update_title: false
+          # vers might be nil if it was already deleted
+          # e.g. a prev. attempt to delete the title failed partway through
+          vers&.delete update_title: false
         end
 
         delete_title_from_ted
