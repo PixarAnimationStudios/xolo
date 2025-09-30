@@ -346,21 +346,16 @@ module Xolo
         # @return [void]
         ################################
         def configure_jamf_normal_ea
+          # nothing to do if its nil, if we need to delete it, that'll happen later
+          return if version_script_contents.pix_empty?
+
           progress "Jamf: Configuring regular extension attribute '#{jamf_normal_ea_name}'", log: :info
 
           jamf_normal_ea.description = "The version of xolo title '#{title}' installed on the machine"
-          jamf_normal_ea.data_type = :string
-
-          # this is our incoming or already-existing EA script
-          if version_script_contents.pix_empty?
-            # nothing to do if its nil, if we need to delete it, that'll happen later
-          else
-            jamf_normal_ea.enabled = true
-            jamf_normal_ea.input_type = 'script'
-            jamf_normal_ea.script = version_script_contents
-          end
-
-          jamf_normal_ea.script = scr
+          jamf_normal_ea.data_type = 'String'
+          jamf_normal_ea.input_type = 'script'
+          jamf_normal_ea.enable
+          jamf_normal_ea.script = version_script_contents
           jamf_normal_ea.save
         end
 
