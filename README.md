@@ -17,9 +17,13 @@ Xolo (sorta pronounced 'show-low') is an http server and set of command-line too
 
 Xolo is the successor to depot3/d3, which allowed Patch Management via Jamf Pro before Jamf's own Patch Management system existed. Now that Jamf's Patch Management is stable and mature, d3 was rewritten from the ground up as xolo to take advantage of it, retaining a few unique enhancements that d3 provided. 
 
-Unlike d3, xolo is built around 'pure-Jamf' processes, and everything it does can be done manually in the Title Editor and Jamf Pro web interfaces. 
+Xolo is made of three parts:
 
-"Xolo" is the short name for the Mexican hairless dog breed ['xoloitzcuintle'](https://en.wikipedia.org/wiki/Xoloitzcuintle) (show-low-itz-kwint-leh), as personified by Dante in the 2017 Pixar film _Coco_.
+- xoloserver, the https server that makes it all go
+- xadm, the Xolo admin tool for managing titles and versions via option-based or interactive command-line
+- xolo, the Xolo client tool for manually working with titles and versions on managed Macs   
+
+Unlike d3, xolo is built around 'pure-Jamf' processes, and everything it does can be done manually in the Title Editor and Jamf Pro web interfaces. 
 
 Xolo is built with two of our other open-source projects:
 
@@ -32,9 +36,6 @@ which provides a ruby SDK for interacting with the
 
 See the xolo-admin.gemspec and xolo-server.gemspec files for other open-source tools and libraries used by Xolo.
 
-For detailed documentation about Xolo:<br/>
-(yet to be written....)
+For detailed documentation about Xolo, see the [GitHub Wiki](https://github.com/PixarAnimationStudios/xolo/wiki)
 
-- xoloserver, the https server that makes it all go
-- xadm, the Xolo admin tool for managing titles and versions via option-based or interactive command-line
-- xolo, the Xolo client tool for manually working with titles and versions on managed Macs   
+> "Xolo" is the short name for the Mexican hairless dog breed ['xoloitzcuintle'](https://en.wikipedia.org/wiki/Xoloitzcuintle) (show-low-itz-kwint-leh), as personified by Dante in the 2017 Pixar film _Coco_.
