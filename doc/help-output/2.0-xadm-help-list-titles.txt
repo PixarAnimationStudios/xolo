@@ -1,8 +1,0 @@
-Command:
-  list-titles, List all software titles.
-
-Usage:
-  xadm list-titles [options]
-
-Options:
-  -h, --help    Show this message

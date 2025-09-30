@@ -36,6 +36,9 @@ which provides a ruby SDK for interacting with the
 
 See the xolo-admin.gemspec and xolo-server.gemspec files for other open-source tools and libraries used by Xolo.
 
-For detailed documentation about Xolo, see the [GitHub Wiki](https://github.com/PixarAnimationStudios/xolo/wiki)
+For detailed documentation about Xolo, see the [GitHub Wiki](https://github.com/PixarAnimationStudios/xolo/wiki), which includes:
+- Installing and configuring [The Server](https://github.com/PixarAnimationStudios/xolo/wiki/Installing-xoloserver), [xadm](https://github.com/PixarAnimationStudios/xolo/wiki/Installing-xadm), and the [Client Tool](https://github.com/PixarAnimationStudios/xolo/wiki/Deploying-xolo)
+- [The help output for all commandline options](https://github.com/PixarAnimationStudios/xolo/wiki/README-HELP-OUTPUT)
+- [An overview of the server's JSON API](https://github.com/PixarAnimationStudios/xolo/wiki/README-API)
 
 > "Xolo" is the short name for the Mexican hairless dog breed ['xoloitzcuintle'](https://en.wikipedia.org/wiki/Xoloitzcuintle) (show-low-itz-kwint-leh), as personified by Dante in the 2017 Pixar film _Coco_.
