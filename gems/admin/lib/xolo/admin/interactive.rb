@@ -163,7 +163,7 @@ module Xolo
       def ssvc_na
         tgt_all = walkthru_cmd_opts[:release_groups]&.include?(Xolo::TARGET_ALL)
 
-        "N/A if Target Group is '#{Xolo::TARGET_ALL}'" if tgt_all
+        "N/A if Release Group is '#{Xolo::TARGET_ALL}'" if tgt_all
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
@@ -515,6 +515,8 @@ module Xolo
               convert = send deets[:readline]
               convert << Xolo::NONE unless deets[:required]
               convert << Xolo::X
+              # if we're doing release groups, make sure the list includes 'all',
+              convert << Xolo::TARGET_ALL if deets[:label] == Xolo::Admin::Title::ATTRIBUTES[:release_groups][:label]
               validate = nil
             end
             true

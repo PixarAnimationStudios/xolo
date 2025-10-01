@@ -53,7 +53,7 @@ module Xolo
 
         # Has been fully released in Xolo, this is the currently
         # 'live' version. Will be auto-installed
-        # on non-excluded members of the target groups
+        # on non-excluded members of the release groups
         STATUS_RELEASED = 'released'
 
         # Was pending or pilot, but was never released in Xolo,

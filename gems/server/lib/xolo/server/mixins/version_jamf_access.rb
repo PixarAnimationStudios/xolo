@@ -505,7 +505,7 @@ module Xolo
         # Before release, the targets are those defined in #pilot_groups_to_use
         #
         # After release, the targets are changed to those
-        # in title_object#target_group
+        # in title_object#release_groups
         #
         # This policy is never in self service
         # @return [Jamf::Policy] the auto install policy for this version
@@ -553,7 +553,7 @@ module Xolo
           end
 
           # enable or disable based on status
-          if pilot? || released?
+          if pilot? || released? || releasing?
             pol.enable
           else
             pol.disable

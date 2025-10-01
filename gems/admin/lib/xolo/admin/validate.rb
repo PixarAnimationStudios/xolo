@@ -975,7 +975,7 @@ module Xolo
           if walkthru?
             "Cannot be in Self Service when Target Group is '#{Xolo::TARGET_ALL}'"
           else
-            "--self-service cannot be used when --target-groups contains '#{Xolo::TARGET_ALL}'"
+            "--self-service cannot be used when --release-groups contains '#{Xolo::TARGET_ALL}'"
           end
         raise_consistency_error msg
       end
