@@ -689,6 +689,7 @@ module Xolo
         progress msg, log: :info
         pol = jamf_auto_install_policy
         set_policy_release_groups pol
+        pol.enable
         pol.save
 
         # set scope targets of patch policy to all (in patch pols, 'all' means 'all eligible')
