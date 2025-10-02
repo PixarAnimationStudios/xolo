@@ -416,6 +416,8 @@ module Xolo
         #
         # Re-enable the title in ted after updating any patches
         #
+        # TODO: Now that we are using stub patches, do we need the loop?
+        #
         # @return [void]
         ##############################
         def enable_ted_title
@@ -500,10 +502,10 @@ module Xolo
           if ted_title.patches.empty?
             create_and_enable_stub_patch_in_ted(ted_title)
           else
-            # make sure at least one patch is enabled
-            unless ted_title.patches.to_a.any?(&:enabled?)
-              progress "Title Editor: Enabling at least the first patch for title '#{title}'", log: :info
-              ted_title.patches.first.enable
+            # repair all patches, because reparing the title might have changed the requirements
+            progress "Title Editor: Re-enabling all patches for '#{title}'", log: :info
+            version_objects.each do |vobj|
+              vobj.repair_ted_patch
             end
           end
 
