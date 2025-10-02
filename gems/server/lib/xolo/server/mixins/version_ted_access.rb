@@ -62,6 +62,9 @@ module Xolo
           set_patch_capabilites
           set_ted_patch_component_criteria ttl_obj: title_object
 
+          enable_ted_patch
+          title_object.enable_ted_title
+
           self.ted_id_number = new_patch.patchId
         end
 
@@ -94,6 +97,9 @@ module Xolo
           # those are handled by the title object calling the same method
           #
           # set_ted_patch_component_criteria ttl_obj: title_object
+
+          enable_ted_patch
+          title_object.enable_ted_title
         end
 
         # Set any killapps for this version in the title editor.
@@ -235,9 +241,6 @@ module Xolo
           comp = ted_patch.component
 
           ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
-
-          # SHouldn't be needed here, is called in both create and update
-          # enable_ted_patch
         end
 
         # get the param values for patch component criteria from the title object,
@@ -361,7 +364,9 @@ module Xolo
           set_patch_killapps
           set_patch_capabilites
           set_ted_patch_component_criteria ttl_obj: title_object
-          enable_ted_patch unless ted_patch(refresh: true).enabled?
+          enable_ted_patch
+
+          title_object.enable_ted_title
         end
 
       end # VersionTedAccess

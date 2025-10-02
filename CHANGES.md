@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Configuration problems of the 'normal' Ext Attrib. in Jamf Pro.
   - Ensure auto-install policy is enabled when a version is released
   - When ever repairing a title in title editor also repair all patches, because the title repair causes them to be disabled, often by deleting their component critera, which disables the title itself.
+  - Similarly, when repairing a patch in the title editor, be sure to re-enable the title itself, as it will become disabled when any change is made to a Patch.
   - Allow use of 'all' when setting release-groups in xadm's interactive mode
 
 ## \[1.0.0] - 2025-09-28

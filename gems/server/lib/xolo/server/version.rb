@@ -560,8 +560,6 @@ module Xolo
         save_local_data
 
         create_patch_in_ted
-        enable_ted_patch
-        title_object.enable_ted_title
 
         create_in_jamf
 
@@ -608,7 +606,6 @@ module Xolo
 
         # update ted before jamf
         update_patch_in_ted
-        enable_ted_patch
         update_version_in_jamf
         update_local_instance_values
         save_local_data

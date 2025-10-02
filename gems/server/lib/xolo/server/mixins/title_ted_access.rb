@@ -86,8 +86,9 @@ module Xolo
           sleep 2
 
           # re-fetch the title from ted and enable it
-          ted_title(refresh: true).enable
+          enable_ted_title
 
+          # cache the new title object id
           self.ted_id_number = ted_title.softwareTitleId
         end
 
@@ -196,6 +197,9 @@ module Xolo
 
           # This will also apply the changes to all patch component criteria
           apply_requirement_changes
+
+          # re-enable all patches, after any change, which might have disabled them
+          reenable_all_ted_patches
 
           # mucking with the patches often disables the title, make sure its enabled.
           enable_ted_title
@@ -432,10 +436,10 @@ module Xolo
           loop do
             raise Xolo::TimeoutError, "Title Editor: Timed out waiting for SoftwareTitle '#{title}' to enable" if Time.now > breaktime
 
-            sleep 5
             ted_title(refresh: true).enable
             break
           rescue Windoo::MissingDataError => e
+            sleep 5
             log_debug "Title Editor: Looping up to #{Xolo::Server::Constants::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} secs while re-enabling SoftwareTitle '#{title}': #{e}"
 
             # make sure all patches are enabled, even tho at least one should have been
@@ -510,6 +514,15 @@ module Xolo
           end
 
           ted_title.enable unless ted_title(refresh: true).enabled?
+        end
+
+        # Re-enable all patches in the title editor
+        # @return [void]
+        ###########################
+        def reenable_all_ted_patches
+          # re-enable all patches, after any change, which might have disabled them
+          progress "Title Editor: Re-enabling all patches for '#{title}'", log: :info
+          version_objects.each { |vobj| vobj.enable_ted_patch }
         end
 
       end # TitleEditorTitle
