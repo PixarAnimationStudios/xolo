@@ -86,7 +86,8 @@ module Xolo
           sleep 2
 
           # re-fetch the title from ted and enable it
-          enable_ted_title
+          progress "Title Editor: Enabling SoftwareTitle '#{title}'", log: :info
+          ted_title(refresh: true).enable
 
           # cache the new title object id
           self.ted_id_number = ted_title.softwareTitleId
