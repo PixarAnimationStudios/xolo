@@ -489,6 +489,9 @@ module Xolo
         # @return [Jamf::Policy] The auto-install-policy for this version, if it exists
         ##########################
         def jamf_auto_install_policy
+          # This is imporant to avoid infinite recursion
+          return @jamf_auto_install_policy if @jamf_auto_install_policy
+
           if jamf_auto_install_policy_exist?
             @jamf_auto_install_policy = Jamf::Policy.fetch(name: jamf_auto_install_policy_name, cnx: jamf_cnx)
           else
@@ -513,13 +516,11 @@ module Xolo
         #########################
         def create_jamf_auto_install_policy
           progress "Jamf: Creating Auto Install Policy: #{jamf_auto_install_policy_name}", log: :debug
-          # define @jamf_auto_install_policy here, so that
-          # future calls to the 'jamf_auto_install_policy' method
-          # e.g. in `configure_jamf_auto_install_policy` always return _this_ instance
+
           @jamf_auto_install_policy = Jamf::Policy.create name: jamf_auto_install_policy_name, cnx: jamf_cnx
 
           configure_jamf_auto_install_policy
-          jamf_auto_install_policy.save
+          @jamf_auto_install_policy.save
         end
 
         # repair the auto-install policy only
@@ -533,8 +534,8 @@ module Xolo
         # Configure the given policy as the auto-install policy for this version
         # @param pol [Jamf::Policy] the policy to configure
         ################################
-        def configure_jamf_auto_install_policy
-          pol = jamf_auto_install_policy
+        def configure_jamf_auto_install_policy(pol = nil)
+          pol ||= jamf_auto_install_policy
 
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, true
