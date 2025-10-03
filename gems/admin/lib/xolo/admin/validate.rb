@@ -196,7 +196,7 @@ module Xolo
         if cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
           err =
             if title_exists
-              'already exists in Xolo'
+              "title '#{val}' already exists in Xolo"
             elsif val !~ /\A[a-z0-9-][a-z0-9-]+\z/
               TITLE_ATTRS[:title][:invalid_msg]
             else
@@ -207,7 +207,7 @@ module Xolo
         elsif Xolo::Admin::Options::MUST_EXIST_COMMANDS.include?(cli_cmd.command)
           return val if title_exists
 
-          err = "doesn't exist in Xolo"
+          err = "title '#{val}' doesn't exist in Xolo"
 
         # any other command
         else

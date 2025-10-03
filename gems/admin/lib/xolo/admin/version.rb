@@ -87,6 +87,8 @@ module Xolo
       def self.fetch(title, version, cnx)
         resp = cnx.get server_route(title, version)
         new resp.body
+      rescue Faraday::ResourceNotFound
+        raise Xolo::NoSuchItemError, "No such version '#{version}'"
       end
 
       # Deploy a version to desired computers and groups via MDM

@@ -79,6 +79,8 @@ module Xolo
         resp = cnx.get "#{SERVER_ROUTE}/#{title}"
 
         new resp.body
+      rescue Faraday::ResourceNotFound
+        raise Xolo::NoSuchItemError, "No such title '#{title}'"
       end
 
       # Delete a title from the server
