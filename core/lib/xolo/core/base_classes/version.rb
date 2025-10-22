@@ -191,6 +191,8 @@ module Xolo
             cli: :k,
             type: :string,
             multi: true,
+            readline: true,
+            readline_prompt: 'KillApp',
             validate: true,
             changelog: true,
             # default: Xolo::NONE,
