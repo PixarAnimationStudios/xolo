@@ -184,8 +184,10 @@ module Xolo
         # @return [void]
         #######################
         def log_change(attrib: nil, old_val: nil, new_val: nil, msg: nil)
+          log_debug "Preparing to log change for #{title}: attrib=#{attrib.inspect}, old_val=#{old_val.inspect}, new_val=#{new_val.inspect}, msg=#{msg.inspect}"
+
           raise ArgumentError, 'Must provide attrib: or action:' if !msg && !attrib
-          raise ArgumentError, 'Must provide old: or new: or both with attrib:' if attrib && !old_val && !new_val
+          raise ArgumentError, 'Must provide old: or new: or both with attrib:' if attrib && old_val.nil? && new_val.nil?
 
           # if action, attrib, old, and new are ignored
           attrib, old_val, new_val = nil if msg
