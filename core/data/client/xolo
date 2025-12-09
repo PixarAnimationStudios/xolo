@@ -40,7 +40,7 @@ XOLO_VERSION="0.0.0"
 USAGE='xolo [options] <command> [<title> [<version>]]'
 
 # The URL for more information about xolo
-XOLO_DOX_URL='<URL TO BE DETERMINED>'
+XOLO_DOX_URL='https://pixaranimationstudios.github.io/xolo-home/'
 
 # The long path to the lsregister command
 LSREG='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister'

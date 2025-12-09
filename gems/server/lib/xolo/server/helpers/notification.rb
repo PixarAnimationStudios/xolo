@@ -27,7 +27,7 @@ module Xolo
 
         DFT_EMAIL_FROM = 'xolo-server-do-not-reply'
 
-        ALERT_TOOL_EMAIL_PREFIX = 'email:'
+        ALERT_TOOL_EMAIL_PREFIX = 'mailto:'
 
         # Module Methods
         #######################
@@ -136,7 +136,7 @@ module Xolo
           @server_fqdn ||= Addrinfo.getaddrinfo(Socket.gethostname, nil).first.getnameinfo.first
         end
 
-      end # Log
+      end # Notification
 
     end # Helpers
 

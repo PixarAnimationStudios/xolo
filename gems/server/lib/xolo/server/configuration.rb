@@ -183,12 +183,14 @@ module Xolo
 
             - a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
 
-            - or a string "email:email_address" where email_address is the email address to send alerts to. In this case, the server will send an email to that address using the smtp_server and email_from configuration values.
+            - or a string "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}email_address" where email_address is the email address to send alerts to. In this case, the server will send an email to that address using the smtp_server and email_from configuration values.
 
             Fictional command example:
                /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
             Fictional email example:
-               email:xolo-server-admins@myschool.edu
+               #{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}xolo-server-admins@myschool.edu
+
+            While not required, it is strongly recommended to use this, so that server admins are made aware of issues that need their attention.
           ENDDESC
         },
 
@@ -622,6 +624,52 @@ module Xolo
             Otherwise the value is used as the password.
 
             Be careful of security concerns when passwords are stored in files.
+          ENDDESC
+        },
+
+        # @!attribute subscription_webhook_token
+        #   @return [String]  A command, path, or value for the authentication token used by Jamf Pro to send
+        #      PatchSoftwareTitleUpdated webhook events for subscribed titles.
+        subscription_webhook_token: {
+          load_method: :data_from_command_file_or_string,
+          private: true,
+          type: :string,
+          desc: <<~ENDDESC
+            The authentication token used by Jamf Pro to send PatchSoftwareTitleUpdated webhook events for subscribed titles.
+
+            This value can be string, but should be treated like a password, and should be changed both here and on the Jamf Pro server if it is ever suspected of being compromised.
+
+            A good way to generate a random token is to use the following command in Terminal:
+
+                openssl rand -hex 16
+
+            When configuring the webhook in Jamf Pro, use "Header Authentication"  to send this JSON to use as the header:
+
+               {"Authorization":"Bearer <token>"}
+
+            Replacing <token> with the value set here.
+
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used.
+
+            Otherwise the value is used as the token.
+
+            Be careful of security concerns when secrets are stored in files.
+          ENDDESC
+        },
+
+        # @!attribute subscription_updated_alert_tool
+        #   @return [String] An email address to notify when a subscription updated webhook event is received, but the
+        #      title is not configured to use autopkg to fetch the new version. If unset, the default alert mechanism is used.
+        subscription_updated_alert_tool: {
+          type: :string,
+          desc: <<~ENDDESC
+            If a title is a subscription from a non-xolo Patch Source, but is not configured to use autopkg to fetch new versions, when a PatchSoftwareTitleUpdated webhook event is received from Jamf Pro, an alert should be sent to notify someone to add the new version manually.
+
+            Leave this unset to use the default alert mechanism defined by the 'alert_tool' configuration value.
+
+            Otherwise, the value is the same as for 'alert_tool', either a command to run, or an email address prefixed by "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}".
           ENDDESC
         }
 

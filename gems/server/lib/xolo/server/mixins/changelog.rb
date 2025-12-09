@@ -264,19 +264,6 @@ module Xolo
         def log_update_changes
           return unless changes_for_update
 
-          # self.class::ATTRIBUTES.each do |attr, deets|
-          #   next unless deets[:changelog]
-
-          #   new_val = deets[:type] == :time ? Time.parse(new_data_for_update[attr]) : new_data_for_update[attr]
-          #   old_val = send attr
-
-          #   new_val = "'#{new_val.sort.join("', '")}'" if new_val.is_a? Array
-          #   old_val = "'#{old_val.sort.join("', '")}'" if old_val.is_a? Array
-          #   next if new_val == old_val
-
-          #   log_change attrib: attr, old_val: old_val, new_val: new_val
-          # end
-
           changes_for_update.each do |attr, vals|
             log_change attrib: attr, old_val: vals[:old], new_val: vals[:new]
           end
