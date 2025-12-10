@@ -174,6 +174,7 @@ module Xolo
 
       LIST_GROUPS_CMD = 'list-groups'
       LIST_CATEGORIES_CMD = 'list-categories'
+      LIST_AVAILABLE_CMD = 'list-available'
       SAVE_CLIENT_CODE_CMD = 'save-client'
 
       SERVER_STATUS_CMD = 'server-status'
@@ -686,6 +687,15 @@ module Xolo
           opts: {},
           arg_banner: :none,
           process_method: :list_categories
+        },
+
+        LIST_AVAILABLE_CMD => {
+          desc: 'List all titles available for subscription, and their Patch Sources',
+          display: LIST_AVAILABLE_CMD,
+          usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} [global-options] #{LIST_AVAILABLE_CMD}",
+          opts: {},
+          arg_banner: :none,
+          process_method: :list_available_titles
         },
 
         SAVE_CLIENT_CODE_CMD => {

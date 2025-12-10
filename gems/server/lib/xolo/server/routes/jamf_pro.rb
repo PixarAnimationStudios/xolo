@@ -80,6 +80,16 @@ module Xolo
           jcnx&.disconnect
         end
 
+        # A list of all currently available titles that can be subscribed to
+        ###############
+        get '/jamf/available-titles-for-subscription' do
+          log_debug "Jamf: Fetching titles available for subscription for #{session[:admin]}"
+          jcnx = jamf_cnx
+          body available_titles_for_subscription
+        ensure
+          jcnx&.disconnect
+        end
+
       end # Module
 
     end #  Routes

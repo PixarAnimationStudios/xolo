@@ -1036,6 +1036,25 @@ module Xolo
         list_in_cols header, jamf_computer_group_names.sort_by(&:downcase)
       end
 
+      # List Available titles for subscription in jamf pro
+      #
+      # @return [void]
+      #############################
+      def list_available_titles
+        if json?
+          puts JSON.pretty_generate(jamf_available_titles)
+          return
+        end
+
+        title = 'Available Titles for Subscription'
+        header = ['Display Name', 'Publisher', 'Source Name', 'TitleID']
+
+        data = jamf_available_titles.sort_by { |t| t[:app_name].downcase }
+        lines = data.map { |t| [t[:app_name], t[:publisher], t[:source_name], t[:name_id]] }
+
+        puts generate_report(lines, header_row: header, title: title)
+      end
+
       # List all the SSVC categories in jamf pro
       #
       # @return [void]

@@ -41,6 +41,7 @@ module Xolo
       helpers Xolo::Server::Helpers::PkgSigning
       helpers Xolo::Server::Helpers::ProgressStreaming
       helpers Xolo::Server::Helpers::ClientData
+      helpers Xolo::Server::Helpers::Subscriptions
       helpers Xolo::Server::Helpers::Maintenance
 
       # Sinatra setup

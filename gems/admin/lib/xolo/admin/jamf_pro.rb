@@ -32,6 +32,9 @@ module Xolo
       # Xolo server route to the list available categories
       CATEGORY_NAME_ROUTE = "#{JAMF_ROUTE_BASE}/category-names"
 
+      # Xolo server route to the list of available titles for subscription
+      AVAILABLE_TITLES_ROUTE = "#{JAMF_ROUTE_BASE}/available-titles-for-subscription"
+
       # Module Methods
       ##########################
       ##########################
@@ -66,6 +69,12 @@ module Xolo
       #######################
       def jamf_category_names
         @jamf_category_names ||= server_cnx.get(CATEGORY_NAME_ROUTE).body
+      end
+
+      # @return [Array<String>] data about all titles available for subscription in Jamf Pro.
+      #######################
+      def jamf_available_titles
+        @jamf_available_titles ||= server_cnx.get(AVAILABLE_TITLES_ROUTE).body
       end
 
     end # module

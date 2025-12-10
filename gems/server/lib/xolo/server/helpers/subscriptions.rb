@@ -25,6 +25,10 @@ module Xolo
         #####################
         #####################
 
+        # TODO: remove this stuff when the JPAPI/ruby-jss properly supports Patch Titles
+
+        JPAPI_PATCH_TITLE_ENDPOINT = 'v2/patch-software-title-configurations'
+
         # Module Methods
         #######################
         #######################
@@ -45,7 +49,8 @@ module Xolo
           available = []
 
           Jamf::PatchSource.all(cnx: jamf_cnx).each do |ps|
-            ps = Jamf::PatchSource.fetch id: ps[:id]
+            log_debug "Checking Patch Source #{ps} for available titles"
+            ps = Jamf::PatchSource.fetch id: ps[:id], cnx: jamf_cnx
             ps.available_titles.each do |t|
               data = t.merge({ source_id: ps.id, source_name: ps.name })
               available << data
