@@ -1052,7 +1052,7 @@ module Xolo
         data = jamf_available_titles.sort_by { |t| t[:app_name].downcase }
         lines = data.map { |t| [t[:app_name], t[:publisher], t[:source_name], t[:name_id]] }
 
-        puts generate_report(lines, header_row: header, title: title)
+        show_text generate_report(lines, header_row: header, title: title)
       end
 
       # List all the SSVC categories in jamf pro
