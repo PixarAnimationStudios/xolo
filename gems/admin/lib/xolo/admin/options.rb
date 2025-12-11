@@ -152,6 +152,7 @@ module Xolo
 
       LIST_TITLES_CMD = 'list-titles'
       ADD_TITLE_CMD = 'add-title'
+      SUBSCRIBE_CMD = 'subscribe'
       EDIT_TITLE_CMD = 'edit-title'
       DELETE_TITLE_CMD = 'delete-title'
       FREEZE_TITLE_CMD = 'freeze'
@@ -422,6 +423,17 @@ module Xolo
           walkthru_header: "Adding Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
           target: :title,
           process_method: :add_title,
+          streamed_response: true,
+          confirmation: true
+        },
+
+        SUBSCRIBE_CMD => {
+          desc: 'Subscribe to a software title from a Patch Source defined in Jamf Pro',
+          display: "#{SUBSCRIBE_CMD} title",
+          opts: Xolo::Admin::Title.subscribe_cli_opts,
+          walkthru_header: "Subscribing to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
+          target: :title,
+          process_method: :subscribe_title,
           streamed_response: true,
           confirmation: true
         },

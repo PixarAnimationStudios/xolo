@@ -303,6 +303,22 @@ module Xolo
             ENDDESC
           },
 
+          patch_source: {
+            label: 'Patch Source',
+            cli: :S,
+            type: :string,
+            immutable: true,
+            walkthru_na: :subscription_na
+
+          },
+
+          title_id: {
+            label: 'Title ID',
+            cli: :T,
+            type: :string,
+            walkthru_na: :subscription_na
+          },
+
           # Whenever one of the groups listed is Xolo::TARGET_ALL ('all') then all other groups are
           # ignored or deleted and the array contains only 'all'
           #

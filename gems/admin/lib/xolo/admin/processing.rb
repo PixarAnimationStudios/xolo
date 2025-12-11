@@ -1036,7 +1036,7 @@ module Xolo
         list_in_cols header, jamf_computer_group_names.sort_by(&:downcase)
       end
 
-      # List Available titles for subscription in jamf pro
+      # List Available titles for subscription
       #
       # @return [void]
       #############################
@@ -1047,7 +1047,7 @@ module Xolo
         end
 
         title = 'Available Titles for Subscription'
-        header = ['Display Name', 'Publisher', 'Source Name', 'TitleID']
+        header = %w[DisplayName Publisher SourceName TitleID]
 
         data = jamf_available_titles.sort_by { |t| t[:app_name].downcase }
         lines = data.map { |t| [t[:app_name], t[:publisher], t[:source_name], t[:name_id]] }
