@@ -702,7 +702,13 @@ module Xolo
         },
 
         LIST_AVAILABLE_CMD => {
-          desc: 'List all titles available for subscription, and their Patch Sources',
+          desc: 'List all titles available for subscription, and their Patch Sources and Title IDs.',
+          long_desc: <<~ENDLONG,
+            When adding a subscribed title to Xolo, you need to know the Patch Source and Title ID.
+            This command lists all available titles from all defined Patch Sources on the Jamf Pro server,
+            and the unique identifiers for each. You can use those values with the --patch-source and --title-id
+            options of the 'xadm add-title' command.
+          ENDLONG
           display: LIST_AVAILABLE_CMD,
           usage: "#{Xolo::Admin::EXECUTABLE_FILENAME} [global-options] #{LIST_AVAILABLE_CMD}",
           opts: {},

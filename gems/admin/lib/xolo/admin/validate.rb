@@ -296,6 +296,32 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:version_script][:invalid_msg]
       end
 
+      # validate a patch source name. Must exist in Jamf Pro and have available titles
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [Pathname] The valid value
+      ##########################
+      def validate_patch_source(val)
+        val = val.to_s
+        return val if jamf_patch_sources_with_available_titles.include? val
+
+        raise_invalid_data_error val, TITLE_ATTRS[:patch_source][:invalid_msg]
+      end
+
+      # validate a patch title id.
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [Pathname] The valid value
+      ##########################
+      def validate_title_id(val)
+        val = val.to_s
+        return val if jamf_available_titles.any? { |t| t[:name_id] == val }
+
+        raise_invalid_data_error val, TITLE_ATTRS[:patch_source][:invalid_msg]
+      end
+
       # validate a title uninstall script:
       # - a path to a script which must start with '#!'
       # OR
@@ -816,6 +842,9 @@ module Xolo
 
         # order of these matters
         validate_scope_targets_and_exclusions(opts)
+        validate_title_consistency_managed_or_subscribed(opts)
+        validate_title_consistency_patch_source_and_title_id(opts)
+        validate_title_consistency_title_id_exists(opts)
         validate_title_consistency_app_and_script(opts)
         validate_title_consistency_app_or_script(opts)
         validate_title_consistency_app_name_and_id(opts)
@@ -878,7 +907,7 @@ module Xolo
         raise_consistency_error msg
       end
 
-      # but either version_script or appname and bundle id must be given
+      # Either version_script or appname and bundle id must be given
       #
       # @param opts [OpenStruct] the current options
       #
@@ -912,6 +941,64 @@ module Xolo
             'App Name & App Bundle ID must both be given if either is.'
           else
             '--app-name & --app-bundle-id must both be given if either is.'
+          end
+        raise_consistency_error msg
+      end
+
+      # If xolo will manage this title, we must have either version_script or
+      # app_name and app_bundle_id
+      # But if subscribing to this title, we must have patch_source and title_id
+      #
+      ####################
+      def validate_title_consistency_managed_or_subscribed(opts)
+        return if opts[:version_script]
+        return if opts[:app_name] || opts[:app_bundle_id]
+        return if opts[:patch_source] || opts[:title_id]
+
+        msg =
+          if walkthru?
+            'For a Xolo-managed title, provide App Name & Bundle ID. or Version Script. To subscribe to a title, provide Patch Source & Title ID.'
+          else
+            'For a Xolo-managed title, provide --app-name and --app-bundle-id. or --version-script. To subscribe to a title, provide --patch-source and --title-id.'
+          end
+        raise_consistency_error msg
+      end
+
+      # If subscribing to a title both patch_source and title_id must be given
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_patch_source_and_title_id(opts)
+        return if opts[:version_script] || opts[:app_name] || opts[:app_bundle_id]
+        return if opts[:title_id] && opts[:patch_source]
+
+        msg =
+          if walkthru?
+            'To subscribe to a title, both Patch Source and Title ID must be given.'
+          else
+            'To subscribe to a title, both --patch-source and --title-id must be given.'
+          end
+        raise_consistency_error msg
+      end
+
+      # If subscribing to a title, the title_id must exist in the given patch_source
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_title_id_exists(opts)
+        return if jamf_available_titles.any? do |t|
+          t[:name_id] == opts[:title_id] && t[:source_name] == opts[:patch_source]
+        end
+
+        msg =
+          if walkthru?
+            'The given Title ID does not exist in the given Patch Source.'
+          else
+            'The given --title-id does not exist in the given --patch-source.'
           end
         raise_consistency_error msg
       end

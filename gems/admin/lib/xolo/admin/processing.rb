@@ -1047,7 +1047,7 @@ module Xolo
         end
 
         title = 'Available Titles for Subscription'
-        header = %w[DisplayName Publisher SourceName TitleID]
+        header = %w[DisplayName Publisher PatchSource TitleID]
 
         data = jamf_available_titles.sort_by { |t| t[:app_name].downcase }
         lines = data.map { |t| [t[:app_name], t[:publisher], t[:source_name], t[:name_id]] }

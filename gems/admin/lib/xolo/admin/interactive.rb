@@ -143,18 +143,44 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def version_script_na
-        return unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
+        unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:title_id] || walkthru_cmd_opts[:patch_source]
+          return
+        end
 
-        'N/A when using App Name/BundleID'
+        'N/A when using App Name/BundleID, or subcribing with Patch Source and Title ID'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
       def app_name_bundleid_na
-        return unless walkthru_cmd_opts[:version_script]
+        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:title_id] || walkthru_cmd_opts[:patch_source]
+          return
+        end
 
-        'N/A when using Version Script'
+        'N/A when using Version Script, or subcribing with Patch Source and Title ID'
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def patch_source_na
+        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
+          return
+        end
+
+        'N/A when using Version Script or App Name/BundleID'
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def title_id_na
+        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:patch_source]
+          return
+        end
+
+        'N/A until Patch Source is set'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.

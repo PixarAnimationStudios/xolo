@@ -77,6 +77,11 @@ module Xolo
         @jamf_available_titles ||= server_cnx.get(AVAILABLE_TITLES_ROUTE).body
       end
 
+      # @return [Array<String>] All Patch Sources with any available titles in Jamf Pro
+      def jamf_patch_sources_with_available_titles
+        @jamf_patch_sources_with_available_titles ||= jamf_available_titles.map { |t| t[:source_name] }.sort.uniq
+      end
+
     end # module
 
   end # module Admin

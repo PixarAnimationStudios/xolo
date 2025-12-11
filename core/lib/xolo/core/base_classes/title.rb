@@ -303,12 +303,29 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute patch_source
+          #   @return [String] The name of the Jamf Patch Source that provides this title via subscription
           patch_source: {
             label: 'Patch Source',
             cli: :S,
             type: :string,
             immutable: true,
-            walkthru_na: :subscription_na
+            validate: true,
+            walkthru_na: :patch_source_na,
+            invalid_msg: 'Invalid Patch Source. Must be the name of a defined Patch Source in Jamf Pro, with at least one title available for subscription.',
+            desc: <<~ENDDESC
+              The name of the Jamf Patch Source that provides this title via subscription.
+
+              Setting this value, along with a --title-id, makes this a 'subscribed' title, meaning that
+              its versions and updates are managed by the Patch Source, not by Xolo.
+
+              When a title is subscribed, many options are not available, since the Patch Source manages them:
+              --display-name
+              --publisher
+              --app-name
+              --app-bundle-id
+              --version-script
+            ENDDESC
 
           },
 
@@ -316,7 +333,23 @@ module Xolo
             label: 'Title ID',
             cli: :T,
             type: :string,
-            walkthru_na: :subscription_na
+            walkthru_na: :title_id_na,
+            validate: true,
+            invalid_msg: 'Invalid Title ID. Must be available on the specified Patch Source.',
+            desc: <<~ENDDESC
+              The TitleID of the title on the specified Patch Source.
+
+              Setting this value, along with a --patch-source, makes this a 'subscribed' title, meaning that
+              its versions and updates are managed by the Patch Source, not by Xolo.
+
+              When a title is subscribed, many options are not available, since the Patch Source manages them:
+              --display-name
+              --publisher
+              --app-name
+              --app-bundle-id
+              --version-script
+            ENDDESC
+
           },
 
           # Whenever one of the groups listed is Xolo::TARGET_ALL ('all') then all other groups are
@@ -648,11 +681,23 @@ module Xolo
         ######################
 
         # the latest version of this title in Xolo
-        # @param cnx [Faraday::Connection] The connection to use, must be logged in already
         # @return [String]
         ####################
         def latest_version
           version_order&.first
+        end
+
+        # Is this a subscribed title?
+        # @return [Boolean]
+        ####################
+        def subscribed?
+          patch_source && title_id
+        end
+
+        # Is this a managed title?
+        # @return [Boolean]
+        def managed?
+          !subscribed?
         end
 
       end # class Title
