@@ -99,16 +99,20 @@ module Xolo
             # The menu items for setting values
             cmd_details(cmd)[:opts].each do |key, deets|
               curr_val = current_opt_values[key]
-              new_val = walkthru_cmd_opts[key]
+
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
+
+              # if a value is not available, remove any previously set value
+              walkthru_cmd_opts.delete_field(key) if not_avail && walkthru_cmd_opts.to_h.key?(key)
+
+              new_val = walkthru_cmd_opts[key]
+
               menu_item = menu_item_text(deets[:label], oldval: curr_val, newval: new_val, not_avail: not_avail)
 
               # no processing if item not available
               if not_avail
-                # menu.choice(nil, nil, menu_item) {}
                 menu.choice(menu_item) {}
               else
-                # menu.choice(nil, nil, menu_item) { prompt_for_walkthru_value key, deets, curr_val }
                 menu.choice(menu_item) { prompt_for_walkthru_value key, deets, curr_val }
               end
             end
@@ -142,12 +146,30 @@ module Xolo
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
+      def display_name_na
+        return unless walkthru_cmd_opts[:patch_source]
+
+        'N/A when subcribing via a Patch Source'
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
+      def publisher_na
+        return unless walkthru_cmd_opts[:patch_source]
+
+        'N/A when subcribing via a Patch Source'
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
       def version_script_na
-        unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:title_id] || walkthru_cmd_opts[:patch_source]
+        unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:patch_source]
           return
         end
 
-        'N/A when using App Name/BundleID, or subcribing with Patch Source and Title ID'
+        'N/A when using App Name/BundleID, or subcribing via a Patch Source'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
@@ -158,27 +180,25 @@ module Xolo
           return
         end
 
-        'N/A when using Version Script, or subcribing with Patch Source and Title ID'
+        'N/A when using Version Script, or subcribing via a Patch Source'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
       def patch_source_na
-        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
-          return
+        if walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
+          'N/A when using Version Script or App Name/BundleID'
+        elsif walkthru_cmd_opts[:publisher] || walkthru_cmd_opts[:display_name]
+          'N/A when using Display Name or Publisher'
         end
-
-        'N/A when using Version Script or App Name/BundleID'
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
       def title_id_na
-        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:patch_source]
-          return
-        end
+        return if walkthru_cmd_opts[:patch_source]
 
         'N/A until Patch Source is set'
       end
@@ -529,8 +549,8 @@ module Xolo
         # if deets[:readline] is a symbol, its an xadm method that returns an array
         # of the possible values for readline completion and validation;
         # only things in the array are allowed, so no need for other validation or conversion
-        # We add 'x' and 'none' to the list so they will be accepted for exiting and
-        # clearing.
+        # We add 'x' and 'none' to the list for clearing it, and if a multi-value we add 'x'
+        # for exiting out of the prompt
         #
         # if its just truthy then we use readline without a pre-set list of values
         # (e.g. paths, which might not exist locally) and may have a separate validate
@@ -539,10 +559,12 @@ module Xolo
           if deets[:readline]
             if deets[:readline].is_a? Symbol
               convert = send deets[:readline]
-              convert << Xolo::NONE unless deets[:required]
-              convert << Xolo::X
+              convert << Xolo::NONE unless convert.include?(Xolo::NONE) || deets[:required]
+              convert << Xolo::X if deets[:multi] && !convert.include?(Xolo::X)
               # if we're doing release groups, make sure the list includes 'all',
-              convert << Xolo::TARGET_ALL if deets[:label] == Xolo::Admin::Title::ATTRIBUTES[:release_groups][:label]
+              if !convert.include?(Xolo::TARGET_ALL) && deets[:label] == Xolo::Admin::Title::ATTRIBUTES[:release_groups][:label]
+                convert << Xolo::TARGET_ALL
+              end
               validate = nil
             end
             true
@@ -748,6 +770,22 @@ module Xolo
 
           missing_values << deets[:label]
         end
+
+        if title_command?
+          # if we are subscribing via a Patch Source,
+          # then we need a title id
+          if walkthru_cmd_opts[:patch_source] && !walkthru_cmd_opts[:title_id]
+            missing_values << Xolo::Admin::Title::ATTRIBUTES[:title_id][:label] unless walkthru_cmd_opts[:title_id]
+
+          elsif walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
+            # when using version script or app name/bundleid,
+            missing_values << Xolo::Admin::Title::ATTRIBUTES[:publisher][:label] unless walkthru_cmd_opts[:publisher]
+            unless walkthru_cmd_opts[:display_name]
+              missing_values << Xolo::Admin::Title::ATTRIBUTES[:display_name][:label]
+            end
+          end
+        end # if title_command?
+
         missing_values
       end
 

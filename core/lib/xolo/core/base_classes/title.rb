@@ -177,10 +177,11 @@ module Xolo
           display_name: {
             label: 'Display Name',
             ted_attribute: :name,
-            required: true,
+            # required: true, # only required if not subscribed
             cli: :n,
             type: :string,
             validate: :validate_title_display_name,
+            walkthru_na: :display_name_na,
             invalid_msg: 'Not a valid display name, must be at least three characters long.',
             changelog: true,
             desc: <<~ENDDESC
@@ -222,9 +223,10 @@ module Xolo
           publisher: {
             label: 'Publisher',
             ted_attribute: :publisher,
-            required: true,
+            # required: true, # only required if not subscribed
             cli: :P,
             type: :string,
+            walkthru_na: :publisher_na,
             validate: true,
             changelog: true,
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',
@@ -306,12 +308,13 @@ module Xolo
           # @!attribute patch_source
           #   @return [String] The name of the Jamf Patch Source that provides this title via subscription
           patch_source: {
-            label: 'Patch Source',
+            label: 'Subscription Patch Source',
             cli: :S,
             type: :string,
             immutable: true,
             validate: true,
             walkthru_na: :patch_source_na,
+            readline: :jamf_patch_sources_with_available_titles,
             invalid_msg: 'Invalid Patch Source. Must be the name of a defined Patch Source in Jamf Pro, with at least one title available for subscription.',
             desc: <<~ENDDESC
               The name of the Jamf Patch Source that provides this title via subscription.
@@ -319,7 +322,9 @@ module Xolo
               Setting this value, along with a --title-id, makes this a 'subscribed' title, meaning that
               its versions and updates are managed by the Patch Source, not by Xolo.
 
-              When a title is subscribed, many options are not available, since the Patch Source manages them:
+              To see a list of titles available for subscription, with their Publishers, Patch Sources and IDs, use `xadm list-available`.
+
+              When a title is subscribed, some options are not available, since the patch source manages them:
               --display-name
               --publisher
               --app-name
@@ -329,25 +334,26 @@ module Xolo
 
           },
 
+          # @!attribute title_id
+          #   @return [String] The TitleID of the title on the specified Patch Source
           title_id: {
-            label: 'Title ID',
+            label: 'Subscription Title ID',
             cli: :T,
             type: :string,
+            immutable: true,
             walkthru_na: :title_id_na,
             validate: true,
+            # readline: :jamf_patch_title_ids,
             invalid_msg: 'Invalid Title ID. Must be available on the specified Patch Source.',
             desc: <<~ENDDESC
               The TitleID of the title on the specified Patch Source.
 
-              Setting this value, along with a --patch-source, makes this a 'subscribed' title, meaning that
-              its versions and updates are managed by the Patch Source, not by Xolo.
+              This is the unique identifier for each title on a patch source, it is a sometimes-meaningless
+              string of alphanumeric characters.
 
-              When a title is subscribed, many options are not available, since the Patch Source manages them:
-              --display-name
-              --publisher
-              --app-name
-              --app-bundle-id
-              --version-script
+              To find the TitleID of a title available for subscription, use `xadm list-available`
+
+              Required when --patch-source is provided, to make this a subscribed title.
             ENDDESC
 
           },
