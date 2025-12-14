@@ -35,6 +35,11 @@ module Xolo
 
         MIN_TITLE_DESC_LENGTH = 25
 
+        MANAGED = :managed
+        SUBSCRIBED = :subscribed
+        TYPES = [MANAGED, SUBSCRIBED].freeze
+        DEFAULT_TYPE = MANAGED
+
         # Attributes
         ######################
         ######################
@@ -73,6 +78,10 @@ module Xolo
         #
         # - immutable: [Boolean] This value can only be set when creatimg a new title.
         #   When editing an existing title, it cannot be changed.
+        #
+        # - title_type: [Symbol, nil] If set to :managed or :subscribed, this option
+        #   is required, and only available, when the title is of that type. If nil or not set,
+        #   the option is available for all title types.
         #
         # - cli: [Symbol, false] What is the 'short' option flag for this option?
         #   The long option flag is the key, preceded with '--' and with underscores
@@ -172,11 +181,34 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute type
+          #   @return [String] Is this title Managed or Subscribed
+          type: {
+            label: 'Type',
+            default: DEFAULT_TYPE,
+            immutable: true,
+            cli: :t,
+            type: :string,
+            validate: true,
+            invalid_msg: "Not a valid type: must be '#{MANAGED}' or '#{SUBSCRIBED}'",
+            desc: <<~ENDDESC
+              Is this title managed by Xolo, or subscribed via a Jamf Patch Source?
+
+              Managed titles have their versions and updates managed by Xolo. Xolo is used to provide basic details about the title, such as a the display name, publisher, and the mechanism by which Jamf Pro knows which (if any) version is installed on a managed Mac - either via an App Name and Bundle ID, or a Version Scripts.
+              New versions are added and maintained via xadm.
+
+              Subscribed titles are maintained by a Patch Source defined in Jamf Pro. The source defines some aspects of the title, including the display name, publisher, and mechanism for determining installed versions. New versions are also managed by the Patch Source, and when they appear, Xolo will at least inform someone (notify the contact email) that a new version is available and needs a .pkg, but can also use autopkg to automatically fetch .pkgs and add new versions for piloting.
+
+              The default type is '#{MANAGED}', use '#{SUBSCRIBED}' to make this a subscribed title.
+            ENDDESC
+          },
+
           # @!attribute display_name
           #   @return [String] The display-name for this title
           display_name: {
             label: 'Display Name',
             ted_attribute: :name,
+            title_type: MANAGED,
             # required: true, # only required if not subscribed
             cli: :n,
             type: :string,
@@ -224,6 +256,7 @@ module Xolo
             label: 'Publisher',
             ted_attribute: :publisher,
             # required: true, # only required if not subscribed
+            title_type: MANAGED,
             cli: :P,
             type: :string,
             walkthru_na: :publisher_na,
@@ -240,6 +273,7 @@ module Xolo
           app_name: {
             label: 'App Name',
             ted_attribute: :appName,
+            title_type: MANAGED,
             cli: :a,
             validate: true,
             type: :string,
@@ -262,6 +296,7 @@ module Xolo
           app_bundle_id: {
             label: 'App Bundle ID',
             ted_attribute: :bundleId,
+            title_type: MANAGED,
             cli: :b,
             validate: true,
             type: :string,
@@ -284,6 +319,7 @@ module Xolo
           #      title on a client mac
           version_script: {
             label: 'Version Script',
+            title_type: MANAGED,
             cli: :v,
             # while the script is stored in the Title Editor as the extension attribute
             # its handled differently, so we don't specify a ted_attribute here.
@@ -309,6 +345,7 @@ module Xolo
           #   @return [String] The name of the Jamf Patch Source that provides this title via subscription
           patch_source: {
             label: 'Subscription Patch Source',
+            title_type: SUBSCRIBED,
             cli: :S,
             type: :string,
             immutable: true,
@@ -338,13 +375,14 @@ module Xolo
           #   @return [String] The TitleID of the title on the specified Patch Source
           title_id: {
             label: 'Subscription Title ID',
+            title_type: SUBSCRIBED,
             cli: :T,
             type: :string,
             immutable: true,
             walkthru_na: :title_id_na,
             validate: true,
             # readline: :jamf_patch_title_ids,
-            invalid_msg: 'Invalid Title ID. Must be available on the specified Patch Source.',
+            invalid_msg: 'Invalid Title ID. Not available in any Patch Source.',
             desc: <<~ENDDESC
               The TitleID of the title on the specified Patch Source.
 

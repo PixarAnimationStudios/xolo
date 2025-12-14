@@ -370,12 +370,21 @@ module Xolo
             cmd_opts.each do |opt_key, deets|
               next unless deets[:cli]
 
+              desc = deets[:desc]
+
               # Required opts are only required when adding.
               # when editing, they should already exist
-              required = deets[:required] && add_command
-
-              desc = deets[:desc]
-              desc = "#{desc}REQUIRED" if required
+              if add_command
+                if deets[:required]
+                  desc = "#{desc}REQUIRED"
+                  required = true
+                elsif deets[:title_type]
+                  desc = "#{desc}Only used with #{deets[:title_type]} titles."
+                  required = deets[:required]
+                else
+                  required = false
+                end
+              end
 
               # booleans are CLI flags defaulting to false
               # everything else is a string that we will convert as we validate later

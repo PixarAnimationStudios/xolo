@@ -217,10 +217,22 @@ module Xolo
         raise_invalid_data_error val, err
       end
 
-      # validate a title display-name. Must be 3+ chars long
+      # validate the title type
       #
       # @param val [Object] The value to validate
       #
+      # @return [String] The valid value
+      ########################
+      def validate_type(val)
+        val = val.to_s.strip.downcase.to_sym
+        return val if Xolo::Admin::Title::TYPES.include? val
+
+        raise_invalid_data_error val, TITLE_ATTRS[:type][:invalid_msg]
+      end
+
+      # validate a title display-name. Must be 3+ chars long
+      #
+      # @param val [Object] The value to validate
       #
       # @return [String] The valid value
       ##########################
@@ -267,7 +279,7 @@ module Xolo
         val = val.to_s.strip
         return val if val.end_with? Xolo::DOTAPP
 
-        raise_invalid_data_error val, TITLE_ATTRS[:app_bundle_id][:invalid_msg]
+        raise_invalid_data_error val, TITLE_ATTRS[:app_name][:invalid_msg]
       end
 
       # validate a title app_bundle_id. Must include at least one dot
@@ -319,7 +331,7 @@ module Xolo
         val = val.to_s
         return val if jamf_available_titles.any? { |t| t[:name_id] == val }
 
-        raise_invalid_data_error val, TITLE_ATTRS[:patch_source][:invalid_msg]
+        raise_invalid_data_error val, TITLE_ATTRS[:title_id][:invalid_msg]
       end
 
       # validate a title uninstall script:
@@ -842,11 +854,13 @@ module Xolo
 
         # order of these matters in some places
 
-        # scope targets and exclusions can't overlap
-        validate_scope_targets_and_exclusions(opts)
+        #### Sub vs Managed
 
-        # either managed or subscribed
-        validate_title_consistency_managed_or_subscribed(opts)
+        # complain about using options not meant for the chosen type
+        # e.g. can't use display name for subscribed titles
+        validate_subbed_v_managed(opts)
+
+        #### Subscribed Title Validations ####
 
         # if subscribed, both patch_source and title_id must be given
         validate_title_consistency_patch_source_and_title_id(opts)
@@ -854,14 +868,24 @@ module Xolo
         # if subscribed, the title_id must exist in the patch_source
         validate_title_consistency_title_id_exists(opts)
 
+        #### Managed Title Validations ####
+
         # if managed, must provide display name and publisher, but not allowed if subscribing
         validate_title_consistency_display_name_and_publisher(opts)
 
-        # if managed, must have either app_name & bundle id, or version_script
+        # if managed must use version_script, or app
         validate_title_consistency_app_or_script(opts)
+
+        # if managed, can't have both app and version_script
+        validate_title_consistency_app_and_script(opts)
 
         # if managed and using app_name & bundle id, must have both
         validate_title_consistency_app_name_and_id(opts)
+
+        ### General Validations ###
+
+        # scope targets and exclusions can't overlap
+        validate_scope_targets_and_exclusions(opts)
 
         # if uninstall script, can't have uninstall ids, and vice versa
         validate_title_consistency_uninstall(opts)
@@ -875,6 +899,137 @@ module Xolo
         # if self-service category given, must be in self-service
         validate_title_consistency_ssvc_needs_category(opts)
       end # title_consistency(opts)
+
+      # Complain about using options not meant for the chosen title type
+      def validate_subbed_v_managed(opts)
+        bad_opts = []
+        Xolo::Admin::Title.cli_opts.each do |key, deets|
+          next unless opts[key]
+          next unless deets[:title_type]
+          next if deets[:title_type] == opts[:type]
+
+          bad_opts << (walkthru? ? deets[:label] : "--#{key.to_s.gsub('_', '-')}")
+        end
+        return if bad_opts.empty?
+
+        raise_consistency_error "Cannot be used with a #{opts[:type]} title: #{bad_opts.join(', ')}"
+      end
+
+      # If subscribing to a title both patch_source and title_id must be given
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_patch_source_and_title_id(opts)
+        return if opts[:type] == Xolo::Admin::Title::MANAGED
+        return if opts[:title_id] && opts[:patch_source]
+
+        msg =
+          if walkthru?
+            'To subscribe to a title, both Patch Source and Title ID must be given.'
+          else
+            'To subscribe to a title, both --patch-source and --title-id must be given.'
+          end
+        raise_consistency_error msg
+      end
+
+      # If subscribing to a title, the title_id must exist in the given patch_source
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_title_id_exists(opts)
+        return if opts[:type] == Xolo::Admin::Title::MANAGED
+        return unless opts[:title_id] && opts[:patch_source]
+        return if jamf_available_titles.any? do |t|
+          t[:name_id] == opts[:title_id] && t[:source_name] == opts[:patch_source]
+        end
+
+        msg =
+          if walkthru?
+            'The given Title ID does not exist in the given Patch Source.'
+          else
+            'The given --title-id does not exist in the given --patch-source.'
+          end
+        raise_consistency_error msg
+      end
+
+      # If managing this title, display_name and publisher must be given
+      #################
+      def validate_title_consistency_display_name_and_publisher(opts)
+        return if opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        return if opts[:display_name] && opts[:publisher]
+
+        msg =
+          if walkthru?
+            'Display Name and Publisher must both be given for a managed title.'
+          else
+            '--display-name and --publisher must both be given for a managed title.'
+          end
+        raise_consistency_error msg
+      end
+
+      # if managed must use version_script, or app
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_app_or_script(opts)
+        return if opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        return if opts[:version_script] || (opts[:app_bundle_id] && opts[:app_name])
+
+        msg =
+          if walkthru?
+            'Managed titles must provide Version Script OR App Name & App Bundle ID'
+          else
+            'Managed titles must provide --version-script OR --app-name & --app-bundle-id'
+          end
+
+        raise_consistency_error msg
+      end
+
+      # if app_name or app_bundle_id is given, can't use --version-script, and vice versa
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_app_and_script(opts)
+        return if opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        return unless opts[:version_script] && (opts[:app_bundle_id] || opts[:app_name])
+
+        msg =
+          if walkthru?
+            'Version Script cannot be used with App Name & App Bundle ID'
+          else
+            '--version-script cannot be used with --app-name & --app-bundle-id'
+          end
+
+        raise_consistency_error msg
+      end
+
+      # If using app_name and bundle id, both must be given
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_app_name_and_id(opts)
+        return if opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        return if opts[:version_script]
+        return if opts[:app_name] && opts[:app_bundle_id]
+
+        msg =
+          if walkthru?
+            'App Name & App Bundle ID must both be given if either is.'
+          else
+            '--app-name & --app-bundle-id must both be given if either is.'
+          end
+        raise_consistency_error msg
+      end
 
       # groups that will be scope targets (pilot or release) cannot
       # also be in the exclusions.
@@ -908,131 +1063,6 @@ module Xolo
         return if in_both.empty?
 
         raise_consistency_error "These groups are in both #{tgt_type}_groups and the title's excluded_groups: '#{in_both.join "', '"}'"
-      end
-
-      # if app_name or app_bundle_id is given, can't use --version-script, and vice versa
-      #
-      # @param opts [OpenStruct] the current options
-      #
-      # @return [void]
-      #######
-      def validate_title_consistency_app_or_script(opts)
-        return unless opts[:version_script] && (opts[:app_bundle_id] || opts[:app_name])
-
-        msg =
-          if walkthru?
-            'Version Script cannot be used with App Name & App Bundle ID'
-          else
-            '--version-script cannot be used with --app-name & --app-bundle-id'
-          end
-
-        raise_consistency_error msg
-      end
-
-      # If using app_name and bundle id, both must be given
-      #
-      # @param opts [OpenStruct] the current options
-      #
-      # @return [void]
-      #######
-      def validate_title_consistency_app_name_and_id(opts)
-        return if opts[:version_script]
-        return if opts[:app_name] && opts[:app_bundle_id]
-
-        msg =
-          if walkthru?
-            'App Name & App Bundle ID must both be given if either is.'
-          else
-            '--app-name & --app-bundle-id must both be given if either is.'
-          end
-        raise_consistency_error msg
-      end
-
-      # If xolo will manage this title, we must have either version_script or
-      # app_name and app_bundle_id
-      # But if subscribing to this title, we must have patch_source and title_id
-      #
-      ####################
-      def validate_title_consistency_managed_or_subscribed(opts)
-        return if opts[:version_script]
-        return if opts[:app_name] || opts[:app_bundle_id]
-        return if opts[:patch_source] || opts[:title_id]
-
-        msg =
-          if walkthru?
-            "For a Xolo-managed title, provide App Name & Bundle ID. or Version Script.\n  To subscribe to a title, provide Patch Source & Title ID."
-          else
-            'For a Xolo-managed title, provide --app-name and --app-bundle-id. or --version-script. To subscribe to a title, provide --patch-source and --title-id.'
-          end
-        raise_consistency_error msg
-      end
-
-      # If managing this title, display_name and publisher must be given
-      # If subscribing to this title, display_name and publisher cannot be given
-      #################
-      def validate_title_consistency_display_name_and_publisher(opts)
-        if opts[:patch_source] || opts[:title_id]
-          # subscribing
-          if opts[:display_name] || opts[:publisher]
-            msg =
-              if walkthru?
-                'Display Name and Publisher cannot be given when subscribing to a title.'
-              else
-                '--display-name and --publisher cannot be used when subscribing to a title.'
-              end
-            raise_consistency_error msg
-          end
-        else
-          # managing
-          return if opts[:display_name] && opts[:publisher]
-
-          msg =
-            if walkthru?
-              'Display Name and Publisher must both be given for a Xolo-managed title.'
-            else
-              '--display-name and --publisher must both be given for a Xolo-managed title.'
-            end
-          raise_consistency_error msg
-        end
-      end
-
-      # If subscribing to a title both patch_source and title_id must be given
-      #
-      # @param opts [OpenStruct] the current options
-      #
-      # @return [void]
-      #######
-      def validate_title_consistency_patch_source_and_title_id(opts)
-        return if opts[:version_script] || opts[:app_name] || opts[:app_bundle_id]
-        return if opts[:title_id] && opts[:patch_source]
-
-        msg =
-          if walkthru?
-            'To subscribe to a title, both Patch Source and Title ID must be given.'
-          else
-            'To subscribe to a title, both --patch-source and --title-id must be given.'
-          end
-        raise_consistency_error msg
-      end
-
-      # If subscribing to a title, the title_id must exist in the given patch_source
-      #
-      # @param opts [OpenStruct] the current options
-      #
-      # @return [void]
-      #######
-      def validate_title_consistency_title_id_exists(opts)
-        return if jamf_available_titles.any? do |t|
-          t[:name_id] == opts[:title_id] && t[:source_name] == opts[:patch_source]
-        end
-
-        msg =
-          if walkthru?
-            'The given Title ID does not exist in the given Patch Source.'
-          else
-            'The given --title-id does not exist in the given --patch-source.'
-          end
-        raise_consistency_error msg
       end
 
       # if expiration is > 0, there must be at least one expiration path

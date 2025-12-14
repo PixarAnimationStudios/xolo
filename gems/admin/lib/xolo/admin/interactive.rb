@@ -98,6 +98,9 @@ module Xolo
 
             # The menu items for setting values
             cmd_details(cmd)[:opts].each do |key, deets|
+              # only show items for the current title type, if applicable
+              next if deets[:title_type] && walkthru_cmd_opts[:type] != deets[:title_type]
+
               curr_val = current_opt_values[key]
 
               not_avail = send(deets[:walkthru_na]) if deets[:walkthru_na]
@@ -771,23 +774,64 @@ module Xolo
           missing_values << deets[:label]
         end
 
-        if title_command?
-          # if we are subscribing via a Patch Source,
-          # then we need a title id
-          if walkthru_cmd_opts[:patch_source] && !walkthru_cmd_opts[:title_id]
-            missing_values << Xolo::Admin::Title::ATTRIBUTES[:title_id][:label] unless walkthru_cmd_opts[:title_id]
-
-          elsif walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
-            # when using version script or app name/bundleid,
-            missing_values << Xolo::Admin::Title::ATTRIBUTES[:publisher][:label] unless walkthru_cmd_opts[:publisher]
-            unless walkthru_cmd_opts[:display_name]
-              missing_values << Xolo::Admin::Title::ATTRIBUTES[:display_name][:label]
-            end
-          end
-        end # if title_command?
+        missing_values += title_missing_values if title_command?
 
         missing_values
       end
+
+      # Process missing valus for titles
+      # @return [Array<String>] The  title-specific missing values
+      ##################################
+      def title_missing_values
+        title_missing_values = []
+
+        # if subscribing, need patch source and title id
+        if walkthru_cmd_opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+          unless walkthru_cmd_opts[:patch_source]
+            title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:patch_source][:label]
+          end
+          title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:title_id][:label] unless walkthru_cmd_opts[:title_id]
+
+        # if managed, need display name, publisher and version script or app name/bundle id,
+        else
+          unless walkthru_cmd_opts[:publisher]
+            title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:publisher][:label]
+          end
+          unless walkthru_cmd_opts[:display_name]
+            title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:display_name][:label]
+          end
+
+          # version script or app name/bundle id
+          if walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
+            # need both app name and bundle id if using either
+            if walkthru_cmd_opts[:app_name] && !walkthru_cmd_opts[:app_bundle_id]
+              title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:app_bundle_id][:label]
+            elsif walkthru_cmd_opts[:app_bundle_id] && !walkthru_cmd_opts[:app_name]
+              title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:app_name][:label]
+            end
+          else
+            title_missing_values << "#{Xolo::Admin::Title::ATTRIBUTES[:version_script][:label]} OR #{Xolo::Admin::Title::ATTRIBUTES[:app_name][:label]} & #{Xolo::Admin::Title::ATTRIBUTES[:app_bundle_id][:label]}"
+          end
+
+        end
+
+        # if expiring, need expire path
+        if walkthru_cmd_opts[:expiration].to_i.positive? && !walkthru_cmd_opts[:expiration_paths].pix_empty?
+          title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:expiration_paths][:label]
+        end
+
+        # if in ssvc, need category and icon
+        return title_missing_values unless walkthru_cmd_opts[:self_service]
+
+        unless walkthru_cmd_opts[:self_service_category]
+          title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:self_service_category][:label]
+        end
+        return title_missing_values if walkthru_cmd_opts[:self_service_icon]
+
+        title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:self_service_icon][:label]
+
+        title_missing_values
+      end # def title_missing_values
 
       # Prompt for an editor to use from those in MULTILINE_EDITORS
       # @return [String] the path to an editor to use for multiline values.
