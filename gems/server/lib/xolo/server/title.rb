@@ -328,6 +328,9 @@ module Xolo
       # @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
       attr_accessor :ted_id_number
 
+      # @return [Integer] The Jamf Patch Title ID, once activated/created in Jamf
+      attr_accessor :jamf_patch_title_id
+
       # when applying updates, the new data from xadm is stored
       # here so it can be accessed by update-methods
       # and compared to the current instance values
@@ -1132,6 +1135,7 @@ module Xolo
       def to_h
         hash = super
         hash[:ted_id_number] = ted_id_number
+        hash[:jamf_patch_title_id] = jamf_patch_title_id
         hash[:ssvc_icon_id] = ssvc_icon_id
         hash
       end

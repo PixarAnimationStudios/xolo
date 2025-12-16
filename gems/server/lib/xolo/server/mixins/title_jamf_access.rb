@@ -1286,7 +1286,7 @@ module Xolo
         # The titles active in Jamf Patch Management from the Title Editor
         # This takes into account that other Patch Sources may have titles with the
         # same 'name_id' (the xolo 'title')
-        # A hash keyed by the title, with values of the jamf title id
+        # A hash keyed by the title, with values of the jamf patch title id
         #
         # @return [Hash {String =>  Integer}] The xolo titles that are active in Jamf Patch Management
         ########################
@@ -1313,9 +1313,9 @@ module Xolo
         #
         # @return [Integer, nil] The Jamf ID of this title, if it is active in Jamf
         ########################
-        def jamf_patch_title_id
-          @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
-        end
+        # def jamf_patch_title_id
+        #   @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
+        # end
 
         # create/activate the patch title in Jamf Pro, if not already done.
         #
@@ -1377,7 +1377,8 @@ module Xolo
           end
 
           if jamf_ted_title_active?
-            @jamf_patch_title = Jamf::PatchTitle.fetch(id: jamf_patch_title_id, cnx: jamf_cnx)
+            title_id = jamf_patch_title_id || jamf_active_ted_titles(refresh: true)[title]
+            @jamf_patch_title = Jamf::PatchTitle.fetch(id: title_id, cnx: jamf_cnx)
 
           else
             return if deleting?
@@ -1393,8 +1394,8 @@ module Xolo
                 cnx: jamf_cnx
               )
             @jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
-            @jamf_patch_title.save
-
+            @jamf_patch_title_id = @jamf_patch_title.save
+            log_debug "Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
           end
           @jamf_patch_title
         end

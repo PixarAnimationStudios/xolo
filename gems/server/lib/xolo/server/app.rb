@@ -27,6 +27,7 @@ module Xolo
       register Xolo::Server::Routes::Titles
       register Xolo::Server::Routes::Versions
       register Xolo::Server::Routes::Uploads
+      register Xolo::Server::Routes::Subscriptions
 
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers

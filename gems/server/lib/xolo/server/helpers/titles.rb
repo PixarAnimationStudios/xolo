@@ -44,6 +44,12 @@ module Xolo
           all_titles.map { |t| instantiate_title t }
         end
 
+        # A an array of server titles as Title objects, only for subscribed titles
+        # @return [Array<Xolo::Server::Title>]
+        def subscribed_title_objects
+          all_title_objects.select { |t| t.subscribed? }
+        end
+
         # Instantiate a Server::Title with access to the Sinatra app instance,
         #
         # If given a string, use it with .load to read the title from disk
