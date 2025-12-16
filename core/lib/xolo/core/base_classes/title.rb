@@ -194,10 +194,11 @@ module Xolo
             desc: <<~ENDDESC
               Is this title managed by Xolo, or subscribed via a Jamf Patch Source?
 
-              Managed titles have their versions and updates managed by Xolo. Xolo is used to provide basic details about the title, such as a the display name, publisher, and the mechanism by which Jamf Pro knows which (if any) version is installed on a managed Mac - either via an App Name and Bundle ID, or a Version Scripts.
-              New versions are added and maintained via xadm.
+              Managed titles have their definition, versions and updates managed by Xolo. Xolo is used to provide basic details about the title, such as a the display name, publisher, the mechanism by which Jamf Pro knows which version is installed on a Mac. Versions of managed titles are also added and maintained via xadm, setting values such as killapps, OS restrictions, and so on.
 
-              Subscribed titles are maintained by a Patch Source defined in Jamf Pro. The source defines some aspects of the title, including the display name, publisher, and mechanism for determining installed versions. New versions are also managed by the Patch Source, and when they appear, Xolo will at least inform someone (notify the contact email) that a new version is available and needs a .pkg, but can also use autopkg to automatically fetch .pkgs and add new versions for piloting.
+              Subscribed titles and their version definitions are maintained by a Patch Source configrued in Jamf Pro. The source defines some aspects of the title and its versions, including the display name, publisher, and mechanism for determining installed versions. New versions are also managed by the Patch Source, including killapps, OS restrictions, and other settings. When they appear, Xolo will at least inform someone (notify the contact email) that a new version is available and needs a .pkg, but can also use autopkg to automatically fetch .pkgs and add new versions for piloting.
+
+              In both cases, a .pkg must be provided for each version, either by uploading it via xadm or configuring the server to use AutoPkg to acquire it.
 
               The default type is '#{MANAGED}', use '#{SUBSCRIBED}' to make this a subscribed title.
             ENDDESC
@@ -219,6 +220,8 @@ module Xolo
             desc: <<~ENDDESC
               A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
               Must be at least three characters long.
+
+              Only valid, and required, for managed titles, since subscribed titles get their display name from the Patch Source.
             ENDDESC
           },
 
@@ -265,6 +268,8 @@ module Xolo
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',
             desc: <<~ENDDESC
               The company or entity that publishes this title, e.g. 'Apple, Inc.' or 'Pixar Animation Studios'.
+
+              Only valid, and required, for managed titles, since subscribed titles get their publisher from the Patch Source.
             ENDDESC
           },
 
@@ -287,7 +292,8 @@ module Xolo
 
               If the title does not install a .app bundle, leave this blank, and provide a --version-script.
 
-              REQUIRED if --app-bundle-id is used.
+              REQUIRED for managed titles if --app-bundle-id is used.
+              Not required for subscribed titles, since the Patch Source provides this info.
             ENDDESC
           },
 
@@ -310,7 +316,8 @@ module Xolo
 
               If the title does not install a .app bundle, or if the .app doesn't provide its version via the bundle id (e.g. Firefox) leave this blank, and provide a --version-script.
 
-              REQUIRED if --app-name is used.
+              REQUIRED for managed titles if --app-name is used.
+              Not required for subscribed titles, since the Patch Source provides this info.
             ENDDESC
           },
 
@@ -337,7 +344,8 @@ module Xolo
               and if no version of the title is installed, it should output:
                  <result></result>
 
-              NOTE: This cannot be used if --app-name & --app-bundle-id are used, but must be used if they are not
+              REQUIRED for managed titles unless --app-name and --app-bundle-id are used.
+              Not required for subscribed titles, since the Patch Source provides this info.
             ENDDESC
           },
 
@@ -359,7 +367,7 @@ module Xolo
               Setting this value, along with a --title-id, makes this a 'subscribed' title, meaning that
               its versions and updates are managed by the Patch Source, not by Xolo.
 
-              To see a list of titles available for subscription, with their Publishers, Patch Sources and IDs, use `xadm list-available`.
+              To see a list of titles available for subscription, with their Patch Sources and IDs, use `xadm list-available`.
 
               When a title is subscribed, some options are not available, since the patch source manages them:
               --display-name
@@ -367,6 +375,8 @@ module Xolo
               --app-name
               --app-bundle-id
               --version-script
+
+              REQUIRED for subscribed titles. Not used for managed titles.
             ENDDESC
 
           },
@@ -381,7 +391,6 @@ module Xolo
             immutable: true,
             walkthru_na: :title_id_na,
             validate: true,
-            # readline: :jamf_patch_title_ids,
             invalid_msg: 'Invalid Title ID. Not available in any Patch Source.',
             desc: <<~ENDDESC
               The TitleID of the title on the specified Patch Source.
@@ -391,7 +400,7 @@ module Xolo
 
               To find the TitleID of a title available for subscription, use `xadm list-available`
 
-              Required when --patch-source is provided, to make this a subscribed title.
+              REQUIRED for subscribed titles. Not used for managed titles.
             ENDDESC
 
           },
@@ -735,7 +744,7 @@ module Xolo
         # @return [Boolean]
         ####################
         def subscribed?
-          patch_source && title_id
+          type == SUBSCRIBED
         end
 
         # Is this a managed title?
