@@ -53,6 +53,9 @@ module Xolo
           '/maint/shutdown-server'
         ].freeze
 
+        # the route used by Jamf Webhooks to notify Xolo of Patch Title updates
+        PATCH_TITLE_UPDATED_WEBHOOK_ROUTE = '/subscribed-title-updates'
+
         # The loopback address for IPV4, aka 'localhost'
         IPV4_LOOPBACK = '127.0.0.1'
 
@@ -67,7 +70,7 @@ module Xolo
         end
 
         # If a request comes in from one of our known IP addresses
-        # with a valid internal_auth_toke in the headers, then the request is allowed.
+        # with a valid internal_auth_token in the headers, then the request is allowed.
         #
         # This allows the xolo server to send requests to itself without needing
         # to authenticate, as is needed for some kinds of maintenance tasks
@@ -81,6 +84,12 @@ module Xolo
         #####################
         def self.internal_auth_token_header
           @internal_auth_token_header ||= "Bearer #{SecureRandom.hex(64)}"
+        end
+
+        # @return [String] The auth token to be used in the Authorization header of webhook event requests
+        #####################
+        def self.jamf_webhook_auth_token_header
+          @jamf_webhook_auth_token_header ||= "Bearer #{Xolo::Server.config.subscription_webhook_token}"
         end
 
         # Instance methods
@@ -126,6 +135,12 @@ module Xolo
         #####################
         def server_ip_addresses
           Socket.ip_address_list.map(&:ip_address)
+        end
+
+        # @return [Boolean] Is the jamf webhook auth token in the headers of the request?
+        #####################
+        def jamf_webhook_auth_token_ok?
+          request.env['HTTP_AUTHORIZATION'] == Xolo::Server::Helpers::Auth.jamf_webhook_auth_token_header
         end
 
         # is the given username a member of the admin_jamf_group?

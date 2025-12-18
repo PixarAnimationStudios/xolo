@@ -49,6 +49,14 @@ module Xolo
         log_debug "Checking if request path '#{request.path}' is in INTERNAL_ROUTES"
         break if Xolo::Server::Helpers::Auth::INTERNAL_ROUTES.include?(request.path) && valid_internal_auth_token?
 
+        # This route is used by Jamf Pro Webhooks to notify Xolo of subscribed title updates
+        log_debug "Checking if request path '#{request.path}' is PATCH_TITLE_UPDATED_WEBHOOK_ROUTE"
+        if request.path == Xolo::Server::Helpers::Auth::PATCH_TITLE_UPDATED_WEBHOOK_ROUTE
+          break if jamf_webhook_auth_token_ok?
+
+          halt 401, { status: 401, error: 'Valid Bearer Token Required' }
+        end
+
         # these routes are for server admins only, and require an authenticated session
         log_debug "Checking if request path '#{request.path}' is in SERVER_ADMIN_ROUTES"
         break if Xolo::Server::Helpers::Auth::SERVER_ADMIN_ROUTES.include?(request.path) && valid_server_admin?

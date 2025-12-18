@@ -325,12 +325,6 @@ module Xolo
       # @return [Xolo::Server::App] our Sinatra server app
       attr_accessor :server_app_instance
 
-      # @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
-      attr_accessor :ted_id_number
-
-      # @return [Integer] The Jamf Patch Title ID, once activated/created in Jamf
-      attr_accessor :jamf_patch_title_id
-
       # when applying updates, the new data from xadm is stored
       # here so it can be accessed by update-methods
       # and compared to the current instance values
@@ -379,11 +373,16 @@ module Xolo
       def initialize(data_hash)
         super
 
-        @ted_id_number ||= data_hash[:ted_id_number]
-        @jamf_patch_title_id ||= data_hash[:jamf_patch_title_id]
+        # ted_id_number and jamf_patch_title_ida are now defined in parent classes ATTRIBUTES
+        # @ted_id_number ||= data_hash[:ted_id_number]
+
+        # but set this via lookup if it isn't there yet.
+        @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
         @version_order ||= []
+
         @new_data_for_update = {}
         @changes_for_update = {}
+
         @jamf_installed_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
         @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
 
@@ -1134,8 +1133,8 @@ module Xolo
       ###########################
       def to_h
         hash = super
-        hash[:ted_id_number] = ted_id_number
-        hash[:jamf_patch_title_id] = jamf_patch_title_id
+        #  hash[:ted_id_number] = ted_id_number
+        # hash[:jamf_patch_title_id] = jamf_patch_title_id
         hash[:ssvc_icon_id] = ssvc_icon_id
         hash
       end

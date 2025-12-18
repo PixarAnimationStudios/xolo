@@ -103,22 +103,12 @@ module Xolo
         ###############
         post '/subscribed-title-updates' do
           request.body.rewind
-          event_data = parse_json(request.body.read)[:event]
-          log_debug "Received subscribed title update webhook for title '#{event_data[:name]}' (ID #{event_data[:jssID]}) to version '#{event_data[:latestVersion]}'"
+          process_patch_title_updated_webhook(request.body.read)
 
-          patch_title_id = event_data[:jssID]
-          subscribed_title_ids = subscribed_title_objects.map(&:patch_title_id)
-
-          if subscribed_title_ids.include? patch_title_id
-            title_display_name = event_data[:name]
-            new_version = event_data[:latestVersion]
-
-            add_version_via_subscription(
-              patch_title_id: patch_title_id,
-              title_display_name: title_display_name,
-              new_version: new_version
-            )
-          end
+          # always return 200 to the webhook sender
+          status 200
+          resp = { status: 200, message: 'Webhook event received' }
+          body resp
         end
 
       end # Module

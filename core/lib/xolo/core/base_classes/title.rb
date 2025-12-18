@@ -711,6 +711,32 @@ module Xolo
             desc: <<~ENDDESC
               The currently released version
             ENDDESC
+          },
+
+          # @!attribute ted_id_number
+          #   @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
+          ted_id_number: {
+            label: 'Title Editor ID Number',
+            type: :integer,
+            cli: false,
+            changelog: false,
+            read_only: true, # maintained by the server, not editable by xadm
+            desc: <<~ENDDESC
+              The id number of the matching Software Title in the Title Editor
+            ENDDESC
+          },
+
+          # @!attribute jamf_patch_title_id
+          #   @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
+          jamf_patch_title_id: {
+            label: 'The Jamf ID Number of this Patch Title',
+            type: :integer,
+            cli: false,
+            changelog: false,
+            read_only: true, # maintained by the server, not editable by xadm
+            desc: <<~ENDDESC
+              The id number of the matching Patch Title in the Jamf Pro
+            ENDDESC
           }
 
         }.freeze

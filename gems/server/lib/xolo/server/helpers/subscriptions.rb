@@ -60,6 +60,36 @@ module Xolo
           available
         end
 
+        # Process an incoming webhook event, possibly for a subscribed title
+        #################################
+        def process_patch_title_updated_webhook(req_body)
+          event_data = parse_json(req_body)[:event]
+
+          title_name = event_data[:name]
+          title_id = event_data[:jssID]
+          new_version = event_data[:latestVersion]
+
+          log_debug "Received PatchSoftwareTitleUpdate webhook event for patch title '#{title_name}' (jamf id #{title_id}), new version '#{new_version}'"
+
+          subscribed_title = subscribed_title_objects.select { |tobj| tobj.jamf_patch_title_id.to_i == title_id.to_i }.first
+
+          if subscribed_title
+
+            log_info "Title '#{title_name}' ID #{title_id} is a subscribed title in Xolo. Processing new version '#{new_version}'."
+
+            # add_version_via_subscription(
+            #   patch_title_id: patch_title_id,
+            #   title_display_name: title_display_name,
+            #   new_version: new_version
+            # )
+          else
+            log_debug "Title '#{title_name}' ID #{title_id} is not a subscribed title in Xolo. Ignoring webhook."
+          end
+        rescue => e
+          log_error "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
+          raise e, "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
+        end
+
         # Subscribe to a title on a given patch source.
         # @param source_id [Integer] the id or name of the patch source in Jamf
         # @param name_id [Integer] the name_id of the title on that patch source
