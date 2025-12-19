@@ -1065,9 +1065,8 @@ module Xolo
           return
         end
 
-        title = 'Available Titles for Subscription'
+        title = 'Titles Available for Subscription'
         header = %w[DisplayName Publisher PatchSource TitleID]
-
         lines = data.map { |t| [t[:display_name], t[:publisher], t[:patch_source], t[:title_id]] }
 
         show_text generate_report(lines, header_row: header, title: title)
