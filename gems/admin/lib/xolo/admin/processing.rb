@@ -1048,16 +1048,27 @@ module Xolo
       # @return [void]
       #############################
       def list_available_titles
+        data = jamf_available_titles.sort_by { |t| t[:app_name].downcase }
+        data.map! do |t|
+          {
+            display_name: t[:app_name],
+            publisher: t[:publisher],
+            patch_source: t[:source_name],
+            title_id: t[:name_id],
+            current_version: t[:current_version],
+            last_modified: t[:last_modified]
+          }
+        end
+
         if json?
-          puts JSON.pretty_generate(jamf_available_titles)
+          puts JSON.pretty_generate(data)
           return
         end
 
         title = 'Available Titles for Subscription'
         header = %w[DisplayName Publisher PatchSource TitleID]
 
-        data = jamf_available_titles.sort_by { |t| t[:app_name].downcase }
-        lines = data.map { |t| [t[:app_name], t[:publisher], t[:source_name], t[:name_id]] }
+        lines = data.map { |t| [t[:display_name], t[:publisher], t[:patch_source], t[:title_id]] }
 
         show_text generate_report(lines, header_row: header, title: title)
       end
