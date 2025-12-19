@@ -54,7 +54,8 @@ module Xolo
         ##############################
 
         # This endpoint receives Jamf Webhook PatchSoftwareTitleUpdated events
-        # from the Jamf Pro server, indicating that a subscribed title has a new version available
+        # from the Jamf Pro server, indicating that a subscribed title has a new version available.
+        #
         # If the title is subscribed in Xolo, this creates a new xolo version for the title,
         # and either notifies the contact email for the title, or uses autopkg to get an installer.
         #
@@ -81,24 +82,24 @@ module Xolo
         # Some real data:
         #  {
         #    "event": {
-        #      "name": "Xolo Testing",
-        #      "latestVersion": "1.0.3",
-        #      "lastUpdate":1765926131000,
         #      "jssID": 145,
+        #      "lastUpdate":1765926131000,
+        #      "latestVersion": "1.0.3",
+        #      "name": "Xolo Testing",
         #      "reportUrls": [
-        #        "https://casper.pixar.com:8443//patch.html?id=145&o=r"
+        #        "https://myjamf.mycompany.com:8443//patch.html?id=145&o=r"
         #      ]
         #    },
         #    "webhook": {
+        #      "eventTimestamp":1765926428322,
         #      "id": 4,
         #      "name": "PatchSoftwareTitleUpdated",
-        #      "webhookEvent": "PatchSoftwareTitleUpdated",
-        #      "eventTimestamp":1765926428322
+        #      "webhookEvent": "PatchSoftwareTitleUpdated"
         #    }
         #  }
         #
         # NOTE: The above reportUrls is incorrect on modern Jamf Pro servers.
-        # the correct one would be https://casper.pixar.com:8443/view/computers/patch/145?tab=report
+        # the correct one would be https://myjamf.mycompany.com:8443/view/computers/patch/145?tab=report
         #
         ###############
         post '/subscribed-title-updates' do
