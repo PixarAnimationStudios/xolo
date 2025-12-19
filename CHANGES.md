@@ -38,6 +38,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     But sometimes it may be desirable to have all unknown versions updated to this version, e.g. when the title is a helper app that is not regularly updated, or when the title is being newly managed by Xolo/Jamf Patch and you want to get all existing installations onto this version.
 
+  - API Client support for xoloserver connection to Jamf Pro
+
+    In the server configration, set `jamf_use_api_client` to true, This will cause the value of `jamf_api_user` to be used as an API Client ID, and the value of `jamf_api_pw` to use used as the related secret.
+
+    The API Client must have the same permissions, granted via one or more API Roles, that a service account would have, as listed in the [GitHub Wiki for Xolo](https://github.com/PixarAnimationStudios/xolo/wiki/Installing-xoloserver)
+
+
 ## Changed
 
   - Retaining Title Editor Version definitions.
@@ -45,7 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     When you delete a version, but not the whole title, only the Jamf objects related to the version are deleted, as well as Xolo's awareness that the version exists. The Title Editor data for the version remains as long as the title exists.
     
     This is needed because if the version is deleted from the Title Editor, any macs with that version installed will show up in patch reports with an 'unknown' version (if it isn't in the Title Editor, it is unknown to Jamf Patch).  This can prevent those macs from ever getting newer versions automatically, unless 'Update Unknown Versions' is set in the later patch policies - which by default is not.
-
 
 ## \[1.0.2] Unreleased
 

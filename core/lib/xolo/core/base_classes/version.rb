@@ -196,7 +196,7 @@ module Xolo
             desc: <<~ENDDESC
               Should 'unknown' versions of this title be updated to this version automatically by Jamf Patch Management?
 
-              When Jamf Patch determines that a title is installed on a computer, but version reported is not among those known to Jamf Patch, it marks the version as 'unknown'. Setting this option to true will cause Jamf Patch to automatically install the pkg for this version on those macs with 'unknown' versions.
+              When Jamf Patch determines that a title is installed on a computer, but version reported is not among those known to Jamf Patch, it marks the version as 'unknown'. Setting this option to true will cause Jamf Patch to automatically install the pkg for this version on those Macs with 'unknown' versions.
 
               This can cause problems if that unknown version is actually newer than this version, e.g. a beta or pre-release version, or when the app has a 'self-update' mechanism that installs newer versions outside of Jamf Patch before it is aware of them.
 

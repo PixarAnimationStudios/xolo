@@ -227,6 +227,7 @@ module Xolo
           log_debug "Checking if '#{username}' is a member of the Jamf AccountGroup '#{groupname}'"
 
           # This isn't well implemented in ruby-jss, so use c_get directly
+          # TODO: use JP API when ruby-jss supports it
           jgroup = jamf_cnx.c_get("accounts/groupname/#{groupname}")[:group]
 
           if jgroup[:ldap_server]
@@ -238,7 +239,8 @@ module Xolo
           false
         end
 
-        # Try to authenticate the jamf user trying to log in to xolo
+        # Try to authenticate the jamf user trying to log in to xolo.
+        # This must be a regular Jamf user acct, not an API client.
         #
         # @param admin [String] The jamf acct name of the person seeking access
         #

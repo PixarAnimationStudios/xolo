@@ -33,7 +33,7 @@ module Xolo
         # Auth a Xolo Admin via Jamf API login
         # Must be a member of the Jamf Admin group
         # named in Xolo::Server.config.admin_jamf_group
-        # before
+        # NOTE: This cannot be an API Client - must be a real user account
         ###################
         post '/auth/login' do
           request.body.rewind

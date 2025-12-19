@@ -461,11 +461,16 @@ module Xolo
         #   @return [String] The username to use when connecting to the Jamf Pro API
         jamf_api_user: {
           required: true,
+          load_method: :data_from_command_file_or_string,
           type: :string,
           desc: <<~ENDDESC
             The username of the Jamf account for connecting to the Jamf Pro APIs.
-            TODO: Document the permissions needed by this account.
-            TODO: Allow using api-clients
+
+            If you start this value with a vertical bar '|', everything after the bar is a shell command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used.
+
+            Otherwise the value is used as the  password.
           ENDDESC
         },
 
@@ -479,13 +484,25 @@ module Xolo
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a shell command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
             Otherwise the value is used as the  password.
 
             Be careful of security concerns when passwords are stored in files.
+          ENDDESC
+        },
+
+        # @!attribute jamf_api_client
+        #   @return [Boolean] The provided jamf_api_user is an API client, not a normal user, and the
+        #      jamf_api_pw is the API client's secret.
+        jamf_use_api_client: {
+          type: :boolean,
+          desc: <<~ENDDESC
+            If true, the provided jamf_api_user is an API client's "client_id", not a normal username, and the jamf_api_pw is the API client's 'client_secret'.
+
+            If false, the jamf_api_user is a normal user, and the jamf_api_pw is that user's password.
           ENDDESC
         },
 

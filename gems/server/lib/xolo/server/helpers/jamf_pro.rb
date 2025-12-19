@@ -94,19 +94,29 @@ module Xolo
 
           return @jamf_cnx if @jamf_cnx
 
-          @jamf_cnx = Jamf::Connection.new(
+          cnx_opts = {
             name: "jamf-pro-cnx-#{Time.now.strftime('%F-%T')}",
             host: Xolo::Server.config.jamf_hostname,
             port: Xolo::Server.config.jamf_port,
             verify_cert: Xolo::Server.config.jamf_verify_cert,
             ssl_version: Xolo::Server.config.jamf_ssl_version,
             open_timeout: Xolo::Server.config.jamf_open_timeout,
-            timeout: Xolo::Server.config.jamf_timeout,
-            user: Xolo::Server.config.jamf_api_user,
-            pw: Xolo::Server.config.jamf_api_pw,
-            keep_alive: false
-          )
-          log_debug "Jamf: Connected to Jamf Pro at #{@jamf_cnx.base_url} as user '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: #{@jamf_cnx.keep_alive?}, Expires: #{@jamf_cnx.token.expires}. cnx ID: #{@jamf_cnx.object_id}"
+            timeout: Xolo::Server.config.jamf_timeout
+          }
+
+          if Xolo::Server.config.jamf_use_api_client
+            cnxtype = 'API Client'
+            cnx_opts[:client_id] = Xolo::Server.config.jamf_api_user
+            cnx_opts[:client_secret] = Xolo::Server.config.jamf_api_pw
+          else
+            cnxtype = 'User'
+            cnx_opts[:user] = Xolo::Server.config.jamf_api_user
+            cnx_opts[:pw] = Xolo::Server.config.jamf_api_pw
+          end
+
+          @jamf_cnx = Jamf::Connection.new(**cnx_opts)
+
+          log_debug "Jamf: Connected to Jamf Pro at #{@jamf_cnx.base_url} as #{cnxtype} '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: false, Expires: #{@jamf_cnx.token.expires}. cnx ID: #{@jamf_cnx.object_id}"
 
           @jamf_cnx
         end
