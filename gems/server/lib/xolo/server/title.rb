@@ -910,7 +910,7 @@ module Xolo
         version_objects.reverse.each do |vers|
           # vers might be nil if it was already deleted
           # e.g. a prev. attempt to delete the title failed partway through
-          vers&.delete update_title: false
+          vers&.delete update_title: false, deleting_title: true
         end
 
         delete_title_from_ted

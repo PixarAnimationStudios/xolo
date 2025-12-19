@@ -823,14 +823,24 @@ module Xolo
       #   know the version is gone. Set this to false when the title itself
       #   is being deleted and calling this method.
       #
+      # @param deleting_title [Boolean] Is the title itself being deleted?
+      #
       # @return [void]
       ##########################
-      def delete(update_title: true)
+      def delete(update_title: true, deleting_title: false)
         lock
         @current_action = :deleting
 
-        delete_patch_from_ted
         delete_version_from_jamf
+
+        # NOTE: we no longer delete the patch from the Title Editor
+        # unless the whole title is being deleted, because
+        # patches may be needed for reporting purposes.
+        # When the title is deleted, the title's delete method
+        # will delete all patches for all versions.
+        # If other situations arise where we need to delete
+        # ted patches individually, set deleting_title to true.
+        delete_patch_from_ted if deleting_title
 
         # remove from the title's list of versions
         progress 'Deleting version from title data on the Xolo server', log: :debug

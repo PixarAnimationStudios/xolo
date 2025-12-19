@@ -184,6 +184,26 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute patch_unknown
+          #   @return [Boolean] Should 'unknown' versions of this title be updated to this version automatically?
+          patch_unknown: {
+            label: 'Patch Unknown Versions',
+            cli: :U,
+            type: :boolean,
+            validate: :validate_boolean,
+            default: false,
+            changelog: true,
+            desc: <<~ENDDESC
+              Should 'unknown' versions of this title be updated to this version automatically by Jamf Patch Management?
+
+              When Jamf Patch determines that a title is installed on a computer, but version reported is not among those known to Jamf Patch, it marks the version as 'unknown'. Setting this option to true will cause Jamf Patch to automatically install the pkg for this version on those macs with 'unknown' versions.
+
+              This can cause problems if that unknown version is actually newer than this version, e.g. a beta or pre-release version, or when the app has a 'self-update' mechanism that installs newer versions outside of Jamf Patch before it is aware of them.
+
+              But sometimes it may be desirable to have all unknown versions updated to this version, e.g. when the title is a helper app that is not regularly updated, or when the title is being newly managed by Xolo/Jamf Patch and you want to get all existing installations onto this version.
+            ENDDESC
+          },
+
           # @!attribute killapps
           #   @return [Array<String>] The apps that cannot be running when this version is installed
           killapps: {

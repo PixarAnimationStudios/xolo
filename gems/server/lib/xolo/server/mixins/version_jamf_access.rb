@@ -983,10 +983,10 @@ module Xolo
           # a rollback is being done
           ppol.allow_downgrade = false
 
-          # This should always be false, so that
+          # This should default to false, so that
           # we don't accidentally downgrade non-xolo test installs,
           # or server-pushed updates (like with commvault or cisco VPN)
-          ppol.patch_unknown = false
+          ppol.patch_unknown = patch_unknown ? true : false
 
           ppol.enable
 
@@ -1006,10 +1006,10 @@ module Xolo
           ppol.name = jamf_patch_policy_name
           ppol.target_version = version
 
-          # This should always be false, so that
+          # This should default tofalse, so that
           # we don't accidentally downgrade non-xolo test installs,
           # or server-pushed updates (like with commvault or cisco VPN)
-          ppol.patch_unknown = false
+          ppol.patch_unknown = patch_unknown ? true : false
 
           if pilot?
             set_policy_pilot_groups ppol
