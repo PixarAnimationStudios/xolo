@@ -151,7 +151,7 @@ module Xolo
           halt 409, { status: 409, error: msg }
         end
 
-      end # TitleEditor
+      end # Versions
 
     end # Helpers
 

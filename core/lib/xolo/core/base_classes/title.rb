@@ -405,6 +405,36 @@ module Xolo
 
           },
 
+          # @!attribute pilot_groups
+          #   @return [Array<String>] Jamf groups that will automatically get new versions installed or
+          #     updated when added, for piloting
+          pilot_groups: {
+            label: 'Pilot Computer Groups',
+            cli: :p,
+            validate: true,
+            type: :string,
+            multi: true,
+            changelog: true,
+            readline_prompt: 'Group Name',
+            readline: :jamf_computer_group_names,
+            invalid_msg: "Invalid group. Must be an existing Jamf Computer Group, or '#{Xolo::NONE}'.",
+            desc: <<~ENDDESC
+              One or more Jamf Computer Groups whose members will automatically have new versions installed or updated for testing before it is released.
+
+              These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
+
+              Pilot groups can also be defined per version, in which case these will be ignored. Defining them in the title is useful for subscribed titles, where new versions are created automatically.
+
+              When a version is released, the computers in the release_groups defined in the title will automatically have this version installed - and any computers with an older version will have it updated.
+
+              When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+
+              When adding a new version, the pilot groups from the previous version will be inherited if you don't specify any. To make the new version have no pilot groups, and fall back to these defined in the title, use '#{Xolo::NONE}'
+
+              NOTE: Any non-excluded computer can be used for piloting at any time by manually installing the yet-to-be-released version using `sudo xolo install <title> <version>`.  The members of the pilot groups are just the ones that will have it auto-installed.
+            ENDDESC
+          },
+
           # Whenever one of the groups listed is Xolo::TARGET_ALL ('all') then all other groups are
           # ignored or deleted and the array contains only 'all'
           #
@@ -741,8 +771,17 @@ module Xolo
 
         }.freeze
 
-        ATTRIBUTES.each_key do |attr|
+        ATTRIBUTES.each do |attr, deets|
           attr_accessor attr
+
+          next unless deets[:multi]
+
+          # ensure that multi value attrs return an empty array if nil
+          define_method attr do
+            iv = "@#{attr}"
+            instance_variable_set(iv, []) if instance_variable_get(iv).nil?
+            instance_variable_get(iv)
+          end
         end
 
         # Constructor

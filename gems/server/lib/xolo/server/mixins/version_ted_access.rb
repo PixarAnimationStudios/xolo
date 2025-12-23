@@ -48,6 +48,11 @@ module Xolo
         # @return [void]
         ##########################
         def create_patch_in_ted
+          if subscribed?
+            log_debug "Title Editor: SoftwareTitle '#{title}' is subscribed, skipping Title Editor patch creation"
+            return
+          end
+
           progress "Title Editor: Creating Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
           ted_title.patches.add_patch(
             version: version,
@@ -75,6 +80,11 @@ module Xolo
         # @return [void]
         ##########################
         def update_patch_in_ted
+          if subscribed?
+            log_debug "Title Editor: SoftwareTitle '#{title}' is subscribed, skipping Title Editor patch update"
+            return
+          end
+
           progress "Title Editor: Updating Patch '#{version}' SoftwareTitle '#{title}'", log: :info
 
           Xolo::Server::Version::ATTRIBUTES.each do |attr, deets|
@@ -346,6 +356,11 @@ module Xolo
         # Ensure all the TEd items for this version are correct based on the server data.
         #########################
         def repair_ted_patch
+          if subscribed?
+            log_debug "Title Editor: SoftwareTitle '#{title}' is subscribed, skipping Title Editor patch repair"
+            return
+          end
+
           progress "Title Editor: Repairing Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
 
           Xolo::Server::Version::ATTRIBUTES.each do |attr, deets|

@@ -239,7 +239,6 @@ module Xolo
           #     updated for piloting
           pilot_groups: {
             label: 'Pilot Computer Groups',
-            # default: Xolo::NONE,
             cli: :p,
             validate: true,
             type: :string,
@@ -576,9 +575,16 @@ module Xolo
 
         }.freeze
 
-        ATTRIBUTES.each_key do |attr|
+        ATTRIBUTES.each do |attr, deets|
           attr_accessor attr
-          attr_accessor "new_#{attr}"
+
+          next unless deets[:multi]
+
+          # ensure that multi value attrs return an empty array if nil
+          define_method attr do
+            instance_variable_set(attr, []) if instance_variable_get(attr).nil?
+            instance_variable_get(attr)
+          end
         end
 
         # Constructor

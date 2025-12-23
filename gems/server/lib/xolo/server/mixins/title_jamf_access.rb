@@ -1655,6 +1655,61 @@ module Xolo
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
         end
 
+        # Methods used by subscription stuff
+        ##############################
+
+        # Returns an array of known patch versions for this title from Jamf
+        # These are not necessarily in xolo, but they are available from the Patch Source.
+        #
+        # One or more Hashes like this:
+        #     {
+        #       "version": "143.0.7499.170",
+        #       "releaseDate": "2025-12-18T20:31:01Z",
+        #       "standalone": true,
+        #       "minimumOperatingSystem": "12.0",
+        #       "rebootRequired": false,
+        #       "killApps": [
+        #         {
+        #           "appName": "Google Chrome"
+        #         }
+        #       ],
+        #       "absoluteOrderId": "0"
+        #     }
+        #
+        # @param version [String, nil] If a string, only return info about that version, if :latest,
+        #   only the latest version, otherwise all available versions known by the patch source.
+        #
+        # @param refresh [Boolean] re-read the data from the Jamf Pro API
+        #
+        # @return [Array<Hash>] Data about available patch versions for this title
+        ################################
+        def patch_versions(version: nil, refresh: false)
+          @patch_versions = nil if refresh
+          @patch_versions ||= []
+
+          if @patch_versions.empty?
+            page = 0
+            loop do
+              jpapi_path = "#{JPAPI_PATCH_TITLE_ENDPOINT}/#{jamf_patch_title_id}/definitions?page=#{page}&page-size=1000&sort=absoluteOrderId%3Aasc"
+
+              data = jamf_cnx.jp_get jpapi_path
+              break if data[:results].empty?
+
+              @patch_versions += data[:results]
+              page += 1
+            end # loop
+          end # if
+
+          case version
+          when nil
+            @patch_versions
+          when :latest
+            @patch_versions.select { |p| p[:absoluteOrderId] == '0' }
+          else
+            @patch_versions.select { |p| p[:version] == version }
+          end # case
+        end # patch_versions
+
       end # TitleJamfPro
 
     end # Mixins

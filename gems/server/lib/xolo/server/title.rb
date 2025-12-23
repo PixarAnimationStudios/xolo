@@ -404,10 +404,12 @@ module Xolo
         # @session ||= {}
       end
 
+      # This can be manually set earlier in the request handling to use a non-standard
+      # admin username
       # @return [String]
       ###################
       def admin
-        session[:admin]
+        @admin ||= session[:admin]
       end
 
       # @return [Boolean] Are we creating this title?

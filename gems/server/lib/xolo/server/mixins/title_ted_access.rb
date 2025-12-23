@@ -65,6 +65,11 @@ module Xolo
         # @return [Windoo::SoftwareTitle]
         ##########################
         def create_title_in_ted
+          if subscribed?
+            log_debug "Title Editor: SoftwareTitle '#{title}' is subscribed, skipping Title Editor creation"
+            return
+          end
+
           # delete an old one if its there
           ted_title&.delete if Windoo::SoftwareTitle.all_ids(cnx: ted_cnx).include? title
 
@@ -173,6 +178,10 @@ module Xolo
         # @return [void]
         ##########################
         def update_title_in_ted
+          if subscribed?
+            log_debug "Title Editor: SoftwareTitle '#{title}' is subscribed, skipping Title Editor update"
+            return
+          end
           return unless changes_for_update
 
           unless any_ted_changes?
@@ -482,6 +491,10 @@ module Xolo
         # @return [void]
         ############################
         def repair_ted_title
+          if subscribed?
+            log_debug "Title Editor: SoftwareTitle '#{title}' is subscribed, skipping Title Editor repair"
+            return
+          end
           progress "Title Editor: Repairing SoftwareTitle '#{title}'", log: :info
 
           # TODO: version order??

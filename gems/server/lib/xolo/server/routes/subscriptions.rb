@@ -103,6 +103,7 @@ module Xolo
         #
         ###############
         post '/subscribed-title-updates' do
+          session[:admin] = Xolo::Server::WEBHOOK_HANDLER_ADMIN_USERNAME
           request.body.rewind
           process_patch_title_updated_webhook(request.body.read)
 

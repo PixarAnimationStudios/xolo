@@ -75,13 +75,12 @@ module Xolo
 
           if subscribed_title
 
-            log_info "Title '#{title_name}' ID #{title_id} is a subscribed title in Xolo. Processing new version '#{new_version}'."
+            log_info "Title '#{subscribed_title.title}' ID #{title_id} is a subscribed title in Xolo. Processing new version '#{new_version}'."
 
-            # add_version_via_subscription(
-            #   patch_title_id: patch_title_id,
-            #   title_display_name: title_display_name,
-            #   new_version: new_version
-            # )
+            Xolo::Server::Version.add_version_via_subscription(
+              title_object: subscribed_title,
+              new_version: new_version
+            )
           else
             log_debug "Title '#{title_name}' ID #{title_id} is not a subscribed title in Xolo. Ignoring webhook."
           end

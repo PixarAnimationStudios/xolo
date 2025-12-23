@@ -223,12 +223,42 @@ module Xolo
         }
       end
 
+      # add a new version in response to a patch title update webhook event
+      # @param title_object [Xolo::Server::Title] the title object for the subscribed title
+      # @param new_version [String] the new version to add
+      # @return [void]
+      ######################
+      def self.add_version_via_subscription(title_object:, new_version:)
+        log_info "Adding new version '#{new_version}' for subscribed title '#{title_object.title}'"
+
+        # get more details about this version from the JPAPI
+        patch_version_data = title_object.patch_versions version: new_version
+
+        # put the data into a hash for creating a new version object
+        vobj_data = {
+          title: title_object.title,
+          version: new_version,
+          publish_date: Time.parse(patch_version_data[:releaseDate]),
+          standalone: patch_version_data[:standalone],
+          min_os: patch_version_data[:minimumOperatingSystem],
+          reboot: patch_version_data[:rebootRequired]
+        }
+
+        # instantiate the version object
+        vobj = new vobj_data
+
+        # create it
+        vobj.create
+
+        # Notification about new version created via subscription
+      end
+
       # Attributes
       ######################
       ######################
 
       # The instance of Xolo::Server::App that instantiated this
-      # title object. This is how we access things that are available in routes
+      # version object. This is how we access things that are available in routes
       # and helpers, like the single Jamf and TEd
       # connections for this App instance.
       attr_accessor :server_app_instance
@@ -391,7 +421,12 @@ module Xolo
       def pilot_groups_to_use
         return @pilot_groups_to_use if @pilot_groups_to_use
 
+        # any defined in the version override any in the title
         @pilot_groups_to_use = changes_for_update&.key?(:pilot_groups) ? changes_for_update[:pilot_groups][:new] : pilot_groups
+        return @pilot_groups_to_use unless @pilot_groups_to_use.empty?
+
+        # if none defined in the version, look in the title
+        @release_groups_to_use = title_object.changes_for_update&.key?(:pilot_groups) ? title_object.changes_for_update[:pilot_groups][:new] : ttl_obj.pilot_groups
       end
 
       # The scope excluded groups to use in policies and patch policies for all versions of
@@ -456,10 +491,12 @@ module Xolo
         # @session ||= {}
       end
 
+      # This can be manually set earlier in the request handling to use a non-standard
+      # admin username
       # @return [String]
       ###################
       def admin
-        session[:admin]
+        @admin ||= session[:admin]
       end
 
       # Append a message to the progress stream file,
@@ -559,7 +596,7 @@ module Xolo
         progress 'Saving version data to Xolo server'
         save_local_data
 
-        create_patch_in_ted
+        create_patch_in_ted unless subscribed?
 
         create_in_jamf
 
@@ -578,6 +615,11 @@ module Xolo
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
       ensure
         unlock
+      end
+
+      # Is this version part of a subscribed title?
+      def subscribed?
+        title_object.subscribed?
       end
 
       # Update a this version, updating to the
