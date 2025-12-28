@@ -99,7 +99,13 @@ module Xolo
             # The menu items for setting values
             cmd_details(cmd)[:opts].each do |key, deets|
               # only show items for the current title type, if applicable
-              next if deets[:title_type] && walkthru_cmd_opts[:type] != deets[:title_type]
+              if deets[:title_type]
+                if walkthru_cmd_opts[:subscribed]
+                  next if deets[:title_type] == Xolo::Admin::Title::MANAGED
+                elsif deets[:title_type] == Xolo::Admin::Title::SUBSCRIBED
+                  next
+                end
+              end
 
               curr_val = current_opt_values[key]
 
@@ -150,7 +156,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def display_name_na
-        return unless walkthru_cmd_opts[:patch_source]
+        return unless walkthru_cmd_opts[:subscribed]
 
         'N/A when subcribing via a Patch Source'
       end
@@ -159,7 +165,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def publisher_na
-        return unless walkthru_cmd_opts[:patch_source]
+        return unless walkthru_cmd_opts[:subscribed]
 
         'N/A when subcribing via a Patch Source'
       end
@@ -168,7 +174,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def version_script_na
-        unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:patch_source]
+        unless walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id] || walkthru_cmd_opts[:subscribed]
           return
         end
 
@@ -179,7 +185,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def app_name_bundleid_na
-        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:title_id] || walkthru_cmd_opts[:patch_source]
+        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:title_id] || walkthru_cmd_opts[:subscribed]
           return
         end
 
@@ -190,11 +196,12 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def patch_source_na
-        if walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
-          'N/A when using Version Script or App Name/BundleID'
-        elsif walkthru_cmd_opts[:publisher] || walkthru_cmd_opts[:display_name]
-          'N/A when using Display Name or Publisher'
-        end
+        # if walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:app_name] || walkthru_cmd_opts[:app_bundle_id]
+        #   'N/A when using Version Script or App Name/BundleID'
+        # elsif walkthru_cmd_opts[:publisher] || walkthru_cmd_opts[:display_name]
+        #   'N/A when using Display Name or Publisher'
+        # end
+        nil unless walkthru_cmd_opts[:subscribed]
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
@@ -280,7 +287,7 @@ module Xolo
           #{header_sep_line}
           #{header_text}
           #{header_sep_line}
-          Current Settings => New Settings
+          Current Settings -> New Settings
 
         ENDPUTS
       end
@@ -786,7 +793,8 @@ module Xolo
         title_missing_values = []
 
         # if subscribing, need patch source and title id
-        if walkthru_cmd_opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        # if walkthru_cmd_opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        if walkthru_cmd_opts[:subscribed]
           unless walkthru_cmd_opts[:patch_source]
             title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:patch_source][:label]
           end

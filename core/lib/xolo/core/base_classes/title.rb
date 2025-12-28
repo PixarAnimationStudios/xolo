@@ -181,47 +181,37 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute type
-          #   @return [String] Is this title Managed or Subscribed
-          type: {
-            label: 'Type',
-            default: DEFAULT_TYPE,
+          # @!attribute subscribed
+          #   @return [Boolean] is this title subscribed via a Jamf Patch Source?
+          subscribed: {
+            label: 'Subscribed?',
+            cli: :B,
+            type: :boolean,
             immutable: true,
-            cli: :t,
-            type: :string,
-            validate: true,
-            invalid_msg: "Not a valid type: must be '#{MANAGED}' or '#{SUBSCRIBED}'",
+            validate: :validate_boolean,
+            default: false,
+            changelog: true,
             desc: <<~ENDDESC
-              Is this title managed by Xolo, or subscribed via a Jamf Patch Source?
+              Is this title subscribed via a Jamf Patch Source? If not, it is managed by Xolo.
 
-              Managed titles have their definition, versions and updates managed by Xolo. Xolo is used to provide basic details about the title, such as a the display name, publisher, the mechanism by which Jamf Pro knows which version is installed on a Mac. Versions of managed titles are also added and maintained via xadm, setting values such as killapps, OS restrictions, and so on.
+              Managed titles have their definition, versions and updates managed by Xolo; xadm is used to provide basic details about the title, such as a the display name, publisher, the mechanism by which Jamf Pro knows which version is installed on a Mac. Versions of managed titles are also added and maintained via xadm, setting values such as killapps, OS restrictions, and so on.
 
               Subscribed titles and their version definitions are maintained by a Patch Source configrued in Jamf Pro. The source defines some aspects of the title and its versions, including the display name, publisher, and mechanism for determining installed versions. New versions are also managed by the Patch Source, including killapps, OS restrictions, and other settings. When they appear, Xolo will at least inform someone (notify the contact email) that a new version is available and needs a .pkg, but can also use autopkg to automatically fetch .pkgs and add new versions for piloting.
 
-              In both cases, a .pkg must be provided for each version, either by uploading it via xadm or configuring the server to use AutoPkg to acquire it.
+              When a title is subscribed, these options are required:
+              --patch-source
+              --title-id
 
-              The default type is '#{MANAGED}', use '#{SUBSCRIBED}' to make this a subscribed title.
-            ENDDESC
-          },
+              and these are not available, since the patch source manages them:
+              --display-name
+              --publisher
+              --app-name
+              --app-bundle-id
+              --version-script
 
-          # @!attribute display_name
-          #   @return [String] The display-name for this title
-          display_name: {
-            label: 'Display Name',
-            ted_attribute: :name,
-            title_type: MANAGED,
-            # required: true, # only required if not subscribed
-            cli: :n,
-            type: :string,
-            validate: :validate_title_display_name,
-            walkthru_na: :display_name_na,
-            invalid_msg: 'Not a valid display name, must be at least three characters long.',
-            changelog: true,
-            desc: <<~ENDDESC
-              A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
-              Must be at least three characters long.
+              In both cases, a .pkg must be provided for each version, either by uploading it via xadm or configuring the server and the title to use AutoPkg to acquire it.
 
-              Only valid, and required, for managed titles, since subscribed titles get their display name from the Patch Source.
+              By default titles are managed. Once created, titles cannot be changed between managed and subscribed.
             ENDDESC
           },
 
@@ -253,6 +243,25 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute display_name
+          #   @return [String] The display-name for this title
+          display_name: {
+            label: 'Display Name',
+            ted_attribute: :name,
+            title_type: MANAGED,
+            # required: true, # only required if not subscribed
+            cli: :n,
+            type: :string,
+            validate: :validate_title_display_name,
+            walkthru_na: :display_name_na,
+            invalid_msg: 'Not a valid display name, must be at least three characters long.',
+            changelog: true,
+            desc: <<~ENDDESC
+              A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
+              Must be at least three characters long.
+            ENDDESC
+          },
+
           # @!attribute publisher
           #   @return [String] The entity that publishes this title
           publisher: {
@@ -268,8 +277,6 @@ module Xolo
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',
             desc: <<~ENDDESC
               The company or entity that publishes this title, e.g. 'Apple, Inc.' or 'Pixar Animation Studios'.
-
-              Only valid, and required, for managed titles, since subscribed titles get their publisher from the Patch Source.
             ENDDESC
           },
 
@@ -292,8 +299,7 @@ module Xolo
 
               If the title does not install a .app bundle, leave this blank, and provide a --version-script.
 
-              REQUIRED for managed titles if --app-bundle-id is used.
-              Not required for subscribed titles, since the Patch Source provides this info.
+              REQUIRED if --app-bundle-id is used.
             ENDDESC
           },
 
@@ -316,8 +322,7 @@ module Xolo
 
               If the title does not install a .app bundle, or if the .app doesn't provide its version via the bundle id (e.g. Firefox) leave this blank, and provide a --version-script.
 
-              REQUIRED for managed titles if --app-name is used.
-              Not required for subscribed titles, since the Patch Source provides this info.
+              REQUIRED if --app-name is used.
             ENDDESC
           },
 
@@ -344,8 +349,7 @@ module Xolo
               and if no version of the title is installed, it should output:
                  <result></result>
 
-              REQUIRED for managed titles unless --app-name and --app-bundle-id are used.
-              Not required for subscribed titles, since the Patch Source provides this info.
+              REQUIRED unless --app-name and --app-bundle-id are used.
             ENDDESC
           },
 
@@ -364,19 +368,9 @@ module Xolo
             desc: <<~ENDDESC
               The name of the Jamf Patch Source that provides this title via subscription.
 
-              Setting this value, along with a --title-id, makes this a 'subscribed' title, meaning that
-              its versions and updates are managed by the Patch Source, not by Xolo.
+              This value and --title-id are required for 'subscribed' titles.
 
               To see a list of titles available for subscription, with their Patch Sources and IDs, use `xadm list-available`.
-
-              When a title is subscribed, some options are not available, since the patch source manages them:
-              --display-name
-              --publisher
-              --app-name
-              --app-bundle-id
-              --version-script
-
-              REQUIRED for subscribed titles. Not used for managed titles.
             ENDDESC
 
           },
@@ -395,12 +389,9 @@ module Xolo
             desc: <<~ENDDESC
               The TitleID of the title on the specified Patch Source.
 
-              This is the unique identifier for each title on a patch source, it is a sometimes-meaningless
-              string of alphanumeric characters.
+              This is the unique identifier for each title on a patch source, it is a sometimes-meaningless string of alphanumeric characters.
 
               To find the TitleID of a title available for subscription, use `xadm list-available`
-
-              REQUIRED for subscribed titles. Not used for managed titles.
             ENDDESC
 
           },
@@ -425,13 +416,13 @@ module Xolo
 
               Pilot groups can also be defined per version, in which case these will be ignored. Defining them in the title is useful for subscribed titles, where new versions are created automatically.
 
-              When a version is released, the computers in the release_groups defined in the title will automatically have this version installed - and any computers with an older version will have it updated.
+              When a version is released, the computers in the release_groups defined in the title will automatically have this version installed - and any non-frozen computers with an older version will have it updated.
 
               When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
               When adding a new version, the pilot groups from the previous version will be inherited if you don't specify any. To make the new version have no pilot groups, and fall back to these defined in the title, use '#{Xolo::NONE}'
 
-              NOTE: Any non-excluded computer can be used for piloting at any time by manually installing the yet-to-be-released version using `sudo xolo install <title> <version>`.  The members of the pilot groups are just the ones that will have it auto-installed.
+              NOTE: Any non-excluded computer can be used for piloting at any time by manually installing the yet-to-be-released version using `sudo xolo install` or `xadm deploy`.  The members of the pilot groups are just the ones that will have it auto-installed.
             ENDDESC
           },
 
@@ -774,6 +765,9 @@ module Xolo
         ATTRIBUTES.each do |attr, deets|
           attr_accessor attr
 
+          # boolean attrs get a ? method
+          alias_method "#{attr}?", attr if deets[:type] == :boolean
+
           next unless deets[:multi]
 
           # ensure that multi value attrs return an empty array if nil
@@ -803,13 +797,6 @@ module Xolo
         ####################
         def latest_version
           version_order&.first
-        end
-
-        # Is this a subscribed title?
-        # @return [Boolean]
-        ####################
-        def subscribed?
-          type == SUBSCRIBED
         end
 
         # Is this a managed title?

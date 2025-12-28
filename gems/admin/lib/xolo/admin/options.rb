@@ -192,7 +192,7 @@ module Xolo
 
       HELP_OPT = '--help'
 
-      DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'"
+      DFT_CMD_TITLE_ARG_BANNER = "  title:     The unique name of a title in Xolo, e.g. 'google-chrome'\n             Must be lowercase alphanumeric and dashes only."
       DFT_CMD_VERSION_ARG_BANNER = "  version:   The version of the title you are working with. e.g. '12.34.5'"
 
       TARGET_TITLE_PLACEHOLDER = Xolo::Admin::Title::TARGET_TITLE_PLACEHOLDER

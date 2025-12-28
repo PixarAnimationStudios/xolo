@@ -578,6 +578,9 @@ module Xolo
         ATTRIBUTES.each do |attr, deets|
           attr_accessor attr
 
+          # boolean attrs get a ? method
+          alias_method "#{attr}?", attr if deets[:type] == :boolean
+
           next unless deets[:multi]
 
           # ensure that multi value attrs return an empty array if nil
