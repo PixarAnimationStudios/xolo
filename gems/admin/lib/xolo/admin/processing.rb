@@ -239,7 +239,7 @@ module Xolo
         opts_to_process.to_h.each do |k, v|
           puts "  #{k}: #{v}"
         end
-        return
+        # return
 
         response_data = new_title.add(server_cnx)
 
@@ -247,8 +247,12 @@ module Xolo
           puts "DEBUG: response_data: #{response_data}"
           puts
         end
-
-        display_progress response_data[:progress_stream_url_path]
+        if response_data[:progress_stream_url_path]
+          display_progress response_data[:progress_stream_url_path]
+        else
+          puts '# No progress stream URL returned'
+          return
+        end
 
         # Upload the ssvc icon, if any?
         upload_ssvc_icon new_title

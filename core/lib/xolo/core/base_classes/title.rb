@@ -192,9 +192,9 @@ module Xolo
             default: false,
             changelog: true,
             desc: <<~ENDDESC
-              Is this title subscribed via a Jamf Patch Source? If not, it is managed by Xolo.
+              Is this title subscribed via a Jamf Patch Source? If not, it is managed by Xolo. By default titles are managed. Once created, titles cannot be changed between managed and subscribed.
 
-              Managed titles have their definition, versions and updates managed by Xolo; xadm is used to provide basic details about the title, such as a the display name, publisher, the mechanism by which Jamf Pro knows which version is installed on a Mac. Versions of managed titles are also added and maintained via xadm, setting values such as killapps, OS restrictions, and so on.
+              Managed titles have their entire definition, versions and updates managed by Xolo; xadm is used to provide basic details about the title, such as a the display name, publisher, the mechanism by which Jamf Pro knows which version is installed on a Mac. Versions of managed titles are also added and maintained via xadm, setting values such as killapps, OS restrictions, and so on.
 
               Subscribed titles and their version definitions are maintained by a Patch Source configrued in Jamf Pro. The source defines some aspects of the title and its versions, including the display name, publisher, and mechanism for determining installed versions. New versions are also managed by the Patch Source, including killapps, OS restrictions, and other settings. When they appear, Xolo will at least inform someone (notify the contact email) that a new version is available and needs a .pkg, but can also use autopkg to automatically fetch .pkgs and add new versions for piloting.
 
@@ -209,9 +209,9 @@ module Xolo
               --app-bundle-id
               --version-script
 
-              In both cases, a .pkg must be provided for each version, either by uploading it via xadm or configuring the server and the title to use AutoPkg to acquire it.
+              When a subscribed title is added, a Xolo Version is automatically added for the most recent version available from the Patch Source.
 
-              By default titles are managed. Once created, titles cannot be changed between managed and subscribed.
+              In all cases, a .pkg must be provided for each version known to Xolo, either by uploading it via xadm or configuring the server and the title to use AutoPkg to acquire it.
             ENDDESC
           },
 
@@ -228,12 +228,12 @@ module Xolo
             invalid_msg: <<~ENDINV,
               Not a valid description, must be at least #{MIN_TITLE_DESC_LENGTH} characters.
 
-              Provide a useful dscription of what the software does, URLs, developer names, etc.
+              Provide a useful dscription of what the software does, why it's in Xolo, URLs, developer names, etc.
 
               DO NOT USE, e.g. 'Installs Some App', because we know that already and it isn't helpful.
             ENDINV
             desc: <<~ENDDESC
-              A useful dscription of what the software installed by this title does. You can also include URLs, developer names, support info, etc.
+              A useful dscription of what the software installed by this title does or why it's in Xolo. You can also include URLs, developer names, support info, etc.
 
               DO NOT use, e.g. 'Installs Some App', because we know that already and it isn't helpful.
 

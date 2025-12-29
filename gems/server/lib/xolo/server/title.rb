@@ -373,11 +373,8 @@ module Xolo
       def initialize(data_hash)
         super
 
-        # ted_id_number and jamf_patch_title_ida are now defined in parent classes ATTRIBUTES
-        # @ted_id_number ||= data_hash[:ted_id_number]
+        # ted_id_number and jamf_patch_title_id are now defined in parent classes ATTRIBUTES so are set by super
 
-        # but set this via lookup if it isn't there yet.
-        @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
         @version_order ||= []
 
         @new_data_for_update = {}
@@ -440,6 +437,12 @@ module Xolo
       ###################
       def releasing?
         current_action == :releasing
+      end
+
+      # TODO: Remove this when everything has been repaired for v2
+      #######################
+      def jamf_patch_title_id
+        @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
       end
 
       # Append a message to the progress stream file,
@@ -1135,8 +1138,11 @@ module Xolo
       ###########################
       def to_h
         hash = super
-        #  hash[:ted_id_number] = ted_id_number
-        # hash[:jamf_patch_title_id] = jamf_patch_title_id
+
+        # TODO: remove these after 'repairing' everything for v2
+        hash[:ted_id_number] = ted_id_number
+        hash[:jamf_patch_title_id] = jamf_patch_title_id
+
         hash[:ssvc_icon_id] = ssvc_icon_id
         hash
       end

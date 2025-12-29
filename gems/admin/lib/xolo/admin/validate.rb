@@ -658,7 +658,7 @@ module Xolo
         val = val.to_s.strip
         return val if val =~ /\A\S+@\S+\.\S+\z/
 
-        raise_invalid_data_error val, VERSION_ATTRS[:contact_email][:invalid_msg]
+        raise_invalid_data_error val, TITLE_ATTRS[:contact_email][:invalid_msg]
       end
 
       # expand Xolo::Admin::Version::USE_TITLE_FOR_KILLAPP into the proper killall string
@@ -909,10 +909,12 @@ module Xolo
       # Complain about using options not meant for the chosen title type
       def validate_subbed_v_managed(opts)
         bad_opts = []
+        ttl_type = current_title_type(opts)
+
         Xolo::Admin::Title.cli_opts.each do |key, deets|
           next unless opts[key]
           next unless deets[:title_type]
-          next if deets[:title_type] == current_title_type(opts)
+          next if deets[:title_type] == ttl_type
 
           bad_opts << (walkthru? ? deets[:label] : "--#{key.to_s.gsub('_', '-')}")
         end
