@@ -511,7 +511,11 @@ module Xolo
         validated_new_val = deets[:multi] ? [] : nil
         all_done = false
         until all_done
-          latest_input = Readline.readline(prompt, true)
+          latest_input = Readline.readline(prompt, true).strip
+          # dragging in items from the finder will esacpe spaces in the path with \'s
+          # in the shell this is good, but ruby is interpreting the \'s, so lets remove them.
+          latest_input.gsub!(/\\ /, ' ')
+
           break if latest_input == Xolo::X
           return Xolo::NONE if !deets[:required] && (latest_input == Xolo::NONE)
 
