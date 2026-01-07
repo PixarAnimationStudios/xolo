@@ -50,6 +50,7 @@ module Xolo
           log_info "Admin #{session[:admin]} is creating title '#{title.title}'"
           info = { status: 'created', title: title.title }
           body info
+          # TEMPORARY - TESTING
           return
 
           with_streaming do
@@ -57,6 +58,7 @@ module Xolo
             # we don't need to update client data when managed titles are created
             # because they don't have any versions yet, so there's nothing a
             # client can do with them.
+            #
             # However subscribed titles will have their latest version activated
             # will need client data updated
           end

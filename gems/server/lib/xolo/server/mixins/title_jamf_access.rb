@@ -60,6 +60,16 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
+          if subscribed?
+            create_subscribed_title_in_jamf
+          else
+            create_managed_title_in_jamf
+          end
+        end
+
+        # Create a managed title in Jamf Pro
+        #################################
+        def create_managed_title_in_jamf
           # ORDER MATTERS
 
           # create the normal ea if needed
@@ -83,6 +93,34 @@ module Xolo
           jamf_frozen_group
 
           activate_jamf_patch_title
+        end
+
+        # Subscribe to a title in Jamf Pro
+        #
+        # @return [void]
+        #########################
+        def create_subscribed_title_in_jamf
+          # Activate the title in Jamf Pro
+
+          # If it has an EA
+          #  - if we should accept it
+          #    - do so
+          #    - make the normal ea
+          #  - else
+          #     - notify someone to accept it
+          #     - make the normal one later, once it? accepted?
+
+          # create the installed group
+
+          # create uninstall & expire stuff
+
+          # create the frozen group
+
+          # create version for latest available
+          # - either autopkg or notification to upload.
+
+          # TODO: EAs for subscribed titles can change at any time and need
+          # re-accepting.
         end
 
         # Apply any changes to Jamf as needed
