@@ -52,6 +52,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     When you delete a version, but not the whole title, only the Jamf objects related to the version are deleted, as well as Xolo's awareness that the version exists. The Title Editor data for the version remains as long as the title exists.
     
     This is needed because if the version is deleted from the Title Editor, any macs with that version installed will show up in patch reports with an 'unknown' version (if it isn't in the Title Editor, it is unknown to Jamf Patch).  This can prevent those macs from ever getting newer versions automatically, unless 'Update Unknown Versions' is set in the later patch policies - which by default is not.
+  
+  - No more need for a duplicate 'normal' Extension Attribute when a managed title uses a version_script, or a subscribed title includes one.
+    
+    The 'normal' EA was used to create various smart groups for scoping, since the Patch EA is not available directly as a group criterion. However, there is a "Patch Title: _display_name_" criterion which can do the same thing. We now use that and the smart groups are much simpler, as is all code dealing with the EAs.
+
+## Fixed
+   
+   - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging in a pkg from the Finder that contains spaces.
 
 ## \[1.0.2] Unreleased
 

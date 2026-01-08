@@ -72,8 +72,8 @@ module Xolo
         def create_managed_title_in_jamf
           # ORDER MATTERS
 
-          # must happen after the normal ea is created
-          configure_jamf_installed_group
+          # This creates the installed group
+          jamf_installed_group
 
           if uninstall_script || !uninstall_ids.pix_empty?
             configure_jamf_uninstall_script
@@ -98,14 +98,8 @@ module Xolo
         #########################
         def create_subscribed_title_in_jamf
           # Activate the title in Jamf Pro
-
-          # If it has an EA
-          #  - if we should accept it
-          #    - do so
-          #    - make the normal ea
-          #  - else
-          #     - notify someone to accept it
-          #     - make the normal one later, once it? accepted?
+          #  - note the jamf id of the sub'd title
+          #
 
           # create the installed group
 
@@ -115,6 +109,13 @@ module Xolo
 
           # create version for latest available
           # - either autopkg or notification to upload.
+
+          # If it has an EA
+          # - Notify xadm and someone else? to manually accept the EA
+          #  - provide a link
+
+          # add the latest version
+          #  - possibly notifying someone to upload a pkg
 
           # TODO: EAs for subscribed titles can change at any time and need
           # re-accepting.
@@ -128,10 +129,6 @@ module Xolo
         #########################
         def update_title_in_jamf
           # ORDER MATTERS
-
-          # this smart group might use the normal-EA or might use app data
-          # If those have changed, we need to update it.
-          configure_jamf_installed_group if need_to_update_jamf_installed_group?
 
           # if the exclusions have changed update the manual install released policy
           if changes_for_update[:excluded_groups]
@@ -178,7 +175,6 @@ module Xolo
         # Repair this title in Jamf Pro
         # - TODO: activate title in patch mgmt
         #   - TODO: Accept Patch EA
-        # - Normal EA 'xolo-<title>-installed-version'
         # - title-installed smart group 'xolo-<title>-installed'
         # - frozen static group 'xolo-<title>-frozen'
         # - manual/SSvc install-current-release policy 'xolo-<title>-install'
@@ -777,6 +773,7 @@ module Xolo
             log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
             sleep 10
           end
+
           @jamf_installed_group
         end
 
@@ -815,25 +812,6 @@ module Xolo
               value: 'Unknown Version'
             )
           ]
-        end
-
-        # do we need to update the 'installed' smart group?
-        # true if our incoming changes include the app_name or app_bundle_id
-        #
-        # If they changed at all, we need to update no matter what:
-        #  - if they are now nil, we switched to a version script
-        #
-        #  - if they aren't nil but are different, we need to update
-        #    the group criteria to reflect that.
-        #
-        # Changes to the version script, if it was in use before, don't
-        # require us to change the smart group
-        #
-        #
-        # @return [Boolean]
-        #########################
-        def need_to_update_jamf_installed_group?
-          changes_for_update[:app_name] || changes_for_update[:app_bundle_id]
         end
 
         # Delete the 'installed' smart group
@@ -1197,6 +1175,22 @@ module Xolo
           jamf_active_ted_titles(refresh: true).key? title
         end
 
+        # @return [Boolean] Is this subscribed title active?
+        def jamf_subscribed_title_active?
+          raise Xolo::InvalidDataError, 'This is not a subscribed title.' unless subscribed?
+
+          # returns an array of hashes like
+          # {:name_id=>"5E3",
+          # :source_id=>1,
+          # :name=>"Microsoft Teams",
+          # :id=>108,
+          # :source_name_id=>"1-5E3"}
+          #
+          Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).any? do |t|
+            t[:source_id] == jamf_patch_source_id && t[:name_id] == title_id
+          end
+        end
+
         # The Jamf ID of the Patch Title for this xolo title
         # if it has been activated in jamf.
         #
@@ -1208,17 +1202,28 @@ module Xolo
 
         # create/activate the patch title in Jamf Pro, if not already done.
         #
-        # This 'subscribes' Jamf to the title in the title editor
-        # It must be enabled in the Title Editor first, meaning
-        # it has at least one requirement, and at least one enabled patch/version.
+        # This 'subscribes' Jamf to the title in the title editor for managed titles, or
+        # any arbitrary patch source for subscribed titles.
         #
-        # The 'stub' patch version should allow this when we create the title.
+        # For managed titles, it must be enabled in the Title Editor first, meaning
+        # it has at least one requirement, and at least one enabled patch/version.
+        # The 'stub' patch version for managed titles allows this when we create the title.
         #
         # Xolo should have enabled it in the Title editor before we
         # reach this point.
         #
         ##########################
         def activate_jamf_patch_title
+          if subscibed?
+            activate_subscribed_jamf_patch_title
+          else
+            activate_managed_jamf_patch_title
+          end
+        end
+
+        # Activate a managed title in Jamf Patch
+        #########################################
+        def activate_managed_jamf_patch_title
           if jamf_ted_title_active?
             log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
             return
@@ -1242,6 +1247,16 @@ module Xolo
           jamf_patch_title
 
           accept_jamf_patch_ea
+        end
+
+        # Activate a subscrined title in Jamf patch
+        ###################################
+        def activate_subscribed_jamf_patch_title
+          return unless jamf_subscribed_title_active?
+
+          log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
+          nil
+          
         end
 
         # Create or fetch the patch title object for this xolo title.

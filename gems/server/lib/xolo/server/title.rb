@@ -336,6 +336,10 @@ module Xolo
       #   version being released
       attr_accessor :releasing_version
 
+      # @return [String] The jamf ID of the patch source for this title
+      #   if the title is subscribed. Managed titles are all in the Title Editor source.
+      attr_accessor :jamf_patch_source_id
+
       # version_order is defined in ATTRIBUTES
       alias versions version_order
 
@@ -364,6 +368,9 @@ module Xolo
         @jamf_uninstall_script_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
         @jamf_uninstall_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
         @jamf_expire_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_EXPIRE_SUFFIX}"
+
+        # If we don't have a patch source id yet, get it now
+        @jamf_patch_source_id ||= Jamf::PatchSource.valid_id patch_source if patch_source
       end
 
       # Instance Methods
@@ -1034,7 +1041,6 @@ module Xolo
       #
       # Then look at the various Jamf objects pertaining to this title, and ensure they are correct
       #   - Accept Patch EA
-      #   - Normal EA 'xolo-<title>-installed-version'
       #   - title-installed smart group 'xolo-<title>-installed'
       #   - frozen static group 'xolo-<title>-frozen'
       #   - manual/SSvc install-current-release policy 'xolo-<title>-install'
