@@ -82,23 +82,6 @@ module Xolo
       # That value is also used as the display name
       TITLE_EDITOR_EA_KEY_PREFIX = Xolo::Server::JAMF_OBJECT_NAME_PFX
 
-      # The EA from the title editor, which is used in Jamf Patch
-      # cannot, unfortunately, be used as a criterion in normal
-      # smart groups or advanced searches.
-      # Since we need a smart group containing all macs with any
-      # version of the title installed, we need a second copy of the
-      # EA as a 'normal' EA.
-      #
-      # (That group is used as an exclusion to any auto-install initial-
-      # install policies, so that those policies don't stomp on the matching
-      # Patch Policies)
-      #
-      # The 'duplicate' EA is named the same as the Titled Editor key
-      # (see TITLE_EDITOR_EA_KEY_PREFIX) with this suffix added.
-      # So for the Title Editor key 'xolo-<title>', we'll also have
-      # a matching normal EA called 'xolo-<title>-installed-version'
-      JAMF_NORMAL_EA_NAME_SUFFIX = '-installed-version'
-
       JAMF_INSTALLED_GROUP_NAME_SUFFIX = '-installed'
       JAMF_FROZEN_GROUP_NAME_SUFFIX = '-frozen'
 
@@ -169,13 +152,6 @@ module Xolo
       #####################
       def self.ted_ea_key(title)
         "#{TITLE_EDITOR_EA_KEY_PREFIX}#{title}"
-      end
-
-      # @return [String] The display name of a version script as a normal
-      #   EA in Jamf, which can be used in Smart Groups and Adv Searches.
-      #####################
-      def self.jamf_normal_ea_name(title)
-        "#{ted_ea_key(title)}#{JAMF_NORMAL_EA_NAME_SUFFIX}"
       end
 
       # The title dir for a given title on the server,
@@ -594,13 +570,6 @@ module Xolo
         data_dir = Pathname.new(__FILE__).parent.parent.parent.parent + 'data'
         template_file = data_dir + 'uninstall-pkgs-by-id.zsh'
         template_file.read
-      end
-
-      # @return [String] The display name of a version script as a normal
-      #   EA in Jamf, which can be used in Smart Groups and Adv Searches.
-      #####################
-      def jamf_normal_ea_name
-        @jamf_normal_ea_name ||= self.class.jamf_normal_ea_name title
       end
 
       # prepend a new version to the version_order

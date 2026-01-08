@@ -736,51 +736,20 @@ module Xolo
         # The criteria for the smart group in Jamf that contains all Macs
         # with this version of this title installed
         #
-        # If we have, or are about to update to, a version_script (EA) then use it,
-        # otherwise use the app_name and app_bundle_id.
+        # We use the "Patch Reporting: #{display_name}" criterion so that we don't
+        # care whether the title uses a version-script or app data.
         #
         # @return [Array<Jamf::Criteriable::Criterion>]
         ###################################
         def jamf_installed_group_criteria
-          # does this title use an app bundle?
-          if title_object.app_name
-            [
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: 'Application Title',
-                search_type: 'is',
-                value: title_object.app_name
-              ),
-
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: 'Application Bundle ID',
-                search_type: 'is',
-                value: title_object.app_bundle_id
-              ),
-
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: 'Application Version',
-                search_type: 'is',
-                value: version
-              )
-            ]
-
-          # if not, it must have a version script
-          elsif title_object.version_script
-            [
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: title_object.jamf_normal_ea_name,
-                search_type: 'is',
-                value: version
-              )
-            ]
-
-          else
-            raise Xolo::Core::Exceptions::InvalidDataError, "Title #{title} has neither a version_script nor a defined app bundle."
-          end
+          [
+            Jamf::Criteriable::Criterion.new(
+              and_or: :or,
+              name: "Patch Reporting: #{display_name}",
+              search_type: 'is',
+              value: version
+            )
+          ]
         end
 
         #########################

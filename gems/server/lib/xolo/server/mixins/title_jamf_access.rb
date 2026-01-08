@@ -919,51 +919,27 @@ module Xolo
         # The criteria for the smart group in Jamf that contains all Macs
         # with any version of this title installed
         #
-        # If we have, or are about to update to, a version_script (EA) then use it,
-        # otherwise use the app_name and app_bundle_id.
+        # We use the "Patch Reporting: #{display_name}" criterion so that we don't
+        # care whether the title uses a version-script or app data.
         #
         # @return [Array<Jamf::Criteriable::Criterion>]
         ###################################
         def jamf_installed_group_criteria
-          have_vers_script =
-            if changes_for_update&.dig :version_script
-              changes_for_update[:version_script][:new]
-            else
-              version_script
-            end
+          [
+            Jamf::Criteriable::Criterion.new(
+              and_or: :and,
+              name: "Patch Reporting: #{display_name}",
+              search_type: 'less than or equal',
+              value: 'Latest Version'
+            ),
 
-          # If we have a version_script, use the ea
-          if have_vers_script
-            [
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: jamf_normal_ea_name,
-                search_type: 'is not',
-                value: Xolo::BLANK
-              )
-            ]
-
-          # No version script, so we must be using app data
-          else
-            aname = changes_for_update.dig(:app_name, :new) || app_name
-            abundle = changes_for_update.dig(:app_bundle_id, :new) || app_bundle_id
-
-            [
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: 'Application Title',
-                search_type: 'is',
-                value: aname
-              ),
-
-              Jamf::Criteriable::Criterion.new(
-                and_or: :and,
-                name: 'Application Bundle ID',
-                search_type: 'is',
-                value: abundle
-              )
-            ]
-          end
+            Jamf::Criteriable::Criterion.new(
+              and_or: :or,
+              name: "Patch Reporting: #{display_name}",
+              search_type: 'is',
+              value: 'Unknown Version'
+            )
+          ]
         end
 
         # do we need to update the 'installed' smart group?

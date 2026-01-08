@@ -268,8 +268,6 @@ module Xolo
             data[:jamf_patch_ea_url] = title.jamf_patch_ea_url if title.version_script
           end
 
-          data[:jamf_normal_ea_url] = title.jamf_normal_ea_url if title.version_script
-
           body data
         end
 
