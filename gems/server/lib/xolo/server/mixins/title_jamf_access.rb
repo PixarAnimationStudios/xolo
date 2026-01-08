@@ -72,9 +72,6 @@ module Xolo
         def create_managed_title_in_jamf
           # ORDER MATTERS
 
-          # create the normal ea if needed
-          configure_jamf_normal_ea if version_script
-
           # must happen after the normal ea is created
           configure_jamf_installed_group
 
@@ -132,10 +129,6 @@ module Xolo
         def update_title_in_jamf
           # ORDER MATTERS
 
-          # do we have a version_script? if so we maintain a 'normal' EA
-          # this has to happen before updating the installed_group
-          configure_jamf_normal_ea if need_to_update_jamf_normal_ea?
-
           # this smart group might use the normal-EA or might use app data
           # If those have changed, we need to update it.
           configure_jamf_installed_group if need_to_update_jamf_installed_group?
@@ -170,10 +163,6 @@ module Xolo
             changes_for_update.dig(:expiration, :new).to_i.positive? ? jamf_expire_policy : delete_jamf_expire_policy
           end
 
-          # If we don't use a version script anymore, delete the normal EA
-          # this has to happen after updating the installed_group
-          delete_jamf_normal_ea unless version_script_contents
-
           update_description_in_jamf
           update_ssvc
           update_ssvc_category
@@ -207,7 +196,7 @@ module Xolo
         ###############################################
         def repair_jamf_title_objects
           progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
-          repair_jamf_normal_ea
+
           configure_jamf_installed_group
           repair_jamf_uninstall_policy
           repair_jamf_uninstall_script
@@ -227,7 +216,7 @@ module Xolo
           delete_jamf_uninstall_script
           delete_jamf_frozen_group
           delete_jamf_installed_group
-          delete_jamf_normal_ea
+
           delete_jamf_patch_title
         end
 
@@ -336,120 +325,6 @@ module Xolo
             h[:version] = Xolo::UNKNOWN if h[:version] == Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION
           end
           report
-        end
-
-        #######  The'Normal" Extension Attribute
-        ###########################################
-        ###########################################
-
-        # @return [Boolean] Does the 'normal' EA exist in jamf?
-        #########################
-        def jamf_normal_ea_exist?
-          Jamf::ComputerExtensionAttribute.all_names(:refresh, cnx: jamf_cnx).include? jamf_normal_ea_name
-        end
-
-        # Create or fetch the 'normal' EA in jamf
-        # If we are deleting and it doesn't exist, return nil.
-        #
-        # @return [Jamf::ComputerExtensionAttribute] The 'normal' Jamf ComputerExtensionAttribute for this title
-        ########################
-        def jamf_normal_ea
-          return @jamf_normal_ea if @jamf_normal_ea
-
-          if jamf_normal_ea_exist?
-            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.fetch(name: jamf_normal_ea_name, cnx: jamf_cnx)
-
-          else
-            return if deleting?
-
-            msg = "Jamf: Creating regular extension attribute '#{jamf_normal_ea_name}' for use in smart groups"
-            progress msg, log: :info
-
-            @jamf_normal_ea = Jamf::ComputerExtensionAttribute.create(
-              name: jamf_normal_ea_name,
-              cnx: jamf_cnx
-            )
-            @jamf_normal_ea.save
-
-          end
-          @jamf_normal_ea
-        end
-
-        # Configure the 'normal' EA that matches the Patch EA for this title,
-        # so that it can be used in smart groups and adv. searches.
-        # (Patch EAs aren't available for use in smart group critera)
-        #
-        # If we have one already but are deleting it, that happens elsewhere
-        #
-        # @return [void]
-        ################################
-        def configure_jamf_normal_ea
-          # nothing to do if its nil, if we need to delete it, that'll happen later
-          return if version_script_contents.pix_empty?
-
-          progress "Jamf: Configuring regular extension attribute '#{jamf_normal_ea_name}'", log: :info
-
-          jamf_normal_ea.description = "The version of xolo title '#{title}' installed on the machine"
-          jamf_normal_ea.data_type = 'String'
-          jamf_normal_ea.input_type = 'script'
-          jamf_normal_ea.enable
-          jamf_normal_ea.script = version_script_contents
-          jamf_normal_ea.save
-        end
-
-        # Repair the 'normal' EA in jamf to match our version_script
-        ########################
-        def repair_jamf_normal_ea
-          if version_script_contents.pix_empty?
-            delete_jamf_normal_ea
-          else
-            configure_jamf_normal_ea
-          end
-        end
-
-        # Delete the 'normal' computer ext attr matching the Patch EA
-        # @return [void]
-        ######################################
-        def delete_jamf_normal_ea
-          ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
-          return unless ea_id
-
-          progress "Jamf: Deleting regular extension attribute '#{jamf_normal_ea_name}'", log: :info
-          Jamf::ComputerExtensionAttribute.delete ea_id, cnx: jamf_cnx
-        end
-
-        # do we need to update the normal EA in jamf?
-        # true if our incoming changes include :version_script
-        # and the new value is not empty (in which case we'll delete it)
-        #
-        # @return [Boolean]
-        ########################
-        def need_to_update_jamf_normal_ea?
-          changes_for_update.key?(:version_script) && !changes_for_update[:version_script][:new].pix_empty?
-        end
-
-        # the script contents of the Normal Jamf EA that comes from our version_script
-        # @return [String, nil] nil if there is none
-        ##############################
-        def jamf_normal_ea_contents
-          return unless jamf_normal_ea_exist?
-
-          jamf_normal_ea.script
-        end
-
-        # @return [String] the URL for the Normal EA in Jamf Pro
-        ######################
-        def jamf_normal_ea_url
-          return @jamf_normal_ea_url if @jamf_normal_ea_url
-          return unless version_script
-
-          ea_id = Jamf::ComputerExtensionAttribute.valid_id jamf_normal_ea_name, cnx: jamf_cnx
-          return unless ea_id
-
-          # Jamf Changed the URL!
-          # @jamf_normal_ea_url = "#{jamf_gui_url}/computerExtensionAttributes.html?id=#{ea_id}&o=r"
-
-          @jamf_normal_ea_url = "#{jamf_gui_url}/view/settings/computer-management/computer-extension-attributes/#{ea_id}"
         end
 
         #######  The Patch Ext Attribute
