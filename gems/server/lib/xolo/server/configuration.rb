@@ -679,8 +679,9 @@ module Xolo
         },
 
         # @!attribute subscription_updated_alert_tool
-        #   @return [String] An email address to notify when a subscription updated webhook event is received, but the
-        #      title is not configured to use autopkg to fetch the new version. If unset, the default alert mechanism is used.
+        #   @return [String] An email address to notify when a subscription updated webhook event is received, but
+        #      the title is not configured to use autopkg to fetch the new version. If unset, the default alert
+        #      mechanism is used.
         subscription_updated_alert_tool: {
           type: :string,
           desc: <<~ENDDESC
@@ -688,7 +689,33 @@ module Xolo
 
             Leave this unset to use the default alert mechanism defined by the 'alert_tool' configuration value.
 
-            Otherwise, the value is the same as for 'alert_tool', either a command to run, or an email address prefixed by "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}".
+            Otherwise, the value is interoreted the same as for 'alert_tool', either a command to run, or an email address prefixed by "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}".
+          ENDDESC
+        },
+
+        # @!attribute autopkg_executable
+        #   @return [String] The path to the autopkg executable. If unset, titles cannot use autopkg to acquire
+        #      new .pkgs
+        autopkg_executable: {
+          type: :string,
+          desc: <<~ENDDESC
+            The path to the autopkg executable on the server host. If unset, titles cannot use autopkg to acquire
+            new .pkgs.
+
+            AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
+          ENDDESC
+        },
+
+        # @!attribute autopkg_user
+        #   @return [String] The name of a local, non-root user that will run the autopkg executable as needed.
+        autopkg_user: {
+          type: :string,
+          desc: <<~ENDDESC
+            The name of a local, non-root user that will run the autopkg executable as needed. AutoPkg should never be run as root.
+
+            If unset, titles cannot use autopkg to acquire new .pkgs.
+
+            AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
           ENDDESC
         }
 

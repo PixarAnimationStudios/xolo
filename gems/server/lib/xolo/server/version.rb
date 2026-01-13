@@ -622,6 +622,11 @@ module Xolo
         title_object.subscribed?
       end
 
+      # or a managed title?
+      def managed?
+        !subscribed?
+      end
+
       # Update a this version, updating to the
       # local filesystem, Jamf Pro, and the Title Editor as needed
       #

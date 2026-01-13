@@ -10,13 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - Subscribed Titles
 
-    Xolo can now handle titles that are maintained by other Patch Source (e.g. the Jamf Built-In) or by non-Xolo means via the Title Editor.
+    Normal Xolo titles are "managed" - All aspects of the title, are managed via `xadm` including the addition of new verions. Such titles are maintained via the Title Editor patch source.
 
-    When adding a title, you can specify it's `--type` as 'subscribed'. This means you must provide a valid `--patch-source` and `--title-id`  and you cannot provide `--display-name`, `--publisher`, `--app-name` & `--app-bundle-id` or `--version-script`, those will be set by the patch-source. Other values for the title are set as usual.
+    Xolo can now also subscribe to titles maintained by other Patch Sources (e.g. the Jamf Built-In) or those maintained separately in the Title Editor. For these titles you cannot specify `--display-name`, `--publisher`, `--app-name` & `--app-bundle-id` or `--version-script`, those will be set by the patch-source. Other values for the title are set as usual. New versions appear via the subscription, and the xoloserver handles them via Webhook Events. 
 
-    Once the title is added, xoloserver will recieve [PatchSoftwareTitleUpdated webhook events](https://developer.jamf.com/developer-guide/docs/webhooks#patchsoftwaretitleupdated) from Jamf Pro. If the updated title is one of xolo's subscribed titles, xoloserver automatically creates a new version (the equivalent of `xadm add-version`) and will either notify someone to upload a .pkg for it, or, if the server and titled are configured for it, use autopkg to acquire and upload the .pkg.
+    To subscribe to a title,specify `--subscribed` when you use `xadm add-title`. This means you must provide a valid `--patch-source` and `--title-id`. See the new `list-available` xadm command, below.
+
+    Once the title is added, xoloserver will recieve [PatchSoftwareTitleUpdated webhook events](https://developer.jamf.com/developer-guide/docs/webhooks#patchsoftwaretitleupdated) from Jamf Pro when new versions become available. The xoloserver automatically creates a new xolo version (the equivalent of `xadm add-version`) and will either notify someone to upload a .pkg for it, or, if the server and titled are configured for it, use autopkg to acquire and upload the .pkg.
 
     NOTE: Install Policies and Patch Policies will fail until a .pkg is uploaded.
+
+    NOTE 2: If a subscribed title uses an Extension Attribute ('version-script') it must be manually accepted in the Jamf Pro web UI. Xolo cannot auto-accept extension attributes it does not manage. Patch Policies and reporting will not work until it has been accepted.
 
   - New xadm command `list-available`. 
   
@@ -26,9 +30,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     Titles can be configured to acquire the .pkg files for new versions via [AutoPkg](https://github.com/autopkg/autopkg)
 
-    When a new version is added to a title, either via `xadm add-version` or a Subscribed title (see above), the xoloserver can run a specified AutoPkg recipe to get the desired installer package.
+    When a new version is added to a title, either via `xadm add-version` or a webhook event from a subscribed title (see above), the xoloserver can run a specified AutoPkg recipe to get the desired installer package.
 
-    This requires installing, configuring, and maintaining `autopkg` on the xoloserver machine separately from xolo itself. The xoloserver will only execute a recipe, and look for the resulting .pkg file.
+    This requires installing, configuring, and maintaining `autopkg` on the xoloserver machine separately from xolo itself, and setting the `autopkg_executable` setting (a path) and a non-root `autopkg_user` (a username) in the server config. The xoloserver will merely execute a given recipe, and look for the resulting .pkg file. 
+
+    To use autopkg with a title, just specify `--autopkg-recipe recipe.name` and `--autopkg-dir /path/to/dir/with/autopkg-output/` with xadm's `add-title` or `edit-title` commands.
+
+    If those value are set, when a new version is added to xolo, the server will execute `autopkg run recipe.name` and when complete, it will use the newest pkg it finds in `/path/to/dir/with/autopkg-output/` which it will upload to the Jamf Distribution points as with any other pkg.
 
   - Patching Unknown Versions
     
@@ -59,11 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Fixed
    
-   - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging in a pkg from the Finder that contains spaces.
-
-## \[1.0.2] Unreleased
-
-### Fixed
+  - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging files in from the Finder with spaces in their paths.
   - Setting KillApps in walkthru mode now shows a prompt for each line expecting input.
   - Now correctly differentiates `false` from `nil` values when updating a title's changelog.
  

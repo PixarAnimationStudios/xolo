@@ -396,6 +396,46 @@ module Xolo
 
           },
 
+          # @!attribute autopkg_recipe
+          #   @return [String] The autopkg recipe to run when new versions are added to this title
+          autopkg_recipe: {
+            label: 'AutoPkg Recipe',
+            cli: :R,
+            validate: true,
+            type: :string,
+            changelog: true,
+            invalid_msg: "Unknown autopkg recipe. Use one that is configured on the server,  or '#{Xolo::NONE}'.",
+            desc: <<~ENDDESC
+              The name of an autopkg recipe to run when a new version is added to this title. It is expected that the version being added is the latest available and will match the .pkg acquired by a run of the recipe.
+
+              AutoPkg, and the recipe, must be installed and configured on the xoloserver host.
+
+              When using this, --autopkg-dir must also be provided
+
+              To unset, use '#{Xolo::NONE}'
+            ENDDESC
+          },
+
+          # @!attribute autopkg_dir
+          #   @return [String] The path containg the .pkg acquired by the --autopkg-recipe
+          autopkg_dir: {
+            label: 'AutoPkg Output Directory',
+            cli: :D,
+            validate: true,
+            type: :string,
+            changelog: true,
+            invalid_msg: "Must be an absolyt path starting with / and containing at least one more /,  or '#{Xolo::NONE}'.",
+            desc: <<~ENDDESC
+              The path to the directory where the --autopkg-recipe will store the acquired .pkg.
+
+              After running the recipe, xoloserver will look for the newest .pkg file in this directory and upload it to the Jamf distribution servers, as with any other pkg.
+
+              Required when using --autopkg-recipe
+
+              To unset, use '#{Xolo::NONE}'
+            ENDDESC
+          },
+
           # @!attribute pilot_groups
           #   @return [Array<String>] Jamf groups that will automatically get new versions installed or
           #     updated when added, for piloting
