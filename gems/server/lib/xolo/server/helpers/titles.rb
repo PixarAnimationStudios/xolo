@@ -40,14 +40,29 @@ module Xolo
         # A an array of all server titles as Title objects
         # @return [Array<Xolo::Server::Title>]
         ############
-        def all_title_objects
-          all_titles.map { |t| instantiate_title t }
+        def all_title_objects(refresh: false)
+          @all_title_objects = nil if refresh
+          return @all_title_objects if @all_title_objects
+
+          @all_title_objects = all_titles.map { |t| instantiate_title t }
         end
 
         # A an array of server titles as Title objects, only for subscribed titles
         # @return [Array<Xolo::Server::Title>]
-        def subscribed_title_objects
-          all_title_objects.select { |t| t.subscribed? }
+        def subscribed_title_objects(refresh: false)
+          @subscribed_title_objects = nil if refresh
+          return @subscribed_title_objects if @subscribed_title_objects
+
+          @subscribed_title_objects = all_title_objects(refresh: refresh).select { |t| t.subscribed? }
+        end
+
+        # A an array of server titles as Title objects, only for managed titles
+        # @return [Array<Xolo::Server::Title>]
+        def managed_title_objects(refresh: false)
+          @managed_title_objects = nil if refresh
+          return @managed_title_objects if @managed_title_objects
+
+          @managed_title_objects = all_title_objects(refresh: refresh).select { |t| t.managed? }
         end
 
         # Instantiate a Server::Title with access to the Sinatra app instance,

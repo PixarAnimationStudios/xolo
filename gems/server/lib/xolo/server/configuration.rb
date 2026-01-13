@@ -507,13 +507,15 @@ module Xolo
         },
 
         # @!attribute jamf_auto_accept_xolo_eas
-        #   @return [Boolean] should we auto-accept the Jamf patch title eas?
+        #   @return [Boolean] should we auto-accept the Jamf patch title eas for managed titles?
         jamf_auto_accept_xolo_eas: {
           type: :boolean,
           desc: <<~ENDDESC
-            For titles fully maintained by Xolo, should we auto-accept the Patch Title Extension Attributes that come from the uploaded version_script from xadm?
+            For titles managed by Xolo, should we auto-accept the Patch Title Extension Attributes that come from the uploaded version_script from xadm?
 
             Default is false, meaning all Title EAs must be manually accepted in the Jamf Pro Web UI.
+
+            EAs must always be manually accepted for subscribed titles, since the code the run is not under the control of Xolo.
           ENDDESC
         },
 

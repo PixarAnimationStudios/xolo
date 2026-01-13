@@ -74,7 +74,6 @@ module Xolo
           subscribed_title = subscribed_title_objects.select { |tobj| tobj.jamf_patch_title_id.to_i == title_id.to_i }.first
 
           if subscribed_title
-
             log_info "Title '#{subscribed_title.title}' ID #{title_id} is a subscribed title in Xolo. Processing new version '#{new_version}'."
 
             Xolo::Server::Version.add_version_via_subscription(

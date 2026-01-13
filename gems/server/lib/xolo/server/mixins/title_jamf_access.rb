@@ -60,19 +60,13 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
-          if subscribed?
-            create_subscribed_title_in_jamf
-          else
-            create_managed_title_in_jamf
-          end
-        end
-
-        # Create a managed title in Jamf Pro
-        #################################
-        def create_managed_title_in_jamf
-          # ORDER MATTERS
+          # create/activate the Jamf::PatchTitle
+          # this notes the jamf id of the PatchTitle
+          # and sets the display name if needed for subbed titles
+          jamf_patch_title
 
           # This creates the installed group
+          # must happen after activating the title in jamf
           jamf_installed_group
 
           if uninstall_script || !uninstall_ids.pix_empty?
@@ -89,36 +83,21 @@ module Xolo
           # Just calling this will create it if it doesn't exist.
           jamf_frozen_group
 
-          activate_jamf_patch_title
-        end
+          # This either notifies, or does it
+          # TODO: EAs for subscribed titles can change at any time and need
+          # re-accepted - Notifications must happen.
+          accept_jamf_patch_ea
 
-        # Subscribe to a title in Jamf Pro
-        #
-        # @return [void]
-        #########################
-        def create_subscribed_title_in_jamf
-          # Activate the title in Jamf Pro
-          #  - note the jamf id of the sub'd title
-          #
-
-          # create the installed group
-
-          # create uninstall & expire stuff
-
-          # create the frozen group
+          return unless subscribed?
 
           # create version for latest available
           # - either autopkg or notification to upload.
 
-          # If it has an EA
-          # - Notify xadm and someone else? to manually accept the EA
-          #  - provide a link
-
-          # add the latest version
-          #  - possibly notifying someone to upload a pkg
-
-          # TODO: EAs for subscribed titles can change at any time and need
-          # re-accepting.
+          # See also Helpers::Subscriptions.process_patch_title_updated_webhook
+          Xolo::Server::Version.add_version_via_subscription(
+            title_object: self,
+            new_version: patch_versions(:latest)[0][:version]
+          )
         end
 
         # Apply any changes to Jamf as needed
@@ -138,7 +117,6 @@ module Xolo
 
           # Do we need to update (vs delete) the uninstall script?
           if need_to_update_jamf_uninstall_script?
-
             configure_jamf_uninstall_script
             configure_jamf_uninstall_policy
 
@@ -150,7 +128,6 @@ module Xolo
           elsif need_to_delete_jamf_uninstall_script?
             delete_jamf_uninstall_policy
             delete_jamf_uninstall_script
-            # can't expire without
           end
 
           # Do we need to add or delete the expire policy?
@@ -165,7 +142,7 @@ module Xolo
           update_ssvc_category
           # TODO: deal with icon changes: if changes_for_update&.key? :self_service_icon
 
-          if jamf_ted_title_active?
+          if jamf_title_active?
             update_versions_for_title_changes_in_jamf
           else
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
@@ -341,6 +318,8 @@ module Xolo
         # @return [Boolean]
         #########################
         def need_to_accept_jamf_patch_ea?
+          return unless managed?
+
           @need_to_accept_jamf_patch_ea
         end
 
@@ -368,10 +347,11 @@ module Xolo
         def accept_jamf_patch_ea
           return unless need_to_accept_jamf_patch_ea?
 
-          # return with warning if we aren't auto-accepting
-          unless Xolo::Server.config.jamf_auto_accept_xolo_eas
-            msg = "Jamf: IMPORTANT: Before adding any versions, the Extension Attribute (version-script) for this title must be accepted manually in Jamf Pro at #{jamf_patch_ea_url} under the 'Extension Attribute' tab (click 'Edit') "
+          # return with warning if we aren't auto-accepting, or for all subscribed titles
+          if subscribed? || !Xolo::Server.config.jamf_auto_accept_xolo_eas
+            msg = "Jamf: IMPORTANT: The Extension Attribute (version-script) for title '#{title}' must be accepted manually in Jamf Pro at #{jamf_patch_ea_url} under the 'Extension Attribute' tab (click 'Edit'). If you cannot do this yourself, please contact your Xolo server admins for assistance. Deployment will not happen until this is done."
             progress msg
+            send_alert msg, :WARNING
             log_debug 'Admin informed about accepting EA/version-script manually'
             return
           end
@@ -516,6 +496,8 @@ module Xolo
         end
 
         # API call to accept the version-script EA in Jamf Pro
+        # This never happens for subscribed titles
+        #
         # TODO: when this gets implemented in ruby-jss, use that implementation
         #
         # @return [void]
@@ -1106,8 +1088,8 @@ module Xolo
         #
         # @return [Jamf::PatchSource] The Jamf Patch Source
         #########################
-        def jamf_ted_patch_source
-          @jamf_ted_patch_source ||=
+        def jamf_managed_patch_source
+          @jamf_managed_patch_source ||=
             Jamf::PatchSource.fetch(name: Xolo::Server.config.ted_patch_source, cnx: jamf_cnx)
         end
 
@@ -1133,130 +1115,75 @@ module Xolo
         #
         # @return [Array<String>] info about the available titles
         #########################
-        def jamf_ted_available_titles
+        def jamf_available_managed_titles
           # Don't cache this in an instance var, it changes during the
           # life of our title instance
-          # jamf_ted_patch_source.available_titles.map { |t| t[:name_id] }
+          # jamf_managed_patch_source.available_titles.map { |t| t[:name_id] }
           # Also NOTE: "available" means not only enabled
           # in the title editor, but also not already active in jamf.
           # So any given title will either be here or in
-          # jamf_active_ted_titles, but never both.
-          jamf_ted_patch_source.available_name_ids
+          # jamf_active_managed_titles, but never both.
+          jamf_managed_patch_source.available_name_ids
         end
 
         # @return [Boolean] Is this xolo title available in Jamf?
         ########################
-        def jamf_ted_title_available?
-          jamf_ted_available_titles.include? title
-        end
-
-        # The titles active in Jamf Patch Management from the Title Editor
-        # This takes into account that other Patch Sources may have titles with the
-        # same 'name_id' (the xolo 'title')
-        # A hash keyed by the title, with values of the jamf patch title id
-        #
-        # @return [Hash {String =>  Integer}] The xolo titles that are active in Jamf Patch Management
-        ########################
-        def jamf_active_ted_titles(refresh: false)
-          @jamf_active_ted_titles = nil if refresh
-          return @jamf_active_ted_titles if @jamf_active_ted_titles
-
-          @jamf_active_ted_titles = {}
-          active_from_ted = Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).select do |t|
-            t[:source_id] == jamf_ted_patch_source.id
-          end
-          active_from_ted.each { |t| @jamf_active_ted_titles[t[:name_id]] = t[:id] }
-          @jamf_active_ted_titles
+        def jamf_managed_title_available?
+          jamf_available_managed_titles.include? title
         end
 
         # @return [Boolean] Is this xolo title currently active in Jamf?
         ########################
-        def jamf_ted_title_active?
-          jamf_active_ted_titles(refresh: true).key? title
-        end
-
-        # @return [Boolean] Is this subscribed title active?
-        def jamf_subscribed_title_active?
-          raise Xolo::InvalidDataError, 'This is not a subscribed title.' unless subscribed?
-
-          # returns an array of hashes like
-          # {:name_id=>"5E3",
-          # :source_id=>1,
-          # :name=>"Microsoft Teams",
-          # :id=>108,
-          # :source_name_id=>"1-5E3"}
-          #
-          Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).any? do |t|
-            t[:source_id] == jamf_patch_source_id && t[:name_id] == title_id
-          end
-        end
-
-        # The Jamf ID of the Patch Title for this xolo title
-        # if it has been activated in jamf.
-        #
-        # @return [Integer, nil] The Jamf ID of this title, if it is active in Jamf
-        ########################
-        # def jamf_patch_title_id
-        #   @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
-        # end
-
-        # create/activate the patch title in Jamf Pro, if not already done.
-        #
-        # This 'subscribes' Jamf to the title in the title editor for managed titles, or
-        # any arbitrary patch source for subscribed titles.
-        #
-        # For managed titles, it must be enabled in the Title Editor first, meaning
-        # it has at least one requirement, and at least one enabled patch/version.
-        # The 'stub' patch version for managed titles allows this when we create the title.
-        #
-        # Xolo should have enabled it in the Title editor before we
-        # reach this point.
-        #
-        ##########################
-        def activate_jamf_patch_title
-          if subscibed?
-            activate_subscribed_jamf_patch_title
+        def jamf_title_active?
+          if subscribed?
+            jamf_active_subscribed_titles(refresh: true).key? title
           else
-            activate_managed_jamf_patch_title
+            jamf_active_managed_titles(refresh: true).key? title
           end
         end
 
-        # Activate a managed title in Jamf Patch
-        #########################################
-        def activate_managed_jamf_patch_title
-          if jamf_ted_title_active?
-            log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
-            return
+        # The managed titles active in Jamf Patch Management from the Title Editor
+        # A hash keyed by the title, with values of the jamf patch title id
+        #
+        # @return [Hash {String =>  Integer}] The managed xolo titles that are active in Jamf Patch Management
+        #   and their Jamf::PatchTitle id
+        ########################
+        def jamf_active_managed_titles(refresh: false)
+          @jamf_active_managed_titles = nil if refresh
+          return @jamf_active_managed_titles if @jamf_active_managed_titles
+
+          @jamf_active_managed_titles = {}
+          active_from_ted = Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).select do |t|
+            t[:source_id] == jamf_managed_patch_source.id
           end
 
-          # wait up to 60secs for the title to become available
-          counter = 0
-          until jamf_ted_title_available? || counter == 12
-            log_debug "Jamf: Waiting for title '#{display_name}' (#{title}) to become available from the Title Editor"
-            sleep 5
-            counter += 1
+          managed_titles = managed_title_objects.select { |t| t.managed? }.map { |t| t.title }
+
+          active_from_ted.each do |t|
+            @jamf_active_managed_titles[t[:name_id]] = t[:id] if managed_titles.include? t[:name_id]
           end
-
-          unless jamf_ted_title_available?
-            msg = "Jamf: Title '#{title}' is not yet available to Jamf. Make sure it has at least one version enabled in the Title Editor"
-            log_error msg
-            raise Xolo::NoSuchItemError, msg
-          end
-
-          # This creates/activates the title if needed
-          jamf_patch_title
-
-          accept_jamf_patch_ea
+          @jamf_active_managed_titles
         end
 
-        # Activate a subscrined title in Jamf patch
-        ###################################
-        def activate_subscribed_jamf_patch_title
-          return unless jamf_subscribed_title_active?
+        # @return [Hash {String =>  Integer}] The subscribed xolo titles that are active in Jamf Patch Management
+        #   and their Jamf::PatchTitle id
+        ########################
+        def jamf_active_subscribed_titles(refresh: false)
+          @jamf_active_subscribed_titles = nil if refresh
+          return @jamf_active_subscribed_titles if @jamf_active_subscribed_titles
 
-          log_debug "Jamf: Title '#{display_name}' (#{title}) is already active in Jamf"
-          nil
-          
+          @jamf_active_subscribed_titles = {}
+
+          all_active_patchtitles = Jamf::PatchTitle.all
+
+          subscribed_title_objects.each do |st|
+            next unless all_active_patchtitles.any? do |pt|
+              pt[:source_id] == st.jamf_patch_source_id && pt[:name_id] == st.title_id
+            end
+
+            @jamf_active_subscribed_titles[st.title] = pt[:id]
+          end
+          @jamf_active_subscribed_titles
         end
 
         # Create or fetch the patch title object for this xolo title.
@@ -1269,53 +1196,86 @@ module Xolo
           @jamf_patch_title = nil if refresh
           return @jamf_patch_title if @jamf_patch_title
 
-          breaktime = Time.now + Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR
-          until jamf_ted_title_available? || jamf_ted_title_active?
-            if Time.now > breaktime
-              raise Xolo::ServerError,
-                    "Jamf: Title '#{title}' is not available in Jamf after waiting #{Xolo::Server::MAX_JAMF_WAIT_FOR_TITLE_EDITOR} seconds"
-            end
+          # wait up to 60secs for a managed title to become available.
+          # subscribed titles are already available
+          wait_for_managed_title_to_become_available
 
-            log_debug "Waiting a long time for title '#{title}' to become available from TEd. Checking every 10 secs"
-            sleep 10
-          end
+          # Jamf::PatchTitle object already active, just fetch it
+          if jamf_title_active?
+            @jamf_patch_title = Jamf::PatchTitle.fetch(id: jamf_patch_title_id, cnx: jamf_cnx)
 
-          if jamf_ted_title_active?
-            title_id = jamf_patch_title_id || jamf_active_ted_titles(refresh: true)[title]
-            @jamf_patch_title = Jamf::PatchTitle.fetch(id: title_id, cnx: jamf_cnx)
-
+          # not yet active, so activate/create the Jamf::PatchTitle object
           else
             return if deleting?
 
-            msg = "Jamf: Activating Patch Title '#{display_name}' (#{title}) from the Title Editor Patch Source '#{Xolo::Server.config.ted_patch_source}'"
-            progress msg, log: :info
-
-            @jamf_patch_title =
-              Jamf::PatchTitle.create(
-                name: display_name,
-                source: Xolo::Server.config.ted_patch_source,
-                name_id: title,
-                cnx: jamf_cnx
-              )
-            @jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
-            @jamf_patch_title_id = @jamf_patch_title.save
-            log_debug "Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
+            @jamf_patch_title = activate_jamf_patch_title
           end
-          @jamf_patch_title
+        end
+
+        # activate the patch title in jamf, whatever it's source
+        ############################
+        def activate_jamf_patch_title
+          # patch_source and title_id are required when adding subbed titles
+          # but pre-defined for managed
+          if managed?
+            patch_source = Xolo::Server.config.ted_patch_source
+            title_id = title
+
+            # display name is required for managed titles, will be empty for subbed
+            # so for subbed, we look it up from the patch source
+          else
+            display_name ||= Jamf::PatchSource.available_titles(patch_source).select { |t| t[:name_id] == title_id }.first.dig [:app_name]
+          end
+
+          msg = "Jamf: Activating Patch Title '#{display_name}' (#{title}) from the Patch Source '#{patch_source}'"
+          progress msg, log: :info
+
+          jamf_patch_title =
+            Jamf::PatchTitle.create(
+              name: display_name,
+              source: patch_source,
+              name_id: title_id,
+              cnx: jamf_cnx
+            )
+          jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
+          jamf_patch_title_id = jamf_patch_title.save
+          log_debug "Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
+
+          jamf_patch_title
+        end
+
+        # wait up to 60secs for a managed title to become available.
+        # subscribed titles are already available
+        ####################
+        def wait_for_managed_title_to_become_available
+          return unless managed?
+
+          counter = 0
+          until jamf_managed_title_available? || counter == 12
+            log_debug "Jamf: Waiting for title '#{display_name}' (#{title}) to become available from the Title Editor"
+            sleep 5
+            counter += 1
+          end
+
+          return if jamf_managed_title_available?
+
+          msg = "Jamf: Title '#{title}' is not yet available to Jamf. Make sure it has at least one version enabled in the Title Editor"
+          log_error msg
+          raise Xolo::NoSuchItemError, msg
         end
 
         # Delete the patch title
         # NOTE: jamf api user must have 'delete computer ext. attribs' permmissions
         ##############################
         def delete_jamf_patch_title
-          return unless jamf_ted_title_active?
+          return unless jamf_title_active?
 
           pt_id = Jamf::PatchTitle.map_all(:id, to: :name_id, cnx: jamf_cnx).invert[title]
           return unless pt_id
 
           msg = "Jamf: Deleting (unsubscribing) title '#{display_name}' (#{title}}) in Jamf Patch Management"
           progress msg, log: :info
-          Jamf::PatchTitle.delete pt_id, cnx: jamf_cnx
+          Jamf::PatchTitle.delete jamf_patch_title_id, cnx: jamf_cnx
         end
 
         # @return [String] the URL for the Patch Title in Jamf Pro

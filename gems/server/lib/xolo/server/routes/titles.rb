@@ -263,7 +263,7 @@ module Xolo
             data[:jamf_expire_policy_url] = title.jamf_expire_policy_url if title.expiration
           end
 
-          if title.jamf_ted_title_active?
+          if title.jamf_title_active?
             data[:jamf_patch_title_url] = title.jamf_patch_title_url unless title.versions.empty?
             data[:jamf_patch_ea_url] = title.jamf_patch_ea_url if title.version_script
           end

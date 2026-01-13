@@ -364,7 +364,7 @@ module Xolo
             validate: true,
             walkthru_na: :patch_source_na,
             readline: :jamf_patch_sources_with_available_titles,
-            invalid_msg: 'Invalid Patch Source. Must be the name of a defined Patch Source in Jamf Pro, with at least one title available for subscription.',
+            invalid_msg: 'Invalid Patch Source. Unknown Patch Source Name, or it has no available titles.',
             desc: <<~ENDDESC
               The name of the Jamf Patch Source that provides this title via subscription.
 

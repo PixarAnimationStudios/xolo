@@ -204,7 +204,8 @@ module Xolo
       # for the given title
       #
       # NOTE: All instantiation should happen using the #instantiate_title method
-      # in the server app instance. Please don't call this method directly
+      # in the server app instance, or related methods like all_title_objects.
+      # Please don't call this method directly
       #
       # @pararm title [String] the title we care about
       # @return [Xolo::Server::Title] load an existing title
@@ -215,6 +216,10 @@ module Xolo
         new parse_json(title_data_file(title).read)
       end
 
+      # Does this title exist in the title editor.
+      # WARNING: Being in the title editor doesn't necessarily mean that this title
+      # is managed
+      #
       # @param title [String] the title we are looking for
       # @pararm cnx [Windoo::Connection] The Title Editor connection to use
       # @return [Boolean] Does the given title exist in the Title Editor?
@@ -423,9 +428,15 @@ module Xolo
       end
 
       # TODO: Remove this when everything has been repaired for v2
+      # and all json files know this value
       #######################
       def jamf_patch_title_id
-        @jamf_patch_title_id ||= jamf_active_ted_titles(refresh: true)[title]
+        @jamf_patch_title_id ||=
+          if managed?
+            jamf_active_managed_titles[title]
+          else
+            jamf_active_subscribed_titles[title]
+          end
       end
 
       # Append a message to the progress stream file,
