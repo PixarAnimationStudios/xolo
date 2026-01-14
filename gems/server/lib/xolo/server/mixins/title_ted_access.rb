@@ -479,6 +479,8 @@ module Xolo
         # @return [String] the URL for the title in the Title Editor
         #####################
         def ted_title_url
+          return unless managed?
+
           "https://#{Xolo::Server.config.ted_hostname}/softwaretitles/#{ted_id_number}"
         end
 

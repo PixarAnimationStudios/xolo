@@ -38,6 +38,7 @@ module Xolo
       helpers Xolo::Server::Helpers::TitleEditor
       helpers Xolo::Server::Helpers::Titles
       helpers Xolo::Server::Helpers::Versions
+      helpers Xolo::Server::Helpers::AutoPkg
       helpers Xolo::Server::Helpers::FileTransfers
       helpers Xolo::Server::Helpers::PkgSigning
       helpers Xolo::Server::Helpers::ProgressStreaming

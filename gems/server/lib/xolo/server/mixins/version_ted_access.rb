@@ -350,6 +350,8 @@ module Xolo
         # @return [String] the URL for the Title Editor Web App page for this patch
         ###################################
         def ted_patch_url
+          return unless managed?
+
           "https://#{Xolo::Server.config.ted_hostname}/patches/#{ted_id_number}"
         end
 

@@ -235,6 +235,16 @@ module Xolo
         patch_version_data = title_object.patch_versions version: new_version
 
         # put the data into a hash for creating a new version object
+        # TODO: Killapps for subscribed titles? The API only shows app names without the .app, e.g.
+        # "killApps": [
+        #   {
+        #     "appName": "ChrislTestHelper"
+        #   },
+        #   {
+        #     "appName": "Chrisl Test"
+        #   }
+        # ]
+        #
         vobj_data = {
           title: title_object.title,
           version: new_version,

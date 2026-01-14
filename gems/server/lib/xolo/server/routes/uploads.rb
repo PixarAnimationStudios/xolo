@@ -62,20 +62,6 @@ module Xolo
         ##############################
         ##############################
 
-        # # param with the uploaded file must be :file
-        # ######################
-        # post '/upload/ssvc-icon/:title' do
-        #   process_incoming_ssvc_icon
-        #   body({ result: :uploaded })
-        # end
-
-        # # param with the uploaded file must be :file
-        # ######################
-        # post '/upload/pkg/:title/:version' do
-        #   process_incoming_pkg
-        #   body({ result: :uploaded })
-        # end
-
         # param with the uploaded file must be :file
         ######################
         post '/upload/test' do

@@ -195,6 +195,7 @@ require 'xolo/server/helpers/client_data'
 require 'xolo/server/helpers/file_transfers'
 require 'xolo/server/helpers/maintenance'
 require 'xolo/server/helpers/subscriptions'
+require 'xolo/server/helpers/autopkg'
 
 require 'xolo/server/configuration'
 
