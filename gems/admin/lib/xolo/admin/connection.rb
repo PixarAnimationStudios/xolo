@@ -76,7 +76,8 @@ module Xolo
           raise Xolo::ServerError, "#{resp.status}: #{resp.body}"
         end
       rescue Faraday::UnauthorizedError
-        raise Xolo::AuthenticationError, 'Invalid username or password'
+        msg = "Invalid username or password. If you recently changed your Jamf Pro password, please update it using 'xadm config'."
+        raise Xolo::AuthenticationError, msg
       end
 
       # @return [Hash] the SSL options for Faraday connections
