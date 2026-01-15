@@ -27,6 +27,7 @@ require 'base64'
 require 'resolv'
 require 'shellwords'
 require 'net/smtp'
+require 'etc'
 
 # Gems
 ######

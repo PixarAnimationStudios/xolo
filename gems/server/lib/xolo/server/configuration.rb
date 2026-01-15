@@ -723,11 +723,13 @@ module Xolo
             new .pkgs.
 
             AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
+
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
           ENDDESC
         },
 
         # @!attribute autopkg_user
-        #   @return [String] The name of a local, non-root user that will run the autopkg executable as needed.
+        #   @return [String] The name of a local, non-root user that will run actually the autopkg executable as needed.
         autopkg_user: {
           type: :string,
           desc: <<~ENDDESC
@@ -736,6 +738,8 @@ module Xolo
             If unset, titles cannot use autopkg to acquire new .pkgs.
 
             AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
+
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
           ENDDESC
         },
 
@@ -749,6 +753,8 @@ module Xolo
             Be sure you trust your autopkg recipes to only download safe pkgs if you enable this.
 
             Packages must be signed distribution packages to work with the `xadm deploy` command, which uses MDM to push the package to client machines.
+
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
           ENDDESC
         }
 

@@ -282,6 +282,16 @@ module Xolo
           body title.changelog
         end
 
+        # Does this xolo server support autopkg integration?
+        #
+        # @return [Array<Hash>] The changelog for a title
+        #################################
+        get '/titles/autopkg_enabled' do
+          log_debug "Admin #{session[:admin]} is checking if autopkg is enabled on this server"
+          data = { autopkg_enabled: autopkg_enabled? }
+          body data
+        end
+
       end # Titles
 
     end #  Routes

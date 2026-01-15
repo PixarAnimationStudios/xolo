@@ -15,6 +15,9 @@ module Xolo
     module Helpers
 
       # This is mixed in to Xolo::Server::App (as a helper, available in route processing)
+      # and in Xolo::Server::Title and Xolo::Server::Version,
+      # for simplified access to the main server logger, with access to session IDs
+      #
       # - run recipe
       # - move pkg to workspace
       # - sign pkg if needed
@@ -23,6 +26,12 @@ module Xolo
       # - upload to Jamf Pro
       #
       module AutoPkg
+
+        # Constants
+        #######################
+        #######################
+
+        FAIL_UNTRUSTED_RECIPES_CLI_OPT = '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes'
 
         # Module Methods
         #######################
@@ -36,6 +45,69 @@ module Xolo
         # Instance Methods
         #######################
         ######################
+
+        # Is AutoPkg integration enabled?
+        ###############################
+        def autopkg_enabled?
+          return @autopkg_enabled if defined?(@autopkg_enabled)
+
+          @autopkg_enabled =
+            Xolo::Server.config.autopkg_executable && \
+            Pathname.new(Xolo::Server.config.autopkg_executable).executable? && \
+            Xolo::Server.config.autopkg_user && \
+            Etc.getpwnam(Xolo::Server.config.autopkg_user) && \
+            true
+        rescue ArgumentError
+          @autopkg_enabled = false
+        end
+
+        # the autopkg run command for this title
+        #####################################
+        def autopkg_run_command
+          [
+            '/bin/launchctl',
+            'asuser',
+            Etc.getpwnam(Xolo::Server.config.autopkg_user).uid.to_s,
+            'sudo',
+            '-u',
+            Xolo::Server.config.autopkg_user,
+            Xolo::Server.config.autopkg_executable,
+            'run',
+            autopkg_recipe,
+            FAIL_UNTRUSTED_RECIPES_CLI_OPT
+          ]
+        end
+
+        #
+        ##############################
+        def run_autopkg_recipe
+          return unless autopkg_recipe && autopkg_dir
+
+          cmd = autopkg_run_command
+          log_info "Running AutoPkg recipe via command: #{cmd.join(' ')}"
+
+          # TODO: notifications
+          souterr, status = Open3.capture2e(*cmd)
+          souterr.strip!
+
+          if status.success?
+            log_info "AutoPkg recipe #{autopkg_recipe} completed successfully."
+            log_debug "AutoPkg output:\n#{souterr}"
+          else
+
+            log_error "AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}."
+            log_error "AutoPkg output:\n#{souterr}"
+            raise "AutoPkg recipe #{autopkg_recipe} failed."
+          end
+        end
+
+        # @return [Pathname, nil] the latest pkg file in the autopkg_dir
+        ##############################
+        def latest_autopkg_pkg
+          ap_dir = Pathname.new(autopkg_dir)
+          pkgs = ap_dir.children.select { |c| c.extname == '.pkg' }
+          pkgs.max_by { |p| p.mtime }
+        end
 
         #
         ##############################
