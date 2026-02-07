@@ -197,7 +197,20 @@ module Xolo
           jamf_auto_install_policy
           jamf_manual_install_policy
 
-          activate_patch_version_in_jamf
+          if subscribed?
+            activate_subscribed_patch_version_in_jamf
+          else
+            activate_managed_patch_version_in_jamf
+          end
+
+          # if we have an autopkg recipe and dir, get the .pkg and upload it to Jamf
+          if autopkg_recipe && autopkg_dir
+            upload_pkg_to_jamf_via_autopkg
+
+          # otherwise tell someone we need a .pkg to upload
+          else
+            notify_pkg_needed_for_jamf_upload
+          end
         end
 
         # Apply edits to the Xolo version to Jamf as needed
@@ -1279,7 +1292,7 @@ module Xolo
         #
         # @return [void]
         #########################
-        def activate_patch_version_in_jamf
+        def activate_managed_patch_version_in_jamf
           # don't do this if there's already one running for this instance
           if @activate_patch_version_thread&.alive?
             log_debug "Jamf: activate_patch_version_thread already running. Caller: #{caller_locations.first}"

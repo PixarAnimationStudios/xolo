@@ -39,7 +39,7 @@ module Xolo
       XOLO_CREDS_SVC = 'com.pixar.xolo.password'
 
       # the Label for the generic 'Xolo::Admin::Credentials' keychain entry
-      XOLO_CREDS_LBL = '"Xolo Admin Password"'
+      XOLO_CREDS_LBL = 'Xolo Admin Password'
 
       # Module methods
       ##############################

@@ -74,7 +74,7 @@ module Xolo
         # TODO: Also, when threaded, how to report errors?
         # TODO: Split this into smaller methods
         #############################
-        def process_incoming_pkg
+        def process_uploaded_pkg
           log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
 
           # the Xolo::Server::Version that owns this pkg
@@ -121,6 +121,9 @@ module Xolo
             # Put the signed pkg into the staged_pkg location
             tempfile.rename staged_pkg
           end
+
+          # Wrap component pkgs in a Distribution pkg if configured to do so
+          staged_pkg = wrap_component_pkg_in_distribution(staged_pkg) if Xolo::Server.config.create_distribution_pkgs
 
           # upload the pkg with the uploader tool defined in config
           # This will set the checksum and manifest in the JPackage object
@@ -182,14 +185,34 @@ module Xolo
           pkg_file = Pathname.new(pkg_file)
           raise ArgumentError, "pkg_file does not exist or not a file: #{pkg_file}" unless pkg_file.file?
 
-          tmpdir = Pathname.new(Dir.mktmpdir)
-          workdir = tmpdir + "#{pkg_file.basename}-expanded"
+          `/usr/bin/xar -tf #{pkg_file.to_s.shellescape}`.split("\n").include? 'Distribution'
+        end
 
-          system "/usr/sbin/pkgutil --expand #{pkg_file.to_s.shellescape} #{workdir.to_s.shellescape}"
+        # Wrap a component pkg in a Distribution pkg, return the path to the Distribution pkg
+        #
+        # @param component_pkg [Pathname, String] The path to the component .pkg
+        #
+        # @return [Pathname] The path to the new Distribution pkg
+        ###########################################
+        def wrap_component_pkg_in_distribution(component_pkg)
+          component_pkg = Pathname.new(component_pkg)
 
-          workdir.children.map(&:basename).map(&:to_s).include? 'Distribution'
-        ensure
-          tmpdir.rmtree
+          raise ArgumentError, "pkg_file does not exist or not a file: #{component_pkg}" unless component_pkg.file?
+
+          if pkg_is_distribution?(component_pkg)
+            log_debug "Package '#{component_pkg.basename}' is already a Distribution pkg, not wrapping"
+            return component_pkg
+          end
+
+          log_info "Wrapping component pkg '#{component_pkg.basename}' in a Distribution pkg"
+          out_dir = component_pkg.parent
+          out_file = out_dir + "#{component_pkg.basename('.pkg')}_dist.pkg"
+          if system "/usr/bin/productbuild –package #{component_pkg.to_s.shellescape} #{out_file.to_s.shellescape}"
+            component_pkg.delete
+            return out_file
+          end
+
+          raise "Failed to wrap component pkg '#{component_pkg.basename}' in a Distribution pkg"
         end
 
         # upload a staged pkg to the dist point(s)

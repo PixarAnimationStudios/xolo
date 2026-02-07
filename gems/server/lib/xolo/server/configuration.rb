@@ -237,16 +237,36 @@ module Xolo
         sign_pkgs: {
           type: :boolean,
           desc: <<~ENDDESC
-            When someone uses xadm to upload a .pkg, and it isn't signed, should the server sign it before uploading to Jamf's Distribution Point(s)?
+            When a .pkg, is received for a version and it isn't signed, should the server sign it before uploading to Jamf's Distribution Point(s)?
 
             If you set this to true, it will use the same keychain and identity as the 'pkg_signing_identity' config value to sign the pkg, using the keychain you installed at:
               /Library/Application Support/xoloserver/xolo-pkg-signing.keychain-db
+
+            Packages must be signed distribution packages to work with the `xadm deploy` command, which uses MDM to push the package to client machines.
 
             NOTE: While it may seem insecure to allow the server to sign pkgs, consider:
             - Users of xadm are authenticated and authorized to use the server (see 'admin_jamf_group')
             - You don't need to distribute your signing certificates to a wide group of individual developers.
             - While you need to trust your xadm users not to upload a malicious pkg, this would be true
               even if you deployed the certs to them, so keeping the certs on the server is more secure.
+
+            See also the 'sign_autopkg_pkgs' abd 'create_distribution_pkgs' config values.
+          ENDDESC
+        },
+
+        # @!attribute create_distribution_pkgs
+        #   @return [Boolean] When processing uploaded pkgs, should we wrap component pkgs in distribution pkgs?
+        create_distribution_pkgs: {
+          type: :boolean,
+          desc: <<~ENDDESC
+            When a .pkg, is received for a version and it is a component package, should the server wrap it in a distribution package before uploading to Jamf's Distribution Point(s)?
+
+            If you set this to true, component packages will be wrapped in a distribution package using the productbuild tool, like so:
+                /usr/bin/productbuild –package /path/to/recieved.pkg /path/to/distribution_package.pkg
+
+            If sign_pkgs is true, the distribution package will be signed, otherwise it will be unsigned.
+
+            Packages must be signed distribution packages to work with the `xadm deploy` command, which uses MDM to push the package to client machines.
           ENDDESC
         },
 
@@ -679,17 +699,17 @@ module Xolo
         },
 
         # @!attribute subscription_updated_alert_tool
-        #   @return [String] An email address to notify when a subscription updated webhook event is received, but
-        #      the title is not configured to use autopkg to fetch the new version. If unset, the default alert
-        #      mechanism is used.
+        #   @return [String] A cli tool or an email address to notify when a subscription updated webhook event
+        #      is received, but the title is not configured to use autopkg to fetch the new version.
+        #      If unset, the default alert mechanism is used. See 'alert_tool' for details.
         subscription_updated_alert_tool: {
           type: :string,
           desc: <<~ENDDESC
-            If a title is a subscription from a non-xolo Patch Source, but is not configured to use autopkg to fetch new versions, when a PatchSoftwareTitleUpdated webhook event is received from Jamf Pro, an alert should be sent to notify someone to add the new version manually.
+            If a title is a subscription from a Patch Source, but is not configured to use autopkg to fetch new versions, when a PatchSoftwareTitleUpdated webhook event is received from Jamf Pro, an alert should be sent to notify someone to add the new version manually.
 
             Leave this unset to use the default alert mechanism defined by the 'alert_tool' configuration value.
 
-            Otherwise, the value is interoreted the same as for 'alert_tool', either a command to run, or an email address prefixed by "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}".
+            Otherwise, the value is interpreted the same as for 'alert_tool', either a command to run, or an email address prefixed by "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}".
           ENDDESC
         },
 
@@ -703,11 +723,13 @@ module Xolo
             new .pkgs.
 
             AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
+
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
           ENDDESC
         },
 
         # @!attribute autopkg_user
-        #   @return [String] The name of a local, non-root user that will run the autopkg executable as needed.
+        #   @return [String] The name of a local, non-root user that will run actually the autopkg executable as needed.
         autopkg_user: {
           type: :string,
           desc: <<~ENDDESC
@@ -716,6 +738,23 @@ module Xolo
             If unset, titles cannot use autopkg to acquire new .pkgs.
 
             AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
+
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
+          ENDDESC
+        },
+
+        # @!attribute sign_autopkg_pkgs
+        #   @return [Boolean] Should the server sign any unsigned pkgs acquired via autopkg?
+        sign_autopkg_pkgs: {
+          type: :boolean,
+          desc: <<~ENDDESC
+            This is just like sig_pkgs, but only applies to pkgs acquired via autopkg.
+
+            Be sure you trust your autopkg recipes to only download safe pkgs if you enable this.
+
+            Packages must be signed distribution packages to work with the `xadm deploy` command, which uses MDM to push the package to client machines.
+
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
           ENDDESC
         }
 
