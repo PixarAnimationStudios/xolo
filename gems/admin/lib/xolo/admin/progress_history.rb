@@ -85,7 +85,7 @@ module Xolo
       ###################
       def progress_history
         progress_history_file.pix_touch
-        history = YAML.load progress_history_file.read
+        history = YAML.safe_load progress_history_file.read, permitted_classes: [Symbol, Time]
         history ||= {}
 
         now = Time.now
