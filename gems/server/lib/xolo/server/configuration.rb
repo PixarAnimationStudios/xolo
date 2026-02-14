@@ -89,7 +89,8 @@ module Xolo
           desc: <<~ENDDESC
             The SSL Certificate for the https server in .pem format. When the server starts, it will be read from here, and securely stored in #{SSL_CERT_FILE}.
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
+            The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -109,7 +110,8 @@ module Xolo
           desc: <<~ENDDESC
             The private key for the SSL Certificate in .pem format. When the server starts, it will be read from here, and securely stored in #{SSL_KEY_FILE}/
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
+            The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -135,7 +137,8 @@ module Xolo
           required: true,
           type: :string,
           desc: <<~ENDDESC
-            The name of a Jamf account-group (not a User group) that allows the use of 'xadm' to create and maintain titles and versions. Users of xadm must be in this group, and provide their valid Jamf credentials.
+            The name of a Jamf account-group (not a User group) that allows the use of 'xadm' to create and maintain titles and versions.
+            Users of xadm must be in this group, and provide their valid Jamf credentials.
           ENDDESC
         },
 
@@ -144,7 +147,9 @@ module Xolo
         server_admin_jamf_group: {
           type: :string,
           desc: <<~ENDDESC
-            The name of a Jamf account-group (not a User group) that allows the use of the server admin commands of 'xadm', including --run-server-cleanup, --update-client-data, --rotate-server-logs and --set-server-log-level.
+            The name of a Jamf account-group (not a User group) that allows the use of the server admin commands of 'xadm', including --run-server-cleanup,
+            --update-client-data, --rotate-server-logs and --set-server-log-level.
+
             Members of this group can also use the xadm commands that require the 'admin_jamf_group' group.
             If unset, no one can use the server admin commands.
           ENDDESC
@@ -156,7 +161,8 @@ module Xolo
           default: Xolo::Server::Log::DFT_LOG_DAYS_TO_KEEP,
           type: :integer,
           desc: <<~ENDDESC
-            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}. The current file is named '#{Xolo::Server::LOG_FILE_NAME}', older files are appended with '.0' for yesterday, '.1' for the previous day, etc.
+            The server log is rotated daily. How many days of log files should be kept? All logs are kept in #{Xolo::Server::LOG_DIR}.
+            The current file is named '#{Xolo::Server::LOG_FILE_NAME}', older files are appended with '.0' for yesterday, '.1' for the previous day, etc.
           ENDDESC
         },
 
@@ -166,7 +172,9 @@ module Xolo
           default: Xolo::Server::Log::DFT_LOG_COMPRESS_AFTER_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            Once a log file is rotated, how many days before it is compressed? Compressed logs are named '#{Xolo::Server::LOG_FILE_NAME}.XX.bz2'. It can be accessed using the various bzip2 tools (bzip2, bunzip2, bzcat, bzgrep, etc). If this number is negative, or larger than log_days_to_keep, no logs will be compressed, if it is zero, all older logs will be compressed.
+            Once a log file is rotated, how many days before it is compressed? Compressed logs are named '#{Xolo::Server::LOG_FILE_NAME}.XX.bz2'.
+            It can be accessed using the various bzip2 tools (bzip2, bunzip2, bzcat, bzgrep, etc). If this number is negative, or larger than log_days_to_keep,
+            no logs will be compressed, if it is zero, all older logs will be compressed.
           ENDDESC
         },
 
@@ -177,13 +185,16 @@ module Xolo
         alert_tool: {
           type: :string,
           desc: <<~ENDDESC
-            Server errors or other events that happen as part of xadm actions are reported to the xadm user. But sometimes such events happen outside of the scope of a xadm session. While these events will be logged, you might want them reported to a server administrator in real time.
+            Server errors or other events that happen as part of xadm actions are reported to the xadm user. But sometimes such events happen outside of the scope
+            of a xadm session. While these events will be logged, you might want them reported to a server administrator in real time.
 
             This value is either:
 
-            - a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
+            - a command (path to executable plus CLI args) on the Xolo server which will accept an error or other alert message on standard input and send it
+            somewhere where it'll be seen by an appropriate audiance, be that an email address, a Slack channel - anything you'd like.
 
-            - or a string "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}email_address" where email_address is the email address to send alerts to. In this case, the server will send an email to that address using the smtp_server and email_from configuration values.
+            - or a string "#{Xolo::Server::Helpers::Notification::ALERT_TOOL_EMAIL_PREFIX}email_address" where email_address is the email address to send alerts to.
+            In this case, the server will send an email to that address using the smtp_server and email_from configuration values.
 
             Fictional command example:
                /path/to/slackerator --sender xolo-server --channel xolo-alerts --icon dante
@@ -222,7 +233,8 @@ module Xolo
           desc: <<~ENDDESC
             The password to unlock the keychain used for package signing.
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
+            The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -278,7 +290,8 @@ module Xolo
           desc: <<~ENDDESC
             The name of a Jamf account-group (not a User group) whose members may set a title's release_groups to 'all'.
 
-            When this is set, and someone not in this group tries to set a title's release_groups to 'all', they will get a message telling them to contact the person or group named in 'release_to_all_contact' to get approval.
+            When this is set, and someone not in this group tries to set a title's release_groups to 'all', they will get a message telling
+            them to contact the person or group named in 'release_to_all_contact' to get approval.
 
             To approve the request, one of the members of this group must run 'xadm edit-title <title> --release-groups all'.
 
@@ -292,7 +305,8 @@ module Xolo
           required: false,
           type: :string,
           desc: <<~ENDDESC
-            When release_to_all_jamf_group is set, and someone not in that group tries to set a title's release_groups to 'all', they are told to use this contact info to get approval.
+            When release_to_all_jamf_group is set, and someone not in that group tries to set a title's release_groups to 'all', they are
+            old to use this contact info to get approval.
 
             This string could be an email address, a chat channel, a phone number, etc.
 
@@ -327,11 +341,13 @@ module Xolo
           default: Xolo::Server::Helpers::Maintenance::DFT_DEPRECATED_LIFETIME_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            When a version is deprecated, it will be automatically deleted by the nightly cleanup this many days later. If set to 0 or less, deprecated versions will never be deleted.
+            When a version is deprecated, it will be automatically deleted by the nightly cleanup this many days later. If set to 0 or less,
+            deprecated versions will never be deleted.
 
             Deprecated versions are those that have been released, but a newer version has been released since then.
 
-            WARNING: If you set this to 0 or less, you will need to manually delete deprecated versions. Keeping them around can cause confusion and clutter in the GUI, and use up disk space.
+            WARNING: If you set this to 0 or less, you will need to manually delete deprecated versions. Keeping them around can cause confusion
+            and clutter in the GUI, and use up disk space.
           ENDDESC
         },
 
@@ -345,7 +361,8 @@ module Xolo
 
             Skipped versions are those that were never released, but a newer version has been released.
 
-            WARNING: If you set this to true, you will need to manually delete skipped versions. Keeping them around can cause confusion and clutter in the GUI, and use up disk space.
+            WARNING: If you set this to true, you will need to manually delete skipped versions. Keeping them around can cause confusion
+            and clutter in the GUI, and use up disk space.
           ENDDESC
         },
 
@@ -358,9 +375,11 @@ module Xolo
           default: Xolo::Server::Helpers::Maintenance::DFT_UNRELEASED_PILOTS_NOTIFICATION_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            If the newest pilot of a title has not been released in this many days, notify someone about it monthly, asking to release it or delete it. If set to 0 or less, these notifications are disabled.
+            If the newest pilot of a title has not been released in this many days, notify someone about it monthly, asking to release it or delete it.
+            If set to 0 or less, these notifications are disabled.
 
-            Notifications are sent on the first of the month via email to the title's contact email address, and the alert_tool (if defined). Default is 180 days (about 6 months).
+            Notifications are sent on the first of the month via email to the title's contact email address, and the alert_tool (if defined).
+            Default is 180 days (about 6 months).
 
             Pilot versions are those that have been added for testing, but not yet released.
 
@@ -375,7 +394,8 @@ module Xolo
         smtp_server: {
           type: :string,
           desc: <<~ENDDESC
-            The hostname of the SMTP server to use for sending email. This is a server that can recieve email for your organizaion from the xolo server. Used for sending alerts and notifications. If not set, no email notifications will be sent.
+            The hostname of the SMTP server to use for sending email. This is a server that can recieve email for your organizaion from the xolo server.
+            Used for sending alerts and notifications. If not set, no email notifications will be sent.
           ENDDESC
         },
 
@@ -386,7 +406,8 @@ module Xolo
           desc: <<~ENDDESC
             The email address to use as the 'from' address for emails sent by xolo. This should be a valid email address that can recieve replies.
 
-            Will default to '#{Xolo::Server::Helpers::Notification::DFT_EMAIL_FROM}@<hostname>' if not set. The human-readable part of the address will be 'Xolo Server on <hostname>'.
+            Will default to '#{Xolo::Server::Helpers::Notification::DFT_EMAIL_FROM}@<hostname>' if not set. The human-readable part of the address
+            will be 'Xolo Server on <hostname>'.
           ENDDESC
         },
 
@@ -486,7 +507,8 @@ module Xolo
           desc: <<~ENDDESC
             The username of the Jamf account for connecting to the Jamf Pro APIs.
 
-            If you start this value with a vertical bar '|', everything after the bar is a shell command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a shell command to be executed by the server at start-time.
+            The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -504,7 +526,8 @@ module Xolo
           desc: <<~ENDDESC
             The password for the username that connects to the Jamf Pro APIs.
 
-            If you start this value with a vertical bar '|', everything after the bar is a shell command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a shell command to be executed by the server at start-time.
+            The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -550,9 +573,11 @@ module Xolo
           desc: <<~ENDDESC
             After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
 
-            If this value is 'api', and you are using Jamf Pro 11.6 or later,  Xolo will use the Jamf API to upload the package to your primary distribution point. API uploads are only available in Jamf Pro 11.6 and later, and will only upload to the primary distribution point. Syncing to other distribution points is not supported by the API.
+            If this value is 'api', and you are using Jamf Pro 11.6 or later,  Xolo will use the Jamf API to upload the package to your primary distribution point.
+            API uploads are only available in Jamf Pro 11.6 and later, and will only upload to the primary distribution point. Syncing to other distribution points is not supported by the API.
 
-            If this value is a path, it is to an executable on the xolo server that will do the upload to the distribution point(s). This tool can be anything you like, as long as it can upload a .pkg to the Jamf distribution point(s) you use.
+            If this value is a path, it is to an executable on the xolo server that will do the upload to the distribution point(s). This tool can be anything you like,
+              as long as it can upload a .pkg to the Jamf distribution point(s) you use.
 
             It will be run with two arguments:
             - First, The display name of the Jamf Package object the .pkg is used with
@@ -563,7 +588,8 @@ module Xolo
 
               /usr/local/bin/jamf-pkg-uploader 'CoolApp' '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg'
 
-            Where 'CoolApp' is the name of the Jamf Package object that will use this .pkg, and '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' is the location where it was stored on the Xolo server when xadm uploaded it.
+            Where 'CoolApp' is the name of the Jamf Package object that will use this .pkg, and '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' is the
+            location where it was stored on the Xolo server when xadm uploaded it.
 
             The upload tool can itself run other tools as needed, e.g. one to upload
             to all fileshare distribution points, and another to upload to a Cloud dist. point.
@@ -571,7 +597,8 @@ module Xolo
 
             After that tool runs, the copy of the .pkg on the server ( '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
 
-            An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points. While the packages/upload endpoint of the Jamf Pro API (v11.6+) will upload to the primary distribution point, it won't upload to all the others you might have.
+            An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points. While the
+            packages/upload endpoint of the Jamf Pro API (v11.6+) will upload to the primary distribution point, it won't upload to all the others you might have.
           ENDDESC
         },
 
@@ -581,7 +608,8 @@ module Xolo
         forced_exclusion: {
           type: :string,
           desc: <<~ENDDESC
-            If you have any jamf computers who should never even know that xolo exists, and should never have any software installed via xolo, put them into a group and put that group's name here.
+            If you have any jamf computers who should never even know that xolo exists, and should never have any software installed via xolo, put them
+            into a group and put that group's name here.
 
             An example would be a group of machines that should have a very minimalist management footprint, only enforcing basic security settings and nothing else.
 
@@ -656,7 +684,8 @@ module Xolo
           desc: <<~ENDDESC
             The password for the username that connects to the Title Editor API.
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
+            The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -688,7 +717,8 @@ module Xolo
 
             Replacing <token> with the value set here.
 
-            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time. The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
+            The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 
@@ -705,7 +735,8 @@ module Xolo
         subscription_updated_alert_tool: {
           type: :string,
           desc: <<~ENDDESC
-            If a title is a subscription from a Patch Source, but is not configured to use autopkg to fetch new versions, when a PatchSoftwareTitleUpdated webhook event is received from Jamf Pro, an alert should be sent to notify someone to add the new version manually.
+            If a title is a subscription from a Patch Source, but is not configured to use autopkg to fetch new versions, when a PatchSoftwareTitleUpdated webhook
+            event is received from Jamf Pro, an alert should be sent to notify someone to add the new version manually.
 
             Leave this unset to use the default alert mechanism defined by the 'alert_tool' configuration value.
 
@@ -724,7 +755,8 @@ module Xolo
 
             AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
 
-            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted'
+            them by making an override. See the AutoPkg docs for details.
           ENDDESC
         },
 
@@ -739,7 +771,39 @@ module Xolo
 
             AutoPkg must be installed, configured, and maintained on the xoloserver host separately from the xoloserver itself.
 
-            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted'
+            them by making an override. See the AutoPkg docs for details.
+          ENDDESC
+        },
+
+        # @!attribute autopkg_user_keychain_pw
+        #   @return [String] A command, path, or value for the password to unlock the autopkg_user's login keychain.
+        autopkg_user_keychain_pw: {
+          required: true,
+          load_method: :data_from_command_file_or_string,
+          private: true,
+          type: :string,
+          desc: <<~ENDDESC
+            The password for the login keychain of the autopkg_user.
+
+            Some autopkg recipes may attempt to sign apps or packages, which requires access to the autopkg_user's login keychain.
+
+            Since the user is not expected to be logged into the macOS GUI on the server (and even if it were, the xoloserver process doesn't have
+            access to the GUI context) the keychain will be locked, and must be unlocked by the server before running autopkg recipes that need it.
+
+            This config value is used to unlock that keychain when running autopkg recipes. The keychain used is the one located at
+            /Users/<autopkg_user>/Library/Keychains/login.keychain-db. Be sure the desired signing identities are in that keychain, and that the
+            keychain is set to allow various executables to access them without prompting, including the autopkg itself, codesign, productsign,
+            pkgbuild, and productbuild.
+
+            If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
+            The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+
+            If the value is a path to a readable file, the file's contents are used.
+
+            Otherwise the value is used as the password.
+
+            Be careful of security concerns when passwords are stored in files.
           ENDDESC
         },
 
@@ -748,13 +812,14 @@ module Xolo
         sign_autopkg_pkgs: {
           type: :boolean,
           desc: <<~ENDDESC
-            This is just like sig_pkgs, but only applies to pkgs acquired via autopkg.
+            This is just like sign_pkgs, but only applies to pkgs acquired via autopkg.
 
             Be sure you trust your autopkg recipes to only download safe pkgs if you enable this.
 
             Packages must be signed distribution packages to work with the `xadm deploy` command, which uses MDM to push the package to client machines.
 
-            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted' them by making an override. See the AutoPkg docs for details.
+            NOTE: AutoPkg recipes are always run with '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes', and will fail if you have not 'trusted'
+            them by making an override. See the AutoPkg docs for details.
           ENDDESC
         }
 

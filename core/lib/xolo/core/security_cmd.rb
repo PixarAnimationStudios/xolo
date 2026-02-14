@@ -10,11 +10,11 @@
 # main module
 module Xolo
 
-  module Admin
+  module Core
 
     # Personal credentials for users of 'xadm', stored in the login keychain
     #
-    module Credentials
+    module SecurityCmd
 
       # Constants
       ##############################
@@ -32,15 +32,6 @@ module Xolo
       # exit status when the desired item isn't found in the keychain
       SEC_STATUS_NOT_FOUND_ERROR = 44
 
-      # The 'kind' of item in the keychain
-      XOLO_CREDS_KIND = 'Xolo::Admin::Password'
-
-      # the Service for the generic 'Xolo::Admin::Credentials' keychain entry
-      XOLO_CREDS_SVC = 'com.pixar.xolo.password'
-
-      # the Label for the generic 'Xolo::Admin::Credentials' keychain entry
-      XOLO_CREDS_LBL = 'Xolo Admin Password'
-
       # Module methods
       ##############################
       ##############################
@@ -53,82 +44,6 @@ module Xolo
       # Instance Methods
       ##########################
       ##########################
-
-      # If the keychain is not accessible, prompt for the password
-      #
-      # @return [String] Get the admin's password from the login keychain
-      #
-      ##############################################
-      def fetch_pw
-        return config.data_from_command_file_or_string(config.pw, enforce_secure_mode: true) if config.no_gui
-
-        cmd = ['find-generic-password']
-        cmd << '-s'
-        cmd << XOLO_CREDS_SVC
-        cmd << '-l'
-        cmd << XOLO_CREDS_LBL
-        cmd << '-w'
-        run_security(cmd.map { |i| security_escape i }.join(' '))
-
-      # If we can't access the keychain, prompt for the password. This is usually
-      # when we're running in a non-GUI session, e.g. via ssh.
-      rescue Xolo::KeychainError
-        raise unless @security_exit_status.exitstatus == Xolo::Core::SecurityCmd::SEC_STATUS_NO_GUI_ERROR
-        raise unless STDOUT.isatty
-
-        question = "Keychain not accessible.\nPlease enter the xolo admin password for #{config.admin}: "
-        highline_cli.ask(question) do |q|
-          q.echo = false
-        end
-      end
-
-      # Store an item in the default keychain
-      #
-      # @param acct [String] The username for the password.
-      #   xadm doesn't use this, it uses the admin name from the
-      #   configuration. But the keychain item requires a value here.
-      #
-      # @param pw [String] The password to store
-      #
-      # @return [String] the location where the password is stored
-      ##############################################
-      def store_pw(acct, pw)
-        # delete the item first if its there
-        delete_pw
-
-        cmd = ['add-generic-password']
-        cmd <<  '-a'
-        cmd <<  acct
-        cmd << '-s'
-        cmd << XOLO_CREDS_SVC
-        cmd << '-w'
-        cmd << pw
-        cmd << '-l'
-        cmd << XOLO_CREDS_LBL
-        cmd << '-D'
-        cmd << XOLO_CREDS_KIND
-
-        run_security(cmd.map { |i| security_escape i }.join(' '))
-      end
-
-      # delete the xolo admin password from the login keychain
-      # @return [void]
-      ##############################################
-      def delete_pw
-        cmd = ['delete-generic-password']
-        cmd << '-s'
-        cmd << XOLO_CREDS_SVC
-        cmd << '-l'
-        cmd << XOLO_CREDS_LBL
-
-        run_security(cmd.map { |i| security_escape i }.join(' '))
-      rescue Xolo::NoSuchItemError
-        nil
-      rescue RuntimeError => e
-        raise e unless e.to_s == 'No matching keychain item was found'
-
-        nil
-      end
 
       # Run the security command in interactive mode on a given keychain,
       # passing in a subcommand and its arguments. so that they don't appear in the
@@ -145,7 +60,7 @@ module Xolo
         output = Xolo::BLANK
         errs = Xolo::BLANK
 
-        Open3.popen3("#{Xolo::Core::SecurityCmd::SEC_COMMAND} -i") do |stdin, stdout, stderr, wait_thr|
+        Open3.popen3("#{SEC_COMMAND} -i") do |stdin, stdout, stderr, wait_thr|
           # pid = wait_thr.pid # pid of the started process.
           stdin.puts cmd
           stdin.close
@@ -159,10 +74,10 @@ module Xolo
         return output.chomp if @security_exit_status.success?
 
         case @security_exit_status.exitstatus
-        when Xolo::Core::SecurityCmd::SEC_STATUS_AUTH_ERROR
+        when SEC_STATUS_AUTH_ERROR
           raise Xolo::KeychainError, 'Problem accessing login keychain. Is it locked?'
 
-        when Xolo::Core::SecurityCmd::SEC_STATUS_NOT_FOUND_ERROR
+        when SEC_STATUS_NOT_FOUND_ERROR
           raise Xolo::NoSuchItemError, "No xolo admin password. Please run 'xadm config'"
 
         else
@@ -178,11 +93,11 @@ module Xolo
       # use `security error` to get a description of an error number
       ##############
       def security_error_desc(num)
-        desc = `#{Xolo::Core::SecurityCmd::SEC_COMMAND} error #{num}`
+        desc = `#{SEC_COMMAND} error #{num}`
         return if desc.include?('unknown error')
 
         desc.chomp.split(num).last
-      rescue StandardError
+      rescue
         nil
       end
 

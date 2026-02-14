@@ -18,6 +18,8 @@ module Xolo
       # and in Xolo::Server::Title and Xolo::Server::Version,
       # for simplified access to the main server logger, with access to session IDs
       #
+      #
+      # - unlock autpkg_user's login keychain if pw is in config
       # - run recipe
       # - move pkg to workspace
       # - sign pkg if needed
@@ -46,6 +48,38 @@ module Xolo
         #######################
         ######################
 
+        # The Etc::Passwd entry for the autopkg_user
+        ###############################
+        def autopkg_user_entry
+          return unless Xolo::Server.config.autopkg_user
+
+          @autopkg_user_entry ||= Etc.getpwnam(Xolo::Server.config.autopkg_user)
+        rescue ArgumentError
+          nil
+        end
+
+        # unlock the autopkg_user's login keychain if a password is provided in the config
+        ###############################
+        def unlock_autopkg_user_keychain
+          return unless autopkg_enabled?
+          return unless Xolo::Server.config.autopkg_user_keychain_pw
+
+          keychain_path = "#{autopkg_user_entry.dir}/Library/Keychains/login.keychain-db".shellescape
+          cmd = [
+            '/usr/bin/security',
+            'unlock-keychain',
+            keychain_path
+          ]
+          output = nil
+          status = nil
+          Open3.popen2e(*cmd) do |stdin, stdout_and_stderr, wait_thread|
+            stdin.puts ppp
+            output = stdout_and_stderr.read
+            status = wait_thread.value
+          end
+          $CHILD_STATUS = status # ensure $? is set correctly
+        end
+
         # Is AutoPkg integration enabled?
         ###############################
         def autopkg_enabled?
@@ -54,8 +88,7 @@ module Xolo
           @autopkg_enabled =
             Xolo::Server.config.autopkg_executable && \
             Pathname.new(Xolo::Server.config.autopkg_executable).executable? && \
-            Xolo::Server.config.autopkg_user && \
-            Etc.getpwnam(Xolo::Server.config.autopkg_user) && \
+            autopkg_user_entry && \
             true
         rescue ArgumentError
           @autopkg_enabled = false
@@ -67,7 +100,7 @@ module Xolo
           [
             '/bin/launchctl',
             'asuser',
-            Etc.getpwnam(Xolo::Server.config.autopkg_user).uid.to_s,
+            autopkg_user_entry.uid.to_s,
             'sudo',
             '-u',
             Xolo::Server.config.autopkg_user,

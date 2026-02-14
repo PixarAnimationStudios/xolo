@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - Subscribed Titles
 
-    Normal Xolo titles are "managed" - All aspects of the title, are managed via `xadm` including the addition of new verions. Such titles are maintained via the Title Editor patch source.
+    Normal Xolo titles are "managed" - All aspects of the title are managed via `xadm` including the addition of new verions. Such titles are maintained via the Title Editor patch source.
 
     Xolo can now also subscribe to titles maintained by other Patch Sources (e.g. the Jamf Built-In) or those maintained separately in the Title Editor. For these titles you cannot specify `--display-name`, `--publisher`, `--app-name` & `--app-bundle-id` or `--version-script`, those will be set by the patch-source. Other values for the title are set as usual. New versions appear via the subscription, and the xoloserver handles them via Webhook Events. 
 
@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     To use autopkg with a title, just specify `--autopkg-recipe recipe.name` and `--autopkg-dir /path/to/dir/with/autopkg-output/` with xadm's `add-title` or `edit-title` commands.
 
     If those value are set, when a new version is added to xolo, the server will execute `autopkg run recipe.name` and when complete, it will use the newest pkg it finds in `/path/to/dir/with/autopkg-output/` which it will upload to the Jamf Distribution points as with any other pkg.
+
+    IMPORTANT: When running autopkg recipes, the `-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes` option is always used. This means that all such recipies MUST have an 'override' created, even if that override doesn't change anything. For details see [AutoPkg and recipe parent trust info](https://github.com/autopkg/autopkg/wiki/AutoPkg-and-recipe-parent-trust-info)
 
   - Patching Unknown Versions
     

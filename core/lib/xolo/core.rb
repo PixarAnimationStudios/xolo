@@ -39,6 +39,7 @@ module Xolo
 end # module Xolo
 
 require 'xolo/core/json_wrappers'
+require 'xolo/core/security_cmd'
 require 'xolo/core/base_classes/configuration'
 require 'xolo/core/base_classes/server_object'
 require 'xolo/core/base_classes/title'

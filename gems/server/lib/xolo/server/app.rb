@@ -31,6 +31,7 @@ module Xolo
 
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
+      helpers Xolo::Core::SecurityCmd
       helpers Xolo::Server::Helpers::Log
       helpers Xolo::Server::Helpers::Notification
       helpers Xolo::Server::Helpers::Auth
@@ -45,7 +46,6 @@ module Xolo
       helpers Xolo::Server::Helpers::ClientData
       helpers Xolo::Server::Helpers::Subscriptions
       helpers Xolo::Server::Helpers::Maintenance
-
       # Sinatra setup
       ##############################
       ##############################
