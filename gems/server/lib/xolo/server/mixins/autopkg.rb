@@ -12,7 +12,7 @@ module Xolo
 
   module Server
 
-    module Helpers
+    module Mixins
 
       # This is mixed in to Xolo::Server::App (as a helper, available in route processing)
       # and in Xolo::Server::Title and Xolo::Server::Version,
@@ -59,25 +59,20 @@ module Xolo
         end
 
         # unlock the autopkg_user's login keychain if a password is provided in the config
+        # This is necessary if any recipes need to access it for signing identities
         ###############################
         def unlock_autopkg_user_keychain
           return unless autopkg_enabled?
           return unless Xolo::Server.config.autopkg_user_keychain_pw
 
-          keychain_path = "#{autopkg_user_entry.dir}/Library/Keychains/login.keychain-db".shellescape
+          keychain_path = "#{autopkg_user_entry.dir}/Library/Keychains/login.keychain-db"
           cmd = [
-            '/usr/bin/security',
             'unlock-keychain',
+            '-p',
+            Xolo::Server.config.autopkg_user_keychain_pw,
             keychain_path
           ]
-          output = nil
-          status = nil
-          Open3.popen2e(*cmd) do |stdin, stdout_and_stderr, wait_thread|
-            stdin.puts ppp
-            output = stdout_and_stderr.read
-            status = wait_thread.value
-          end
-          $CHILD_STATUS = status # ensure $? is set correctly
+          run_security(cmd.map { |i| security_escape i }.join(' '))
         end
 
         # Is AutoPkg integration enabled?
@@ -97,6 +92,8 @@ module Xolo
         # the autopkg run command for this title
         #####################################
         def autopkg_run_command
+          return unless autopkg_enabled?
+
           [
             '/bin/launchctl',
             'asuser',
@@ -104,9 +101,9 @@ module Xolo
             'sudo',
             '-u',
             Xolo::Server.config.autopkg_user,
-            Xolo::Server.config.autopkg_executable,
+            Xolo::Server.config.autopkg_executable.shellescape,
             'run',
-            autopkg_recipe,
+            autopkg_recipe.shellescape,
             FAIL_UNTRUSTED_RECIPES_CLI_OPT
           ]
         end
@@ -117,18 +114,17 @@ module Xolo
           return unless autopkg_recipe && autopkg_dir
 
           cmd = autopkg_run_command
-          log_info "Running AutoPkg recipe via command: #{cmd.join(' ')}"
+          log_info "Running AutoPkg recipe for #{title} via command: #{cmd.join(' ')}"
 
-          # TODO: notifications
           souterr, status = Open3.capture2e(*cmd)
           souterr.strip!
 
           if status.success?
-            log_info "AutoPkg recipe #{autopkg_recipe} completed successfully."
+            log_info "AutoPkg recipe #{autopkg_recipe} completed successfully.", alert: true
             log_debug "AutoPkg output:\n#{souterr}"
           else
 
-            log_error "AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}."
+            log_error "AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", alert: true
             log_error "AutoPkg output:\n#{souterr}"
             raise "AutoPkg recipe #{autopkg_recipe} failed."
           end
@@ -144,7 +140,7 @@ module Xolo
 
         #
         ##############################
-        def upload_pkg_to_jamf_via_autopkg
+        def upload_pkg_to_jamf_from_autopkg
           nil
         end
 

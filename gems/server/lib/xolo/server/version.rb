@@ -34,7 +34,6 @@ module Xolo
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
       include Xolo::Server::Helpers::Notification
-      include Xolo::Server::Helpers::AutoPkg
 
       include Xolo::Server::Mixins::Changelog
       include Xolo::Server::Mixins::VersionJamfAccess
@@ -624,6 +623,20 @@ module Xolo
         log_change msg: 'Version Created'
 
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
+
+        # all done unless we need to get a pkg via autopkg
+        return unless title.autopkg_recipe && title.autopkg_dir
+
+        title.run_autopkg_recipe
+        title.latest_autopkg_pkg
+
+        # TODO: verify that this pkg was created within the last few minutes,
+        # to avoid accidentally uploading some old pkg that happens to be in the autopkg_dir
+
+        # Upload the pkg to Jamf, and associate it with this version
+
+        # TODO: Should we remove the pkg once upload, or leave it in the autopkg dir and
+        # let the server admins deal with cleanup?
       ensure
         unlock
       end

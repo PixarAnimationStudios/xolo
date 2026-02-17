@@ -31,8 +31,8 @@ module Xolo
       include Xolo::Server::Helpers::TitleEditor
       include Xolo::Server::Helpers::Log
       include Xolo::Server::Helpers::Notification
-      include Xolo::Server::Helpers::AutoPkg
 
+      include Xolo::Server::Mixins::AutoPkg
       include Xolo::Server::Mixins::Changelog
       include Xolo::Server::Mixins::TitleJamfAccess
       include Xolo::Server::Mixins::TitleTedAccess

@@ -84,8 +84,9 @@ module Xolo
             log_debug "Title '#{title_name}' ID #{title_id} is not a subscribed title in Xolo. Ignoring webhook."
           end
         rescue => e
-          log_error "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
-          raise e, "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
+          msg = "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
+          log_error msg
+          raise e, msg
         end
 
         # Subscribe to a title on a given patch source.

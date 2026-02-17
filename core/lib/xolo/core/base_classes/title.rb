@@ -424,7 +424,7 @@ module Xolo
             validate: true,
             type: :string,
             changelog: true,
-            invalid_msg: "Must be an absolyt path starting with / and containing at least one more /,  or '#{Xolo::NONE}'.",
+            invalid_msg: "Must be an absolute path starting with / and containing at least one more /,  or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
               The path to the directory where the --autopkg-recipe will store the acquired .pkg.
 

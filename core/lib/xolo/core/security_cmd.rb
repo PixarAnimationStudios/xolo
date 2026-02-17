@@ -70,6 +70,7 @@ module Xolo
 
           @security_exit_status = wait_thr.value # Process::Status object returned.
         end
+
         # exit 44 is 'The specified item could not be found in the keychain'
         return output.chomp if @security_exit_status.success?
 

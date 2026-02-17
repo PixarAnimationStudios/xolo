@@ -45,7 +45,8 @@ module Xolo
         # Send a message thru the alert_tool, if one is defined in the config.
         #
         # Messages are prepended with "#{level} ALERT: "
-        # This should be called by passing alert: true to one of the
+        #
+        # This should be called by passing 'alert: true' to one of the
         # logging wrapper methods
         #
         # @param msg [String] the message to send

@@ -173,6 +173,29 @@ module Xolo
           version.unlock
         end
 
+        # upload a package from autopkg.
+        #
+        # @param title [String] The title the package belongs to
+        # @param version [String] The version string for the package
+        # @return [void]
+        ###########################################
+        def upload_autopkg_pkg(title, version)
+          title = instantiate_title title
+          instantiate_version title: title, version: version
+
+          src_pkg = title.latest_autopkg_pkg
+          if need_to_sign?(src_pkg)
+            # This will put the signed pkg into the staged_pkg location
+            sign_uploaded_pkg(src_pkg, staged_pkg)
+            log_debug "Signing complete, deleting temp file '#{tempfile}'"
+            tempfile.delete if tempfile.file?
+          else
+            log_debug "Uploaded .pkg file doesn't need signing, moving tempfile to '#{staged_pkg.basename}'"
+            # Put the signed pkg into the staged_pkg location
+            tempfile.rename staged_pkg
+          end
+        end
+
         # Check if a package is a Distribution package, if not,
         # it is a component package and can't be used for
         # MDM deployment.

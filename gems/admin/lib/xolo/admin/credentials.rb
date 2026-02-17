@@ -41,6 +41,12 @@ module Xolo
       # the Label for the generic 'Xolo::Admin::Credentials' keychain entry
       XOLO_CREDS_LBL = 'Xolo Admin Password'
 
+      # Pre v2.0.0, the label was different. We need to check for the old one when fetching the password
+      # and if it's there, update it to the new one.
+      # TODO: Remove this in 2.1.0 or other appropriate future version,
+      # once we can be sure most users have updated to 2.0.0 or later.
+      XOLO_CREDS_LBL_OLD = '"Xolo Admin Password"'
+
       # Module methods
       ##############################
       ##############################
@@ -70,6 +76,12 @@ module Xolo
         cmd << '-w'
         run_security(cmd.map { |i| security_escape i }.join(' '))
 
+      # TEMPORARY - check for the old label if we didn't find the password with the new label, and if we find it with the old label, update it to the new label
+      # TODO: Remove this in 2.1.0 or other appropriate future version,
+      # once we can be sure most users have updated to 2.0.0 or later.
+      rescue Xolo::NoSuchItemError
+        fetch_and_update_pw_if_necessary
+
       # If we can't access the keychain, prompt for the password. This is usually
       # when we're running in a non-GUI session, e.g. via ssh.
       rescue Xolo::KeychainError
@@ -80,6 +92,38 @@ module Xolo
         highline_cli.ask(question) do |q|
           q.echo = false
         end
+      end
+
+      # TEMPORARY - update the label of the existing keychain item if it has the old label but not the new one,
+      # to avoid prompting users to re-enter their password when we change the label in 2.0.0
+      # TODO: Remove this in 2.1.0 or other appropriate future version,
+      # once we can be sure most users have updated to 2.0.0 or later.
+      #####################
+      def fetch_and_update_pw_if_necessary
+        cmd = ['find-generic-password']
+        cmd << '-s'
+        cmd << XOLO_CREDS_SVC
+        cmd << '-l'
+        cmd << XOLO_CREDS_LBL_OLD
+        cmd << '-w'
+        pw = run_security(cmd.map { |i| security_escape i }.join(' '))
+
+        if @security_exit_status.exitstatus == Xolo::Core::SecurityCmd::SEC_STATUS_NOT_FOUND_ERROR
+          raise Xolo::NoSuchItemError, "No xolo admin password. Please run 'xadm config'"
+        end
+
+        # then delete the old item with the old label
+        cmd = ['delete-generic-password']
+        cmd << '-s'
+        cmd << XOLO_CREDS_SVC
+        cmd << '-l'
+        cmd << XOLO_CREDS_LBL_OLD
+        run_security(cmd.map { |i| security_escape i }.join(' '))
+
+        # if we found the password with the old label, update it to the new label
+        store_pw(ENV['USER'], pw)
+
+        pw
       end
 
       # Store an item in the default keychain
@@ -141,50 +185,50 @@ module Xolo
       # @return [String] the stdout of the 'security' command.
       #
       ######
-      def run_security(cmd)
-        output = Xolo::BLANK
-        errs = Xolo::BLANK
+      # def run_security(cmd)
+      #   output = Xolo::BLANK
+      #   errs = Xolo::BLANK
 
-        Open3.popen3("#{Xolo::Core::SecurityCmd::SEC_COMMAND} -i") do |stdin, stdout, stderr, wait_thr|
-          # pid = wait_thr.pid # pid of the started process.
-          stdin.puts cmd
-          stdin.close
+      #   Open3.popen3("#{Xolo::Core::SecurityCmd::SEC_COMMAND} -i") do |stdin, stdout, stderr, wait_thr|
+      #     # pid = wait_thr.pid # pid of the started process.
+      #     stdin.puts cmd
+      #     stdin.close
 
-          output = stdout.read
-          errs = stderr.read
+      #     output = stdout.read
+      #     errs = stderr.read
 
-          @security_exit_status = wait_thr.value # Process::Status object returned.
-        end
-        # exit 44 is 'The specified item could not be found in the keychain'
-        return output.chomp if @security_exit_status.success?
+      #     @security_exit_status = wait_thr.value # Process::Status object returned.
+      #   end
+      #   # exit 44 is 'The specified item could not be found in the keychain'
+      #   return output.chomp if @security_exit_status.success?
 
-        case @security_exit_status.exitstatus
-        when Xolo::Core::SecurityCmd::SEC_STATUS_AUTH_ERROR
-          raise Xolo::KeychainError, 'Problem accessing login keychain. Is it locked?'
+      #   case @security_exit_status.exitstatus
+      #   when Xolo::Core::SecurityCmd::SEC_STATUS_AUTH_ERROR
+      #     raise Xolo::KeychainError, 'Problem accessing login keychain. Is it locked?'
 
-        when Xolo::Core::SecurityCmd::SEC_STATUS_NOT_FOUND_ERROR
-          raise Xolo::NoSuchItemError, "No xolo admin password. Please run 'xadm config'"
+      #   when Xolo::Core::SecurityCmd::SEC_STATUS_NOT_FOUND_ERROR
+      #     raise Xolo::NoSuchItemError, "No xolo admin password. Please run 'xadm config'"
 
-        else
-          errs.chomp!
-          errs =~ /: returned\s+(-?\d+)$/
-          errnum = Regexp.last_match(1)
-          desc = errnum ? security_error_desc(errnum) : errs
-          desc ||= errs
-          raise Xolo::KeychainError, "#{desc.gsub("\n", '; ')}; exit status #{@security_exit_status.exitstatus}"
-        end # case
-      end # run_security
+      #   else
+      #     errs.chomp!
+      #     errs =~ /: returned\s+(-?\d+)$/
+      #     errnum = Regexp.last_match(1)
+      #     desc = errnum ? security_error_desc(errnum) : errs
+      #     desc ||= errs
+      #     raise Xolo::KeychainError, "#{desc.gsub("\n", '; ')}; exit status #{@security_exit_status.exitstatus}"
+      #   end # case
+      # end # run_security
 
       # use `security error` to get a description of an error number
       ##############
-      def security_error_desc(num)
-        desc = `#{Xolo::Core::SecurityCmd::SEC_COMMAND} error #{num}`
-        return if desc.include?('unknown error')
+      # def security_error_desc(num)
+      #   desc = `#{Xolo::Core::SecurityCmd::SEC_COMMAND} error #{num}`
+      #   return if desc.include?('unknown error')
 
-        desc.chomp.split(num).last
-      rescue StandardError
-        nil
-      end
+      #   desc.chomp.split(num).last
+      # rescue StandardError
+      #   nil
+      # end
 
       # given a string, wrap it in single quotes and escape internal single quotes
       # and backslashes so it can be used in the interactive 'security' command
@@ -193,17 +237,17 @@ module Xolo
       #
       # @return [String] the escaped string
       ###################
-      def security_escape(str)
-        # first escape backslashes
-        str = str.to_s.gsub '\\', '\\\\\\'
+      # def security_escape(str)
+      #   # first escape backslashes
+      #   str = str.to_s.gsub '\\', '\\\\\\'
 
-        # then single quotes
-        str.gsub! "'", "\\\\'"
+      #   # then single quotes
+      #   str.gsub! "'", "\\\\'"
 
-        # if other things need escaping, add them here
+      #   # if other things need escaping, add them here
 
-        "'#{str}'"
-      end # security_escape
+      #   "'#{str}'"
+      # end # security_escape
 
     end # module Prefs
 
