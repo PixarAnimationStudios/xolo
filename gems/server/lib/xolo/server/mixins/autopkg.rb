@@ -14,9 +14,7 @@ module Xolo
 
     module Mixins
 
-      # This is mixed in to Xolo::Server::App (as a helper, available in route processing)
-      # and in Xolo::Server::Title and Xolo::Server::Version,
-      # for simplified access to the main server logger, with access to session IDs
+      # This is mixed in to Xolo::Server::Title
       #
       #
       # - unlock autpkg_user's login keychain if pw is in config
