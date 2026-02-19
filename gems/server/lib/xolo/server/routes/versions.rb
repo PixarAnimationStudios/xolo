@@ -156,7 +156,7 @@ module Xolo
         # param with the uploaded file must be :file
         ######################
         post '/titles/:title/versions/:version/pkg' do
-          process_uploaded_pkg
+          process_and_upload_uploaded_pkg
           body({ result: :uploaded })
         end
 

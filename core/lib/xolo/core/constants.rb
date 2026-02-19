@@ -45,7 +45,7 @@ module Xolo
 
       # lots of things get split on commmas
       COMMA_SEP_RE = /\s*,\s*/.freeze
-
+      s
       # lots of things get joined with commas
       COMMA_JOIN = ', '
 
@@ -58,12 +58,10 @@ module Xolo
 
       DOT_PKG = '.pkg'
 
-      DOT_ZIP = '.zip'
-
       UNKNOWN = 'unknown'
 
       # Installer packages must have one of these extensions
-      OK_PKG_EXTS = [DOT_PKG, DOT_ZIP]
+      OK_PKG_EXTS = [DOT_PKG]
 
       # The value to use when all computers are the release-targets
       # and for all manual-install policies

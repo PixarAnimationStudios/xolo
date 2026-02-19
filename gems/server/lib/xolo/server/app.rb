@@ -19,6 +19,7 @@ module Xolo
       ##############################
       ##############################
 
+      # register Sinatra extensions - this 'extends' the app class with the extension's methods
       register Xolo::Server::Routes
       register Xolo::Server::Routes::Auth
       register Xolo::Server::Routes::Maint
@@ -29,6 +30,8 @@ module Xolo
       register Xolo::Server::Routes::Uploads
       register Xolo::Server::Routes::Subscriptions
 
+      # include helper modules - this 'includes' the app class with the helper module's methods
+      # making them available as instance methods in routes and views
       helpers Xolo::Core::Constants
       helpers Xolo::Core::JSONWrappers
       helpers Xolo::Core::SecurityCmd
@@ -45,6 +48,7 @@ module Xolo
       helpers Xolo::Server::Helpers::ClientData
       helpers Xolo::Server::Helpers::Subscriptions
       helpers Xolo::Server::Helpers::Maintenance
+      helpers Xolo::Server::Helpers::AutoPkg
 
       # Sinatra setup
       ##############################

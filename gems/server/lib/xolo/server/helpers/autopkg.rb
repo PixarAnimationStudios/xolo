@@ -12,9 +12,10 @@ module Xolo
 
   module Server
 
-    module Mixins
+    module Helpers
 
-      # This is mixed in to Xolo::Server::Title
+      # This is mixed in to Xolo::Server as a helper module, so its
+      # instance methods are available in sinatra routes and views.
       #
       #
       # - unlock autpkg_user's login keychain if pw is in config
@@ -89,7 +90,7 @@ module Xolo
 
         # the autopkg run command for this title
         #####################################
-        def autopkg_run_command
+        def autopkg_run_command(title_object)
           return unless autopkg_enabled?
 
           [
@@ -101,52 +102,65 @@ module Xolo
             Xolo::Server.config.autopkg_user,
             Xolo::Server.config.autopkg_executable.shellescape,
             'run',
-            autopkg_recipe.shellescape,
+            title_object.autopkg_recipe.shellescape,
             FAIL_UNTRUSTED_RECIPES_CLI_OPT
           ]
         end
 
+        # Run the AutoPkg recipe for this title
+        # return the Pathname to the latest pkg in the autopkg_dir
         #
+        # @param title_object [Xolo::Server::Title] the title object for which to run the recipe.
+        #   It must have an autopkg_recipe defined.
+        # @return [Pathname, nil] the latest pkg file in the autopkg_dir after running the recipe,
+        #   or nil if the recipe is not enabled for this title
         ##############################
-        def run_autopkg_recipe
-          return unless autopkg_recipe && autopkg_dir
+        def run_autopkg_recipe(title_object)
+          return unless title_object.autopkg_enabled?
 
-          cmd = autopkg_run_command
+          recipe = title_object.autopkg_recipe
+          pkgdir = Pathname.new title_object.autopkg_dir
+
+          cmd = autopkg_run_command(title_object)
           log_info "Running AutoPkg recipe for #{title} via command: #{cmd.join(' ')}"
 
           souterr, status = Open3.capture2e(*cmd)
           souterr.strip!
 
           if status.success?
-            log_info "AutoPkg recipe #{autopkg_recipe} completed successfully.", alert: true
+            log_info "AutoPkg recipe #{recipe} completed successfully.", alert: true
             log_debug "AutoPkg output:\n#{souterr}"
-          else
 
+            # TODO: ? the .pkg might be an oldschool .pkg bundle, so we might want to check for that
+            pkgs = pkgdir.children.select { |c| c.extname == '.pkg' }
+            pkgs.max_by { |p| p.mtime }
+
+          else
             log_error "AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", alert: true
             log_error "AutoPkg output:\n#{souterr}"
             raise "AutoPkg recipe #{autopkg_recipe} failed."
           end
         end
 
-        # @return [Pathname, nil] the latest pkg file in the autopkg_dir
-        ##############################
-        def latest_autopkg_pkg
-          ap_dir = Pathname.new(autopkg_dir)
-          pkgs = ap_dir.children.select { |c| c.extname == '.pkg' }
-          pkgs.max_by { |p| p.mtime }
-        end
-
         #
+        # @param title_object [Xolo::Server::Title] the title object for which to upload the pkg.
+        # @param new_pkg [Pathname] the pkg to upload to Jamf Pro. This is expected to be the output of run_autopkg_recipe.
+        #
+        # @return [void]
         ##############################
-        def upload_pkg_to_jamf_from_autopkg
-          nil
-        end
+        def upload_pkg_to_jamf_from_autopkg(title_object, new_pkg)
+          # The uploaded pkg from autopkg will be staged here before uploading again to
+          # the Jamf Dist Point(s)
+          staged_pkg = title_object.title_dir + new_pkg.basename
 
-        # Handle a pkg from autopkg
-        # move to file_transfers?
-        ###########################################
-        def process_autopkg_pkg(_pkg_file)
-          nil
+          # remove any old one that might be there
+          staged_pkg.delete if staged_pkg.file?
+
+          # sign pkg if needed
+
+          # wrap and re-sign if needed
+          # rename pkg
+          # upload to Jamf Pro
         end
 
       end # AutoPkg

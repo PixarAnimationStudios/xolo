@@ -20,6 +20,9 @@ module Xolo
         #######################
         #######################
 
+        UPLOAD_ACTION = 'Upload'
+        REUPLOAD_ACTION = 'Re-upload'
+
         # Module Methods
         #######################
         #######################
@@ -69,58 +72,69 @@ module Xolo
           halt 400, { status: 400, error: msg }
         end
 
-        # Handle an uploaded pkg installer
-        # TODO: wrap this in a thread, it might be very slow for large pkgs.
-        # TODO: Also, when threaded, how to report errors?
-        # TODO: Split this into smaller methods
+        # Upload an pkg installer from xadm to Jamf Pro,
+        # and do all the processing around that
+        ######################
+        def process_and_upload_uploaded_pkg
+          process_and_upload_to_jamf(
+            params[:title],
+            params[:version],
+            params[:file][:tempfile].path,
+            orig_filename: params[:file][:filename]
+          )
+        end
+
+        # upload a package from autopkg to Jamf Pro
+        # and do all the processing around that
+        #
+        # @param title [String] The title the package belongs to
+        # @param version [String] The version string for the package
+        # @return [void]
+        ###########################################
+        def process_and_upload_autopkg_pkg(title, version, pkg_src)
+          process_and_upload_to_jamf(
+            title,
+            version,
+            pkg_src
+          )
+        end
+
+        # Process a pkg installer and upload to jamf
+        #
+        # @param title [String] the title name
+        # @param version [String] the version string
+        # @param pkg_src [String, Pathname] the path to the file to be uploaded to Jamf
+        #   This could be one uploaded from xadm, or one created by autopkg
         #############################
-        def process_uploaded_pkg
-          log_info "Processing uploaded installer package for version '#{params[:version]}' of title '#{params[:title]}'"
+        def process_and_upload_to_jamf(title, version, pkg_src, orig_filename: nil)
+          pkg_src = Pathname.new pkg_src
+          orig_filename ||= pkg_src.basename.to_s
+
+          log_info "Jamf: Processing installer package '#{pkg_src}' for Jamf Dist upload, title '#{title}' version '#{version}'"
 
           # the Xolo::Server::Version that owns this pkg
-          version = instantiate_version title: params[:title], version: params[:version]
+          version = instantiate_version title: title, version: version
           version.lock
 
           # is this a re-upload? True if upload_date as any value in it
-          if version.upload_date.pix_empty?
-            action = 'Uploading'
-            re_uploading = false
-          else
-            re_uploading = true
-            action = 'Re-uploading'
-            version.log_change msg: 'Re-uploading pkg file'
-          end
+          action = upload_action(version)
 
-          # the original uploaded filename
-          orig_filename = params[:file][:filename]
-          log_debug "Incoming pkg file '#{orig_filename}' "
-          file_extname = validate_uploaded_pkg(orig_filename)
+          # make sure its a .pkg and return .pkg if OK
+          file_extname = validate_uploaded_pkg pkg_src
 
           # Set the jamf_pkg_file, now that we know the extension
           uploaded_pkg_name = "#{version.jamf_pkg_name}#{file_extname}"
-          log_debug "Jamf: Package filename will be '#{uploaded_pkg_name}'"
+          log_debug "Jamf: Uploaded package filename will be '#{uploaded_pkg_name}'"
           version.jamf_pkg_file = uploaded_pkg_name
 
-          # The tempfile created by Sinatra when the pkg was uploaded from xadm
-          tempfile = Pathname.new params[:file][:tempfile].path
-
-          # The uploaded tmpfile will be staged here before uploading again to
-          # the Jamf Dist Point(s)
-          staged_pkg = Xolo::Server::Title.title_dir(params[:title]) + uploaded_pkg_name
+          # The pkg_src will be staged here before uploading to the Dist Point
+          staged_pkg = Xolo::Server::Title.title_dir(title) + uploaded_pkg_name
 
           # remove any old one that might be there
           staged_pkg.delete if staged_pkg.file?
 
-          if need_to_sign?(tempfile)
-            # This will put the signed pkg into the staged_pkg location
-            sign_uploaded_pkg(tempfile, staged_pkg)
-            log_debug "Signing complete, deleting temp file '#{tempfile}'"
-            tempfile.delete if tempfile.file?
-          else
-            log_debug "Uploaded .pkg file doesn't need signing, moving tempfile to '#{staged_pkg.basename}'"
-            # Put the signed pkg into the staged_pkg location
-            tempfile.rename staged_pkg
-          end
+          # This will sign the pkg if needed, and put the signed pkg in the staged_pkg location, and delete the original pkg_src file.
+          sign_if_needed(pkg_src, staged_pkg)
 
           # Wrap component pkgs in a Distribution pkg if configured to do so
           staged_pkg = wrap_component_pkg_in_distribution(staged_pkg) if Xolo::Server.config.create_distribution_pkgs
@@ -129,7 +143,7 @@ module Xolo
           # This will set the checksum and manifest in the JPackage object
           upload_to_dist_point(version.jamf_package, staged_pkg)
 
-          if re_uploading
+          if action == REUPLOAD_ACTION
             # These must be set before calling wait_to_enable_reinstall_policy
             version.reupload_date = Time.now
             version.reuploaded_by = session[:admin]
@@ -137,16 +151,21 @@ module Xolo
             # This will make the version start a thread
             # that will wait some period of time (to allow for pkg uploads
             # to complete) before enabling the reinstall policy
+            #
+            # TODO: check to see that the upload is actually complete before enabling the policy,
+            # instead of just waiting a set amount of time
             version.wait_to_enable_reinstall_policy
           else
             version.upload_date = Time.now
             version.uploaded_by = session[:admin]
           end
+          version.log_change msg: "#{action}ed pkg file '#{staged_pkg.basename}' to Jamf Pro dist point(s)"
 
           # make note if the pkg is a Distribution package
           version.dist_pkg = pkg_is_distribution?(staged_pkg)
 
-          # save the manifest just in case
+          # save the manifest on the server, just in case
+          # TODO: Support sha3_512 in manifests
           version.manifest_file.pix_atomic_write(version.jamf_package.manifest)
 
           # save the checksum just in case
@@ -161,9 +180,9 @@ module Xolo
           # log the upload
           version.log_change msg: "#{action} pkg file '#{staged_pkg.basename}'"
 
-          # remove the staged pkg and the tempfile
+          # remove the staged pkg and the pkg_src
           staged_pkg.delete
-          tempfile.delete if tempfile.file?
+          pkg_src.delete if pkg_src.file?
         rescue => e
           msg = "#{e.class}: #{e}"
           log_error msg
@@ -173,26 +192,31 @@ module Xolo
           version.unlock
         end
 
-        # upload a package from autopkg.
-        #
-        # @param title [String] The title the package belongs to
-        # @param version [String] The version string for the package
-        # @return [void]
-        ###########################################
-        def upload_autopkg_pkg(title, version)
-          title = instantiate_title title
-          instantiate_version title: title, version: version
+        # Are we uploading or re-uploading a pkg that needs to be signed?
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
+        # @return [String] "Uploading" or "Re-uploading"
+        ######################
+        def upload_action(version)
+          version.upload_date.pix_empty? ? UPLOAD_ACTION : REUPLOAD_ACTION
+        end
 
-          src_pkg = title.latest_autopkg_pkg
-          if need_to_sign?(src_pkg)
+        # If this pkg needs signing, do so putting the signed pkg in the staged_pkg location,
+        # and delete the original pkg_src file.
+        # If it doesn't need signing, just move it to the staged_pkg location.
+        #
+        # @param pkg_src [Pathname] the path to the file to be uploaded to Jamf
+        # @param staged_pkg [Pathname] the path where the pkg should be staged for upload to Jamf
+        # @return [void]
+        def sign_if_needed(pkg_src, staged_pkg)
+          if need_to_sign?(pkg_src)
             # This will put the signed pkg into the staged_pkg location
-            sign_uploaded_pkg(src_pkg, staged_pkg)
-            log_debug "Signing complete, deleting temp file '#{tempfile}'"
-            tempfile.delete if tempfile.file?
+            sign_pkg(pkg_src, staged_pkg)
+            log_debug "Signing complete, deleting file '#{pkg_src}'"
+            pkg_src.delete if pkg_src.file?
           else
-            log_debug "Uploaded .pkg file doesn't need signing, moving tempfile to '#{staged_pkg.basename}'"
+            log_debug "The .pkg file doesn't need signing, moving pkg_src to '#{staged_pkg.basename}'"
             # Put the signed pkg into the staged_pkg location
-            tempfile.rename staged_pkg
+            pkg_src.rename staged_pkg
           end
         end
 
@@ -247,9 +271,13 @@ module Xolo
         # @return [void]
         ###########################################
         def upload_to_dist_point(jpkg, pkg_file)
+          # via API
           if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
+            log_debug "Jamf: Attempting upload of #{pkg_file.basename} to primary dist point via API"
             jpkg.upload pkg_file # this will update the checksum and manifest automatically, and save back to the server
             log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
+
+          # via upload tool defined in config
           else
             log_debug "Jamf: Regenerating manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
             jpkg.generate_manifest(pkg_file)
@@ -279,15 +307,18 @@ module Xolo
           cmd = "#{tool} #{jpkg_name} #{pkg}"
 
           stdouterr, exit_status = Open3.capture2e(cmd)
-          return if exit_status.success?
+          if exit_status.success?
+            log_debug "Jamf: upload tool succeeded in uploading #{pkg_file.basename} to dist point(s)."
+            return
+          end
 
-          msg =  "Uploader tool failed to upload #{pkg_file.basename} to dist point(s): #{stdouterr}"
+          msg = "Uploader tool failed to upload #{pkg_file.basename} to dist point(s): #{stdouterr}"
           log_error msg
           raise msg
         end
 
         # Confirm and return the extension of the originally uplaoded file,
-        # either .pkg or .zip
+        # as .pkg
         #
         # @param filename [String] The original name of the file uploaded to Xolo.
         #
@@ -299,7 +330,7 @@ module Xolo
           file_extname = Pathname.new(filename).extname
           return file_extname if Xolo::OK_PKG_EXTS.include? file_extname
 
-          raise "Bad filename '#{filename}'. Package files must end in .pkg or .zip (for old-style bundle packages)"
+          raise "Bad filename '#{filename}'. Package files must end in .pkg"
         end
 
       end # FileTransfers

@@ -625,20 +625,37 @@ module Xolo
         progress "Version '#{version}' of Title '#{title}' has been created in Xolo.", log: :info
 
         # all done unless we need to get a pkg via autopkg
-        return unless title.autopkg_recipe && title.autopkg_dir
+        # pkg upload from xadm will happen in a separate process,
+        # so we don't want to do it here in the create method
+        handle_autopkg_during_create if title_object.autopkg_enabled?
+      ensure
+        unlock
+      end
 
-        title.run_autopkg_recipe
-        title.latest_autopkg_pkg
+      # Do autopkg stuff during creation
+      #
+      ############################
+      def handle_autopkg_during_create
+        return unless title_object.autopkg_enabled?
 
         # TODO: verify that this pkg was created within the last few minutes,
         # to avoid accidentally uploading some old pkg that happens to be in the autopkg_dir
+        pkg_src = server_app_instance.run_autopkg_recipe(title_object)
+        if pkg_src.nil?
+          msg = 'AutoPkg recipe is enabled for this title, but no pkg was found after running the recipe. Please check the AutoPkg recipe and the server log for details.'
+          progress msg, log: :warn, alert: true
+          return
+        end
+
+        oldest_allowed = Time.now - 1200 # 20 minutes ago
+        if pkg_src.mtime < oldest_allowed
+          msg = "AutoPkg recipe is enabled for this title, and a pkg was found after running the recipe, but it was last modified at #{pkg_src.mtime}, which is more than 20 minutes ago. To avoid accidentally uploading an old pkg, the server will not upload this pkg. Please check the AutoPkg recipe and the server log for details."
+          progress msg, log: :warn, alert: true
+          return
+        end
 
         # Upload the pkg to Jamf, and associate it with this version
-
-        # TODO: Should we remove the pkg once upload, or leave it in the autopkg dir and
-        # let the server admins deal with cleanup?
-      ensure
-        unlock
+        server_app_instance.process_and_upload_autopkg_pkg(title, version, pkg_src)
       end
 
       # Is this version part of a subscribed title?

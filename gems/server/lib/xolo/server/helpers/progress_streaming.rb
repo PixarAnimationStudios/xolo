@@ -72,7 +72,7 @@ module Xolo
             log_debug 'Thread with_streaming is starting and yielding to block'
             yield
             log_debug 'Thread with_streaming is finished'
-          rescue StandardError => e
+          rescue => e
             progress "ERROR: #{e.class}: #{e}", log: :error
             e.backtrace.each { |l| log_debug "..#{l}" }
           ensure
@@ -141,7 +141,7 @@ module Xolo
         #
         # @return [void]
         ###################
-        def progress(msg, log: :nil)
+        def progress(msg, log: :nil, alert: false)
           # log_debug "Progress method called from #{caller_locations.first}"
 
           progress_stream_file.pix_append "#{msg.chomp}\n"
@@ -153,17 +153,17 @@ module Xolo
 
           case log
           when :debug
-            log_debug msg
+            log_debug msg, alert: alert
           when :info
-            log_info msg
+            log_info msg, alert: alert
           when :warn
-            log_warn msg
+            log_warn msg, alert: alert
           when :error
-            log_error msg
+            log_error msg, alert: alert
           when :fatal
-            log_fatal msg
+            log_fatal msg, alert: alert
           when :unknown
-            log_unknown msg
+            log_unknown msg, alert: alert
           end
         end
 

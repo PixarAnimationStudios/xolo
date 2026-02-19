@@ -48,17 +48,13 @@ module Xolo
         # (I'm looking at YOU Adobe)
         # @param pkg [Pathname] Path to a .pkg to see if it's signed.
         # @return [Boolean] should we sign it?
+        #############################
         def need_to_sign?(pkg)
           log_debug "Checking need to sign uploaded pkg '#{pkg}'"
           unless Xolo::Server.config.sign_pkgs
             log_debug "No need to sign '#{pkg.basename}': xolo server is not configured to sign pkgs."
             return false
           end
-          if pkg.extname == Xolo::DOT_ZIP
-            log_debug "No need to sign '#{pkg.basename}': It is a compressed .pkg bundle. TODO: maybe support signing these?"
-            return false
-          end
-
           !pkg_signed?(pkg)
         end
 
@@ -83,7 +79,7 @@ module Xolo
         #
         # @return [void]
         #######################################################
-        def sign_uploaded_pkg(unsigned_pkg, signed_pkg)
+        def sign_pkg(unsigned_pkg, signed_pkg)
           unlock_signing_keychain
 
           sh_unsigned = Shellwords.escape unsigned_pkg.to_s

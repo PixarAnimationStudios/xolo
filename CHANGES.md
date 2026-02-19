@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     Titles can be configured to acquire the .pkg files for new versions via [AutoPkg](https://github.com/autopkg/autopkg)
 
-    When a new version is added to a title, either via `xadm add-version` or a webhook event from a subscribed title (see above), the xoloserver can run a specified AutoPkg recipe to get the desired installer package.
+    When a new version is added to a title, either via `xadm add-version` or a webhook event from a subscribed title (see above), the xoloserver can run a specified AutoPkg recipe to get the latest installer package.
 
     This requires installing, configuring, and maintaining `autopkg` on the xoloserver machine separately from xolo itself, and setting the `autopkg_executable` setting (a path) and a non-root `autopkg_user` (a username) in the server config. The xoloserver will merely execute a given recipe, and look for the resulting .pkg file. 
 
@@ -72,6 +72,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging files in from the Finder with spaces in their paths.
   - Setting KillApps in walkthru mode now shows a prompt for each line expecting input.
   - Now correctly differentiates `false` from `nil` values when updating a title's changelog.
+
+## Removed
+
+  - Xolo no longer supports bundle-style non-flat .pkg/.mpkg installers.
+    
+    The first version of Xolo would zip the bundle-directory and use the zip file - which I think Jamf still supports. This is no longer the case.
+    
+    Flat Packages have been around since macOS 10.5, and have been preferred for years. They are required for deployment via MDM. Until recently at least one major software company was still deplying bundle-style packages. Now that they are not, there's little reason for Xolo to support them, helping to simplify the code a bit.
  
 ## \[1.0.1] - 2025-10-02
 
