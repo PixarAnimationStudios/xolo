@@ -396,12 +396,13 @@ module Xolo
 
           },
 
+          # TODO: Add validation?
           # @!attribute autopkg_recipe
           #   @return [String] The autopkg recipe to run when new versions are added to this title
           autopkg_recipe: {
             label: 'AutoPkg Recipe',
             cli: :R,
-            validate: true,
+            validate: false,
             type: :string,
             changelog: true,
             invalid_msg: "Unknown autopkg recipe. Use one that is configured on the server,  or '#{Xolo::NONE}'.",
@@ -416,12 +417,13 @@ module Xolo
             ENDDESC
           },
 
+          # TODO: Add validation?
           # @!attribute autopkg_dir
           #   @return [String] The path containg the .pkg acquired by the --autopkg-recipe
           autopkg_dir: {
             label: 'AutoPkg Output Directory',
             cli: :D,
-            validate: true,
+            validate: false,
             type: :string,
             changelog: true,
             invalid_msg: "Must be an absolute path starting with / and containing at least one more /,  or '#{Xolo::NONE}'.",

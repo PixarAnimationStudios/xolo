@@ -50,8 +50,6 @@ module Xolo
           log_info "Admin #{session[:admin]} is creating title '#{title.title}'"
           info = { status: 'created', title: title.title }
           body info
-          # TEMPORARY - TESTING
-          return
 
           with_streaming do
             title.create

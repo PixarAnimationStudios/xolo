@@ -102,6 +102,7 @@ module Xolo
             Xolo::Server.config.autopkg_user,
             Xolo::Server.config.autopkg_executable.shellescape,
             'run',
+            '--verbose',
             title_object.autopkg_recipe.shellescape,
             FAIL_UNTRUSTED_RECIPES_CLI_OPT
           ]
@@ -129,7 +130,8 @@ module Xolo
 
           if status.success?
             log_info "AutoPkg recipe #{recipe} completed successfully.", alert: true
-            log_debug "AutoPkg output:\n#{souterr}"
+            log_debug 'AutoPkg output:'
+            souterr.lines.each { |l| log_debug "AutoPkg: #{l.chomp}" }
 
             # TODO: ? the .pkg might be an oldschool .pkg bundle, so we might want to check for that
             pkgs = pkgdir.children.select { |c| c.extname == '.pkg' }
@@ -137,7 +139,9 @@ module Xolo
 
           else
             log_error "AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", alert: true
-            log_error "AutoPkg output:\n#{souterr}"
+            log_error 'AutoPkg output:'
+            souterr.lines.each { |l| log_error "AutoPkg: #{l.chomp}" }
+
             raise "AutoPkg recipe #{autopkg_recipe} failed."
           end
         end

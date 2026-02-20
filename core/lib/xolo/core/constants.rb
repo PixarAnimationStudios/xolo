@@ -45,7 +45,7 @@ module Xolo
 
       # lots of things get split on commmas
       COMMA_SEP_RE = /\s*,\s*/.freeze
-      s
+
       # lots of things get joined with commas
       COMMA_JOIN = ', '
 

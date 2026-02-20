@@ -235,10 +235,10 @@ module Xolo
         new_title = Xolo::Admin::Title.new opts_to_process
 
         # TMP TESTING
-        puts 'DEBUG: opts_to_process:'
-        opts_to_process.to_h.each do |k, v|
-          puts "  #{k}: #{v}"
-        end
+        # puts 'DEBUG: opts_to_process:'
+        # opts_to_process.to_h.each do |k, v|
+        #   puts "  #{k}: #{v}"
+        # end
         # return
 
         response_data = new_title.add(server_cnx)
