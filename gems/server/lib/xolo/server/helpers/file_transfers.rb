@@ -79,7 +79,7 @@ module Xolo
           process_and_upload_to_jamf(
             params[:title],
             params[:version],
-            params[:file][:tempfile].path,
+            pkg_src: params[:file][:tempfile].path,
             orig_filename: params[:file][:filename]
           )
         end
@@ -95,7 +95,7 @@ module Xolo
           process_and_upload_to_jamf(
             title,
             version,
-            pkg_src
+            pkg_src: pkg_src
           )
         end
 
@@ -106,11 +106,11 @@ module Xolo
         # @param pkg_src [String, Pathname] the path to the file to be uploaded to Jamf
         #   This could be one uploaded from xadm, or one created by autopkg
         #############################
-        def process_and_upload_to_jamf(title, version, pkg_src, orig_filename: nil)
+        def process_and_upload_to_jamf(title, version, pkg_src:, orig_filename: nil)
           pkg_src = Pathname.new pkg_src
           orig_filename ||= pkg_src.basename.to_s
 
-          log_info "Jamf: Processing installer package '#{pkg_src}' for Jamf Dist upload, title '#{title}' version '#{version}'"
+          log_info "Jamf: Processing installer package '#{pkg_src}' (#{pkg_src.size.pix_humanize_bytes}) for Jamf Dist upload, title '#{title}' version '#{version}'"
 
           # the Xolo::Server::Version that owns this pkg
           version = instantiate_version title: title, version: version
@@ -123,23 +123,24 @@ module Xolo
           file_extname = validate_uploaded_pkg pkg_src
 
           # Set the jamf_pkg_file, now that we know the extension
-          uploaded_pkg_name = "#{version.jamf_pkg_name}#{file_extname}"
-          log_debug "Jamf: Uploaded package filename will be '#{uploaded_pkg_name}'"
-          version.jamf_pkg_file = uploaded_pkg_name
+          jamf_pkg_file_name = "#{version.jamf_pkg_name}#{file_extname}"
+          log_debug "Jamf: Uploaded package filename will be '#{jamf_pkg_file_name}'"
+          version.jamf_pkg_file = jamf_pkg_file_name
 
           # The pkg_src will be staged here before uploading to the Dist Point
-          staged_pkg = Xolo::Server::Title.title_dir(title) + uploaded_pkg_name
+          staged_pkg = Xolo::Server::Title.title_dir(title) + jamf_pkg_file_name
 
           # remove any old one that might be there
           staged_pkg.delete if staged_pkg.file?
 
-          # This will sign the pkg if needed, and put the signed pkg in the staged_pkg location, and delete the original pkg_src file.
-          sign_if_needed(pkg_src, staged_pkg)
+          # This will move/copy the pkg_src into the staged_pkg, signing it on the way if needed, and
+          # delete the original pkg_src file.
+          sign_and_stage(pkg_src, staged_pkg)
 
           # Wrap component pkgs in a Distribution pkg if configured to do so
           staged_pkg = wrap_component_pkg_in_distribution(staged_pkg) if Xolo::Server.config.create_distribution_pkgs
 
-          # upload the pkg with the uploader tool defined in config
+          # upload the pkg via the API or with the uploader tool defined in config
           # This will set the checksum and manifest in the JPackage object
           upload_to_dist_point(version.jamf_package, staged_pkg)
 
@@ -207,15 +208,14 @@ module Xolo
         # @param pkg_src [Pathname] the path to the file to be uploaded to Jamf
         # @param staged_pkg [Pathname] the path where the pkg should be staged for upload to Jamf
         # @return [void]
-        def sign_if_needed(pkg_src, staged_pkg)
+        def sign_and_stage(pkg_src, staged_pkg)
           if need_to_sign?(pkg_src)
             # This will put the signed pkg into the staged_pkg location
             sign_pkg(pkg_src, staged_pkg)
-            log_debug "Signing complete, deleting file '#{pkg_src}'"
+            log_debug "Signing complete, signed pkg is '#{staged_pkg}', deleting original file '#{pkg_src}'"
             pkg_src.delete if pkg_src.file?
           else
-            log_debug "The .pkg file doesn't need signing, moving pkg_src to '#{staged_pkg.basename}'"
-            # Put the signed pkg into the staged_pkg location
+            log_debug "The .pkg file doesn't need signing, moving pkg_src to '#{staged_pkg}'"
             pkg_src.rename staged_pkg
           end
         end
@@ -241,25 +241,25 @@ module Xolo
         #
         # @return [Pathname] The path to the new Distribution pkg
         ###########################################
-        def wrap_component_pkg_in_distribution(component_pkg)
-          component_pkg = Pathname.new(component_pkg)
+        def wrap_component_pkg_in_distribution(orig_pkg)
+          orig_pkg = Pathname.new(orig_pkg)
 
-          raise ArgumentError, "pkg_file does not exist or not a file: #{component_pkg}" unless component_pkg.file?
+          raise ArgumentError, "pkg_file does not exist or not a file: #{orig_pkg}" unless orig_pkg.file?
 
-          if pkg_is_distribution?(component_pkg)
-            log_debug "Package '#{component_pkg.basename}' is already a Distribution pkg, not wrapping"
-            return component_pkg
+          if pkg_is_distribution?(orig_pkg)
+            log_debug "Package '#{orig_pkg.basename}' is already a Distribution pkg, not wrapping"
+            return orig_pkg
           end
 
-          log_info "Wrapping component pkg '#{component_pkg.basename}' in a Distribution pkg"
-          out_dir = component_pkg.parent
-          out_file = out_dir + "#{component_pkg.basename('.pkg')}_dist.pkg"
-          if system "/usr/bin/productbuild –package #{component_pkg.to_s.shellescape} #{out_file.to_s.shellescape}"
-            component_pkg.delete
+          log_info "Wrapping component pkg '#{orig_pkg.basename}' in a Distribution pkg"
+          out_dir = orig_pkg.parent
+          out_file = out_dir + "#{orig_pkg.basename(Xolo::DOT_PKG)}_dist#{Xolo::DOT_PKG}"
+          if system "/usr/bin/productbuild –package #{orig_pkg.to_s.shellescape} #{out_file.to_s.shellescape}"
+            orig_pkg.delete
             return out_file
           end
 
-          raise "Failed to wrap component pkg '#{component_pkg.basename}' in a Distribution pkg"
+          raise "Failed to wrap component pkg '#{orig_pkg.basename}' in a Distribution pkg"
         end
 
         # upload a staged pkg to the dist point(s)
@@ -271,24 +271,26 @@ module Xolo
         # @return [void]
         ###########################################
         def upload_to_dist_point(jpkg, pkg_file)
-          # via API
-          if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
-            log_debug "Jamf: Attempting upload of #{pkg_file.basename} to primary dist point via API"
-            jpkg.upload pkg_file # this will update the checksum and manifest automatically, and save back to the server
-            log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
+          Thread.new do
+            # via API
+            if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
+              log_debug "Jamf: Attempting upload of #{pkg_file.basename} to primary dist point via API"
+              jpkg.upload pkg_file # this will update the checksum and manifest automatically, and save back to the server
+              log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
 
-          # via upload tool defined in config
-          else
-            log_debug "Jamf: Regenerating manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
-            jpkg.generate_manifest(pkg_file)
+            # via upload tool defined in config
+            else
+              log_debug "Jamf: Regenerating manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+              jpkg.generate_manifest(pkg_file)
 
-            log_debug "Jamf: Recalculating checksum for package '#{jpkg.packageName}' from #{pkg_file.basename}"
-            jpkg.recalculate_checksum(pkg_file)
+              log_debug "Jamf: Recalculating checksum for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+              jpkg.recalculate_checksum(pkg_file)
 
-            log_info "Jamf: Saving package '#{jpkg.packageName}' with new checksum and manifest"
-            jpkg.save
-            upload_via_tool(jpkg, pkg_file)
-          end
+              log_info "Jamf: Saving package '#{jpkg.packageName}' with new checksum and manifest"
+              jpkg.save
+              upload_via_tool(jpkg, pkg_file)
+            end
+          end # thread
         end
 
         # upload the pkg with the uploader tool defined in config
@@ -322,7 +324,7 @@ module Xolo
         #
         # @param filename [String] The original name of the file uploaded to Xolo.
         #
-        # @return [String] either '.pkg' or '.zip'
+        # @return [String]  '.pkg' is the only valid one for now
         ###############################
         def validate_uploaded_pkg(filename)
           log_debug "Validating pkg file ext for '#{filename}'"
@@ -330,7 +332,71 @@ module Xolo
           file_extname = Pathname.new(filename).extname
           return file_extname if Xolo::OK_PKG_EXTS.include? file_extname
 
-          raise "Bad filename '#{filename}'. Package files must end in .pkg"
+          raise "Bad filename '#{filename}'. Package files must end in #{Xolo::OK_PKG_EXTS.join(', or ')}"
+        end
+
+        # TODO: Use ruby-jss when it implements could-distribution-point rsrc
+        #
+        # @param check_principal [Boolean] when true, cloud DP must also be the principal.
+        # @return [Boolean] Is a cloud distribution point defined, possible as principal?
+        ###############################
+        def cloud_dp_available?(check_principal: false)
+          response = jamf_cnx.jp_get '/v1/cloud-distribution-point'
+          return false if response[:cdnType] == 'NONE'
+
+          check_principal ? response[:master] : true
+        rescue Jamf::Connection::JamfProAPIError => e
+          return false if jamf_cnx.last_http_response.status == 404
+
+          raise e
+        end
+
+        # TODO: Use ruby-jss when it implements could-distribution-point rsrc
+        #
+        # Does a given pkg name exist on the cloud dp with 'ready' status?
+        #
+        # @param pkg_name [String] the name of the pkg to look for
+        #
+        # @return [Boolean] Is the pkg ready-to-go on the Cloud DP?
+        ###############################
+        def cloud_dp_pkg_ready?(pkg_name)
+          return false unless cloud_dp_available?
+
+          filt = CGI.escape "fileName=='#{pkg_name}'"
+          response = jamf_cnx.jp_get "/v1/cloud-distribution-point/files?filter=#{filt}"
+
+          # No fileserver I know of will allow multiples of a single filename....
+          # so assume there's only zero or one
+          data = response[:results].first
+          return false unless data
+
+          # once the status is ready, we should be good to go
+          data[:status] == 'READY'
+        end
+
+        # TODO: Use ruby-jss when it implements could-distribution-point rsrc
+        #
+        # @return [Hash {String => String}] The Jamf ID => FileName of all 'READY' PACKAGE files on
+        #   the Cloud DP.
+        ###############################
+        def cloud_dp_pkgs
+          page = 0
+          page_size = 1000
+          pkgs = {}
+          loop do
+            response = jamf_cnx.jp_get "/v1/cloud-distribution-point/files?page=#{page}&page-size=#{page_size}"
+            results = response[:results]
+            break if results.empty?
+
+            results.each do |f|
+              next unless f[:type] == 'PACKAGE' && f[:status] == 'READY'
+
+              # fileObjectId is the Jamf ID of the Package object for this DP file
+              pkgs[f[:fileObjectId]] = f[:fileName]
+            end
+            page += 1
+          end
+          pkgs
         end
 
       end # FileTransfers
