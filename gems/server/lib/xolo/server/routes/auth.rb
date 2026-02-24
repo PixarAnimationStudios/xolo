@@ -16,7 +16,7 @@ module Xolo
 
       module Auth
 
-        # This is how we 'mix in' modules to Sinatra servers:
+        # This is how we 'extend' modules to Sinatra servers:
         # We make them extentions here with
         #    extend Sinatra::Extension (from sinatra-contrib)
         # and then 'register' them in the server with

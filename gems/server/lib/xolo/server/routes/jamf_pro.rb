@@ -16,7 +16,7 @@ module Xolo
 
       module JamfPro
 
-        # This is how we 'mix in' modules to Sinatra servers
+        # This is how we 'extend' modules to Sinatra servers
         # for route definitions and similar things
         #
         # (things to be 'included' for use in route and view processing
