@@ -45,11 +45,6 @@ module Xolo
         # changes
         JAMF_POLICY_NAME_AUTO_REINSTALL_SFX = '-auto-reinstall'
 
-        # How long to wait after a pkg re-upload before creating/enabling/flushing
-        # the auto-reinstall policy
-        # See TODO in #wait_to_enable_reinstall_policy
-        JAMF_AUTO_REINSTALL_WAIT_SECS = 15 * 60
-
         # POLICIES, PATCH POLICIES, SCOPING
         #############################
         #
@@ -856,41 +851,6 @@ module Xolo
           return unless pol_id
 
           @jamf_auto_reinstall_policy_url = "#{jamf_gui_url}/policies.html?id=#{pol_id}&o=r"
-        end
-
-        # This will start a thread
-        # that will wait some period of time (to allow for pkg uploads
-        # to complete) before enabling and flushing the logs for the reinstall policy.
-        # This will make all macs with this version installed get it re-installed.
-        # @return [void]
-        def wait_to_enable_reinstall_policy
-          return if @enable_reinstall_policy_thread&.alive?
-          return unless reupload_date
-
-          # TODO: some setting to determine how long to wait?
-          # - If uploading via the Jamf API, we need to give it time
-          #   to then upload the file to the cloud distribution point
-          # - If uploading via a custom tool, we need to give that
-          #   tool time to re-upload to wherever it uploads to
-          # - May need to wait for other non-jamf/non-xolo processes
-          #   to sync the package to other distribution points. This
-          #   might be very site-specific.
-
-          # For now, we wait 15 minutes.
-          wait_time = JAMF_AUTO_REINSTALL_WAIT_SECS
-
-          @enable_reinstall_policy_thread = Thread.new do
-            log_debug "Jamf: Starting enable_reinstall_policy_thread: waiting #{wait_time} seconds before enabling reinstall policy for version #{version} of title #{title}"
-            sleep wait_time
-
-            log_debug "Jamf: enable_reinstall_policy_thread: enabling and flushing logs for reinstall policy for version #{version} of title #{title}"
-
-            pol = jamf_auto_reinstall_policy
-            pol.enable
-            pol.flush_logs
-            pol.save
-          end
-          @enable_reinstall_policy_thread.name = "enable_reinstall_policy_thread-#{title}-#{version}"
         end
 
         #######  The Jamf Patch Policy

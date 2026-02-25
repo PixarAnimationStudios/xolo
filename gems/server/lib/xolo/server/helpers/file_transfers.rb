@@ -23,6 +23,14 @@ module Xolo
         UPLOAD_ACTION = 'Upload'
         REUPLOAD_ACTION = 'Re-upload'
 
+        # Thes values in the cdnType field of the Cloud DP definition
+        # from the API indicate that there is no Cloud DP configured
+        CLOUD_DP_NA = [nil, Xolo::BLANK, 'NONE'].freeze
+
+        # How long to wait for a pkg to appear on the Cloud DP when uploading via API
+        # before giving up and raising an error
+        CLOUD_DP_UPLOAD_TIMEOUT = 1800 # seconds - 30 minutes
+
         # Module Methods
         #######################
         #######################
@@ -105,19 +113,39 @@ module Xolo
         # @param version [String] the version string
         # @param pkg_src [String, Pathname] the path to the file to be uploaded to Jamf
         #   This could be one uploaded from xadm, or one created by autopkg
+        # @param orig_filename [String, nil] the original filename of the pkg, e.g. as uploaded from
+        #   an admin's computer. If not provided, the basename of pkg_src will be used.
+        # @return [void]
         #############################
         def process_and_upload_to_jamf(title, version, pkg_src:, orig_filename: nil)
           pkg_src = Pathname.new pkg_src
           orig_filename ||= pkg_src.basename.to_s
 
-          log_info "Jamf: Processing installer package '#{pkg_src}' (#{pkg_src.size.pix_humanize_bytes}) for Jamf Dist upload, title '#{title}' version '#{version}'"
-
           # the Xolo::Server::Version that owns this pkg
           version = instantiate_version title: title, version: version
           version.lock
 
-          # is this a re-upload? True if upload_date as any value in it
-          action = upload_action(version)
+          staged_pkg = prep_pkg_for_upload(version, pkg_src)
+          upload_pkg_in_thread(version, staged_pkg, orig_filename)
+        rescue => e
+          msg = "#{e.class}: #{e}"
+          log_error msg
+          e.backtrace.each { |line| log_error "..#{line}" }
+          halt 400, { status: 400, error: msg }
+        ensure
+          version.unlock
+          pkg_src.delete if pkg_src.file?
+        end
+
+        # Prep a .pkg before we start uploading to the dist point
+        #
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
+        # @param pkg_src [Pathname] the path to the file to be uploaded to Jamf
+        # @return [Pathname] the path to the staged pkg that is ready to be uploaded to Jamf
+        #########################################
+        def prep_pkg_for_upload(version, pkg_src)
+          msg = "Jamf: Processing installer package '#{pkg_src}' (#{pkg_src.size.pix_humanize_bytes}) for Jamf Dist upload, title '#{version.title}' version '#{version}'"
+          progress msg, log: :info
 
           # make sure its a .pkg and return .pkg if OK
           file_extname = validate_uploaded_pkg pkg_src
@@ -128,7 +156,7 @@ module Xolo
           version.jamf_pkg_file = jamf_pkg_file_name
 
           # The pkg_src will be staged here before uploading to the Dist Point
-          staged_pkg = Xolo::Server::Title.title_dir(title) + jamf_pkg_file_name
+          staged_pkg = Xolo::Server::Title.title_dir(version.title) + jamf_pkg_file_name
 
           # remove any old one that might be there
           staged_pkg.delete if staged_pkg.file?
@@ -140,28 +168,99 @@ module Xolo
           # Wrap component pkgs in a Distribution pkg if configured to do so
           staged_pkg = wrap_component_pkg_in_distribution(staged_pkg) if Xolo::Server.config.create_distribution_pkgs
 
-          # upload the pkg via the API or with the uploader tool defined in config
-          # This will set the checksum and manifest in the JPackage object
-          upload_to_dist_point(version.jamf_package, staged_pkg)
+          staged_pkg
+        end
 
-          if action == REUPLOAD_ACTION
-            # These must be set before calling wait_to_enable_reinstall_policy
-            version.reupload_date = Time.now
-            version.reuploaded_by = session[:admin]
-
-            # This will make the version start a thread
-            # that will wait some period of time (to allow for pkg uploads
-            # to complete) before enabling the reinstall policy
-            #
-            # TODO: check to see that the upload is actually complete before enabling the policy,
-            # instead of just waiting a set amount of time
-            version.wait_to_enable_reinstall_policy
-          else
-            version.upload_date = Time.now
-            version.uploaded_by = session[:admin]
+        # upload a prepped/staged pkg in a thread, and do the things that need to be done after upload,
+        # like setting the upload/reupload date and user, enabling the reinstall policy if it's a reupload, etc
+        #
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
+        # @param staged_pkg [Pathname] the path to the staged pkg that is ready to be uploaded to Jamf
+        # @return [void]
+        #####################################
+        def upload_pkg_in_thread(version, staged_pkg, orig_filename)
+          if @pkg_upload_thread&.alive?
+            msg = "A pkg upload is already in progress for version '#{version}' - can't start another one until it's done"
+            log_error msg
+            raise msg
           end
-          version.log_change msg: "#{action}ed pkg file '#{staged_pkg.basename}' to Jamf Pro dist point(s)"
 
+          @pkg_upload_thread = Thread.new do
+            begin
+              # is this a re-upload? True if upload_date as any value in it
+              action = upload_action(version)
+
+              # disable reinstall policy if re-uploading
+              if action == REUPLOAD_ACTION
+                pol = version.jamf_auto_reinstall_policy
+                pol.disable
+                pol.save
+              end
+
+              upload_to_dist_point(version.jamf_package, staged_pkg)
+
+              if action == REUPLOAD_ACTION
+                version.reupload_date = Time.now
+                version.reuploaded_by = session[:admin]
+                # if upload via API, wait for pkg to appear then enable the policy
+                if upload_via_api?
+                  wait_for_pkg_and_enable_reinstall_policy(version)
+
+                # otherwise notify someone to confirm upload is complete before enabling the policy
+                else
+                  msg = "Please confirm that re-uploaded pkg '#{version.jamf_pkg_file}' is on the dist point and ready to go, then enable the reinstall policy '#{pol.name}' for version '#{version}' at #{jamf_auto_reinstall_policy_url}"
+                  log_info msg, alert: true
+
+                end # if upload_via_api?
+
+              # if this is a first-time upload, just set the upload date and user
+              else
+                version.upload_date = Time.now
+                version.uploaded_by = session[:admin]
+              end # if action == REUPLOAD_ACTION
+
+              version.log_change msg: "#{action}ed pkg file '#{staged_pkg.basename}' to Jamf Pro dist point(s)"
+            rescue => e
+              msg = "Error in pkg upload thread: #{e.class}: #{e}"
+              log_error msg
+              e.backtrace.each { |line| log_error "..#{line}" }
+            end # begin
+
+            update_version_post_upload(version, staged_pkg, orig_filename)
+          end # thread
+        end
+
+        # Wait for a re-uploaded pkg to appear on the Cloud DP after an API upload, then enable the reinstall policy
+        #####################
+        def wait_for_pkg_and_enable_reinstall_policy(version)
+          start_time = Time.now
+
+          until cloud_dp_pkg_ready?(version.jamf_pkg_file)
+            if Time.now - start_time > CLOUD_DP_UPLOAD_TIMEOUT
+              msg = "Timed out waiting for pkg '#{version.jamf_pkg_file}' to appear on Cloud DP after upload via API"
+              log_error msg
+              raise msg
+            end
+
+            log_debug "Checking every minute for pkg '#{version.jamf_pkg_file}' to appear on Cloud DP after upload via API..."
+            sleep 60
+          end # until
+
+          log_info "Pkg '#{version.jamf_pkg_file}' is now on Cloud DP and ready to go, enabling reinstall policy"
+          pol = version.jamf_auto_reinstall_policy
+          pol.enable
+          pol.save
+        end
+
+        # After uploading a pkg, update the version with info about the pkg,
+        # like whether it's a dist pkg or not, and save the manifest and checksum
+        # NOTE this is run as part of the upload thread.
+        #
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
+        # @param staged_pkg [Pathname] the path to the staged pkg that was uploaded to Jamf
+        # @return [void]
+        ##############################
+        def update_version_post_upload(version, staged_pkg, orig_filename)
           # make note if the pkg is a Distribution package
           version.dist_pkg = pkg_is_distribution?(staged_pkg)
 
@@ -180,17 +279,8 @@ module Xolo
 
           # log the upload
           version.log_change msg: "#{action} pkg file '#{staged_pkg.basename}'"
-
-          # remove the staged pkg and the pkg_src
-          staged_pkg.delete
-          pkg_src.delete if pkg_src.file?
-        rescue => e
-          msg = "#{e.class}: #{e}"
-          log_error msg
-          e.backtrace.each { |line| log_error "..#{line}" }
-          halt 400, { status: 400, error: msg }
         ensure
-          version.unlock
+          staged_pkg.delete if staged_pkg.file?
         end
 
         # Are we uploading or re-uploading a pkg that needs to be signed?
@@ -256,10 +346,18 @@ module Xolo
           out_file = out_dir + "#{orig_pkg.basename(Xolo::DOT_PKG)}_dist#{Xolo::DOT_PKG}"
           if system "/usr/bin/productbuild –package #{orig_pkg.to_s.shellescape} #{out_file.to_s.shellescape}"
             orig_pkg.delete
-            return out_file
+            # rename the dist pkg to the original pkg name,
+            out_file.rename orig_pkg
+            return orig_pkg
           end
 
           raise "Failed to wrap component pkg '#{orig_pkg.basename}' in a Distribution pkg"
+        end
+
+        # are Dist Point uploads configured to be done via the API, or with an upload tool defined in config?
+        #############################
+        def upload_via_api?
+          Xolo::Server.config.upload_tool.to_s.downcase == 'api'
         end
 
         # upload a staged pkg to the dist point(s)
@@ -271,26 +369,25 @@ module Xolo
         # @return [void]
         ###########################################
         def upload_to_dist_point(jpkg, pkg_file)
-          Thread.new do
-            # via API
-            if Xolo::Server.config.upload_tool.to_s.downcase == 'api'
-              log_debug "Jamf: Attempting upload of #{pkg_file.basename} to primary dist point via API"
-              jpkg.upload pkg_file # this will update the checksum and manifest automatically, and save back to the server
-              log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
+          # via API
+          if upload_via_api?
+            log_debug "Jamf: Attempting upload of #{pkg_file.basename} to primary dist point via API"
+            # this will update the checksum and manifest automatically, and save back to the jamf pro server
+            jpkg.upload pkg_file
+            log_info "Jamf: Uploaded #{pkg_file.basename} to primary dist point via API, with new checksum and manifest"
 
-            # via upload tool defined in config
-            else
-              log_debug "Jamf: Regenerating manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
-              jpkg.generate_manifest(pkg_file)
+          # via upload tool defined in config
+          else
+            log_debug "Jamf: Regenerating manifest for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+            jpkg.generate_manifest(pkg_file)
 
-              log_debug "Jamf: Recalculating checksum for package '#{jpkg.packageName}' from #{pkg_file.basename}"
-              jpkg.recalculate_checksum(pkg_file)
+            log_debug "Jamf: Recalculating checksum for package '#{jpkg.packageName}' from #{pkg_file.basename}"
+            jpkg.recalculate_checksum(pkg_file)
 
-              log_info "Jamf: Saving package '#{jpkg.packageName}' with new checksum and manifest"
-              jpkg.save
-              upload_via_tool(jpkg, pkg_file)
-            end
-          end # thread
+            log_info "Jamf: Saving package '#{jpkg.packageName}' with new checksum and manifest"
+            jpkg.save
+            upload_via_tool(jpkg, pkg_file)
+          end
         end
 
         # upload the pkg with the uploader tool defined in config
@@ -337,18 +434,34 @@ module Xolo
 
         # TODO: Use ruby-jss when it implements could-distribution-point rsrc
         #
-        # @param check_principal [Boolean] when true, cloud DP must also be the principal.
-        # @return [Boolean] Is a cloud distribution point defined, possible as principal?
-        ###############################
-        def cloud_dp_available?(check_principal: false)
-          response = jamf_cnx.jp_get '/v1/cloud-distribution-point'
-          return false if response[:cdnType] == 'NONE'
+        # @return [Hash] The Cloud DP definition from the API, if available, minus the keyPairId & privateKey
+        #   If no cloud dp defined, returns { cdnType: 'NONE', master: false }
+        ####################
+        def cloud_dp_data
+          return @cloud_dp_data if @cloud_dp_data
 
-          check_principal ? response[:master] : true
+          @cloud_dp_data = jamf_cnx.jp_get '/v1/cloud-distribution-point'
+          @cloud_dp_data.delete :privateKey
+          @cloud_dp_data.delete :keyPairId
+          @cloud_dp_data
         rescue Jamf::Connection::JamfProAPIError => e
-          return false if jamf_cnx.last_http_response.status == 404
+          @cloud_dp_data = { cdnType: 'NONE', master: false }
+          return @cloud_dp_data if jamf_cnx.last_http_response.status == 404
 
           raise e
+        end
+
+        # @return [Boolean] Is a cloud distribution point defined?
+        ###############################
+        def cloud_dp_available?
+          !CLOUD_DP_NA.include? cloud_dp_data[:cdnType]
+        end
+
+        # TODO: Use ruby-jss when it implements could-distribution-point rsrc
+        # @return [Boolean] Is a cloud distribution point defined?
+        ###############################
+        def cloud_dp_principal?
+          cloud_dp_available? && cloud_dp_data[:master]
         end
 
         # TODO: Use ruby-jss when it implements could-distribution-point rsrc
@@ -359,10 +472,10 @@ module Xolo
         #
         # @return [Boolean] Is the pkg ready-to-go on the Cloud DP?
         ###############################
-        def cloud_dp_pkg_ready?(pkg_name)
+        def cloud_dp_pkg_ready?(pkg_filename)
           return false unless cloud_dp_available?
 
-          filt = CGI.escape "fileName=='#{pkg_name}'"
+          filt = CGI.escape "fileName=='#{pkg_filename}'"
           response = jamf_cnx.jp_get "/v1/cloud-distribution-point/files?filter=#{filt}"
 
           # No fileserver I know of will allow multiples of a single filename....

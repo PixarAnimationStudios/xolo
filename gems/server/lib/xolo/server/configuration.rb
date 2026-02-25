@@ -573,32 +573,28 @@ module Xolo
           desc: <<~ENDDESC
             After a .pkg is uploaded to the Xolo server by someone using xadm, it must then be uploaded to the Jamf distribution point(s) to be available for installation.
 
-            If this value is 'api', and you are using Jamf Pro 11.6 or later,  Xolo will use the Jamf API to upload the package to your primary distribution point.
-            API uploads are only available in Jamf Pro 11.6 and later, and will only upload to the primary distribution point. Syncing to other distribution points is not supported by the API.
+            If your principal distribution point is a Cloud Distribution Point and you're using Jamf Pro 11.6 or later, you can set this value to 'api', and xoloserver will use the Jamf Pro API to upload the pkg to the Cloud Distribution Point. This is the simplest option, and is recommended if it works for your environment.
 
-            If this value is a path, it is to an executable on the xolo server that will do the upload to the distribution point(s). This tool can be anything you like,
-              as long as it can upload a .pkg to the Jamf distribution point(s) you use.
+            If your principal is not a Cloud Distribution Point, xoloserver can use an custom external tool to do the upload.
+
+            To do so, set this value to a path to an executable on the xolo server machine that will do the upload to the distribution point(s). This tool can be anything you like, as long as it can upload a .pkg to the Jamf distribution point(s) you use.
 
             It will be run with two arguments:
-            - First, The display name of the Jamf Package object the .pkg is used with
+            - First, The display name of the Jamf Package record the .pkg is used with
             - Then the path to the .pkg file on the Xolo server, which will be uploaded
               to the Jamf distribution point(s).
 
-            So if the executable is '/usr/local/bin/jamf-pkg-uploader' then when Xolo recieves a .pkg to be uploaded to Jamf, it will run something like:
+            So if the executable is '/usr/local/bin/jamf-pkg-uploader' then when xoloserver recieves a .pkg to be uploaded to Jamf, it will run something like:
 
               /usr/local/bin/jamf-pkg-uploader 'CoolApp' '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg'
 
-            Where 'CoolApp' is the name of the Jamf Package object that will use this .pkg, and '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' is the
-            location where it was stored on the Xolo server when xadm uploaded it.
+            Where 'CoolApp' is the name of the Jamf Package object that will use this .pkg, and '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' is the location where it was stored on the Xolo server when xadm uploaded it.
 
-            The upload tool can itself run other tools as needed, e.g. one to upload
-            to all fileshare distribution points, and another to upload to a Cloud dist. point.
-            or it can do all the things itself.
+            The upload tool can itself run other tools as needed, e.g. one to upload to all fileshare distribution points, and another to upload to a Cloud dist. point, or it can do all the things itself.
 
-            After that tool runs, the copy of the .pkg on the server ( '/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
+            After that tool runs, the copy of the .pkg on the xolo server ('/Library/Application Support/xoloserver/tmpfiles/CoolApp.pkg' in the example above) will be deleted.
 
-            An external tool is used here because every Jamf Pro customer has different needs for this, e.g. various cloud and file-server distribution points. While the
-            packages/upload endpoint of the Jamf Pro API (v11.6+) will upload to the primary distribution point, it won't upload to all the others you might have.
+            An external tool is used here because every Jamf Pro customer has different needs for this depending on their environment of distribution points.
           ENDDESC
         },
 
