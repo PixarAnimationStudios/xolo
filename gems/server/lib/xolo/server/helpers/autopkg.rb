@@ -32,6 +32,7 @@ module Xolo
         #######################
         #######################
 
+        AUTOPKG_UPLOADED_BY = 'autopkg'
         FAIL_UNTRUSTED_RECIPES_CLI_OPT = '-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes'
 
         # Module Methods

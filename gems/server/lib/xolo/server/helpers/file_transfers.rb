@@ -147,16 +147,10 @@ module Xolo
           msg = "Jamf: Processing installer package '#{pkg_src}' (#{pkg_src.size.pix_humanize_bytes}) for Jamf Dist upload, title '#{version.title}' version '#{version}'"
           progress msg, log: :info
 
-          # make sure its a .pkg and return .pkg if OK
-          file_extname = validate_uploaded_pkg pkg_src
-
-          # Set the jamf_pkg_file, now that we know the extension
-          jamf_pkg_file_name = "#{version.jamf_pkg_name}#{file_extname}"
-          log_debug "Jamf: Uploaded package filename will be '#{jamf_pkg_file_name}'"
-          version.jamf_pkg_file = jamf_pkg_file_name
+          version.jamf_pkg_file = dist_pkg_filename(version)
 
           # The pkg_src will be staged here before uploading to the Dist Point
-          staged_pkg = Xolo::Server::Title.title_dir(version.title) + jamf_pkg_file_name
+          staged_pkg = Xolo::Server::Title.title_dir(version.title) + version.jamf_pkg_file
 
           # remove any old one that might be there
           staged_pkg.delete if staged_pkg.file?
@@ -187,37 +181,51 @@ module Xolo
 
           @pkg_upload_thread = Thread.new do
             begin
-              # is this a re-upload? True if upload_date as any value in it
-              action = upload_action(version)
+              # is this a re-upload? The jamf_pkg_file will have already
+              # been updated to reflect the new filename with the _N_ if it's a re-upload
+              re_uploading = version.jamf_pkg_file =~ /_(\d+)_\.pkg$/
 
-              # disable reinstall policy if re-uploading
-              if action == REUPLOAD_ACTION
+              # disable reinstall policy if re-uploading,
+              # will be re-enabled after the upload
+              if re_uploading
+                action = REUPLOAD_ACTION
                 pol = version.jamf_auto_reinstall_policy
                 pol.disable
                 pol.save
+              else
+                action = UPLOAD_ACTION
               end
 
               upload_to_dist_point(version.jamf_package, staged_pkg)
 
-              if action == REUPLOAD_ACTION
+              uploaded_by = defined?(session) ? session[:admin] : nil
+              uploaded_by ||= Xolo::Server::Helpers::AutoPkg::AUTOPKG_UPLOADED_BY
+
+              if re_uploading
                 version.reupload_date = Time.now
-                version.reuploaded_by = session[:admin]
+                version.reuploaded_by = uploaded_by
+
                 # if upload via API, wait for pkg to appear then enable the policy
                 if upload_via_api?
                   wait_for_pkg_and_enable_reinstall_policy(version)
 
                 # otherwise notify someone to confirm upload is complete before enabling the policy
                 else
-                  msg = "Please confirm that re-uploaded pkg '#{version.jamf_pkg_file}' is on the dist point and ready to go, then enable the reinstall policy '#{pol.name}' for version '#{version}' at #{jamf_auto_reinstall_policy_url}"
+                  msg = "Please confirm that re-uploaded pkg '#{version.jamf_pkg_file}' is on the dist point and ready to go, then enable the reinstall policy '#{pol.name}' at #{jamf_auto_reinstall_policy_url}"
                   log_info msg, alert: true
 
                 end # if upload_via_api?
 
+                # update the dist filename in the jamf package object
+                version.jamf_package.fileName = version.jamf_pkg_file
+                version.jamf_package.packageName = version.jamf_pkg_name
+                version.jamf_package.save
+
               # if this is a first-time upload, just set the upload date and user
               else
                 version.upload_date = Time.now
-                version.uploaded_by = session[:admin]
-              end # if action == REUPLOAD_ACTION
+                version.uploaded_by = uploaded_by
+              end # if re_uploading
 
               version.log_change msg: "#{action}ed pkg file '#{staged_pkg.basename}' to Jamf Pro dist point(s)"
             rescue => e
@@ -230,7 +238,11 @@ module Xolo
           end # thread
         end
 
-        # Wait for a re-uploaded pkg to appear on the Cloud DP after an API upload, then enable the reinstall policy
+        # Wait for a re-uploaded pkg to appear on the Cloud DP after an API upload,
+        # then enable the reinstall policy
+        #
+        # @param version [Xolo::Server::Version] the version that is being re-uploaded
+        # @return [void]
         #####################
         def wait_for_pkg_and_enable_reinstall_policy(version)
           start_time = Time.now
@@ -278,17 +290,47 @@ module Xolo
           version.save_local_data
 
           # log the upload
-          version.log_change msg: "#{action} pkg file '#{staged_pkg.basename}'"
+          version.log_change msg: "Uploaded pkg file '#{staged_pkg.basename}' to dist point"
         ensure
           staged_pkg.delete if staged_pkg.file?
         end
 
-        # Are we uploading or re-uploading a pkg that needs to be signed?
-        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
-        # @return [String] "Uploading" or "Re-uploading"
-        ######################
-        def upload_action(version)
-          version.upload_date.pix_empty? ? UPLOAD_ACTION : REUPLOAD_ACTION
+        # What will be the name of the file on the dist point?
+        # For a first upload, it will be 'xolo-<title>-<version>.pkg'
+        #
+        # If we are re-uploading, it will be 'xolo-<title>-<version>_N_.pkg'
+        # where N is an integer (starting with 2) that increments with each re-upload,
+        #
+        # This is so that re-uploads don't have the same filename on the Dist Point, which could
+        # be problematic. It also helps to visually see that this is a re-uploaded pkg
+        # and not the original one.
+        #
+        # @param version [Xolo::Server::Version] the version that is being re-uploaded
+        #
+        # @return [String] the filename to use for the pkg on the dist point
+        ####################
+        def dist_pkg_filename(version)
+          # This validates that the src file ends with .pkg
+          # and if so, returns .pkg (we no longer support .zip files)
+          file_extname = validate_uploaded_pkg pkg_src
+
+          dist_pkg_filename =
+            if version.upload_date.pix_empty?
+              # no upload date, this is the first upload
+              "#{version.jamf_pkg_name}#{file_extname}"
+
+            elsif version.jamf_pkg_file =~ /_(\d+)_\.pkg$/
+              # this is a re-upload, does the filename indicat a previous re-upload with a _N_ in the name?
+              next_num = Regex.last_match[1].to_i + 1
+              "#{version.jamf_pkg_name}_#{next_num}_#{file_extname}"
+
+            else
+              # the first re-upload, just add _2_ before the extension
+              "#{version.jamf_pkg_name}_2_#{file_extname}"
+            end
+
+          log_debug "Jamf: Uploaded package filename will be '#{dist_pkg_filename}'"
+          dist_pkg_filename
         end
 
         # If this pkg needs signing, do so putting the signed pkg in the staged_pkg location,
@@ -345,6 +387,7 @@ module Xolo
           out_dir = orig_pkg.parent
           out_file = out_dir + "#{orig_pkg.basename(Xolo::DOT_PKG)}_dist#{Xolo::DOT_PKG}"
           if system "/usr/bin/productbuild –package #{orig_pkg.to_s.shellescape} #{out_file.to_s.shellescape}"
+            # remove the component pkg
             orig_pkg.delete
             # rename the dist pkg to the original pkg name,
             out_file.rename orig_pkg
