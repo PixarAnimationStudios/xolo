@@ -67,7 +67,11 @@ module Xolo
         # This is so that the changelog can be accessed after the title is deleted.
         ################
         def self.backup_file_dir
-          @backup_file_dir ||= Xolo::Server::BACKUPS_DIR + 'changelogs'
+          return @backup_file_dir if @backup_file_dir&.exists?
+
+          @backup_file_dir = Xolo::Server::BACKUPS_DIR + 'changelogs'
+          @backup_file_dir.mkpath unless @backup_file_dir.exist?
+          @backup_file_dir
         end
 
         # A hash of the read-write locks for each title's changelog file
@@ -291,7 +295,7 @@ module Xolo
 
             # final backup
             changelog_backup_file.delete if changelog_backup_file.exist?
-            changelog_file.rename changelog_backup_file
+            changelog_file.rename(changelog_backup_file)
           end
         end
 
