@@ -66,7 +66,7 @@ module Xolo
       # when processing things via Jamf webhooks, this is the session[:admin]
       WEBHOOK_HANDLER_ADMIN_USERNAME = 'xolo-webhook-handler'
 
-      # TODO: remove this stuff when ruby-jss  supports Patch Titles via JPAPI
+      # TODO: remove this stuff when ruby-jss supports Patch Titles via JPAPI
       JPAPI_PATCH_TITLE_ENDPOINT = 'v2/patch-software-title-configurations'
 
     end # module Constants
