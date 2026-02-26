@@ -58,9 +58,8 @@ module Xolo
           data[:min_os] = default_min_os if data[:min_os].pix_empty?
 
           log_debug "Incoming new version data: #{data}"
-          log_debug "Incoming new version data: #{data.class}"
 
-          vers = instantiate_version(data)
+          vers = instantiate_version(**data)
           halt_on_existing_version vers.title, vers.version
 
           if vers.title_object.jamf_patch_ea_awaiting_acceptance? && !Xolo::Server.config.jamf_auto_accept_xolo_eas

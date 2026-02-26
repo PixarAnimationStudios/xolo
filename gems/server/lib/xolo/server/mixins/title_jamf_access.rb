@@ -60,6 +60,8 @@ module Xolo
         # @return [void]
         ################################
         def create_title_in_jamf
+          log_debug "Display Name in create_title_in_jamf: #{display_name}"
+
           # create/activate the Jamf::PatchTitle
           # this notes the jamf id of the PatchTitle
           # and sets the display name if needed for subbed titles
@@ -1157,7 +1159,7 @@ module Xolo
             t[:source_id] == jamf_managed_patch_source.id
           end
 
-          managed_titles = managed_title_objects.select { |t| t.managed? }.map { |t| t.title }
+          managed_titles = server_app_instance.managed_title_objects.select { |t| t.managed? }.map { |t| t.title }
 
           active_from_ted.each do |t|
             @jamf_active_managed_titles[t[:name_id]] = t[:id] if managed_titles.include? t[:name_id]
@@ -1193,6 +1195,8 @@ module Xolo
         # @return [Jamf::PatchTitle, nil] The Jamf Patch Title for this Xolo Title
         ########################
         def jamf_patch_title(refresh: false)
+          log_debug "Display Name in jamf_patch_title: #{display_name}"
+
           @jamf_patch_title = nil if refresh
           return @jamf_patch_title if @jamf_patch_title
 
@@ -1215,17 +1219,27 @@ module Xolo
         # activate the patch title in jamf, whatever it's source
         ############################
         def activate_jamf_patch_title
+          log_debug "Jamf: Display Name in activate_jamf_patch_title: #{display_name}"
+
           # patch_source and title_id are required when adding subbed titles
           # but pre-defined for managed
           if managed?
-            patch_source = Xolo::Server.config.ted_patch_source
-            title_id = title
+            log_debug "Jamf: Title '#{title}' is managed, so using pre-defined patch source and title_id"
+            log_debug "Jamf: Display Name in managed?: #{display_name}"
+            self.patch_source = Xolo::Server.config.ted_patch_source
+            self.title_id = title
+            log_debug "Jamf: Display Name in managed? after setting patch_source and title_id: #{display_name}"
 
-            # display name is required for managed titles, will be empty for subbed
-            # so for subbed, we look it up from the patch source
+          # display name is required for managed titles, but will be empty for subbed
+          # so for subbed, we look it up from the patch source
           else
-            display_name ||= Jamf::PatchSource.available_titles(patch_source).select { |t| t[:name_id] == title_id }.first.dig [:app_name]
-          end
+            log_debug "Jamf: Title '#{title}' is subscribed, so looking up patch source and title_id from"
+            log_debug "Jamf: Display Name in NOT managed?: #{display_name}"
+
+            self.display_name = Jamf::PatchSource.available_titles(patch_source).select { |t| t[:name_id] == title_id }.first.dig [:app_name]
+          end # if managed
+
+          log_debug "Jamf: class: #{self.class}, display_name: #{display_name}, patch_source: #{patch_source}, title_id: #{title_id}"
 
           msg = "Jamf: Activating Patch Title '#{display_name}' (#{title}) from the Patch Source '#{patch_source}'"
           progress msg, log: :info
@@ -1248,6 +1262,8 @@ module Xolo
         # subscribed titles are already available
         ####################
         def wait_for_managed_title_to_become_available
+          log_debug "Display Name in wait_for_managed_title_to_become_available: #{display_name}"
+
           return unless managed?
 
           counter = 0

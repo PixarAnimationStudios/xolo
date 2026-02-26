@@ -843,8 +843,16 @@ module Xolo
 
         # Is this a managed title?
         # @return [Boolean]
+        #######################
         def managed?
           !subscribed?
+        end
+
+        # Does this title get its pkgs from AutoPkg?
+        # @return [Boolean]
+        ############################
+        def autopkg?
+          autopkg_recipe && autopkg_dir
         end
 
       end # class Title

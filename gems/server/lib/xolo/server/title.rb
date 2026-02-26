@@ -374,8 +374,7 @@ module Xolo
         @jamf_uninstall_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
         @jamf_expire_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_EXPIRE_SUFFIX}"
 
-        # If we don't have a patch source id yet, get it now
-        @jamf_patch_source_id ||= Jamf::PatchSource.valid_id patch_source if patch_source
+        # DO NOT USE jamf_cnx here, it comes from the server app instance, which is not set until after initialization.
       end
 
       # Instance Methods
@@ -664,8 +663,13 @@ module Xolo
         self.created_by = admin
         log_debug "creation_date: #{creation_date}, created_by: #{created_by}"
 
+        log_debug "TitleData at #create: #{to_h}"
+
         # this will create the title as needed in the Title Editor
+        log_debug "Display Name before creating in ted: #{display_name}"
         create_title_in_ted
+
+        log_debug "Display Name before creating in jamf: #{display_name}"
         create_title_in_jamf
 
         # save to file last, because saving to TitleEd and Jamf will
@@ -770,6 +774,9 @@ module Xolo
       # @return [void]
       ##########################
       def save_local_data
+        # If we don't have a patch source id yet, get it now
+        self.jamf_patch_source_id ||= Jamf::PatchSource.valid_id(patch_source, cnx: jamf_cnx) if patch_source
+
         # create the dirs for the title
         title_dir.mkpath
         vdir = title_dir + Xolo::Server::Version::VERSIONS_DIRNAME

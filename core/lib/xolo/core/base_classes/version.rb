@@ -268,13 +268,12 @@ module Xolo
           pkg_to_upload: {
             label: 'Upload Package',
             type: :string,
-            required: true,
             cli: :u,
             validate: true,
             readline: :get_files,
             do_not_inherit: true,
             hide_from_info: true,
-            invalid_msg: 'Invalid installer pkg. Must exist locally and be a .pkg file, or a .zip compressed old-style bundle package.',
+            invalid_msg: 'Invalid installer pkg. Must exist locally and be a flat .pkg file',
             desc: <<~ENDDESC
               The path to a local copy of the installer package for this version. Will be uploaded to Xolo and then Jamf Pro distribution point(s), replacing any previously uploaded.
 
@@ -282,6 +281,8 @@ module Xolo
 
               It will be renamed to 'xolo-<title>-<version>.pkg' (or .zip).
               If your Xolo server is confiured to sign unsigned packages, it will do so along the way.
+
+              Required when creating a new version unless the title is configrued to use autopkg.
             ENDDESC
           },
 
@@ -585,8 +586,9 @@ module Xolo
 
           # ensure that multi value attrs return an empty array if nil
           define_method attr do
-            instance_variable_set(attr, []) if instance_variable_get(attr).nil?
-            instance_variable_get(attr)
+            ivar_name = "@#{attr}"
+            instance_variable_set(ivar_name, []) if instance_variable_get(ivar_name).nil?
+            instance_variable_get(ivar_name)
           end
         end
 

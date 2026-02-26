@@ -69,13 +69,13 @@ module Xolo
         # to use for access from the version object to the Sinatra App instance
         # for the session and api connection objects
         #
-        # @param data [Hash] hash to use with .new
         # @param title [String, Xolo::Server::Title] title to use with .load
         # @param version [String] version to use with .load
+        # @param data [Hash] hash to use with .new
         #
         # @return [Xolo::Server::Version]
         #################
-        def instantiate_version(data = nil, title: nil, version: nil)
+        def instantiate_version(title: nil, version: nil, **data)
           title_obj = nil
 
           if data
