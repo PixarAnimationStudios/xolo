@@ -176,9 +176,9 @@ module Xolo
         resp.body
       end
 
-      # Upload a .pkg (or zipped bundle pkg) for this version
-      # At this point, the jamf_pkg_file attribute
-      # will containt the local file path.
+      # Upload a .pkg for this version
+      # At this point, the pkg_to_upload attribute
+      # will contain the local file path.
       #
       # @param upload_cnx [Xolo::Admin::Connection] The server connection
       #
@@ -189,13 +189,6 @@ module Xolo
 
         # route = "#{UPLOAD_PKG_ROUTE}/#{title}/#{version}"
         route = "#{self.class.server_route(title, version)}/#{UPLOAD_PKG_ROUTE}"
-
-        # TODO: Update this to the more modern correct class
-        # upfile = Faraday::UploadIO.new(
-        #   pkg_to_upload.to_s,
-        #   'application/octet-stream',
-        #   pkg_to_upload.basename.to_s
-        # )
 
         upfile = Faraday::Multipart::FilePart.new(pkg_to_upload.expand_path.to_s, 'application/octet-stream')
 
