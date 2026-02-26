@@ -414,6 +414,9 @@ module Xolo
         def upload_to_dist_point(jpkg, pkg_file)
           # via API
           if upload_via_api?
+            log_debug 'Jamf: increasing the API timeout to 30 minutes for the pkg upload'
+            jpkg.cnx.jp_cnx.options.timeout = 1800
+
             log_debug "Jamf: Attempting upload of #{pkg_file.basename} to primary dist point via API"
             # this will update the checksum and manifest automatically, and save back to the jamf pro server
             jpkg.upload pkg_file

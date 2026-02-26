@@ -20,6 +20,7 @@ module Xolo
       ##############################
 
       TIMEOUT = 300
+      UPLOAD_TIMEOUT = 1800
       OPEN_TIMEOUT = 10
 
       PING_ROUTE = '/ping'
@@ -181,7 +182,7 @@ module Xolo
         return @upload_cnx if @upload_cnx
 
         @upload_cnx = Faraday.new(server_url(host: host), ssl: ssl_opts) do |cnx|
-          cnx.options[:timeout] = TIMEOUT
+          cnx.options[:timeout] = UPLOAD_TIMEOUT
           cnx.options[:open_timeout] = OPEN_TIMEOUT
 
           cnx.request :multipart
