@@ -158,6 +158,19 @@ module Xolo
           end
         end
 
+        # If we're running on a test server, Jamf objects have a different prefix
+        # which is 'xolo-' prod servers and 'xolotest-' on test servers.
+        #
+        # @return [String] The prefix for Jamf object names
+        ###########################
+        def jamf_obj_name_pfx
+          if Xolo::Server.config.test_server
+            Xolo::Server::JAMF_TEST_OBJECT_NAME_PFX
+          else
+            Xolo::Server::JAMF_OBJECT_NAME_PFX
+          end
+        end
+
       end # JamfPro
 
     end # Helpers

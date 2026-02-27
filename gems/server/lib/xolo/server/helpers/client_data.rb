@@ -46,34 +46,8 @@ module Xolo
 
         CLIENT_DATA_STR = 'client-data'
 
-        # The name of the Jamf Package object that contains the xolo-client-data
-        # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
-        CLIENT_DATA_PACKAGE_NAME = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{CLIENT_DATA_STR}"
-
         # The name of the package file that installs the xolo-client-data JSON file
-        CLIENT_DATA_COMPONENT_PACKAGE_FILE = "#{CLIENT_DATA_PACKAGE_NAME}-component.pkg"
-
-        CLIENT_DATA_PACKAGE_FILE = "#{CLIENT_DATA_PACKAGE_NAME}.pkg"
-
-        # The package identifier for the xolo-client-data package
-        CLIENT_DATA_PACKAGE_IDENTIFIER = "com.pixar.xolo.#{CLIENT_DATA_STR}"
-
-        # The name of the Jamf::Policy object that installs the xolo-client-data package
-        # automatically on all managed Macs
-        # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
-        CLIENT_DATA_AUTO_POLICY_NAME = "#{CLIENT_DATA_PACKAGE_NAME}-auto"
-
-        # The name of the Jamf::Policy object that installs the xolo-client-data package
-        # manually on a managed Mac
-        CLIENT_DATA_MANUAL_POLICY_NAME = "#{CLIENT_DATA_PACKAGE_NAME}-manual"
-
-        # The name of the client-data JSON file in the xolo-client-data package
-        # this is the file that is installed onto managed Macs in
-        # /Library/Application Support/xolo/
-        CLIENT_DATA_FILE = 'client-data.json'
-
-        # The trgger event for the manual policy to update the client data JSON file
-        CLIENT_DATA_MANUAL_POLICY_TRIGGER = 'update-xolo-client-data'
+        CLIENT_DATA_COMPONENT_PACKAGE_FILE = "#{CLIENT_DATA_STR}-component.pkg"
 
         # Module methods
         #
@@ -111,12 +85,70 @@ module Xolo
         ##############################
         ##############################
 
+        # The name of the client-data JSON file in the xolo-client-data package
+        # this is the file that is installed onto managed Macs in
+        # /Library/Application Support/xolo/
+        # @return [String] the name of the client-data JSON file in the package
+        ###################
+        def client_data_file
+          @client_data_file ||= Xolo::Server.config.test_server ? "test-#{CLIENT_DATA_STR}.json" : "#{CLIENT_DATA_STR}.json"
+        end
+
+        # The package identifier for the xolo-client-data package
+        # @return [String] the package identifier for the xolo-client-data package
+        ###################
+        def client_data_package_identifier
+          @client_data_package_identifier ||= Xolo::Server.config.test_server ? "com.pixar.xolo.test-#{CLIENT_DATA_STR}" : "com.pixar.xolo.#{CLIENT_DATA_STR}"
+        end
+
+        # The name of the Jamf Package object that contains the xolo client-data
+        # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
+        # @return [String] the name of the client-data package in Jamf Pro
+        ###################
+        def client_data_package_name
+          @client_data_package_name ||= "#{jamf_obj_name_pfx}#{CLIENT_DATA_STR}"
+        end
+
+        # The name of the package file that installs the xolo-client-data JSON file
+        # @return [String] the name of the package file for the client-data package
+        ###################
+        def client_data_package_file
+          @client_data_package_file ||= "#{client_data_package_name}.pkg"
+        end
+
+        # The name of the Jamf::Policy object that installs the xolo-client-data package
+        # automatically on all managed Macs
+        # NOTE: Set the category to Xolo::Server::JAMF_XOLO_CATEGORY
+        # @return [String] the name of the automatic policy for the client-data package in Jamf Pro
+        ###################
+        def client_data_auto_policy_name
+          @client_data_auto_policy_name ||= "#{client_data_package_name}-auto"
+        end
+
+        # The name of the Jamf::Policy object that installs the xolo-client-data package
+        # manually on a managed Mac
+        # @return [String] the name of the manual policy for the client-data package in Jamf Pro
+        ###################
+        def client_data_manual_policy_name
+          @client_data_manual_policy_name ||= "#{client_data_package_name}-manual"
+        end
+
+        # The trgger event for the manual policy to update the client data JSON file
+        # @return [String] the trigger event for the manual policy to update the client data JSON file
+        ###################
+        def client_data_manual_policy_trigger
+          @client_data_manual_policy_trigger ||= Xolo::Server.config.test_server ? 'test-update-xolo-client-data' : 'update-xolo-client-data'
+        end
+
+        ####################################
+        ####################################
+
         # @return [Jamf::JPackage] the xolo-client-data package object
         #####################
         def client_data_jpackage
           return @client_data_jpackage if @client_data_jpackage
 
-          @client_data_jpackage = Jamf::JPackage.fetch packageName: CLIENT_DATA_PACKAGE_NAME, cnx: jamf_cnx
+          @client_data_jpackage = Jamf::JPackage.fetch packageName: client_data_package_name, cnx: jamf_cnx
         rescue Jamf::NoSuchItemError
           @client_data_jpackage = create_client_data_jamf_package
         end
@@ -162,15 +194,15 @@ module Xolo
         # @return [Jamf::JPackage]
         #####################
         def create_client_data_jamf_package
-          progress "Jamf: Creating package object '#{CLIENT_DATA_PACKAGE_NAME}'"
+          progress "Jamf: Creating package object '#{client_data_package_name}'"
 
-          info = "Installs the xolo client data JSON file into /Library/Application Support/xolo/#{CLIENT_DATA_FILE}"
+          info = "Installs the xolo client data JSON file into /Library/Application Support/xolo/#{client_data_file}"
 
           # Create the package
           pkg = Jamf::JPackage.create(
             cnx: jamf_cnx,
-            packageName: CLIENT_DATA_PACKAGE_NAME,
-            fileName: CLIENT_DATA_PACKAGE_FILE,
+            packageName: client_data_package_name,
+            fileName: client_data_package_file,
             categoryId: jamf_xolo_category_id,
             info: info
           )
@@ -178,11 +210,11 @@ module Xolo
           pkg.save
           # .pkg files are not uploaded here, but in the upload_client_data_package method
 
-          log_debug "Jamf: Created package '#{CLIENT_DATA_PACKAGE_NAME}'"
+          log_debug "Jamf: Created package '#{client_data_package_name}'"
 
           pkg
-        rescue StandardError => e
-          raise "Jamf: Error creating Jamf::JPackage '#{CLIENT_DATA_PACKAGE_NAME}': #{e.class}: #{e}"
+        rescue => e
+          raise "Jamf: Error creating Jamf::JPackage '#{client_data_package_name}': #{e.class}: #{e}"
         end
 
         # Create the xolo-client-data policies in Jamf Pro
@@ -192,13 +224,11 @@ module Xolo
         def create_client_data_policies_if_needed
           all_pol_names = Jamf::Policy.all_names(cnx: jamf_cnx)
 
-          unless all_pol_names.include? CLIENT_DATA_AUTO_POLICY_NAME
-            create_client_data_policy CLIENT_DATA_AUTO_POLICY_NAME
-          end
+          create_client_data_policy client_data_auto_policy_name unless all_pol_names.include? client_data_auto_policy_name
 
-          return if all_pol_names.include? CLIENT_DATA_MANUAL_POLICY_NAME
+          return if all_pol_names.include? client_data_manual_policy_name
 
-          create_client_data_policy CLIENT_DATA_MANUAL_POLICY_NAME
+          create_client_data_policy client_data_manual_policy_name
         end
 
         # Create a xolo-client-data install policy in Jamf Pro
@@ -213,7 +243,7 @@ module Xolo
           # Create the policy and set common attributes
           pol = Jamf::Policy.create name: pol_name, cnx: jamf_cnx
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
-          pol.add_package CLIENT_DATA_PACKAGE_NAME
+          pol.add_package client_data_package_name
 
           # scope to all computers
           pol.scope.set_all_targets
@@ -225,16 +255,16 @@ module Xolo
           end
 
           # Set the trigger event and frequency
-          if pol_name == CLIENT_DATA_AUTO_POLICY_NAME
+          if pol_name == client_data_auto_policy_name
             pol.set_trigger_event :checkin, true
             pol.set_trigger_event :custom, Xolo::BLANK
             pol.frequency = :daily
-          elsif pol_name == CLIENT_DATA_MANUAL_POLICY_NAME
+          elsif pol_name == client_data_manual_policy_name
             pol.set_trigger_event :checkin, false
-            pol.set_trigger_event :custom, CLIENT_DATA_MANUAL_POLICY_TRIGGER
+            pol.set_trigger_event :custom, client_data_manual_policy_name
             pol.frequency = :ongoing
           else
-            err_msg = "Jamf: Invalid policy name '#{pol_name}' must be #{CLIENT_DATA_AUTO_POLICY_NAME} or #{CLIENT_DATA_MANUAL_POLICY_NAME}"
+            err_msg = "Jamf: Invalid policy name '#{pol_name}' must be #{client_data_auto_policy_name} or #{client_data_manual_policy_name}"
             log_err err_msg, alert: true
             return
           end
@@ -249,8 +279,8 @@ module Xolo
         # @return [void]
         #####################
         def flush_client_data_policy_logs
-          progress "Jamf: Flushing logs for policy #{CLIENT_DATA_AUTO_POLICY_NAME}", log: :info
-          pol = Jamf::Policy.fetch name: CLIENT_DATA_AUTO_POLICY_NAME, cnx: jamf_cnx
+          progress "Jamf: Flushing logs for policy #{client_data_auto_policy_name}", log: :info
+          pol = Jamf::Policy.fetch name: client_data_auto_policy_name, cnx: jamf_cnx
           pol.flush_logs
         end
 
@@ -261,7 +291,7 @@ module Xolo
         #####################
         def create_new_client_data_pkg_file
           pkg_version = Time.now.strftime '%Y%m%d.%H%M%S.%6N'
-          work_dir_prefix = "#{CLIENT_DATA_PACKAGE_NAME}-#{pkg_version}"
+          work_dir_prefix = "#{client_data_package_name}-#{pkg_version}"
 
           pkg_work_dir = Pathname.new(Dir.mktmpdir(work_dir_prefix))
 
@@ -269,11 +299,11 @@ module Xolo
           root_dir = pkg_work_dir + 'pkgroot'
           xolo_client_dir = root_dir + 'Library' + 'Application Support' + 'xolo'
           xolo_client_dir.mkpath
-          client_data_file = xolo_client_dir + CLIENT_DATA_FILE
+          client_data_file = xolo_client_dir + client_data_file
           client_data_file.pix_save JSON.pretty_generate(client_data_hash)
 
           # build the component package
-          progress "Jamf: Creating new client-data pkg file '#{CLIENT_DATA_PACKAGE_FILE}'", log: :info
+          progress "Jamf: Creating new client-data pkg file '#{client_data_package_file}'", log: :info
 
           unlock_signing_keychain
 
@@ -295,7 +325,7 @@ module Xolo
           cmd << '--root'
           cmd << root_dir.to_s
           cmd << '--identifier'
-          cmd << CLIENT_DATA_PACKAGE_IDENTIFIER
+          cmd << client_data_package_identifier
           cmd << '--version'
           cmd << pkg_version
           cmd << '--install-location'
@@ -309,7 +339,7 @@ module Xolo
           log_debug "Command to build component pkg '#{CLIENT_DATA_COMPONENT_PACKAGE_FILE}': #{cmd.join(' ')}"
 
           stdouterr, exit_status = Open3.capture2e(*cmd)
-          raise "Error creating #{CLIENT_DATA_PACKAGE_FILE}: #{stdouterr}" unless exit_status.success?
+          raise "Error creating #{client_data_package_file}: #{stdouterr}" unless exit_status.success?
 
           outfile
         end
@@ -321,13 +351,13 @@ module Xolo
         # @return [Pathname] the path to the new package file
         #####################
         def build_dist_client_data_pkg_file(component_pkg_file, pkg_version, pkg_work_dir)
-          pkg_file = pkg_work_dir + CLIENT_DATA_PACKAGE_FILE
+          pkg_file = pkg_work_dir + client_data_package_file
 
           cmd = ['/usr/bin/productbuild']
           cmd << '--package'
           cmd << component_pkg_file.to_s
           cmd << '--identifier'
-          cmd << CLIENT_DATA_PACKAGE_IDENTIFIER
+          cmd << client_data_package_identifier
           cmd << '--version'
           cmd << pkg_version
           cmd << '--sign'
@@ -336,10 +366,10 @@ module Xolo
           cmd << Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
           cmd << pkg_file.to_s
 
-          log_debug "Command to build distribution pkg '#{CLIENT_DATA_PACKAGE_FILE}': #{cmd.join(' ')}"
+          log_debug "Command to build distribution pkg '#{client_data_package_file}': #{cmd.join(' ')}"
 
           stdouterr, exit_status = Open3.capture2e(*cmd)
-          raise "Error creating #{CLIENT_DATA_PACKAGE_FILE}: #{stdouterr}" unless exit_status.success?
+          raise "Error creating #{client_data_package_file}: #{stdouterr}" unless exit_status.success?
 
           pkg_file
         end
@@ -358,9 +388,7 @@ module Xolo
             cdh[:titles][title.title][:version_script] = title.version_script_contents if title.version_script
 
             # add the forced_exclusion_group_name if any
-            if Xolo::Server.config.forced_exclusion
-              cdh[:titles][title.title][:excluded_groups] << Xolo::Server.config.forced_exclusion
-            end
+            cdh[:titles][title.title][:excluded_groups] << Xolo::Server.config.forced_exclusion if Xolo::Server.config.forced_exclusion
 
             # add the frozen group name to the excluded_groups array
             cdh[:titles][title.title][:excluded_groups] << title.jamf_frozen_group_name if title.jamf_frozen_group_name

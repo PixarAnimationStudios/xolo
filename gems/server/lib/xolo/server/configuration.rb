@@ -79,6 +79,18 @@ module Xolo
       # The attribute keys we maintain, and their definitions
       KEYS = {
 
+        # @!attribute test_server
+        #   @return [Boolean] Is this a development/testing server? If so, Objects in Jamf will have
+        #      the prefix 'Xolo-Test-' rather than just 'Xolo-' to avoid confusion and collision with production objects,
+        #      and some other things may be different as well.
+        test_server: {
+          type: :boolean,
+          desc: <<~ENDDESC
+            Is this a development/testing server? If so, Objects in Jamf will have the prefix 'xolotest-' rather than just 'xolo-'
+            to avoid confusion and collision with production objects, and some other things may be different as well.
+          ENDDESC
+        },
+
         # @!attribute ssl_cert
         #   @return [String] A command, path, or value for the SSL Cert.
         ssl_cert: {

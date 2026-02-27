@@ -72,16 +72,6 @@ module Xolo
       # on the xolo server.
       UNINSTALL_SCRIPT_FILENAME = 'uninstall-script'
 
-      # In the TitleEditor, the version script is
-      # stored as an Extension Attribute - each title can
-      # only have one.
-      # and it needs a 'key', which is the name used to indicate the
-      # EA in various criteria, and is the EA name in Jamf Patch.
-      # The key is this value as a prefix on the title
-      # so for title 'foobar', it is 'xolo-foobar'
-      # That value is also used as the display name
-      TITLE_EDITOR_EA_KEY_PREFIX = Xolo::Server::JAMF_OBJECT_NAME_PFX
-
       JAMF_INSTALLED_GROUP_NAME_SUFFIX = '-installed'
       JAMF_FROZEN_GROUP_NAME_SUFFIX = '-frozen'
 
@@ -147,11 +137,19 @@ module Xolo
         title_dirs.map(&:basename).map(&:to_s)
       end
 
+      # In the TitleEditor, the version script is
+      # stored as an Extension Attribute - each title can
+      # only have one.
+      # and it needs a 'key', which is the name used to indicate the
+      # EA in various criteria, and is the EA name in Jamf Patch.
+      # The key is jamf_obj_name_pfx on the title
+      # so for title 'foobar', it is 'xolo-foobar' or 'xolotest-foobar' for test servers
+      # That value is also used as the display name
       # @return [String] The key and display name of a version script stored
       #   in the title editor as the ExtAttr for a given title
       #####################
       def self.ted_ea_key(title)
-        "#{TITLE_EDITOR_EA_KEY_PREFIX}#{title}"
+        "#{jamf_obj_name_pfx}#{title}"
       end
 
       # The title dir for a given title on the server,
@@ -365,14 +363,14 @@ module Xolo
         @new_data_for_update = {}
         @changes_for_update = {}
 
-        @jamf_installed_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
-        @jamf_frozen_group_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
+        @jamf_installed_group_name = "#{jamf_obj_name_pfx}#{data_hash[:title]}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
+        @jamf_frozen_group_name = "#{jamf_obj_name_pfx}#{data_hash[:title]}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
 
-        @jamf_manual_install_released_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}-install"
+        @jamf_manual_install_released_policy_name = "#{jamf_obj_name_pfx}#{data_hash[:title]}-install"
 
-        @jamf_uninstall_script_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
-        @jamf_uninstall_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
-        @jamf_expire_policy_name = "#{Xolo::Server::JAMF_OBJECT_NAME_PFX}#{data_hash[:title]}#{JAMF_EXPIRE_SUFFIX}"
+        @jamf_uninstall_script_name = "#{jamf_obj_name_pfx}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
+        @jamf_uninstall_policy_name = "#{jamf_obj_name_pfx}#{data_hash[:title]}#{JAMF_UNINSTALL_SUFFIX}"
+        @jamf_expire_policy_name = "#{jamf_obj_name_pfx}#{data_hash[:title]}#{JAMF_EXPIRE_SUFFIX}"
 
         # DO NOT USE jamf_cnx here, it comes from the server app instance, which is not set until after initialization.
       end

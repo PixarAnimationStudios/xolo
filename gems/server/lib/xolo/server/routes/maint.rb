@@ -52,6 +52,7 @@ module Xolo
             uptime: uptime_secs.pix_humanize_secs,
             uptime_secs: uptime_secs,
             app_env: Xolo::Server.app_env,
+            test_server: Xolo::Server.test_server?,
             data_dir: Xolo::Server::DATA_DIR,
             log_file: Xolo::Server::Log::LOG_FILE,
             log_level: Xolo::Server::Log::LEVELS[Xolo::Server.logger.level],

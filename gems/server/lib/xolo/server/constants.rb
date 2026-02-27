@@ -63,6 +63,10 @@ module Xolo
       # full object name if appropriate (e.g. Package objects)
       JAMF_OBJECT_NAME_PFX = 'xolo-'
 
+      # Jamf objects from a test server are named with this prefix followed by <title>-<version>
+      # See also:  Xolo::Server::Configuration
+      JAMF_TEST_OBJECT_NAME_PFX = 'xolotest-'
+
       # when processing things via Jamf webhooks, this is the session[:admin]
       WEBHOOK_HANDLER_ADMIN_USERNAME = 'xolo-webhook-handler'
 

@@ -104,6 +104,11 @@ module Xolo
     ##############################
 
     ################
+    def self.test_server?
+      Xolo::Server.config.test_server
+    end
+
+    ################
     def self.start_time
       @start_time
     end
