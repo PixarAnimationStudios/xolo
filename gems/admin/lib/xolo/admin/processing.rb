@@ -26,7 +26,7 @@ module Xolo
       # Routes for server admins
 
       SERVER_STATUS_ROUTE = '/maint/state'
-      SERVER_CLENUP_ROUTE = '/maint/cleanup'
+      SERVER_CLEANUP_ROUTE = '/maint/cleanup'
       SERVER_ROTATE_LOGS_ROUTE = '/maint/rotate-logs'
       SERVER_UPDATE_CLIENT_DATA_ROUTE = '/maint/update-client-data'
       SERVER_LOG_LEVEL_ROUTE = '/maint/set-log-level'
@@ -955,7 +955,7 @@ module Xolo
       def server_cleanup
         return unless confirmed? 'Run the Xolo Server cleanup process'
 
-        result = server_cnx.post(SERVER_CLENUP_ROUTE).body
+        result = server_cnx.post(SERVER_CLEANUP_ROUTE).body
         puts result[:result]
       rescue StandardError => e
         handle_processing_error e
