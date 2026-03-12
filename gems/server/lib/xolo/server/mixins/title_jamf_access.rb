@@ -754,8 +754,7 @@ module Xolo
             )
             @jamf_installed_group.save
             configure_jamf_installed_group
-            log_debug 'Jamf: Sleeping to let Jamf server see change to the Installed smart group.'
-            sleep 10
+
           end
 
           @jamf_installed_group
@@ -770,6 +769,8 @@ module Xolo
 
           jamf_installed_group.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_group_criteria)
           jamf_installed_group.save
+          log_debug 'Jamf: Sleeping 30 secs to let Jamf server see changes to Installed smart group.'
+          sleep 30
         end
 
         # The criteria for the smart group in Jamf that contains all Macs
