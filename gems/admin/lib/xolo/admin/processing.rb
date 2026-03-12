@@ -318,9 +318,26 @@ module Xolo
       def upload_ssvc_icon(title)
         return unless title.self_service_icon.is_a? Pathname
 
+        speak 'Pausing to let jamf server catch up before uploading self-service icon...'
+        sleep 30
         speak "Uploading self-service icon #{title.self_service_icon.basename}, #{title.self_service_icon.pix_humanize_size} to Xolo."
 
-        title.upload_self_service_icon(upload_cnx)
+        wait_for_title_timer = 0
+        begin
+          title.upload_self_service_icon(upload_cnx)
+        rescue Xolo::ConnectionError => e
+          speak "Error uploading self-service icon: #{e.message}, trying again in 5 secs"
+          # If we get a 404, it might be because the title isn't fully created yet.
+          # Wait a bit and try again, up to a certain number of seconds.
+          if wait_for_title_timer < 90
+            sleep 5
+            wait_for_title_timer += 5
+            retry
+          else
+            msg = "Failed to upload icon for Title '#{title}' after retrying for #{wait_for_title_timer} seconds."
+            raise Xolo::NoSuchItemError, msg
+          end # if
+        end # begin
 
         speak 'Self-service icon uploaded. Will be added to Self Service policies as needed'
       rescue StandardError => e
