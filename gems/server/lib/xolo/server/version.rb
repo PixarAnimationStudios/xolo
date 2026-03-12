@@ -761,6 +761,8 @@ module Xolo
       end
 
       # Release this version, possibly rolling back from a previously newer version
+      # This should only be called by the title. The initial 'release' action starts in the title,
+      # and then calls this method on the version to do the version-specific release steps.
       #
       # @param rollback [Boolean] If true, this version is being released as a rollback
       #

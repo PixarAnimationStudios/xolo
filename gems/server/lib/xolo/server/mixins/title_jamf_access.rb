@@ -1371,15 +1371,7 @@ module Xolo
           # clear any existing packages
           pol.package_names.each { |pkg_name| pol.remove_package pkg_name }
 
-          # don't add a package or enable the pol if there's no released version
-          desired_vers = releasing_version || released_version
-          if desired_vers
-            rel_vers = version_object(desired_vers)
-            pol.add_package rel_vers.jamf_pkg_id
-            pol.enable
-          else
-            pol.disable
-          end
+          toggle_jamf_manual_install_released_policy pol
 
           # figure out the exclusions.
           #
@@ -1401,6 +1393,25 @@ module Xolo
             configure_pol_for_self_service(pol)
           else
             add_title_to_self_service(pol)
+          end
+        end
+
+        # enable or disable the manual install policy for the current release, depending on
+        # whether or not we have a released version
+        ############################
+        def toggle_jamf_manual_install_released_policy(pol = nil)
+          pol ||= jamf_manual_install_released_policy
+
+          # don't add a package or enable the pol if there's no released version
+          desired_vers = releasing_version || released_version
+          if desired_vers
+            progress "Jamf: Enabling manual install/SSvc policy for current release, version '#{desired_vers}'", log: :info
+            rel_vers = version_object(desired_vers)
+            pol.add_package rel_vers.jamf_pkg_id
+            pol.enable
+          else
+            progress 'Jamf: Disabling manual install/SSvc policy for current release, no released version', log: :info
+            pol.disable
           end
         end
 

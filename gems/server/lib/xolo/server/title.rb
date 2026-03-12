@@ -939,6 +939,9 @@ module Xolo
 
         update_versions_for_release version_to_release
 
+        # this will enable the jamf 'manual install released' policy for the new release
+        toggle_jamf_manual_install_released_policy
+
         # update the title
         self.released_version = version_to_release
         save_local_data
