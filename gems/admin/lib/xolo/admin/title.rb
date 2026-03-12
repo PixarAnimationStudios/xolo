@@ -264,10 +264,24 @@ module Xolo
         mimetype = `/usr/bin/file --brief --mime-type #{Shellwords.escape self_service_icon.expand_path.to_s}`.chomp
         upfile = Faraday::Multipart::FilePart.new(self_service_icon.expand_path.to_s, mimetype)
         content = { file: upfile }
+
         # route =  "#{UPLOAD_ICON_ROUTE}/#{title}"
         route = "#{SERVER_ROUTE}/#{title}/#{UPLOAD_ICON_ROUTE}"
-
-        upload_cnx.post(route) { |req| req.body = content }
+        wait_for_title_timer = 0
+        begin
+          upload_cnx.post(route) { |req| req.body = content }
+        rescue Faraday::ResourceNotFound
+          # If we get a 404, it might be because the title isn't fully created yet.
+          # Wait a bit and try again, up to a certain number of seconds.
+          if wait_for_title_timer < 60
+            sleep 5
+            wait_for_title_timer += 5
+            retry
+          else
+            msg = "Title '#{title}' not found on server after waiting for #{wait_for_title_timer} seconds. Can't upload self service icon."
+            raise Xolo::NoSuchItemError, msg
+          end # if
+        end # begin
       end
 
       # Get the patch report data for this title
