@@ -96,6 +96,11 @@ function die() {
   exit $mystat
 }
 
+# Die if not root
+#################################
+function must_be_root() {
+  [[ $EUID -ne 0 ]] && die "You must be root to use the '$command' command."
+}
 
 # Show the help message
 ###############################
@@ -366,7 +371,7 @@ function all_xolo_titles() {
   read -r -d '' jscode <<ENDJAVASCRIPT
     result = Object.keys(parsed_data.titles).join('\n');
 ENDJAVASCRIPT
-  extract_json_data "$jscode"
+  extract_json_data "$jscode" | sort
 }
 
 # Outputs all known titles, one per line, with versions and statuses
@@ -399,7 +404,7 @@ function all_xolo_titles_with_versions() {
     result = result.slice(0, -1);
 
 ENDJAVASCRIPT
-  extract_json_data "$jscode"
+  extract_json_data "$jscode"  | sort
 }
 
 
@@ -723,6 +728,8 @@ function run_jamf_policy_trigger() {
 # Refresh the client data
 ###############################
 function refresh_client_data() {
+  must_be_root
+
   # if we've already refreshed during this run, we're done
   [[ -n "$client_data_refreshed" ]] && return
 
@@ -779,6 +786,7 @@ function validate_version() {
 # Install a title, or a specific version thereof
 ###############################
 function install() {
+  must_be_root
   validate_title
 
   # if no version is given, we'll find the current release
@@ -819,6 +827,7 @@ function install() {
 # or if the title is not installed
 ###############################
 function uninstall() {
+  must_be_root
   validate_title
   say "Uninstalling title $title..."
 
@@ -856,6 +865,7 @@ function run_recon() {
 # trigger "recurring check-in".
 ###############################
 function update() {
+  must_be_root
   say "Updating installed titles, or installing newly scoped ones..."
 
   debug "Running jamf policy..."
@@ -901,7 +911,7 @@ function list_installed_titles() {
   local app_data
 
 
-  verbose "Listing installed titles..."
+  verbose "Locating installed titles..."
 
   # populate the installed_apps associative array
   get_installed_apps
@@ -916,6 +926,7 @@ function list_installed_titles() {
       display_title_if_installed_by_version_script $ttl
     fi
   done <<<"$(all_xolo_titles)"
+  return 0
 }
 
 # given a title and some app data (name, bundle id)
@@ -1006,6 +1017,7 @@ function display_title_if_installed_by_version_script() {
 # - none of the paths have been used in the defined period
 ###############################
 function expire() {
+  must_be_root
   validate_title
 
   local now=$(date '+%s')
