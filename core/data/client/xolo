@@ -37,7 +37,7 @@ export LC_ALL="en_US.UTF-8"
 XOLO_VERSION="0.0.0"
 
 # The usage message for xolo
-USAGE='xolo [options] <command> [<title> [<version>]]'
+USAGE='xolo [options] <command> [ title1[=version1] [ title2[=version2] ... ]]'
 
 # The URL for more information about xolo
 XOLO_DOX_URL='https://pixaranimationstudios.github.io/xolo-home/'
@@ -53,6 +53,25 @@ CLIENT_DATA_JSON_FILE="/Library/Application Support/xolo/client-data.json"
 
 # The jamf policy trigger to update the client data
 UPDATE_CLIENT_DATA_TRIGGER='update-xolo-client-data'
+
+# In the CLI args, titles and versions are separated by the first
+# occurrence of the equals sign
+TITLE_VERSION_SEPARATOR='='
+
+
+# These commands must be run as root
+ROOT_COMMANDS=(
+  install
+  i
+  uninstall
+  u
+  update
+  U
+  refresh
+  r
+  expire
+  e
+)
 
 # GLOBAL VARIABLES
 ###############################
@@ -70,6 +89,7 @@ show_xolo_version=
 
 # arguments
 command=
+targets=
 title=
 version=
 
@@ -92,10 +112,18 @@ function die() {
   local mystat=1
 
   [[ -n "$2" ]] && mystat=$2
-  echoerr "$msg"
+  echoerr "ERROR: $msg"
   exit $mystat
 }
 
+# Die if not root and the command being run is in the list of root commands
+#################################
+function must_be_root() {
+  if (( $ROOT_COMMANDS[(Ie)$command] )); then
+    [[ $EUID -ne 0 ]] && die "You must be root to use the '$command' command."
+  fi
+  return 0
+}
 
 # Show the help message
 ###############################
@@ -122,11 +150,11 @@ Options:
   override quiet mode.
 
 Commands:
-  install, i <title> [<version>]
+  install, i <title>[=<version>] [<title2>[=<version2>] ...]
     Install a title, or specific version thereof (e.g. a version currently in pilot)
     If no version is specified, the currently released version will be installed.
 
-  uninstall, u <title>
+  uninstall, u <title> [<title2> ...]
     Uninstall a title, if possible. Not all titles are uninstallable via xolo.
 
   update, U
@@ -150,8 +178,10 @@ Commands:
     a few moments, since all titles with version scripts will run those scripts
     to see if they are installed.
 
-  details, d <title> [<version>]
-    Show detailed information about a title, or a specific version thereof.
+  details, d <title>[=<version>] [<title2>[=<version2>] ...]
+    Show detailed information about titles, or a specific versions thereof.
+    Note that titles and versions contain different sets of information, so the output
+    will differ depending on what you specify.
 
   expire, e
     Expire the given title if it has not been used in its defined expiration period.
@@ -160,6 +190,26 @@ Commands:
 
   help, h
     Show this help message. The same as -h or --help.
+
+Examples:
+  xolo install transmogrifier
+    Installs the currently released version of the title "transmogrifier".
+
+  xolo install laserbeam transmogrifier=2.0
+    Installs the currently released version of the title "laserbeam" and version 2.0 of
+    the title "transmogrifier", if it is in pilot or already released.
+
+  xolo uninstall transmogrifier laserbeam
+    Uninstalls the titles "transmogrifier" and "laserbeam, if they are uninstallable via
+    xolo and currently installed. Note that versions are ignored for uninstalling, since
+    only one version of a title can be installed at a time.
+
+  xolo list-titles
+    Lists all titles known to xolo, with their versions and statuses.
+
+  xolo details laserbeam transmogrifier=2.0
+    Shows detailed information about the title "laserbeam" and version 2.0 of the title
+    "transmogrifier".
 
   For more information about xolo, see $XOLO_DOX_URL
 ENDHELP
@@ -196,10 +246,11 @@ function parse_cli() {
   command=$1
   [[ ${#@} -gt 0 ]] && shift
 
-  title=$1
-  [[ ${#@} -gt 0 ]] && shift
+  targets=("${(@)@}")
 
-  version=$1
+  # title=$1
+  # [[ ${#@} -gt 0 ]] && shift
+  # version=$1
 
   # echo "show_help is: $show_help"
   # echo "be_verbose is: $be_verbose"
@@ -219,8 +270,30 @@ function parse_cli() {
   debug "..show_xolo_version is: $show_xolo_version"
 
   debug "..command is: $command"
-  debug "..title is: $title"
-  debug "..version is: $version"
+  debug "..targets are: $targets"
+}
+
+# Parse a title and version from the command line, where they may be given in the form
+# title or title=version
+#################################
+function parse_title_and_version() {
+  local arg=$1
+  debug "Parsing title and version from arg: '$arg'"
+
+  if [[ "$arg" == *"$TITLE_VERSION_SEPARATOR"* ]] ; then
+    # everything before the first = is title
+    title=${arg%%$TITLE_VERSION_SEPARATOR*}
+    # everything after the first = is version
+    version=${arg#*$TITLE_VERSION_SEPARATOR}
+  else
+    title="$arg"
+    version=''
+  fi
+
+  debug "..title is: '$title'"
+  debug "..version is: '$version'"
+
+  return 0
 }
 
 # quick test for debugging_on
@@ -366,7 +439,7 @@ function all_xolo_titles() {
   read -r -d '' jscode <<ENDJAVASCRIPT
     result = Object.keys(parsed_data.titles).join('\n');
 ENDJAVASCRIPT
-  extract_json_data "$jscode"
+  extract_json_data "$jscode" | sort
 }
 
 # Outputs all known titles, one per line, with versions and statuses
@@ -399,7 +472,7 @@ function all_xolo_titles_with_versions() {
     result = result.slice(0, -1);
 
 ENDJAVASCRIPT
-  extract_json_data "$jscode"
+  extract_json_data "$jscode"  | sort
 }
 
 
@@ -723,6 +796,7 @@ function run_jamf_policy_trigger() {
 # Refresh the client data
 ###############################
 function refresh_client_data() {
+
   # if we've already refreshed during this run, we're done
   [[ -n "$client_data_refreshed" ]] && return
 
@@ -744,8 +818,9 @@ function validate_title() {
   # die if no title given
   [[ -z "$title" ]] && die "No title given.\nUsage: $USAGE\nUse --help for more information."
 
-  # make sure the JSON data file is up to date
-  refresh_client_data
+  # make sure the JSON data file is up to date, if we are root
+
+  [[ $EUID -eq 0 ]] && refresh_client_data
 
   # die if no such title
   # all titles in an array
@@ -776,9 +851,21 @@ function validate_version() {
   version_is_valid=1
 }
 
+# Install all the items on the command line, which may be titles or specific versions of titles
+#################################
+function install_cli_args() {
+  debug "Installing Targets: $targets"
+  for item in $targets ; do
+    parse_title_and_version "$item"
+    install
+  done
+}
+
+
 # Install a title, or a specific version thereof
 ###############################
 function install() {
+
   validate_title
 
   # if no version is given, we'll find the current release
@@ -814,12 +901,25 @@ function install() {
   fi
 }
 
+# uninstall CLI args, which are just titles since versions don't matter for uninstalling
+##############################
+function uninstall_cli_args() {
+  debug "Uninstalling Targets: $targets"
+  for item in $targets ; do
+    parse_title_and_version "$item"
+    uninstall
+  done
+}
+
 # Unnstall a title
 # This might not do anything if the title is not uninstallable,
 # or if the title is not installed
 ###############################
 function uninstall() {
   validate_title
+
+  details_for_title $title | grep -q 'Uninstallable: true' || die "Title $title is not uninstallable via xolo"
+
   say "Uninstalling title $title..."
 
   if run_jamf_policy_trigger "xolo-${title}-uninstall" ; then
@@ -881,9 +981,20 @@ function list_all_titles() {
   all_xolo_titles_with_versions
 }
 
+# Show detailed information about all titles, or specific versions thereof, given on the command line
+########################
+function show_details_cli_args() {
+  debug "Showing details for targets: $targets"
+  for item in $targets; do
+    parse_title_and_version "$item"
+    show_details
+  done
+}
+
 # Show detailed information about a title or a version thereof
 ###############################
 function show_details() {
+  debug "Showing details for title '$title' and version '$version'..."
   validate_title
 
   if [[ -z "$version" ]] ; then
@@ -901,7 +1012,7 @@ function list_installed_titles() {
   local app_data
 
 
-  verbose "Listing installed titles..."
+  verbose "Locating installed titles..."
 
   # populate the installed_apps associative array
   get_installed_apps
@@ -916,6 +1027,7 @@ function list_installed_titles() {
       display_title_if_installed_by_version_script $ttl
     fi
   done <<<"$(all_xolo_titles)"
+  return 0
 }
 
 # given a title and some app data (name, bundle id)
@@ -1081,6 +1193,9 @@ function expire() {
   uninstall
 }
 
+
+
+
 # MAIN
 ###############################
 ###############################
@@ -1109,14 +1224,17 @@ function main() {
 
   [[ -z "$command" ]] && die "No command given.\nUsage: $USAGE\nUse --help for more information."
 
+  # confirm we are root for those commands that need it
+  must_be_root
+
   case "$command" in
     install|i)
       debug "processing command 'install'"
-      install
+      install_cli_args
       ;;
     uninstall|u)
       debug "processing command 'uninstall'"
-      uninstall
+      uninstall_cli_args
       ;;
     update|U)
       debug "processing command 'update'"
@@ -1138,7 +1256,7 @@ function main() {
       ;;
     details|d)
       debug "processing command 'details'"
-      show_details
+      show_details_cli_args
       ;;
     expire|e)
       debug "processing command 'expire'"
