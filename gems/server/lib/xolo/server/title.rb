@@ -939,8 +939,8 @@ module Xolo
 
         update_versions_for_release version_to_release
 
-        # this will enable the jamf 'manual install released' policy for the new release
-        toggle_jamf_manual_install_released_policy
+        # the jamf 'manual install released' policy for the new release
+        # is updated in the release_version method below
 
         # update the title
         self.released_version = version_to_release
@@ -1010,8 +1010,7 @@ module Xolo
         progress msg, log: :info
 
         pol = jamf_manual_install_released_policy
-        pol.package_ids.each { |pid| pol.remove_package pid }
-        pol.add_package vobj.jamf_pkg_id
+        toggle_jamf_manual_install_released_policy pol, vobj
         pol.save
       end
 
