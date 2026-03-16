@@ -226,9 +226,11 @@ module Xolo
           req_change = requirement_change
           return unless req_change
 
-          new_app_name = changes_for_update.dig :app_name, :new
-          new_app_bundle_id = changes_for_update.dig :app_bundle_id, :new
           new_ea_script = changes_for_update.dig :version_script, :new
+
+          # if either of these are nil in changes, then use the existing value
+          new_app_name = changes_for_update.dig(:app_name, :new) || app_name
+          new_app_bundle_id = changes_for_update.dig(:app_bundle_id, :new) || app_bundle_id
 
           case req_change
           when :app_to_ea
@@ -250,6 +252,7 @@ module Xolo
           when :update_app
             # set the requirement to use the new app data
             set_ted_title_requirement app_name: new_app_name, app_bundle_id: new_app_bundle_id
+
             # for all versions, update the patch compotent criteria to use the new app data
             set_ted_patch_component_criteria_after_update app_name: new_app_name, app_bundle_id: new_app_bundle_id
 
