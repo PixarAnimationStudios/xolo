@@ -82,7 +82,6 @@ ROOT_COMMANDS=(
 # options
 show_help=
 be_verbose=
-be_quiet=
 debugging_on=
 no_versions=
 show_xolo_version=
@@ -137,17 +136,14 @@ Usage:
 Options:
   -h, -H, --help:    Show this help message.
   -v, --verbose:     Enable verbose mode, extra information will be printed.
-  -q, --quiet:       Enable quiet mode, only errors will be printed to stderr.
   -d, --debug:       Enable debug mode, extra debug information will be printed.
+                     Implies --verbose.
   -r, --recon:       With 'install' or 'uninstall' run a 'jamf recon' after the
                      operation completes successfully.
   -n, --no-versions: With the 'list-titles' and 'list-installed' commands,
                      do not show the versions available, or the version
                      installed, respectively.
   -V, --version:     Show the version of xolo.
-
-  NOTE: Debug mode will also enable verbose mode. Both debug and verbose modes
-  override quiet mode.
 
 Commands:
   install, i <title>[=<version>] [<title2>[=<version2>] ...]
@@ -221,7 +217,6 @@ function parse_cli() {
   zparseopts -D -F -E -- \
     {h,H,-help}=show_help \
     {v,-verbose}=be_verbose \
-    {q,-quiet}=be_quiet \
     {d,-debug}=debugging_on \
     {n,-no-versions}=no_versions \
     {r,-recon}=do_recon \
@@ -231,7 +226,6 @@ function parse_cli() {
   # they are in arrays, but we want regular vars
   show_help=$show_help[-1]
   be_verbose=$be_verbose[-1]
-  be_quiet=$be_quiet[-1]
   debugging_on=$debugging_on[-1]
   no_versions=$no_versions[-1]
   do_recon=$do_recon[-1]
@@ -240,31 +234,14 @@ function parse_cli() {
   # if debugging is on, verbose is also on
   [[ -n $debugging_on ]] && be_verbose=1
 
-  # if we're in verbose mode, we're not in quiet mode
-  [[ -n $be_verbose ]] && unset be_quiet
-
   command=$1
   [[ ${#@} -gt 0 ]] && shift
 
   targets=("${(@)@}")
 
-  # title=$1
-  # [[ ${#@} -gt 0 ]] && shift
-  # version=$1
-
-  # echo "show_help is: $show_help"
-  # echo "be_verbose is: $be_verbose"
-  # echo "be_quiet is: $be_quiet"
-  # echo "debugging_on is: $debugging_on"
-  # echo "command is: $command"
-  # echo "title is: $title"
-  # echo "version is: $version"
-
-
   debug "Parsed command line:"
   debug "..show_help is: $show_help"
   debug "..be_verbose is: $be_verbose"
-  debug "..be_quiet is: $be_quiet"
   debug "..debugging_on is: $debugging_on"
   debug "..no_versions is: $no_versions"
   debug "..show_xolo_version is: $show_xolo_version"
@@ -308,16 +285,10 @@ function be_verbose() {
   [[ -n "$be_verbose" ]]
 }
 
-# quick test for be_quiet
-###############################
-function be_quiet() {
-  [[ -n "$be_quiet" ]]
-}
-
-# Print a message to stout if we're not in quiet mode
+# Print a message to stout
 ###############################
 function say() {
-  be_quiet || echo "$*"
+  echo "$*"
 }
 
 # Print a message to stdout if we're in verbose or debug mode
@@ -753,39 +724,24 @@ ENDJAVASCRIPT
 # Run a Jamf policy trigger
 # $1 = the policy trigger to run
 # $2 = any extra options to pass to the jamf command
-# be_verbose() and be_quiet() will automatically be honored
+# be_verbose() will automatically be honored
 #######################################
 function run_jamf_policy_trigger() {
   local policy_trigger=$1
   local jamf_options=$2
   local jamf_verbose=''
-  local jamf_quiet=''
   local cmd
 
-  # debug means verbose
-  if be_verbose ; then
-    jamf_verbose='-verbose'
-  else
-    # if told to be quiet, do so
-    if be_quiet ; then
-      jamf_quiet=1
-
-    # but if we're refreshing client data as part of
-    # another command, always be quiet.
-    elif [[ $policy_trigger == $UPDATE_CLIENT_DATA_TRIGGER && "$command" != 'refresh' ]] ; then
-      jamf_quiet=1
-    fi
-  fi
-
+  be_verbose && jamf_verbose='-verbose'
 
   cmd="$JAMF policy -trigger $policy_trigger $jamf_options $jamf_verbose"
-  debug "Running jamf policy command: $cmd"
+  tempfile=$(mktemp /tmp/xolo-policy.XXXXXXXX)
 
-  if [[ -n $jamf_quiet ]] ; then
-    policy_output=$( eval "$cmd" )
-  else
-    policy_output=$( eval "$cmd" | tee /dev/tty )
-  fi
+  debug "Running jamf policy command: $cmd"
+  eval "$cmd" | tee "$tempfile"
+
+  policy_output=$(<"$tempfile")
+  rm -f "$tempfile"
 
   [[ $policy_output =~ 'Submitting log to https://' ]] && return 0
 
@@ -943,8 +899,6 @@ function run_recon() {
   say 'Running jamf recon...'
   if be_verbose ; then
     $JAMF recon -verbose
-  elif be_quiet ; then
-    $JAMF recon &> /dev/null
   else
     $JAMF recon
   fi
@@ -961,8 +915,6 @@ function update() {
   debug "Running jamf policy..."
     if be_verbose ; then
     $JAMF policy -verbose
-  elif be_quiet ; then
-    $JAMF policy &> /dev/null
   else
     $JAMF policy
   fi
