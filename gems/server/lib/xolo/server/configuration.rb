@@ -805,7 +805,7 @@ module Xolo
             pkgbuild, and productbuild.
 
             If you start this value with a vertical bar '|', everything after the bar is a command to be executed by the server at start-time.
-            The command must return the certificate to standard output. This is useful when using a secret-storage system to manage secrets.
+            The command must return the password to standard output. This is useful when using a secret-storage system to manage secrets.
 
             If the value is a path to a readable file, the file's contents are used.
 

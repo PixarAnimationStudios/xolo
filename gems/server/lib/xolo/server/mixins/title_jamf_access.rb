@@ -1358,6 +1358,7 @@ module Xolo
         end
 
         # Configure the settings for the manual_install_released_policy
+        # Be sure to call .save on the policy after this to save the changes.
         # @param pol [Jamf::Policy] the policy we are configuring
         # @return [void]
         ###################
@@ -1399,19 +1400,26 @@ module Xolo
 
         # enable or disable the manual install policy for the current release, depending on
         # whether or not we have a released version
+        # @param pol [Jamf::Policy] the manual install policy for the current release, which may or may not be saved yet.
+        # return [void]
         ############################
-        def toggle_jamf_manual_install_released_policy(pol = nil)
-          pol ||= jamf_manual_install_released_policy
+        def toggle_jamf_manual_install_released_policy(pol, vobj = nil)
+          # remove any current pkg payload
+          pol.package_ids.each { |pid| pol.remove_package pid }
 
-          # don't add a package or enable the pol if there's no released version
-          desired_vers = releasing_version || released_version
-          if desired_vers
-            progress "Jamf: Enabling manual install/SSvc policy for current release, version '#{desired_vers}'", log: :info
-            rel_vers = version_object(desired_vers)
-            pol.add_package rel_vers.jamf_pkg_id
+          unless vobj
+            desired_vers = releasing_version || released_version
+            vobj = desired_vers ? version_object(desired_vers) : nil
+          end
+
+          if vobj
+            progress "Jamf: Setting policy #{jamf_manual_install_released_policy_name} to install the package for version '#{vobj.version}'", log: :info
+            pol.add_package vobj.jamf_pkg_id
+
+            progress "Jamf: Enabling policy #{jamf_manual_install_released_policy_name}", log: :info
             pol.enable
           else
-            progress 'Jamf: Disabling manual install/SSvc policy for current release, no released version', log: :info
+            progress "Jamf: Disabling policy #{jamf_manual_install_released_policy_name}, no released version", log: :info
             pol.disable
           end
         end
