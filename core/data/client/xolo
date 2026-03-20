@@ -14,9 +14,12 @@
 zmodload zsh/zutil
 
 # for perl-style regexps
-# DISABLED FOR NOW - some versions of macos don't seem to have
-# /usr/lib/zsh/5.9/zsh/pcre.so
-# All our regexps now use posix style
+#
+# DISABLED FOR NOW - macOS before 15 Sequoia doesn't have the pcre module,
+# and we want to support 14 Sonoma for now.
+# The file required is /usr/lib/zsh/5.9/zsh/pcre.so
+#
+# Until then, all our regexps now use posix style
 #
 # setopt RE_MATCH_PCRE
 
