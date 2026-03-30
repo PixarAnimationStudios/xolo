@@ -98,7 +98,7 @@ module Xolo
         # @return [String] the package identifier for the xolo-client-data package
         ###################
         def client_data_package_identifier
-          @client_data_package_identifier ||= Xolo::Server.config.test_server ? "com.pixar.xolo.test-#{CLIENT_DATA_STR}" : "com.pixar.xolo.#{CLIENT_DATA_STR}"
+          @client_data_package_identifier ||= Xolo::Server.config.test_server ? "com.pixar.xolotest.#{CLIENT_DATA_STR}" : "com.pixar.xolo.#{CLIENT_DATA_STR}"
         end
 
         # The name of the Jamf Package object that contains the xolo client-data
@@ -106,7 +106,7 @@ module Xolo
         # @return [String] the name of the client-data package in Jamf Pro
         ###################
         def client_data_package_name
-          @client_data_package_name ||= "#{jamf_obj_name_pfx}#{CLIENT_DATA_STR}"
+          @client_data_package_name ||= "#{jamf_obj_name_pfx_base}#{CLIENT_DATA_STR}"
         end
 
         # The name of the package file that installs the xolo-client-data JSON file

@@ -73,12 +73,14 @@ module Xolo
         ###############################
         def log_error(msg, alert: false)
           logger.error(session_svr_obj_id) { msg }
+          # caller.each { |l| logger.error(session_svr_obj_id) { "..#{l}" } }
           send_alert msg, :ERROR if alert
         end
 
         ###############################
         def log_fatal(msg, alert: false)
           logger.fatal(session_svr_obj_id) { msg }
+          caller.each { |l| logger.fatal(session_svr_obj_id) { "..#{l}" } }
           send_alert msg, :FATAL if alert
         end
 

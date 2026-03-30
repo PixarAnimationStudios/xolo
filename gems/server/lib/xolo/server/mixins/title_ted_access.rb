@@ -304,11 +304,19 @@ module Xolo
           end
         end
 
+        # In the TitleEditor, the version script is
+        # stored as an Extension Attribute - each title can
+        # only have one.
+        # and it needs a 'key', which is the name used to indicate the
+        # EA in various criteria, and is the EA name in Jamf Patch.
+        # The key is jamf_obj_name_pfx on the title
+        # so for title 'foobar', it is 'xolo-foobar' or 'xolotest-foobar' for test servers
+        # That value is also used as the display name
         # @return [String] The key and display name of a version script stored
         #   in the title editor as the ExtAttr for this title
         #####################
         def ted_ea_key
-          @ted_ea_key ||= self.class.ted_ea_key title
+          @ted_ea_key ||= "#{jamf_obj_name_pfx_base}#{title}"
         end
 
         # Create the EA in the Title Editor

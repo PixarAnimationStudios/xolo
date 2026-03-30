@@ -53,7 +53,7 @@ module Xolo
         # A list of all known versions of a title
         # @return [Array<Xolo::Server::Version>]
         ############
-        def all_version_instances(title)
+        def all_version_objects(title)
           all_versions(title).map { |v| instantiate_version title: title, version: v }
         end
 
@@ -76,17 +76,26 @@ module Xolo
         # @return [Xolo::Server::Version]
         #################
         def instantiate_version(title: nil, version: nil, **data)
-          title_obj = nil
+          log_debug "Instantiating version with title: '#{title}', version: '#{version},' data: #{data}"
 
-          if data
-            title = data[:title]
-          elsif title.is_a?(Xolo::Server::Title)
+          if title.is_a?(Xolo::Server::Title)
             title_obj = title
             title = title_obj.title
+          elsif data[:title]
+            title = data[:title]
+            title_obj = instantiate_title(title)
+          elsif title
+            title_obj = instantiate_title(title)
+          else
+            halt 400, { status: 400, error: 'Missing title to instantiate a Xolo::Server::Version' }
+            log_error 'Missing title to instantiate a Xolo::Server::Version'
           end
 
           vers =
             if data.is_a? Hash
+              # ensure the title and version are in the data
+              data[:title] ||= title
+              data[:version] ||= version
               Xolo::Server::Version.new data
 
             elsif title && version
@@ -95,12 +104,12 @@ module Xolo
 
               Xolo::Server::Version.load title, version
             else
-              msg = 'Invalid data to instantiate a Xolo::Server::Version'
+              msg = "Invalid title, version, or data to instantiate a Xolo::Server::Version: #{data.class}:#{data} "
               log_error msg
               halt 400, { status: 400, error: msg }
             end
 
-          vers.title_object = title_obj || instantiate_title(title)
+          vers.title_object = title_obj
           vers.server_app_instance = self
           vers
         end
@@ -110,6 +119,7 @@ module Xolo
         # @return [void]
         ##################
         def halt_on_missing_version(title, version)
+          log_debug "Checking for missing version '#{version}' of title '#{title}'"
           return if all_versions(title).include? version
 
           msg = "No version '#{version}' for title '#{title}'."
@@ -127,6 +137,8 @@ module Xolo
         # @return [void]
         ##################
         def halt_on_existing_version(title, version)
+          log_debug "Checking for existing version '#{version}' of title '#{title}'"
+
           return unless all_versions(title).include? version
 
           msg = "Version '#{version}' of title '#{title}' already exists."

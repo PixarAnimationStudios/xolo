@@ -163,7 +163,7 @@ module Xolo
         #
         # @return [String] The prefix for Jamf object names
         ###########################
-        def jamf_obj_name_pfx
+        def jamf_obj_name_pfx_base
           if Xolo::Server.config.test_server
             Xolo::Server::JAMF_TEST_OBJECT_NAME_PFX
           else

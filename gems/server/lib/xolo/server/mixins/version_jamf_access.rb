@@ -26,24 +26,24 @@ module Xolo
 
         # The group of macs with this version installed
         # is named the full prefix plus this suffix.
-        JAMF_SMART_GROUP_NAME_INSTALLED_SFX = '-installed'
+        JAMF_SMART_GROUP_NAME_INSTALLED_SFX = 'installed'
 
         # The policy that does initial installs on-demand
         # (via 'xolo install <title> <version') is named the full
         # prefix plus this suffix.
-        JAMF_POLICY_NAME_MANUAL_INSTALL_SFX = '-manual-install'
+        JAMF_POLICY_NAME_MANUAL_INSTALL_SFX = 'manual-install'
 
         # The policy that does auto-installs is named the full
         # prefix plus this suffix.
         # The scope is changed as needed when a version's status
         # changes
-        JAMF_POLICY_NAME_AUTO_INSTALL_SFX = '-auto-install'
+        JAMF_POLICY_NAME_AUTO_INSTALL_SFX = 'auto-install'
 
         # The policy that does auto-re-installs is named the full
         # prefix plus this suffix.
         # The scope is changed as needed when a version's status
         # changes
-        JAMF_POLICY_NAME_AUTO_REINSTALL_SFX = '-auto-reinstall'
+        JAMF_POLICY_NAME_AUTO_REINSTALL_SFX = 'auto-reinstall'
 
         # POLICIES, PATCH POLICIES, SCOPING
         #############################
@@ -198,13 +198,20 @@ module Xolo
             activate_managed_patch_version_in_jamf
           end
 
-          # if we have an autopkg recipe and dir, get the .pkg and upload it to Jamf
-          if autopkg_recipe && autopkg_dir
-            upload_pkg_to_jamf_via_autopkg
+          # do we have an uploaded pkg?
+          if pkg_to_upload.to_s.start_with? '/'
+            progress "Pkg will be uploaded to xolo via xadm shortly, from path '#{pkg_to_upload}'", log: :info
 
-          # otherwise tell someone we need a .pkg to upload
+          # if we have an autopkg recipe and dir, get the .pkg and upload it to Jamf
+          elsif server_app_instance.autopkg_enabled? && title_object.autopkg_recipe && title_object.autopkg_dir
+            new_pkg = title_object.run_autopkg_recipe
+            server_app_instance.upload_pkg_to_jamf_from_autopkg self, new_pkg
+
+          # otherwise tell someone we need a .pkg
           else
-            notify_pkg_needed_for_jamf_upload
+            msg = "No --pkg-to-upload given for version '#{version}' of title #{title}, and no autopkg recipe enabled. Please upload a pkg via xadm or enable autopkg for this title and version."
+            progress msg, log: :warn, alert: true
+
           end
         end
 

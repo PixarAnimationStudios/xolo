@@ -146,10 +146,7 @@ module Xolo
 
           progress_stream_file.pix_append "#{msg.chomp}\n"
 
-          unless log
-            # log_debug 'Processed unlogged progress message'
-            return
-          end
+          return unless log
 
           case log
           when :debug

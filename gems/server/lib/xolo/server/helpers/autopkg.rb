@@ -118,28 +118,30 @@ module Xolo
         #   or nil if the recipe is not enabled for this title
         ##############################
         def run_autopkg_recipe(title_object)
-          return unless title_object.autopkg_enabled?
+          return unless autopkg_enabled?
+          return unless title_object.autopkg_recipe && title_object.autopkg_dir
 
           recipe = title_object.autopkg_recipe
           pkgdir = Pathname.new title_object.autopkg_dir
 
           cmd = autopkg_run_command(title_object)
-          log_info "Running AutoPkg recipe for #{title} via command: #{cmd.join(' ')}"
+          progress "Running AutoPkg recipe for #{title_object.title} via command: #{cmd.join(' ')}", log: :info
+
+          unlock_autopkg_user_keychain
 
           souterr, status = Open3.capture2e(*cmd)
           souterr.strip!
 
           if status.success?
-            log_info "AutoPkg recipe #{recipe} completed successfully.", alert: true
+            progress "AutoPkg recipe #{recipe} completed successfully.", log: :info, alert: true
             log_debug 'AutoPkg output:'
             souterr.lines.each { |l| log_debug "AutoPkg: #{l.chomp}" }
 
-            # TODO: ? the .pkg might be an oldschool .pkg bundle, so we might want to check for that
             pkgs = pkgdir.children.select { |c| c.extname == '.pkg' }
             pkgs.max_by { |p| p.mtime }
 
           else
-            log_error "AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", alert: true
+            progress "ERROR: AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", log: :error, alert: true
             log_error 'AutoPkg output:'
             souterr.lines.each { |l| log_error "AutoPkg: #{l.chomp}" }
 
@@ -147,25 +149,42 @@ module Xolo
           end
         end
 
-        #
-        # @param title_object [Xolo::Server::Title] the title object for which to upload the pkg.
+        # @param version_object [Xolo::Server::Version] the version object for which to upload the pkg.
         # @param new_pkg [Pathname] the pkg to upload to Jamf Pro. This is expected to be the output of run_autopkg_recipe.
         #
         # @return [void]
         ##############################
-        def upload_pkg_to_jamf_from_autopkg(title_object, new_pkg)
+        def upload_pkg_to_jamf_from_autopkg(version_object, new_pkg)
           # The uploaded pkg from autopkg will be staged here before uploading again to
           # the Jamf Dist Point(s)
-          staged_pkg = title_object.title_dir + new_pkg.basename
+          version_object.data_dir.mkpath unless version_object.data_dir.directory?
+
+          # wrap in dist pkg if needed before staging
+          new_pkg = wrap_component_pkg_in_distribution(new_pkg) if Xolo::Server.config.create_distribution_pkgs && !pkg_is_distribution?(new_pkg)
+
+          # the name it'll have on the dist server
+          staged_pkg = version_object.data_dir + "#{jamf_pkg_name}.pkg"
 
           # remove any old one that might be there
           staged_pkg.delete if staged_pkg.file?
 
           # sign pkg if needed
+          # this puts the signed pkg in the staging location
+          if Xolo::Server.config.sign_autopkg_pkgs && need_to_sign?(new_pkg)
+            unlock_autopkg_user_keychain
+            sign_pkg(new_pkg, staged_pkg)
 
-          # wrap and re-sign if needed
-          # rename pkg
+          # otherwise just move it to the staging location
+          else
+            new_pkg.rename(staged_pkg)
+          end
+
           # upload to Jamf Pro
+          upload_to_dist_point(version_object.jamf_package, staged_pkg)
+        ensure
+          orig_new_pkg.delete if defined?(orig_new_pkg) && orig_new_pkg&.file?
+          new_pkg.delete if new_pkg&.file?
+          staged_pkg.delete if staged_pkg&.file?
         end
 
       end # AutoPkg

@@ -60,6 +60,8 @@ module Xolo
           log_debug "Incoming new version data: #{data}"
 
           vers = instantiate_version(**data)
+          log_debug "Instantiated version object: #{vers.class} - #{vers.title} #{vers.version}"
+
           halt_on_existing_version vers.title, vers.version
 
           if vers.title_object.jamf_patch_ea_awaiting_acceptance? && !Xolo::Server.config.jamf_auto_accept_xolo_eas
@@ -88,9 +90,9 @@ module Xolo
 
           log_debug "Admin #{session[:admin]} is listing all versions for title '#{params[:title]}'"
           # body all_versions(params[:title])
-          vers_ins = all_version_instances(params[:title])
+          vers_objs = all_version_objects(params[:title])
           # log_debug "vers_ins: #{vers_ins}"
-          body vers_ins.map(&:to_h)
+          body vers_objs.map(&:to_h)
         end
 
         # get all the data for a single version

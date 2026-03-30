@@ -67,7 +67,7 @@ module Xolo
         # This is so that the changelog can be accessed after the title is deleted.
         ################
         def self.backup_file_dir
-          return @backup_file_dir if @backup_file_dir&.exists?
+          return @backup_file_dir if @backup_file_dir&.exist?
 
           @backup_file_dir = Xolo::Server::BACKUPS_DIR + 'changelogs'
           @backup_file_dir.mkpath unless @backup_file_dir.exist?

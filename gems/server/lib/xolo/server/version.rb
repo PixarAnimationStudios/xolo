@@ -354,7 +354,7 @@ module Xolo
         @jamf_pkg_id ||= data_hash[:jamf_pkg_id]
 
         # and these can be generated now
-        @jamf_obj_name_pfx = "#{jamf_obj_name_pfx}#{title}-#{version}"
+        @jamf_obj_name_pfx = "#{jamf_obj_name_pfx_base}#{title}-#{version}"
 
         @jamf_pkg_name ||= @jamf_obj_name_pfx
 
@@ -436,7 +436,12 @@ module Xolo
         return @pilot_groups_to_use unless @pilot_groups_to_use.empty?
 
         # if none defined in the version, look in the title
-        @release_groups_to_use = title_object.changes_for_update&.key?(:pilot_groups) ? title_object.changes_for_update[:pilot_groups][:new] : ttl_obj.pilot_groups
+        @pilot_groups_to_use =
+          if title_object.changes_for_update&.key?(:pilot_groups)
+            title_object.changes_for_update[:pilot_groups][:new]
+          else
+            title_object.pilot_groups
+          end
       end
 
       # The scope excluded groups to use in policies and patch policies for all versions of
@@ -519,8 +524,8 @@ module Xolo
       #
       # @return [void]
       ###################
-      def progress(msg, log: :debug)
-        server_app_instance.progress msg, log: log
+      def progress(msg, log: :debug, alert: false)
+        server_app_instance.progress msg, log: log, alert: alert
       end
 
       # This might have been set already if we were instantiated via our title

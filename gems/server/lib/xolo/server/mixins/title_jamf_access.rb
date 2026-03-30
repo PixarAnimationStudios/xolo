@@ -1268,7 +1268,7 @@ module Xolo
           return unless managed?
 
           counter = 0
-          until jamf_managed_title_available? || counter == 12
+          until jamf_active_managed_titles(refresh: true).key?(title) || jamf_managed_title_available? || counter == 12
             log_debug "Jamf: Waiting for title '#{display_name}' (#{title}) to become available from the Title Editor"
             sleep 5
             counter += 1
@@ -1553,6 +1553,13 @@ module Xolo
           pol.save # won't do anything unless needed, but has to exist before we can upload icons
           pol.upload :icon, ssvc_icon_file
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
+        end
+
+        # run the autopkg recipe if defined
+        # See Helpers::AutoPkg for more details
+        ############################
+        def run_autopkg_recipe
+          server_app_instance.run_autopkg_recipe self
         end
 
         # Methods used by subscription stuff
