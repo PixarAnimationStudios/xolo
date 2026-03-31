@@ -96,7 +96,8 @@ module Xolo
         # and do all the processing around that
         #
         # @param title [String] The title the package belongs to
-        # @param version [String] The version string for the package
+        # @param version [String, Xolo::Server::Version] the version string or object
+        # @param pkg_src [String, Pathname] the path to the pkg
         # @return [void]
         ###########################################
         def process_and_upload_autopkg_pkg(title, version, pkg_src)
@@ -110,7 +111,7 @@ module Xolo
         # Process a pkg installer and upload to jamf
         #
         # @param title [String] the title name
-        # @param version [String] the version string
+        # @param version [String, Xolo::Server::Version] the version string or object
         # @param pkg_src [String, Pathname] the path to the file to be uploaded to Jamf
         #   This could be one uploaded from xadm, or one created by autopkg
         # @param orig_filename [String, nil] the original filename of the pkg, e.g. as uploaded from
@@ -121,9 +122,7 @@ module Xolo
           pkg_src = Pathname.new pkg_src
           orig_filename ||= pkg_src.basename.to_s
 
-          # the Xolo::Server::Version that owns this pkg
-          version = instantiate_version title: title, version: version
-          version.lock
+          version = instantiate_version(title: title, version: version) if version.is_a?(String)
 
           staged_pkg = prep_pkg_for_upload(version, pkg_src)
           upload_pkg_in_thread(version, staged_pkg, orig_filename)
@@ -133,7 +132,6 @@ module Xolo
           e.backtrace.each { |line| log_error "..#{line}" }
           halt 400, { status: 400, error: msg }
         ensure
-          version.unlock
           pkg_src.delete if pkg_src.file?
         end
 
@@ -198,8 +196,12 @@ module Xolo
 
               upload_to_dist_point(version.jamf_package, staged_pkg)
 
-              uploaded_by = defined?(session) ? session[:admin] : nil
-              uploaded_by ||= Xolo::Server::Helpers::AutoPkg::AUTOPKG_UPLOADED_BY
+              uploaded_by =
+                if version.title_object.autopkg_enabled?
+                  Xolo::Server::Helpers::AutoPkg::AUTOPKG_UPLOADED_BY
+                elsif defined?(session)
+                  session[:admin]
+                end
 
               if re_uploading
                 version.reupload_date = Time.now
@@ -310,23 +312,19 @@ module Xolo
         # @return [String] the filename to use for the pkg on the dist point
         ####################
         def dist_pkg_filename(version)
-          # This validates that the src file ends with .pkg
-          # and if so, returns .pkg (we no longer support .zip files)
-          file_extname = validate_uploaded_pkg pkg_src
-
           dist_pkg_filename =
             if version.upload_date.pix_empty?
               # no upload date, this is the first upload
-              "#{version.jamf_pkg_name}#{file_extname}"
+              "#{version.jamf_pkg_name}#{Xolo::DOT_PKG}"
 
             elsif version.jamf_pkg_file =~ /_(\d+)_\.pkg$/
               # this is a re-upload, does the filename indicat a previous re-upload with a _N_ in the name?
               next_num = Regex.last_match[1].to_i + 1
-              "#{version.jamf_pkg_name}_#{next_num}_#{file_extname}"
+              "#{version.jamf_pkg_name}_#{next_num}_#{Xolo::DOT_PKG}"
 
             else
               # the first re-upload, just add _2_ before the extension
-              "#{version.jamf_pkg_name}_2_#{file_extname}"
+              "#{version.jamf_pkg_name}_2_#{Xolo::DOT_PKG}"
             end
 
           log_debug "Jamf: Uploaded package filename will be '#{dist_pkg_filename}'"
@@ -367,9 +365,10 @@ module Xolo
           `/usr/bin/xar -tf #{pkg_file.to_s.shellescape}`.split("\n").include? 'Distribution'
         end
 
-        # Wrap a component pkg in a Distribution pkg, return the path to the Distribution pkg
+        # Wrap a component pkg in a Distribution pkg, return the path to the Distribution pkg,
+        # which should be the same as the orig_pkg
         #
-        # @param component_pkg [Pathname, String] The path to the component .pkg
+        # @param orig_pkg [Pathname, String] The path to the component .pkg
         #
         # @return [Pathname] The path to the new Distribution pkg
         ###########################################
@@ -386,11 +385,23 @@ module Xolo
           log_info "Wrapping component pkg '#{orig_pkg.basename}' in a Distribution pkg"
           out_dir = orig_pkg.parent
           out_file = out_dir + "#{orig_pkg.basename(Xolo::DOT_PKG)}_dist#{Xolo::DOT_PKG}"
-          if system "/usr/bin/productbuild –package #{orig_pkg.to_s.shellescape} #{out_file.to_s.shellescape}"
+
+          # the productbuild command, with signing if needed
+          prodbuild_cmd = +"/usr/bin/productbuild –package #{orig_pkg.to_s.shellescape} "
+          if Xolo::Server.config.sign_pkgs
+            sh_kch = Shellwords.escape Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
+            sh_ident = Shellwords.escape Xolo::Server.config.pkg_signing_identity
+            unlock_signing_keychain
+            prodbuild_cmd << "--sign #{sh_ident} --keychain #{sh_kch} "
+          end
+          prodbuild_cmd << out_file.to_s.shellescape
+
+          if system prodbuild_cmd
             # remove the component pkg
             orig_pkg.delete
             # rename the dist pkg to the original pkg name,
             out_file.rename orig_pkg
+
             return orig_pkg
           end
 

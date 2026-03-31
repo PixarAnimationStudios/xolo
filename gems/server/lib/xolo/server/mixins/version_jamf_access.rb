@@ -197,22 +197,6 @@ module Xolo
           else
             activate_managed_patch_version_in_jamf
           end
-
-          # do we have an uploaded pkg?
-          if pkg_to_upload.to_s.start_with? '/'
-            progress "Pkg will be uploaded to xolo via xadm shortly, from path '#{pkg_to_upload}'", log: :info
-
-          # if we have an autopkg recipe and dir, get the .pkg and upload it to Jamf
-          elsif server_app_instance.autopkg_enabled? && title_object.autopkg_recipe && title_object.autopkg_dir
-            new_pkg = title_object.run_autopkg_recipe
-            server_app_instance.upload_pkg_to_jamf_from_autopkg self, new_pkg
-
-          # otherwise tell someone we need a .pkg
-          else
-            msg = "No --pkg-to-upload given for version '#{version}' of title #{title}, and no autopkg recipe enabled. Please upload a pkg via xadm or enable autopkg for this title and version."
-            progress msg, log: :warn, alert: true
-
-          end
         end
 
         # Apply edits to the Xolo version to Jamf as needed
@@ -463,7 +447,7 @@ module Xolo
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
           progress msg, log: :info
 
-          warning = +"IMPORTANT: Package deletion is slow. If you plan to re-add this version, '#{version}', please\n  "
+          warning = +"IMPORTANT: Package deletion can be slow. If you plan to re-add this version, '#{version}', please\n  "
           warning <<
             if Xolo::Server.config.alert_tool
               'check your Xolo alerts for completion, which can take up to 5 minutes,'

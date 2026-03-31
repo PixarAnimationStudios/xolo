@@ -125,7 +125,7 @@ module Xolo
 
           msg = "Error unlocking signing keychain: #{outerrs}"
           log_error msg
-          raise Xolo::Core::Exceptions::ServerError msg
+          raise Xolo::Core::Exceptions::ServerError, msg
         end
 
       end # JamfPro

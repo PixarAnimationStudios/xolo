@@ -632,7 +632,21 @@ module Xolo
         # all done unless we need to get a pkg via autopkg
         # pkg upload from xadm will happen in a separate process,
         # so we don't want to do it here in the create method
-        handle_autopkg_during_create if title_object.autopkg_enabled?
+
+        # do we have an uploaded pkg?
+        if pkg_to_upload.to_s.start_with? '/'
+          progress "Pkg will be uploaded to xolo via xadm shortly, from path '#{pkg_to_upload}'", log: :info
+
+        # if we have an autopkg recipe and dir, get the .pkg and upload it to Jamf
+        elsif title_object.autopkg_enabled?
+          handle_autopkg_during_create
+
+        # otherwise tell someone we need a .pkg
+        else
+          msg = "No --pkg-to-upload given for version '#{version}' of title #{title}, and no autopkg recipe enabled. Please upload a pkg via xadm or enable autopkg for this title."
+          progress msg, log: :warn, alert: true
+
+        end
       ensure
         unlock
       end
@@ -643,9 +657,8 @@ module Xolo
       def handle_autopkg_during_create
         return unless title_object.autopkg_enabled?
 
-        # TODO: verify that this pkg was created within the last few minutes,
-        # to avoid accidentally uploading some old pkg that happens to be in the autopkg_dir
-        pkg_src = server_app_instance.run_autopkg_recipe(title_object)
+        pkg_src = title_object.run_autopkg_recipe
+
         if pkg_src.nil?
           msg = 'AutoPkg recipe is enabled for this title, but no pkg was found after running the recipe. Please check the AutoPkg recipe and the server log for details.'
           progress msg, log: :warn, alert: true
@@ -660,7 +673,7 @@ module Xolo
         end
 
         # Upload the pkg to Jamf, and associate it with this version
-        server_app_instance.process_and_upload_autopkg_pkg(title, version, pkg_src)
+        server_app_instance.process_and_upload_autopkg_pkg(title, self, pkg_src)
       end
 
       # Is this version part of a subscribed title?
@@ -963,14 +976,16 @@ module Xolo
         raise Xolo::ServerError, 'Server is shutting down' if Xolo::Server.shutting_down?
 
         while locked?
-          log_debug "Waiting for update lock on Version '#{version}' of title '#{title}'..." if (Time.now.to_i % 5).zero?
+          if (Time.now.to_i % 5).zero?
+            log_debug "Method #{caller_locations.first.label} is waiting for update lock on Version '#{version}' of title '#{title}'..."
+          end
           sleep 0.33
         end
         Xolo::Server.object_locks[title] ||= { versions: {} }
 
         exp = Time.now + Xolo::Server::ObjectLocks::OBJECT_LOCK_LIMIT
         Xolo::Server.object_locks[title][:versions][version] = exp
-        log_debug "Locked version '#{version}' of title '#{title}' for updates until #{exp}"
+        log_debug "Locked version '#{version}' of title '#{title}' for updates until #{exp}, by method #{caller_locations.first.label}"
       end
 
       # Unlock this version for updates

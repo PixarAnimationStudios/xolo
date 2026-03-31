@@ -27,7 +27,8 @@ module Xolo
       end
 
       # How many seconds are update locks valid for?
-      OBJECT_LOCK_LIMIT = 60 * 60
+      # 15 min
+      OBJECT_LOCK_LIMIT = 60 * 15
 
       # The locks for titles and versions - when they are being created or updated
       # they appear in this data structure with an expiration timestamp.

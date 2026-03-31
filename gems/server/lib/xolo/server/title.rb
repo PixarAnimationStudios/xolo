@@ -826,6 +826,16 @@ module Xolo
         self.uninstall_script &&= Xolo::ITEM_UPLOADED
       end
 
+      # Is AutoPkg integration enabled for the title?
+      ###############################
+      def autopkg_enabled?
+        return @autopkg_enabled if defined?(@autopkg_enabled)
+
+        @autopkg_enabled = server_app_instance.autopkg_enabled? && \
+                           autopkg_recipe && \
+                           autopkg_dir
+      end
+
       # are we uninstallable?
       #
       # @return [Boolean]
@@ -1103,7 +1113,7 @@ module Xolo
 
         exp = Time.now + Xolo::Server::ObjectLocks::OBJECT_LOCK_LIMIT
         Xolo::Server.object_locks[title][:expires] = exp
-        log_debug "Locked title '#{title}' for updates until #{exp}"
+        log_debug "Locked title '#{title}' for updates until #{exp}, by method #{caller_locations.first.label}"
       end
 
       # Unlock this v for updates

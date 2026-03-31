@@ -1259,16 +1259,17 @@ module Xolo
           jamf_patch_title
         end
 
-        # wait up to 60secs for a managed title to become available.
+        # wait up to 60secs for a managed title to become available to be activated
         # subscribed titles are already available
         ####################
         def wait_for_managed_title_to_become_available
           log_debug "Display Name in wait_for_managed_title_to_become_available: #{display_name}"
 
           return unless managed?
+          return if jamf_title_active?
 
           counter = 0
-          until jamf_active_managed_titles(refresh: true).key?(title) || jamf_managed_title_available? || counter == 12
+          until jamf_managed_title_available? || counter == 12
             log_debug "Jamf: Waiting for title '#{display_name}' (#{title}) to become available from the Title Editor"
             sleep 5
             counter += 1

@@ -92,7 +92,7 @@ module Xolo
           end
 
           vers =
-            if data.is_a? Hash
+            if !data.empty?
               # ensure the title and version are in the data
               data[:title] ||= title
               data[:version] ||= version

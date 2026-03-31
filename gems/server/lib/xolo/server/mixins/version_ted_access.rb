@@ -53,6 +53,14 @@ module Xolo
             return
           end
 
+          # if the patch exists, remove and recreate it
+          if ted_patch
+            progress "Title Editor: Patch '#{version}' of SoftwareTitle '#{title}' already exists, removing & readding it..."
+            ted_title.patches.delete_patch ted_patch.patchId
+            sleep 2
+            ted_patch(refresh: true)
+          end
+
           progress "Title Editor: Creating Patch '#{version}' of SoftwareTitle '#{title}'", log: :info
           ted_title.patches.add_patch(
             version: version,

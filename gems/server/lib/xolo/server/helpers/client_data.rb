@@ -90,8 +90,8 @@ module Xolo
         # /Library/Application Support/xolo/
         # @return [String] the name of the client-data JSON file in the package
         ###################
-        def client_data_file
-          @client_data_file ||= Xolo::Server.config.test_server ? "test-#{CLIENT_DATA_STR}.json" : "#{CLIENT_DATA_STR}.json"
+        def client_data_filename
+          @client_data_filename ||= Xolo::Server.config.test_server ? "test-#{CLIENT_DATA_STR}.json" : "#{CLIENT_DATA_STR}.json"
         end
 
         # The package identifier for the xolo-client-data package
@@ -196,7 +196,7 @@ module Xolo
         def create_client_data_jamf_package
           progress "Jamf: Creating package object '#{client_data_package_name}'"
 
-          info = "Installs the xolo client data JSON file into /Library/Application Support/xolo/#{client_data_file}"
+          info = "Installs the xolo client data JSON file into /Library/Application Support/xolo/#{client_data_filename}"
 
           # Create the package
           pkg = Jamf::JPackage.create(
@@ -299,7 +299,7 @@ module Xolo
           root_dir = pkg_work_dir + 'pkgroot'
           xolo_client_dir = root_dir + 'Library' + 'Application Support' + 'xolo'
           xolo_client_dir.mkpath
-          client_data_file = xolo_client_dir + client_data_file
+          client_data_file = xolo_client_dir + client_data_filename
           client_data_file.pix_save JSON.pretty_generate(client_data_hash)
 
           # build the component package
