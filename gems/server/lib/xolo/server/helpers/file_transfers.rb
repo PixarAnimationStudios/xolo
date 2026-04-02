@@ -142,7 +142,7 @@ module Xolo
         # @return [Pathname] the path to the staged pkg that is ready to be uploaded to Jamf
         #########################################
         def prep_pkg_for_upload(version, pkg_src)
-          msg = "Jamf: Processing installer package '#{pkg_src}' (#{pkg_src.size.pix_humanize_bytes}) for Jamf Dist upload, title '#{version.title}' version '#{version}'"
+          msg = "Jamf: Processing installer package '#{pkg_src}' (#{pkg_src.size.pix_humanize_bytes}) for Jamf Dist upload, title '#{version.title}' version '#{version.version}'"
           progress msg, log: :info
 
           version.jamf_pkg_file = dist_pkg_filename(version)
@@ -155,10 +155,10 @@ module Xolo
 
           # This will move/copy the pkg_src into the staged_pkg, signing it on the way if needed, and
           # delete the original pkg_src file.
-          sign_and_stage(pkg_src, staged_pkg)
+          sign_and_stage(pkg_src, staged_pkg, version)
 
           # Wrap component pkgs in a Distribution pkg if configured to do so
-          staged_pkg = wrap_component_pkg_in_distribution(staged_pkg) if Xolo::Server.config.create_distribution_pkgs
+          staged_pkg = wrap_component_pkg_in_distribution(staged_pkg, version) if Xolo::Server.config.create_distribution_pkgs
 
           staged_pkg
         end
@@ -337,9 +337,10 @@ module Xolo
         #
         # @param pkg_src [Pathname] the path to the file to be uploaded to Jamf
         # @param staged_pkg [Pathname] the path where the pkg should be staged for upload to Jamf
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
         # @return [void]
-        def sign_and_stage(pkg_src, staged_pkg)
-          if need_to_sign?(pkg_src)
+        def sign_and_stage(pkg_src, staged_pkg, version)
+          if need_to_sign?(pkg_src, version)
             # This will put the signed pkg into the staged_pkg location
             sign_pkg(pkg_src, staged_pkg)
             log_debug "Signing complete, signed pkg is '#{staged_pkg}', deleting original file '#{pkg_src}'"
@@ -369,10 +370,11 @@ module Xolo
         # which should be the same as the orig_pkg
         #
         # @param orig_pkg [Pathname, String] The path to the component .pkg
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
         #
         # @return [Pathname] The path to the new Distribution pkg
         ###########################################
-        def wrap_component_pkg_in_distribution(orig_pkg)
+        def wrap_component_pkg_in_distribution(orig_pkg, version)
           orig_pkg = Pathname.new(orig_pkg)
 
           raise ArgumentError, "pkg_file does not exist or not a file: #{orig_pkg}" unless orig_pkg.file?
@@ -387,14 +389,26 @@ module Xolo
           out_file = out_dir + "#{orig_pkg.basename(Xolo::DOT_PKG)}_dist#{Xolo::DOT_PKG}"
 
           # the productbuild command, with signing if needed
-          prodbuild_cmd = +"/usr/bin/productbuild –package #{orig_pkg.to_s.shellescape} "
-          if Xolo::Server.config.sign_pkgs
+          prodbuild_cmd = +"/usr/bin/productbuild --package #{orig_pkg.to_s.shellescape} "
+          signing_reason =
+            if version.pkg_is_from_autopkg && Xolo::Server.config.sign_autopkg_pkgs
+              'autopkg'
+            elsif !version.pkg_is_from_autopkg && Xolo::Server.config.sign_pkgs
+              'uploaded'
+            end
+
+          if signing_reason
+            log_info "Signing is enabled for #{signing_reason} pkgs, will sign the Distribution pkg as part of wrapping process"
+
             sh_kch = Shellwords.escape Xolo::Server::Configuration::PKG_SIGNING_KEYCHAIN.to_s
             sh_ident = Shellwords.escape Xolo::Server.config.pkg_signing_identity
             unlock_signing_keychain
             prodbuild_cmd << "--sign #{sh_ident} --keychain #{sh_kch} "
           end
+
           prodbuild_cmd << out_file.to_s.shellescape
+
+          log_debug "Wrapping component pkg in Distribution pkg with this command: #{prodbuild_cmd}"
 
           if system prodbuild_cmd
             # remove the component pkg

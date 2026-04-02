@@ -44,17 +44,25 @@ module Xolo
         ##############################
 
         # do we need to sign a pkg?
-        # TODO: sign zipped bundle installers? prob not, they shouldn't be used anymore
-        # (I'm looking at YOU Adobe)
         # @param pkg [Pathname] Path to a .pkg to see if it's signed.
+        # @param version [Xolo::Server::Version] the version that is being uploaded/re-uploaded
         # @return [Boolean] should we sign it?
         #############################
-        def need_to_sign?(pkg)
-          log_debug "Checking need to sign uploaded pkg '#{pkg}'"
-          unless Xolo::Server.config.sign_pkgs
-            log_debug "No need to sign '#{pkg.basename}': xolo server is not configured to sign pkgs."
+        def need_to_sign?(pkg, version)
+          log_debug "Checking need to sign uploaded pkg '#{pkg}' for version '#{version.version}' of title '#{version.title}'"
+
+          # if an autopkg pkg and we are not configured to sign autopkg pkgs, then no need to sign
+          if version.pkg_is_from_autopkg && !Xolo::Server.config.sign_autopkg_pkgs
+            log_debug "No need to sign '#{pkg.basename}': version '#{version.version}' of title '#{version.title}' is from autopkg and server is not configured to sign autopkg pkgs."
+            return false
+
+          # if not an autopkg pkg and we are not configured to sign non-autopkg pkgs, then no need to sign
+          elsif !version.pkg_is_from_autopkg && !Xolo::Server.config.sign_pkgs
+            log_debug "No need to sign '#{pkg.basename}': server is not configured to sign pkgs."
             return false
           end
+
+          # is the pkg already signed?
           !pkg_signed?(pkg)
         end
 

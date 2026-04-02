@@ -563,7 +563,7 @@ module Xolo
           # @!attribute sha_512
           #   @return [String] The SHA512 checksum of the most recently uploaded package
           sha_512: {
-            label: 'Package Checksum',
+            label: 'Package Checksum (SHA512)',
             type: :string,
             do_not_inherit: true,
             cli: false,

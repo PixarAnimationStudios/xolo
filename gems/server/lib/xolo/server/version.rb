@@ -337,6 +337,9 @@ module Xolo
       #   one of :creating, :updating, :deleting
       attr_accessor :current_action
 
+      # @return [Boolean] is the pkg being processed now from an autopkg recipe?
+      attr_accessor :pkg_is_from_autopkg
+
       # Constructor
       ######################
       ######################
@@ -671,6 +674,9 @@ module Xolo
           progress msg, log: :warn, alert: true
           return
         end
+
+        # this lets future code know that the pkg we're working with came from autopkg
+        self.pkg_is_from_autopkg = true
 
         # Upload the pkg to Jamf, and associate it with this version
         server_app_instance.process_and_upload_autopkg_pkg(title, self, pkg_src)
