@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     To subscribe to a title,specify `--subscribed` when you use `xadm add-title`. This means you must provide a valid `--patch-source` and `--title-id`. See the new `list-available` xadm command, below.
 
-    Once the title is added, xoloserver will recieve [PatchSoftwareTitleUpdated webhook events](https://developer.jamf.com/developer-guide/docs/webhooks#patchsoftwaretitleupdated) from Jamf Pro when new versions become available. The xoloserver automatically creates a new xolo version (the equivalent of `xadm add-version`) and will either notify someone to upload a .pkg for it, or, if the server and titled are configured for it, use autopkg to acquire and upload the .pkg.
+    Once the title is added, xoloserver will recieve [PatchSoftwareTitleUpdated webhook events](https://developer.jamf.com/developer-guide/docs/webhooks#patchsoftwaretitleupdated) from Jamf Pro when new versions become available. The xoloserver automatically creates a new xolo version (the equivalent of `xadm add-version`) and will either notify someone to upload a .pkg for it, or, if the server and title are configured for it, use autopkg to acquire and upload the .pkg.
 
     NOTE: Install Policies and Patch Policies will fail until a .pkg is uploaded.
 
