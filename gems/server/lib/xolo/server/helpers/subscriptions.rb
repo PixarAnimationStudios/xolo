@@ -25,10 +25,6 @@ module Xolo
         #####################
         #####################
 
-        # TODO: remove this stuff when the JPAPI/ruby-jss properly supports Patch Titles
-
-        JPAPI_PATCH_TITLE_ENDPOINT = 'v2/patch-software-title-configurations'
-
         # Module Methods
         #######################
         #######################
@@ -63,6 +59,8 @@ module Xolo
         # Process an incoming webhook event, possibly for a subscribed title
         #################################
         def process_patch_title_updated_webhook(req_body)
+          log_debug "Processing PatchSoftwareTitleUpdated webhook event with body: #{req_body}"
+
           event_data = parse_json(req_body)[:event]
 
           title_name = event_data[:name]
@@ -96,7 +94,7 @@ module Xolo
         # @return [Integer] the id of the new subscribed title, or false on failure
         #####################################
         def subscribe_to_title(source_id:, name_id:, display_name:)
-          new_sub = Jamf::PatchTitle.create name: display_name, source_id: source_id, name_id: name_id
+          new_sub = Jamf::PatchTitle.create name: display_name, source_id: source_id, name_id: name_id, cnx: jamf_cnx
 
           new_sub.save
         end

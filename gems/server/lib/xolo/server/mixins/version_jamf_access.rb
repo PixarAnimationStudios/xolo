@@ -275,8 +275,6 @@ module Xolo
           # Delete package object
           # This is slow and it blocks, so do it in a thread and update progress every
           # 15 secs
-          return unless Jamf::JPackage.valid_id packageName: jamf_pkg_name, cnx: jamf_cnx
-
           delete_jamf_package
 
           # The code below is used when we want real-time progress updates to xadm
@@ -314,12 +312,16 @@ module Xolo
         # @return [Jamf::JPackage] the Package object associated with this version
         ######################
         def jamf_package
+          log_debug "Jamf: running jamf_package for version '#{version}'. @jamf_package is '#{@jamf_package}' (#{@jamf_package.class})"
+
           return @jamf_package if @jamf_package
 
           id = jamf_pkg_id || Jamf::JPackage.valid_id(name: jamf_pkg_name, cnx: jamf_cnx)
           @jamf_package =
             if id
               log_debug "Jamf: Fetching Jamf::JPackage '#{id}'"
+              self.jamf_pkg_id = id # in case we only had the name before, now we have the id, so save it
+              save_local_data
               Jamf::JPackage.fetch id: id, cnx: jamf_cnx
             else
               return if deleting?
@@ -331,7 +333,7 @@ module Xolo
         # @return [Jamf::JPackage] Create the Jamf::JPackage object for this version and return it
         #########################
         def create_jamf_package
-          progress "Jamf: Creating Package object '#{jamf_pkg_name}'", log: :info
+          progress "Jamf: Creating Jamf::JPackage '#{jamf_pkg_name}'", log: :info
 
           # The filename is temporary, and will be replaced when the file is uploaded
           pkg = Jamf::JPackage.create(
@@ -441,7 +443,7 @@ module Xolo
         # @return [void]
         #########################
         def delete_jamf_package
-          pkg_id = Jamf::JPackage.valid_id packageName: jamf_pkg_name, cnx: jamf_cnx
+          pkg_id = jamf_pkg_id || Jamf::JPackage.valid_id(packageName: jamf_pkg_name, cnx: jamf_cnx)
           return unless pkg_id
 
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
@@ -1275,13 +1277,7 @@ module Xolo
             end
 
             if did_it
-              assign_pkg_to_patch_in_jamf
-              # give jamf a moment to catch up and refresh the patch title
-              # so we see the pkg has been assigned
-              sleep 2
-              title_object.jamf_patch_title(refresh: true)
-
-              create_jamf_patch_policy
+              activate_patch_version_in_jamf
               msg = "Jamf: Version '#{version}' of title '#{title}' is now visible in Jamf Pro. Package assigned and Patch policy created."
               log_info msg, alert: true
             else
@@ -1290,6 +1286,37 @@ module Xolo
             end
           end # thread
           @activate_patch_version_thread.name = "activate_patch_version_thread-#{title}-#{version}"
+        end
+
+        # Patches for subscribed titles are already visible in Jamf Patch Management
+        # So we just need to assign the pkg to the patch version, and create the patch policy.
+        ##########################
+        def activate_subscribed_patch_version_in_jamf
+          msg = "Jamf: Assigning package and creating patch policy for version '#{version}' of subscribed title '#{title}'"
+          log_info msg, alert: true
+          activate_patch_version_in_jamf
+        end
+
+        # Assign the package for this version to the Jamf::PatchTitle::Version in Jamf
+        # and create the patch policy for this version.
+        #
+        # @return [void]
+        ##########################
+        def activate_patch_version_in_jamf
+          log_debug "Jamf: Activating patch version in Jamf for version '#{version}' of title '#{title}'"
+
+          # create the Jamf::JPackage object if needed
+          jamf_package
+          title_object.jamf_patch_title(refresh: true)
+          sleep 3
+
+          assign_pkg_to_patch_in_jamf
+          # give jamf a moment to catch up and refresh the patch title
+          # so we see the pkg has been assigned
+          sleep 2
+          title_object.jamf_patch_title(refresh: true)
+
+          create_jamf_patch_policy
         end
 
         # Assign the Package to the Jamf::PatchTitle::Version for this Xolo version.
@@ -1307,10 +1334,15 @@ module Xolo
         # @return [void]
         ########################################
         def assign_pkg_to_patch_in_jamf
-          log_info "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'"
+          progress "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'", log: :info
+
+          log_debug "Jamf: jamf_patch_version is: #{jamf_patch_version}"
 
           jamf_patch_version.package = jamf_pkg_name
+          log_debug "Jamf: jamf_patch_version after assignment is: #{jamf_patch_version}"
+
           title_object.jamf_patch_title.save
+          log_debug 'Jamf: Saved jamf_patch_title after assigning package to version.'
         end
 
         # Get the patch report for this version

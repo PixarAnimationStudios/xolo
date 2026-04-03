@@ -380,7 +380,9 @@ module Xolo
           cdh = {
             titles: {}
           }
-          all_title_objects.each do |title|
+          return cdh if all_titles.empty?
+
+          all_title_objects(refresh: true).each do |title|
             cdh[:titles][title.title] = title.to_h
             cdh[:titles][title.title][:versions] = title.version_objects.map(&:to_h)
 

@@ -223,18 +223,36 @@ module Xolo
         }
       end
 
-      # add a new version in response to a patch title update webhook event
+      # add a new version in response to a patch title update webhook event.
+      # This doesn't upload a pkg - it just creates the version in Xolo, and then
+      # someone can upload a pkg to it via xadm or autopkg will do it if configured.
+      #
       # @param title_object [Xolo::Server::Title] the title object for the subscribed title
       # @param new_version [String] the new version to add
       # @return [void]
       ######################
       def self.add_version_via_subscription(title_object:, new_version:)
-        log_info "Adding new version '#{new_version}' for subscribed title '#{title_object.title}'"
+        title_object.log_info "Adding new version '#{new_version}' for subscribed title '#{title_object.title}'"
 
         # get more details about this version from the JPAPI
-        patch_version_data = title_object.patch_versions version: new_version
+        patch_version_data = title_object.patch_versions(version: new_version).first
+        unless patch_version_data
+          msg = "Could not get patch version data from JPAPI for version '#{new_version}' of subscribed title '#{title_object.title}'. Cannot create new version in Xolo without this data. Aborting."
+          title_object.log_error msg, alert: true
+          return
+        end
+
+        title_object.log_debug "Got patch version data from JPAPI for version '#{new_version}': #{patch_version_data}"
 
         # put the data into a hash for creating a new version object
+        vobj_data = {
+          publish_date: Time.parse(patch_version_data[:releaseDate]),
+          standalone: patch_version_data[:standalone],
+          min_os: patch_version_data[:minimumOperatingSystem],
+          reboot: patch_version_data[:rebootRequired],
+          killapps: []
+        }
+
         # TODO: Killapps for subscribed titles? The API only shows app names without the .app, e.g.
         # "killApps": [
         #   {
@@ -244,23 +262,37 @@ module Xolo
         #     "appName": "Chrisl Test"
         #   }
         # ]
-        #
-        vobj_data = {
-          title: title_object.title,
-          version: new_version,
-          publish_date: Time.parse(patch_version_data[:releaseDate]),
-          standalone: patch_version_data[:standalone],
-          min_os: patch_version_data[:minimumOperatingSystem],
-          reboot: patch_version_data[:rebootRequired]
-        }
+        # Since we don't manage them, we'll just record them in the data like this...
+        unless patch_version_data[:killApps].pix_empty?
+          patch_version_data[:killApps].each do |ka|
+            vobj_data[:killapps] << "#{ka[:appName]}.app;unknown.from.subscription"
+          end
+        end
 
         # instantiate the version object
-        vobj = new vobj_data
+        title_object.log_debug "Instantiating version via subscription '#{new_version}' of title '#{title_object.title}' (#{title_object.class}) with data: #{vobj_data}"
 
-        # create it
+        vobj = title_object.server_app_instance.instantiate_version(
+          title: title_object,
+          version: new_version,
+          **vobj_data
+        )
+
+        # create it in xolo
         vobj.create
 
         # Notification about new version created via subscription
+        vobj.log_info "New version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription.", alert: true
+
+        # also notify that someone needs to upload a pkg for it if no autopkg
+        return if title_object.autopkg_enabled?
+
+        # general alert
+        msg = "Please upload a pkg for version '#{new_version}' of title '#{title_object.title}' using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/pkg"
+        vobj.log_info msg, alert: true
+
+        # email to title contact
+        vobj.server_app_instance.send_email to: title_object.contact_email, subject: 'Need manual upload of xolo pkg', msg: msg
       end
 
       # Attributes
@@ -361,11 +393,11 @@ module Xolo
 
         @jamf_pkg_name ||= @jamf_obj_name_pfx
 
-        @jamf_installed_group_name = "#{jamf_obj_name_pfx}#{JAMF_SMART_GROUP_NAME_INSTALLED_SFX}"
+        @jamf_installed_group_name = "#{jamf_obj_name_pfx}-#{JAMF_SMART_GROUP_NAME_INSTALLED_SFX}"
 
-        @jamf_auto_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_AUTO_INSTALL_SFX}"
-        @jamf_manual_install_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_MANUAL_INSTALL_SFX}"
-        @jamf_auto_reinstall_policy_name = "#{jamf_obj_name_pfx}#{JAMF_POLICY_NAME_AUTO_REINSTALL_SFX}"
+        @jamf_auto_install_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_POLICY_NAME_AUTO_INSTALL_SFX}"
+        @jamf_manual_install_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_POLICY_NAME_MANUAL_INSTALL_SFX}"
+        @jamf_auto_reinstall_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_POLICY_NAME_AUTO_REINSTALL_SFX}"
 
         @jamf_patch_policy_name = @jamf_obj_name_pfx
 
@@ -954,7 +986,7 @@ module Xolo
         # will delete all patches for all versions.
         # If other situations arise where we need to delete
         # ted patches individually, set deleting_title to true.
-        delete_patch_from_ted if deleting_title
+        delete_patch_from_ted if deleting_title && managed?
 
         # remove from the title's list of versions
         progress 'Deleting version from title data on the Xolo server', log: :debug

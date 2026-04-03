@@ -262,7 +262,7 @@ module Xolo
           end
 
           if title.jamf_title_active?
-            data[:jamf_patch_title_url] = title.jamf_patch_title_url unless title.versions.empty?
+            data[:jamf_patch_title_url] = title.jamf_patch_title_url unless title.jamf_patch_title_id.pix_empty?
             data[:jamf_patch_ea_url] = title.jamf_patch_ea_url if title.version_script
           end
 

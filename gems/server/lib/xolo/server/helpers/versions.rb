@@ -76,7 +76,7 @@ module Xolo
         # @return [Xolo::Server::Version]
         #################
         def instantiate_version(title: nil, version: nil, **data)
-          log_debug "Instantiating version with title: '#{title}', version: '#{version},' data: #{data}"
+          log_debug "Instantiating version with title: '#{title}' (#{title.class}), version: '#{version},' data: #{data}"
 
           if title.is_a?(Xolo::Server::Title)
             title_obj = title

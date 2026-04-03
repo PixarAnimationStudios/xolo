@@ -470,6 +470,7 @@ module Xolo
           # @!attribute jamf_pkg_id
           #   @return [String] The id of the Jamf Package object that installs this version.
           #      This is an integer in a string, as are all IDs in the Jamf Pro API.
+          #      TODO: Stop using pkgID - or any jamf ID, use names for accessing all jamf objects
           jamf_pkg_id: {
             label: 'Jamf Package ID',
             type: :string,
@@ -483,7 +484,7 @@ module Xolo
 
           # @!attribute jamf_pkg_file
           #   @return [String] The file name of the installer.pkg file used by the Jamf Package object to
-          #    installs this version. 'xolo-<title>-<version>.pkg' (or .zip)
+          #    installs this version. 'xolo-<title>-<version>.pkg'
           jamf_pkg_file: {
             label: 'Jamf Package File',
             type: :string,

@@ -351,15 +351,15 @@ module Xolo
         @new_data_for_update = {}
         @changes_for_update = {}
 
-        @jamf_obj_name_pfx = "#{jamf_obj_name_pfx_base}#{data_hash[:title]}-"
-        @jamf_installed_group_name = "#{jamf_obj_name_pfx}#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
-        @jamf_frozen_group_name = "#{jamf_obj_name_pfx}#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
+        @jamf_obj_name_pfx = "#{jamf_obj_name_pfx_base}#{data_hash[:title]}"
+        @jamf_installed_group_name = "#{jamf_obj_name_pfx}-#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
+        @jamf_frozen_group_name = "#{jamf_obj_name_pfx}-#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
 
-        @jamf_manual_install_released_policy_name = "#{jamf_obj_name_pfx}#{JAMF_MANUAL_INSTALL_RELEASED_POL_SUFFIX}"
+        @jamf_manual_install_released_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_MANUAL_INSTALL_RELEASED_POL_SUFFIX}"
 
-        @jamf_uninstall_script_name = "#{jamf_obj_name_pfx}#{JAMF_UNINSTALL_SUFFIX}"
-        @jamf_uninstall_policy_name = "#{jamf_obj_name_pfx}#{JAMF_UNINSTALL_SUFFIX}"
-        @jamf_expire_policy_name = "#{jamf_obj_name_pfx}#{JAMF_EXPIRE_SUFFIX}"
+        @jamf_uninstall_script_name = "#{jamf_obj_name_pfx}-#{JAMF_UNINSTALL_SUFFIX}"
+        @jamf_uninstall_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_UNINSTALL_SUFFIX}"
+        @jamf_expire_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_EXPIRE_SUFFIX}"
 
         # DO NOT USE jamf_cnx here, it comes from the server app instance, which is not set until after initialization.
       end
@@ -419,9 +419,9 @@ module Xolo
       def jamf_patch_title_id
         @jamf_patch_title_id ||=
           if managed?
-            jamf_active_managed_titles[title]
+            jamf_active_managed_titles(refresh: true)[title]
           else
-            jamf_active_subscribed_titles[title]
+            jamf_active_subscribed_titles(refresh: true)[title]
           end
       end
 
@@ -583,11 +583,8 @@ module Xolo
       # @return [void]
       ########################
       def prepend_version(version)
-        lock
         version_order.unshift version
         save_local_data
-      ensure
-        unlock
       end
 
       # remove a version from the version_order
@@ -663,6 +660,16 @@ module Xolo
         # add some data
         progress 'Saving title data to Xolo server'
         save_local_data
+
+        if subscribed?
+          # create version for latest available
+          # - either autopkg or notification to upload.
+          # See also Helpers::Subscriptions.process_patch_title_updated_webhook
+          Xolo::Server::Version.add_version_via_subscription(
+            title_object: self,
+            new_version: patch_versions(version: :latest)[0][:version]
+          )
+        end # if subscribed
 
         log_change msg: 'Title Created'
 
@@ -909,7 +916,7 @@ module Xolo
           vers&.delete update_title: false, deleting_title: true
         end
 
-        delete_title_from_ted
+        delete_title_from_ted unless subscribed?
 
         delete_title_from_jamf
 
