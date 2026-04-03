@@ -105,6 +105,10 @@ module Xolo
         post '/subscribed-title-updates' do
           session[:admin] = Xolo::Server::WEBHOOK_HANDLER_ADMIN_USERNAME
           request.body.rewind
+
+          # this happens in a thread so that we can return a 200 response to the
+          # webhook immediately, and do the processing asynchronously (which may
+          # involve time-consuming tasks like autopkg runs)
           process_patch_title_updated_webhook(request.body.read)
 
           # always return 200 to the webhook sender
