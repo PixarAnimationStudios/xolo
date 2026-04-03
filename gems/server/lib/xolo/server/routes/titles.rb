@@ -249,9 +249,9 @@ module Xolo
           halt_on_missing_title params[:title]
           title = instantiate_title params[:title]
           data = {}
-          data[:ted_title_url] = title.ted_title_url if title.mananged?
+          data[:ted_title_url] = title.ted_title_url if title.managed?
           data[:jamf_installed_group_url] = title.jamf_installed_group_url if title.jamf_installed_group_exist?
-          data[:jamf_frozen_group_url] = title.jamf_frozen_group_url if title.title.frozen_group_exist?
+          data[:jamf_frozen_group_url] = title.jamf_frozen_group_url if title.jamf_frozen_group_exist?
           data[:jamf_manual_install_released_policy_url] = title.jamf_manual_install_released_policy_url if title.jamf_manual_install_released_policy_exist?
 
           if title.uninstallable?
