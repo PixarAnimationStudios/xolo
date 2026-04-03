@@ -240,13 +240,12 @@ module Xolo
 
           halt_on_missing_version params[:title], params[:version]
           vers = instantiate_version title: params[:title], version: params[:version]
-          data = {
-            ted_patch_url: vers.ted_patch_url,
-            jamf_auto_install_policy_url: vers.jamf_auto_install_policy_url,
-            jamf_manual_install_policy_url: vers.jamf_manual_install_policy_url,
-            jamf_patch_policy_url: vers.jamf_patch_policy_url,
-            jamf_package_url: vers.jamf_package_url
-          }
+          data = {}
+          data[:ted_patch_url] = vers.ted_patch_url if vers.mananged?
+          data[:jamf_auto_install_policy_url] = vers.jamf_auto_install_policy_url if vers.jamf_auto_install_policy_exist?
+          data[:jamf_manual_install_policy_url] = vers.jamf_manual_install_policy_url if vers.jamf_manual_install_policy_exist?
+          data[:jamf_patch_policy_url] = vers.jamf_patch_policy_url if vers.jamf_patch_policy_exist?
+          data[:jamf_package_url] = vers.jamf_package_url if vers.jamf_package_exist?
           data[:jamf_version_installed_group] = vers.jamf_installed_group_url if vers.jamf_installed_group_exist?
           data[:jamf_auto_reinstall_policy_url] = vers.jamf_auto_reinstall_policy_url if vers.jamf_auto_reinstall_policy_exist?
 

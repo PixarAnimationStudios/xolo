@@ -330,6 +330,12 @@ module Xolo
             end
         end
 
+        # @return [Boolean] does the jamf_package exist?
+        #########################
+        def jamf_package_exist?
+          Jamf::JPackage.all_names(cnx: jamf_cnx).include? jamf_pkg_name
+        end
+
         # @return [Jamf::JPackage] Create the Jamf::JPackage object for this version and return it
         #########################
         def create_jamf_package
