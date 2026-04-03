@@ -280,9 +280,9 @@ module Xolo
 
       # Add more data to our hash
       ###########################
-      def to_h
-        super
-      end
+      # def to_h
+      #   super
+      # end
 
     end # class Title
 
