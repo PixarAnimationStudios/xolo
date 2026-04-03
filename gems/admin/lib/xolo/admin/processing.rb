@@ -72,6 +72,14 @@ module Xolo
         puts msg unless quiet?
       end
 
+      # TODO: Use this everywhere in admin
+      ##########################
+      def show_debug(msg)
+        return unless debug?
+
+        puts "DEBUG: #{msg}"
+      end
+
       # Search for a title in Xolo
       # Looks for the search string (case insensitive) in these attributes:
       #  - title

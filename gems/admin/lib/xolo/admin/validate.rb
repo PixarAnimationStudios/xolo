@@ -828,6 +828,8 @@ module Xolo
       def validate_internal_consistency(opts)
         return unless add_command? || edit_command?
 
+        show_debug "Validating internal consistency for opts: #{opts.to_h}"
+
         if version_command?
           validate_version_consistency opts
         elsif title_command?
@@ -913,6 +915,8 @@ module Xolo
 
         Xolo::Admin::Title.cli_opts.each do |key, deets|
           next unless opts[key]
+          # ignore values not given on the commandline
+          next if !walkthru? && !opts["#{key}_given"]
           next unless deets[:title_type]
           next if deets[:title_type] == ttl_type
 
@@ -949,6 +953,7 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_title_id_exists(opts)
+        return unless cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
         return if current_title_type(opts) == Xolo::Admin::Title::MANAGED
         return unless opts[:title_id] && opts[:patch_source]
         return if jamf_available_titles.any? do |t|
