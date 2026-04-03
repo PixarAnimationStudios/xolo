@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     IMPORTANT: When running autopkg recipes, the `-k FAIL_RECIPES_WITHOUT_TRUST_INFO=yes` option is always used. This means that all such recipies MUST have an 'override' created, even if that override doesn't change anything. For details see [AutoPkg and recipe parent trust info](https://github.com/autopkg/autopkg/wiki/AutoPkg-and-recipe-parent-trust-info)
 
+    If autopkg is enabled on the server, .pkgs acquired that way are not signed by the xoloserver unless the `sign_autopkg_pkgs` config setting is true. __BE CAREFUL__ setting this, make sure you trust your autopkg recipes!
+
   - Patching Unknown Versions
     
     When adding or editing versions, you can now set the `--patch-unknown` option, which defaults to false. Setting this to true means that the patch policy for this version will install the .pkg onto Macs with 'unknown' versions (see below). 
@@ -48,11 +50,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     But sometimes it may be desirable to have all unknown versions updated to this version, e.g. when the title is a helper app that is not regularly updated, or when the title is being newly managed by Xolo/Jamf Patch and you want to get all existing installations onto this version.
 
-  - API Client support for xoloserver connection to Jamf Pro
+  - APIClient support for xoloserver connection to Jamf Pro
 
     In the server configration, set `jamf_use_api_client` to true, This will cause the value of `jamf_api_user` to be used as an API Client ID, and the value of `jamf_api_pw` to use used as the related secret.
 
     The API Client must have the same permissions, granted via one or more API Roles, that a service account would have, as listed in the [GitHub Wiki for Xolo](https://github.com/PixarAnimationStudios/xolo/wiki/Installing-xoloserver)
+
+  - Automatic wrapping of component pkgs into distribution pkgs
+    
+    If the `create_distribution_pkgs` config is set to true on the xoloserver, it will examine each .pkg it recieves, via xadm upload, or autpkg. If the pkg is not a distribution pkg, it will be wrapped inside one, so that it can be deployed via MDM. The wrapper pkg will be signed based on the `sign_pkgs` and `sign_autopkg_pkgs` settings.
 
 
 ## Changed
