@@ -246,8 +246,10 @@ module Xolo
         #################################
         get '/titles/:title/urls' do
           log_debug "Admin #{session[:admin]} is fetching GUI URLS for title '#{params[:title]}'"
+
           halt_on_missing_title params[:title]
           title = instantiate_title params[:title]
+
           data = {}
           data[:ted_title_url] = title.ted_title_url if title.managed?
           data[:jamf_installed_group_url] = title.jamf_installed_group_url if title.jamf_installed_group_exist?
