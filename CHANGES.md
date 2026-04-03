@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     When a new version is added to a title, either via `xadm add-version` or a webhook event from a subscribed title (see above), the xoloserver can run a specified AutoPkg recipe to get the latest installer package.
 
-    This requires installing, configuring, and maintaining `autopkg` on the xoloserver machine separately from xolo itself, and setting the `autopkg_executable` setting (a path) and a non-root `autopkg_user` (a username) in the server config. The xoloserver will merely execute a given recipe, and look for the resulting .pkg file. 
+    This requires installing, configuring, and maintaining `autopkg` on the xoloserver machine separately from xoloserver itself, and setting the `autopkg_executable` setting (a path) and a non-root `autopkg_user` (a username) in the server config. The xoloserver will merely execute a given recipe, and look for the resulting .pkg file. 
 
     To use autopkg with a title, just specify `--autopkg-recipe recipe.name` and `--autopkg-dir /path/to/dir/with/autopkg-output/` with xadm's `add-title` or `edit-title` commands.
 
@@ -61,7 +61,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
     When you delete a version, but not the whole title, only the Jamf objects related to the version are deleted, as well as Xolo's awareness that the version exists. The Title Editor data for the version remains as long as the title exists.
     
-    This is needed because if the version is deleted from the Title Editor, any macs with that version installed will show up in patch reports with an 'unknown' version (if it isn't in the Title Editor, it is unknown to Jamf Patch).  This can prevent those macs from ever getting newer versions automatically, unless 'Update Unknown Versions' is set in the later patch policies - which by default is not.
+    This is needed because if the version is deleted from the Title Editor, any Macs with that version installed will show up in patch reports with an 'unknown' version (if it isn't in the Title Editor, it is unknown to Jamf Patch).  This can prevent those macs from ever getting newer versions automatically, unless 'Update Unknown Versions' is set in the later patch policies - which by default is not.
+
+    If you re-add the version, the Title Editor data for it is removed and re-added.
   
   - No more need for a duplicate 'normal' Extension Attribute when a managed title uses a version_script, or a subscribed title includes one.
     
@@ -70,8 +72,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Fixed
    
   - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging files in from the Finder with spaces in their paths.
-  - Setting KillApps in walkthru mode now shows a prompt for each line expecting input.
-  - Now correctly differentiates `false` from `nil` values when updating a title's changelog.
+
+
 
 ## Removed
 
@@ -80,7 +82,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     The first version of Xolo would zip the bundle-directory and use the zip file - which I think Jamf still supports. This is no longer the case.
     
     Flat Packages have been around since macOS 10.5, and have been preferred for years. They are required for deployment via MDM. Until recently at least one major software company was still deplying bundle-style packages. Now that they are not, there's little reason for Xolo to support them, helping to simplify the code a bit.
+
+## \[1.0.2] Unreleased
+
+### Fixed
+  - Setting KillApps in walkthru mode now shows a prompt for each line expecting input.
+  - Now correctly differentiates `false` from `nil` values when updating a titles changelog.
  
+
 ## \[1.0.1] - 2025-10-02
 
 ### Added 
