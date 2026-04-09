@@ -1299,7 +1299,7 @@ module Xolo
         ##########################
         def activate_subscribed_patch_version_in_jamf
           msg = "Jamf: Assigning package and creating patch policy for version '#{version}' of subscribed title '#{title}'"
-          log_info msg, alert: true
+          log_info msg
           activate_patch_version_in_jamf
         end
 

@@ -253,7 +253,7 @@ module Xolo
           killapps: []
         }
 
-        # TODO: Killapps for subscribed titles? The API only shows app names without the .app, e.g.
+        # Killapps for subscribed titles? The API only shows app names without the .app, e.g.
         # "killApps": [
         #   {
         #     "appName": "ChrislTestHelper"
@@ -281,18 +281,20 @@ module Xolo
         # create it in xolo
         vobj.create
 
-        # Notification about new version created via subscription
-        vobj.log_info "New version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription.", alert: true
+        # tell someone
+        msg = "New pilot version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription."
 
-        # also notify that someone needs to upload a pkg for it if no autopkg
-        return if title_object.autopkg_enabled?
+        # if not autopkg enabled, we need to tell someone to upload a pkg for this new version
+        unless title_object.autopkg_enabled?
+          # update general alert msg
+          msg = "#{msg}\nPlease upload a .pkg for it ASAP using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/installer.pkg"
 
-        # general alert
-        msg = "Please upload a pkg for version '#{new_version}' of title '#{title_object.title}' using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/pkg"
+          # email to title contact
+          vobj.server_app_instance.send_email to: title_object.contact_email, subject: 'Need manual upload of xolo pkg', msg: msg
+        end # if title_object.autopkg_enabled?
+
+        # send general alert
         vobj.log_info msg, alert: true
-
-        # email to title contact
-        vobj.server_app_instance.send_email to: title_object.contact_email, subject: 'Need manual upload of xolo pkg', msg: msg
       end
 
       # Attributes

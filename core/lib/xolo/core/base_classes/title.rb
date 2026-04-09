@@ -851,7 +851,7 @@ module Xolo
         # Does this title get its pkgs from AutoPkg?
         # @return [Boolean]
         ############################
-        def autopkg?
+        def autopkg_enabled?
           autopkg_recipe && autopkg_dir
         end
 

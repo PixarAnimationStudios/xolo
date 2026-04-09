@@ -118,8 +118,7 @@ module Xolo
         #   or nil if the recipe is not enabled for this title
         ##############################
         def run_autopkg_recipe(title_object)
-          return unless autopkg_enabled?
-          return unless title_object.autopkg_recipe && title_object.autopkg_dir
+          return unless title_object.autopkg_enabled?
 
           recipe = title_object.autopkg_recipe
           pkgdir = Pathname.new title_object.autopkg_dir
@@ -133,7 +132,7 @@ module Xolo
           souterr.strip!
 
           if status.success?
-            progress "AutoPkg recipe #{recipe} completed successfully.", log: :info, alert: true
+            progress "AutoPkg recipe #{recipe} for title '#{title_object.title}' completed successfully.", log: :info, alert: true
             log_debug 'AutoPkg output:'
             souterr.lines.each { |l| log_debug "AutoPkg: #{l.chomp}" }
 

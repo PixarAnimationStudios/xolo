@@ -526,7 +526,7 @@ module Xolo
         display_progress response_data[:progress_stream_url_path]
 
         # Upload the pkg, if any?
-        upload_pkg(new_vers) unless title_obj.autopkg?
+        upload_pkg(new_vers) unless title_obj.autopkg_enabled?
 
         speak 'It can take up to 15 minutes for the version to be available via Jamf and Self Service.'
       rescue StandardError => e
@@ -547,7 +547,7 @@ module Xolo
       ################################
       def upload_pkg(version)
         return unless version.pkg_to_upload.is_a? Pathname
-        return if title_obj.autopkg?
+        return if title_obj.autopkg_enabled?
 
         speak "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
         # start the upload in a thread

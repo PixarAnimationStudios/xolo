@@ -833,7 +833,8 @@ module Xolo
         self.uninstall_script &&= Xolo::ITEM_UPLOADED
       end
 
-      # Is AutoPkg integration enabled for the title?
+      # Is AutoPkg integration enabled for the server and title?
+      # This overrides the method in core title, which just checks for the presence of the recipe and dir.
       ###############################
       def autopkg_enabled?
         return @autopkg_enabled if defined?(@autopkg_enabled)
