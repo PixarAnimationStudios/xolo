@@ -265,7 +265,7 @@ module Xolo
         # Upload the ssvc icon, if any?
         upload_ssvc_icon new_title
 
-        speak "Title '#{cli_cmd.title}' has been added to Xolo.\nAdd at least one version to enable piloting and deployment"
+        speak "Title '#{cli_cmd.title}' has been added to Xolo.\nEnsure there's at least one version to enable piloting and deployment"
       rescue StandardError => e
         handle_processing_error e
       end
