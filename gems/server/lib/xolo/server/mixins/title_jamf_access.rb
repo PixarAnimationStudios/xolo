@@ -1165,7 +1165,7 @@ module Xolo
             t[:source_id] == jamf_managed_patch_source.id
           end
 
-          managed_titles = server_app_instance.managed_title_objects.select { |t| t.managed? }.map { |t| t.title }
+          managed_titles = server_app_instance.managed_title_objects.select(&:managed?).map(&:title)
 
           active_from_ted.each do |t|
             @jamf_active_managed_titles[t[:name_id]] = t[:id] if managed_titles.include? t[:name_id]

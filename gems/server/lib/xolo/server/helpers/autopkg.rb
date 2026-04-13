@@ -137,7 +137,7 @@ module Xolo
             souterr.lines.each { |l| log_debug "AutoPkg: #{l.chomp}" }
 
             pkgs = pkgdir.children.select { |c| c.extname == '.pkg' }
-            pkgs.max_by { |p| p.mtime }
+            pkgs.max_by(&:mtime)
 
           else
             progress "ERROR: AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", log: :error, alert: true
