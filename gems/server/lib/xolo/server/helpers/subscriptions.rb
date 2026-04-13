@@ -95,17 +95,20 @@ module Xolo
           end # thread
         end
 
+        # TODO: Delete this method after confirming we don't want it
+        # It wasn't in use when it was commented out.
+        #
         # Subscribe to a title on a given patch source.
         # @param source_id [Integer] the id or name of the patch source in Jamf
         # @param name_id [Integer] the name_id of the title on that patch source
         # @param display_name [String] an display name for the title
         # @return [Integer] the id of the new subscribed title, or false on failure
         #####################################
-        def subscribe_to_title(source_id:, name_id:, display_name:)
-          new_sub = Jamf::PatchTitle.create name: display_name, source_id: source_id, name_id: name_id, cnx: jamf_cnx
+        # def subscribe_to_title(source_id:, name_id:, display_name:)
+        #   new_sub = Jamf::PatchTitle.create name: display_name, source_id: source_id, name_id: name_id, cnx: jamf_cnx
 
-          new_sub.save
-        end
+        #   new_sub.save
+        # end
 
       end # Subscriptions
 
