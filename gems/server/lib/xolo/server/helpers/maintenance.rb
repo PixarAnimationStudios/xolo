@@ -175,6 +175,7 @@ module Xolo
           # TODO: Be DRY with this stuff and similar in title_jamf_access.rb
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
+            next if title_obj.subscribed?
             next unless title_obj.jamf_patch_ea_awaiting_acceptance?
 
             log_info "Cleanup: Auto-accepting Title Editor EA for title '#{title}'"
