@@ -180,10 +180,17 @@ module Xolo
           delete_jamf_uninstall_script
           delete_lingering_policies_for_title
           sleep 5
-          delete_jamf_patch_title
-          sleep 5
-          delete_jamf_frozen_group
+
+          # must delete this group before the patch title
+          # since the group criteria references the patch title
           delete_jamf_installed_group
+          sleep 5
+
+          delete_jamf_patch_title
+
+          # static group deleted last,
+          # was used in scopes for patch and normal policies
+          delete_jamf_frozen_group
         end
 
         ################################
@@ -351,16 +358,21 @@ module Xolo
         # @return [void]
         ############################
         def accept_jamf_patch_ea
-          return unless need_to_accept_jamf_patch_ea?
+          # give the server a moment to catch up with the new EA before we check on it
+          log_debug "Jamf: Checking if we need to accept the version-script EA for title '#{title}'"
+          sleep 5
+
+          awating_acceptance = jamf_patch_ea_awaiting_acceptance?
 
           # return with warning if we aren't auto-accepting, or for all subscribed titles
-          if subscribed? || !Xolo::Server.config.jamf_auto_accept_xolo_eas
+          if awating_acceptance && (subscribed? || !Xolo::Server.config.jamf_auto_accept_xolo_eas)
             msg = "Jamf: IMPORTANT: The Extension Attribute (version-script) for title '#{title}' must be accepted manually in Jamf Pro at #{jamf_patch_ea_url} under the 'Extension Attribute' tab (click 'Edit'). If you cannot do this yourself, please contact your Xolo server admins for assistance. Deployment will not happen until this is done."
-            progress msg
-            send_alert msg, :WARNING
+            progress msg, log: :warn, alert: true
             log_debug 'Admin informed about accepting EA/version-script manually'
             return
           end
+
+          return unless need_to_accept_jamf_patch_ea?
 
           # this is true if the Jamf server already knows it needs to be accepted
           # so just do it now
@@ -537,7 +549,7 @@ module Xolo
         ######################
         def jamf_patch_ea_url
           return @jamf_patch_ea_url if @jamf_patch_ea_url
-          return unless version_script
+          return unless version_script || (subscribed? && jamf_patch_ea_data)
 
           @jamf_patch_ea_url = "#{jamf_patch_title_url}?tab=extension"
         end
