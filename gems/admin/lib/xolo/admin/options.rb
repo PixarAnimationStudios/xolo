@@ -301,7 +301,7 @@ module Xolo
           readline_prompt: 'Group Name',
           readline: :jamf_computer_group_names,
           desc: <<~ENDDESC
-            One or more Jamf Computer Group names or ids whose members will receive the MDM deployment.
+            One or more Jamf Computer Group names whose members will receive the MDM deployment.
 
             When using the --groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
           ENDDESC
@@ -567,7 +567,7 @@ module Xolo
             before the MDM command is sent.
 
             Computers can be specified by name, serial number, or Jamf ID. Groups can be specified by
-            name or ID.
+            name.
 
             NOTE: Any automated installs (via Pilot or Release groups) will happen eventually anyway.
             All Macs with the title already installed will also get new versions automatically.
