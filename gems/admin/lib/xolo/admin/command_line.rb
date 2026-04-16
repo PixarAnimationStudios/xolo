@@ -333,7 +333,7 @@ module Xolo
         vers_cmd = version_command?
         title_or_vers_command = title_or_version_command?
         add_command = add_command?
-        edit_command?
+        edit_command = edit_command?
         arg_banner = Xolo::Admin::Options::COMMANDS.dig(cmd, :arg_banner)
         arg_banner ||= Xolo::Admin::Options::DFT_CMD_TITLE_ARG_BANNER
 
@@ -375,7 +375,9 @@ module Xolo
               # Required opts are only required when adding.
               # when editing, they should already exist
               if add_command
-                if deets[:required]
+                if deets[:edit_only]
+                  next
+                elsif deets[:required]
                   desc = "#{desc}REQUIRED"
                   required = true
                 elsif deets[:title_type]
@@ -385,6 +387,8 @@ module Xolo
                   required = false
                 end
               end
+
+              next if edit_command && deets[:add_only]
 
               # booleans are CLI flags defaulting to false
               # everything else is a string that we will convert as we validate later

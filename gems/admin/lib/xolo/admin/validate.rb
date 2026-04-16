@@ -126,6 +126,13 @@ module Xolo
           # skip things not given on the command line
           next unless cli_cmd_opts["#{key}_given"]
 
+          if deets[:add_only] && edit_command?
+            raise ArgumentError, "Option '--#{key.to_s.gsub '_', '-'}' is only valid for 'add-' commands."
+
+          elsif deets[:edit_only] && add_command?
+            raise ArgumentError, "Option '--#{key.to_s.gsub '_', '-'}' is only valid for 'edit-' commands."
+          end
+
           # skip things that shouldn't be validated
           next unless deets[:validate]
 

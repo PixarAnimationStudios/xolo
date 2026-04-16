@@ -155,6 +155,12 @@ module Xolo
         # - read_only: [Boolean] defaults to false. When true, the server maintains this value, and
         #   its only readable via xadm.
         #
+        # - add_only: [Boolean] This option is only used when creating a new title, it is not
+        #   available when editing an existing title.
+        #
+        # - edit_only: [Boolean] This option is only used when editing an existing title, it is not
+        #   available when creating a new title.
+        #
         # - hide_from_info: [Boolean] when true, do not show this attribute in the 'info' xadm output
         #   NOTE: it will still be available when --json is given with the info command.
         #
@@ -188,6 +194,7 @@ module Xolo
             cli: :B,
             type: :boolean,
             immutable: true,
+            add_only: true,
             validate: :validate_boolean,
             default: false,
             changelog: true,
@@ -210,6 +217,8 @@ module Xolo
               --version-script
 
               When a subscribed title is added, a Xolo Version is automatically added for the most recent version available from the Patch Source.
+
+              Once created as subscribed or managed, a title cannot be changed to the other type. If you need to change the type, you must delete and re-create the title.
 
               In all cases, a .pkg must be provided for each version known to Xolo, either by uploading it via xadm or configuring the server and the title to use AutoPkg to acquire it.
             ENDDESC
@@ -259,6 +268,8 @@ module Xolo
             desc: <<~ENDDESC
               A human-friendly name for the Software Title, e.g. 'Google Chrome', or 'NFS Menubar'.
               Must be at least three characters long.
+
+              Cannot be used for subscribed titles, since the Patch Source defines the display name for those.
             ENDDESC
           },
 
@@ -277,6 +288,8 @@ module Xolo
             invalid_msg: '"Not a valid Publisher, must be at least three characters.',
             desc: <<~ENDDESC
               The company or entity that publishes this title, e.g. 'Apple, Inc.' or 'Pixar Animation Studios'.
+
+              Cannot be used for subscribed titles, since the Patch Source defines the publisher for those.
             ENDDESC
           },
 
@@ -298,6 +311,8 @@ module Xolo
               Jamf Patch Management uses this, plus the app's bundle id, to determine if the title is installed on a computer, and if so, which version.
 
               If the title does not install a .app bundle, leave this blank, and provide a --version-script.
+
+              Cannot be used for subscribed titles, since the Patch Source defines the app name for those.
 
               REQUIRED if --app-bundle-id is used.
             ENDDESC
@@ -321,6 +336,8 @@ module Xolo
               Jamf Patch Management uses this, plus the app's name, to determine if the title is installed on a computer, and if so, which version.
 
               If the title does not install a .app bundle, or if the .app doesn't provide its version via the bundle id (e.g. Firefox) leave this blank, and provide a --version-script.
+
+              Cannot be used for subscribed titles, since the Patch Source defines the bundle ID for those.
 
               REQUIRED if --app-name is used.
             ENDDESC
@@ -348,6 +365,8 @@ module Xolo
                  <result>1.2.3</result>
               and if no version of the title is installed, it should output:
                  <result></result>
+
+              Cannot be used for subscribed titles, since the Patch Source defines the version script for those.
 
               REQUIRED unless --app-name and --app-bundle-id are used.
             ENDDESC
