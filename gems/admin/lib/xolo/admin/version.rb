@@ -131,6 +131,26 @@ module Xolo
       #############################
       #############################
 
+      # TODO:
+      # when instantiating a title or version object,
+      # embed the connection used to fetch it in a @cnx attribute/instance variable
+      # and use that for all future interactions with the server for that object.
+      #
+      # Then also use that to implement the method below, fetching the title object
+      # for this version when desired.
+      #
+      # Then we can use THAT to know if this title is subscribed or not
+      # which affects how we deal with adding (we can't) or editing
+      #
+      # Also TODO: implement a way to trigger a subcribed 'add-title'
+      # in case the xolo server misses a webhook event
+
+      ################
+      # def title_object(refresh: false, cnx:
+      #   @title_object = nil if refresh
+      #   @title_object ||= Xolo::Admin::Title.fetch(title, cnx)
+      # end
+
       # Add this version to the server
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response from the server
