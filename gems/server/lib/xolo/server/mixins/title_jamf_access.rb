@@ -695,7 +695,10 @@ module Xolo
           pol.add_script jamf_uninstall_script_name
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_uninstall_policy_name
-          pol.scope.add_target(:computer_group, jamf_installed_group_name)
+          # pol.scope.add_target(:computer_group, jamf_installed_group_name)
+          # all targets, cus jamf doesn't like some policies with scoped
+          # smart groups using 'latest version'
+          pol.scope.set_all_targets
           pol.scope.set_exclusions :computer_groups, [valid_forced_exclusion_group_name] if valid_forced_exclusion_group_name
           pol.frequency = :ongoing
           pol.enable
@@ -1173,7 +1176,10 @@ module Xolo
           return @jamf_active_managed_titles if @jamf_active_managed_titles
 
           @jamf_active_managed_titles = {}
-          active_from_ted = Jamf::PatchTitle.all(:refresh, cnx: jamf_cnx).select do |t|
+          all_patch_titles = Jamf::PatchTitle.all(cnx: jamf_cnx)
+
+          active_from_ted = all_patch_titles.select do |t|
+            # log_debug "Jamf: Checking if active patch title '#{t[:name]}' with id #{t[:id]} is from the Title Editor's patch source"
             t[:source_id] == jamf_managed_patch_source.id
           end
 

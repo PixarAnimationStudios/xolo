@@ -417,11 +417,15 @@ module Xolo
       # and all json files know this value
       #######################
       def jamf_patch_title_id
-        @jamf_patch_title_id ||=
+        return @jamf_patch_title_id if @jamf_patch_title_id
+
+        log_debug "Getting jamf_patch_title_id for title '#{title}'"
+
+        self.jamf_patch_title_id =
           if managed?
-            jamf_active_managed_titles(refresh: true)[title]
+            jamf_active_managed_titles[title]
           else
-            jamf_active_subscribed_titles(refresh: true)[title]
+            jamf_active_subscribed_titles[title]
           end
       end
 
@@ -1092,6 +1096,7 @@ module Xolo
         progress "Starting repair of title '#{title}'"
         repair_ted_title
         repair_jamf_title_objects
+        save_local_data
         return unless repair_versions
 
         version_objects.each do |vobj|

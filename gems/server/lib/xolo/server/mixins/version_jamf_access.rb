@@ -743,7 +743,7 @@ module Xolo
         # The criteria for the smart group in Jamf that contains all Macs
         # with this version of this title installed
         #
-        # We use the "Patch Reporting: #{display_name}" criterion so that we don't
+        # We use the "Patch Reporting: #{title_object.display_name}" criterion so that we don't
         # care whether the title uses a version-script or app data.
         #
         # @return [Array<Jamf::Criteriable::Criterion>]
@@ -752,7 +752,7 @@ module Xolo
           [
             Jamf::Criteriable::Criterion.new(
               and_or: :or,
-              name: "Patch Reporting: #{display_name}",
+              name: "Patch Reporting: #{title_object.display_name}",
               search_type: 'is',
               value: version
             )
@@ -1237,7 +1237,14 @@ module Xolo
           @jamf_patch_version = title_object.jamf_patch_title.versions[version]
           return @jamf_patch_version if @jamf_patch_version
 
-          # TODO: wait for it to appear when adding?
+          if repairing?
+            # if we're repairing, and the version isn't visible in Jamf, then
+            # jamf polled the title editor in the few moments it was disabled.
+            # and jamf will see it again within 5 minutes.
+            return nil
+          end
+
+          # TODO: wait for it to appear when adding, or re-appear when repairing?
           msg = "Jamf: Version '#{version}' of Title '#{title}' is not visible in Jamf. Is the Patch enabled in the Title Editor?"
           log_error msg
           raise Xolo::NoSuchItemError, msg
@@ -1340,12 +1347,20 @@ module Xolo
         # @return [void]
         ########################################
         def assign_pkg_to_patch_in_jamf
+          patch_vers_obj = jamf_patch_version
+
+          if patch_vers_obj.nil? && repairing?
+            msg = "Jamf: Cant re-assign package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}' at this time. If there are problems with it, try 'repair' again later."
+            progress msg, log: :info
+            return
+          end
+
           progress "Jamf: Assigning package '#{jamf_pkg_name}' to patch version '#{version}' of title '#{title}'", log: :info
 
-          log_debug "Jamf: jamf_patch_version is: #{jamf_patch_version}"
+          log_debug "Jamf: jamf_patch_version is: #{patch_vers_obj}"
 
-          jamf_patch_version.package = jamf_pkg_name
-          log_debug "Jamf: jamf_patch_version after assignment is: #{jamf_patch_version}"
+          patch_vers_obj.package = jamf_pkg_name
+          log_debug "Jamf: jamf_patch_version after assignment is: #{patch_vers_obj}"
 
           title_object.jamf_patch_title.save
           log_debug 'Jamf: Saved jamf_patch_title after assigning package to version.'

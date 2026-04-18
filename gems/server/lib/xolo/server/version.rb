@@ -282,7 +282,7 @@ module Xolo
         vobj.create
 
         # tell someone
-        msg = "New pilot version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription."
+        msg = "ACTION REQUIRED: New pilot version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription."
 
         # if not autopkg enabled, we need to tell someone to upload a pkg for this new version
         unless title_object.autopkg_enabled?
@@ -812,8 +812,9 @@ module Xolo
           progress "Fixing original upload date: #{new_date}, by: #{new_by}", log: :debug
           self.upload_date = new_date
           self.uploaded_by = new_by
-          save_local_data
+
         end
+        save_local_data
       ensure
         unlock
       end

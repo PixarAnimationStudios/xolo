@@ -117,7 +117,7 @@ module Xolo
           @jamf_cnx = Jamf::Connection.new(**cnx_opts)
 
           log_debug "Jamf: Connected to Jamf Pro at #{@jamf_cnx.base_url} as #{cnxtype} '#{Xolo::Server.config.jamf_api_user}'. KeepAlive: false, Expires: #{@jamf_cnx.token.expires}. cnx ID: #{@jamf_cnx.object_id}"
-
+          # log_debug "jamf_cnx caller:\n..#{caller_locations(1, 10).map(&:to_s).join("\n..")}"
           @jamf_cnx
         end
 

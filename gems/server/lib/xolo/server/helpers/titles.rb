@@ -44,7 +44,10 @@ module Xolo
           @all_title_objects = nil if refresh
           return @all_title_objects if @all_title_objects
 
+          log_debug 'Instantiating all titles...'
           @all_title_objects = all_titles.map { |t| instantiate_title t }
+          log_debug "Instantiated #{@all_title_objects.length} titles."
+          @all_title_objects
         end
 
         # A an array of server titles as Title objects, only for subscribed titles
