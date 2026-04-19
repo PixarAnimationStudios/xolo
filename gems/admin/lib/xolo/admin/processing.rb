@@ -547,7 +547,8 @@ module Xolo
       ################################
       def upload_pkg(version)
         return unless version.pkg_to_upload.is_a? Pathname
-        return if title_obj.autopkg_enabled?
+
+        # TODO: deal with autopkg pkgs, should we be able to do this?
 
         speak "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
         # start the upload in a thread
