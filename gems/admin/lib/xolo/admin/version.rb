@@ -232,6 +232,25 @@ module Xolo
         resp.body
       end
 
+      # @return [Xolo::Admin::Title] the title for this version
+      ################
+      def title_object(cnx = self.cnx, refresh: false)
+        @title_object = nil if refresh
+        @title_object ||= Xolo::Admin::Title.fetch(title, cnx)
+      end
+
+      # @return [Boolean] whether this version is from a subscribed title or not
+      #############
+      def subscribed?
+        title_object.subscribed?
+      end
+
+      # @return [Boolean] whether this version is from a managed title or not
+      #############
+      def managed?
+        title_object.managed?
+      end
+
     end # class Title
 
   end # module Admin
