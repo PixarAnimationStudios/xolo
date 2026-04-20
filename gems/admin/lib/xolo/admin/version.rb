@@ -86,7 +86,9 @@ module Xolo
       ####################
       def self.fetch(title, version, cnx)
         resp = cnx.get server_route(title, version)
-        new resp.body
+        vers_obj = new resp.body
+        vers_obj.cnx = cnx
+        vers_obj
       rescue Faraday::ResourceNotFound
         raise Xolo::NoSuchItemError, "No such version '#{version}'"
       end
@@ -123,6 +125,9 @@ module Xolo
       ######################
       ######################
 
+      # the server connection used to fetch this version
+      attr_accessor :cnx
+
       # Constructor
       ######################
       ######################
@@ -155,7 +160,7 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response from the server
       ####################
-      def add(cnx)
+      def add(cnx = self.cnx)
         resp = cnx.post self.class.server_route(title), to_h
         resp.body
       end
@@ -164,7 +169,7 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response from the server
       ####################
-      def update(cnx)
+      def update(cnx = self.cnx)
         resp = cnx.put self.class.server_route(title, version), to_h
         resp.body
       end
@@ -173,7 +178,7 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response body from the server
       ####################
-      def repair(cnx)
+      def repair(cnx = self.cnx)
         resp = cnx.post "#{self.class.server_route(title, version)}/repair"
         resp.body
       end
@@ -182,7 +187,7 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash] the response from the server
       ####################
-      def delete(cnx)
+      def delete(cnx = self.cnx)
         self.class.delete title, version, cnx
         # already returns resp.body
       end
@@ -191,7 +196,7 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash{String => String}] page_name => url
       ####################
-      def gui_urls(cnx)
+      def gui_urls(cnx = self.cnx)
         resp = cnx.get "#{self.class.server_route(title, version)}/urls"
         resp.body
       end
@@ -222,7 +227,7 @@ module Xolo
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Array<Hash>] Data for each computer with this version of this title installed
       ##################################
-      def patch_report_data(cnx)
+      def patch_report_data(cnx = self.cnx)
         resp = cnx.get "#{self.class.server_route(title, version)}/patch_report"
         resp.body
       end
