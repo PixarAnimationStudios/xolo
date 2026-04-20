@@ -75,6 +75,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
     The 'normal' EA was used to create various smart groups for scoping, since the Patch EA is not available directly as a group criterion. However, there is a "Patch Title: _display_name_" criterion which can do the same thing. We now use that and the smart groups are much simpler, as is all code dealing with the EAs.
 
+  - Installing multiple titles at once with `xolo install` and command-line syntax change.
+
+    You can now install more than one title at a time with `xolo install title-1 title-2 ...`.
+    
+    __IMPORTANT SYNTAX CHANGE__: To avoid complex commandline parsing, we've changed how you indicate a specific version to install. If you want a version other than the current release, you have to connect the version to the title with `=`, for example `xolo install title-1=1.2.3 title-2 title-3=123.4.5`. This will install version 1.2.3 of title-1, the current release of title-2, and version 123.4.5 of title-3.
+
+
 ## Fixed
    
   - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging files in from the Finder with spaces in their paths.
