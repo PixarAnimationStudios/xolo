@@ -101,8 +101,8 @@ module Xolo
               # only show items for the current title type, if applicable
               if deets[:title_type]
                 if walkthru_cmd_opts[:subscribed]
-                  next if deets[:title_type] == Xolo::Admin::Title::MANAGED
-                elsif deets[:title_type] == Xolo::Admin::Title::SUBSCRIBED
+                  next if deets[:title_type] == Xolo::MANAGED
+                elsif deets[:title_type] == Xolo::SUBSCRIBED
                   next
                 end
               end
@@ -797,7 +797,7 @@ module Xolo
         title_missing_values = []
 
         # if subscribing, need patch source and title id
-        # if walkthru_cmd_opts[:type] == Xolo::Admin::Title::SUBSCRIBED
+        # if walkthru_cmd_opts[:type] == Xolo::SUBSCRIBED
         if walkthru_cmd_opts[:subscribed]
           unless walkthru_cmd_opts[:patch_source]
             title_missing_values << Xolo::Admin::Title::ATTRIBUTES[:patch_source][:label]

@@ -232,7 +232,7 @@ module Xolo
       ########################
       def validate_type(val)
         val = val.to_s.strip.downcase.to_sym
-        return val if Xolo::Admin::Title::TYPES.include? val
+        return val if Xolo::TITLE_TYPES.include? val
 
         raise_invalid_data_error val, TITLE_ATTRS[:type][:invalid_msg]
       end
@@ -856,7 +856,7 @@ module Xolo
       # given our current options, are we working with a subscribed or managed title?
       #
       def current_title_type(opts)
-        opts[:subscribed] ? Xolo::Admin::Title::SUBSCRIBED : Xolo::Admin::Title::MANAGED
+        opts[:subscribed] ? Xolo::SUBSCRIBED : Xolo::MANAGED
       end
 
       # @param opts [OpenStruct] the current options
@@ -941,7 +941,7 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_patch_source_and_title_id(opts)
-        return if current_title_type(opts) == Xolo::Admin::Title::MANAGED
+        return if current_title_type(opts) == Xolo::MANAGED
         return if opts[:title_id] && opts[:patch_source]
 
         msg =
@@ -961,7 +961,7 @@ module Xolo
       #######
       def validate_title_consistency_title_id_exists(opts)
         return unless cli_cmd.command == Xolo::Admin::Options::ADD_TITLE_CMD
-        return if current_title_type(opts) == Xolo::Admin::Title::MANAGED
+        return if current_title_type(opts) == Xolo::MANAGED
         return unless opts[:title_id] && opts[:patch_source]
         return if jamf_available_titles.any? do |t|
           t[:name_id] == opts[:title_id] && t[:source_name] == opts[:patch_source]
@@ -979,7 +979,7 @@ module Xolo
       # If managing this title, display_name and publisher must be given
       #################
       def validate_title_consistency_display_name_and_publisher(opts)
-        return if current_title_type(opts) == Xolo::Admin::Title::SUBSCRIBED
+        return if current_title_type(opts) == Xolo::SUBSCRIBED
         return if opts[:display_name] && opts[:publisher]
 
         msg =
@@ -998,7 +998,7 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_app_or_script(opts)
-        return if current_title_type(opts) == Xolo::Admin::Title::SUBSCRIBED
+        return if current_title_type(opts) == Xolo::SUBSCRIBED
         return if opts[:version_script] || (opts[:app_bundle_id] && opts[:app_name])
 
         msg =
@@ -1018,7 +1018,7 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_app_and_script(opts)
-        return if current_title_type(opts) == Xolo::Admin::Title::SUBSCRIBED
+        return if current_title_type(opts) == Xolo::SUBSCRIBED
         return unless opts[:version_script] && (opts[:app_bundle_id] || opts[:app_name])
 
         msg =
@@ -1038,7 +1038,7 @@ module Xolo
       # @return [void]
       #######
       def validate_title_consistency_app_name_and_id(opts)
-        return if current_title_type(opts) == Xolo::Admin::Title::SUBSCRIBED
+        return if current_title_type(opts) == Xolo::SUBSCRIBED
         return if opts[:version_script]
         return if opts[:app_name] && opts[:app_bundle_id]
 

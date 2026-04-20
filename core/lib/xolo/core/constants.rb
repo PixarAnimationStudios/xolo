@@ -67,6 +67,12 @@ module Xolo
       # and for all manual-install policies
       TARGET_ALL = 'all'
 
+      # Title Types
+      MANAGED = :managed
+      SUBSCRIBED = :subscribed
+      TITLE_TYPES = [MANAGED, SUBSCRIBED].freeze
+      DEFAULT_TITLE_TYPE = :managed
+
       # when this module is included
       def self.included(includer)
         Xolo.verbose_include includer, self

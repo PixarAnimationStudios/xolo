@@ -35,11 +35,6 @@ module Xolo
 
         MIN_TITLE_DESC_LENGTH = 25
 
-        MANAGED = :managed
-        SUBSCRIBED = :subscribed
-        TYPES = [MANAGED, SUBSCRIBED].freeze
-        DEFAULT_TYPE = MANAGED
-
         # Attributes
         ######################
         ######################
@@ -257,7 +252,7 @@ module Xolo
           display_name: {
             label: 'Display Name',
             ted_attribute: :name,
-            title_type: MANAGED,
+            title_type: Xolo::MANAGED,
             # required: true, # only required if not subscribed
             cli: :n,
             type: :string,
@@ -279,7 +274,7 @@ module Xolo
             label: 'Publisher',
             ted_attribute: :publisher,
             # required: true, # only required if not subscribed
-            title_type: MANAGED,
+            title_type: Xolo::MANAGED,
             cli: :P,
             type: :string,
             walkthru_na: :publisher_na,
@@ -298,7 +293,7 @@ module Xolo
           app_name: {
             label: 'App Name',
             ted_attribute: :appName,
-            title_type: MANAGED,
+            title_type: Xolo::MANAGED,
             cli: :a,
             validate: true,
             type: :string,
@@ -323,7 +318,7 @@ module Xolo
           app_bundle_id: {
             label: 'App Bundle ID',
             ted_attribute: :bundleId,
-            title_type: MANAGED,
+            title_type: Xolo::MANAGED,
             cli: :b,
             validate: true,
             type: :string,
@@ -348,7 +343,7 @@ module Xolo
           #      title on a client mac
           version_script: {
             label: 'Version Script',
-            title_type: MANAGED,
+            title_type: Xolo::MANAGED,
             cli: :v,
             # while the script is stored in the Title Editor as the extension attribute
             # its handled differently, so we don't specify a ted_attribute here.
@@ -376,7 +371,7 @@ module Xolo
           #   @return [String] The name of the Jamf Patch Source that provides this title via subscription
           patch_source: {
             label: 'Subscription Patch Source',
-            title_type: SUBSCRIBED,
+            title_type: Xolo::SUBSCRIBED,
             cli: :S,
             type: :string,
             immutable: true,
@@ -398,7 +393,7 @@ module Xolo
           #   @return [String] The TitleID of the title on the specified Patch Source
           title_id: {
             label: 'Subscription Title ID',
-            title_type: SUBSCRIBED,
+            title_type: Xolo::SUBSCRIBED,
             cli: :T,
             type: :string,
             immutable: true,
