@@ -427,16 +427,16 @@ module Xolo
           confirmation: true
         },
 
-        SUBSCRIBE_CMD => {
-          desc: 'Subscribe to a software title from a Patch Source defined in Jamf Pro',
-          display: "#{SUBSCRIBE_CMD} title",
-          opts: Xolo::Admin::Title.subscribe_cli_opts,
-          walkthru_header: "Subscribing to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
-          target: :title,
-          process_method: :subscribe_title,
-          streamed_response: true,
-          confirmation: true
-        },
+        # SUBSCRIBE_CMD => {
+        #   desc: 'Subscribe to a software title from a Patch Source defined in Jamf Pro',
+        #   display: "#{SUBSCRIBE_CMD} title",
+        #   opts: Xolo::Admin::Title.subscribe_cli_opts,
+        #   walkthru_header: "Subscribing to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
+        #   target: :title,
+        #   process_method: :subscribe_title,
+        #   streamed_response: true,
+        #   confirmation: true
+        # },
 
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',

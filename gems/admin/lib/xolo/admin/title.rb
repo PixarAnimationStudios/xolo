@@ -50,9 +50,9 @@ module Xolo
 
       # @return [Hash{Symbol: Hash}] The ATTRIBUTES that are available as opts for the subscribe command
       ################################
-      def self.subscribe_cli_opts
-        @subscribe_cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli_subscribe] }
-      end
+      # def self.subscribe_cli_opts
+      #   @subscribe_cli_opts ||= ATTRIBUTES.select { |_k, v| v[:cli_subscribe] }
+      # end
 
       # @return [Array<String>] The currently known titles names on the server
       #############################
