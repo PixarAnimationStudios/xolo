@@ -1022,6 +1022,7 @@ module Xolo
 
         pol = jamf_manual_install_released_policy
         toggle_jamf_manual_install_released_policy pol, vobj
+        pol.in_self_service = self_service?
         pol.save
       end
 
