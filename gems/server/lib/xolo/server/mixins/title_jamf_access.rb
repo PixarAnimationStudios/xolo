@@ -1576,6 +1576,7 @@ module Xolo
         end
 
         # configure the self-service settings of the manual_install_released_policy
+        # NOTE this doesn't actually add it to self service, just configures the settings
         # @param pol [Jamf::Policy] The jamf_manual_install_released_policy, which may not be saved yet.
         # @return [void]
         ############################
