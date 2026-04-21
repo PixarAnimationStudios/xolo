@@ -1430,7 +1430,7 @@ module Xolo
 
           pol.scope.set_exclusions :computer_groups, excls
 
-          return unless self_service
+          return unless self_service?
 
           if pol.in_self_service?
             configure_pol_for_self_service(pol)
@@ -1491,7 +1491,7 @@ module Xolo
         # @return [void]
         ##################################
         def add_title_to_self_service(pol = nil)
-          return unless self_service
+          return unless self_service?
 
           pol ||= jamf_manual_install_released_policy
 
