@@ -319,7 +319,7 @@ module Xolo
 
             elsif version.jamf_pkg_file =~ /_(\d+)_\.pkg$/
               # this is a re-upload, does the filename indicat a previous re-upload with a _N_ in the name?
-              next_num = Regex.last_match[1].to_i + 1
+              next_num = Regexp.last_match[1].to_i + 1
               "#{version.jamf_pkg_name}_#{next_num}_#{Xolo::DOT_PKG}"
 
             else
