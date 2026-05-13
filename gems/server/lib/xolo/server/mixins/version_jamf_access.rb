@@ -776,7 +776,7 @@ module Xolo
         # @return [Boolean] does the jamf_auto_reinstall_policy exist?
         ##########################
         def jamf_auto_reinstall_policy_exist?
-          Jamf::Policy.all_names(cnx: jamf_cnx).include? jamf_auto_reinstall_policy_name
+          Jamf::Policy.all_names(:refresh, cnx: jamf_cnx).include? jamf_auto_reinstall_policy_name
         end
 
         # Create or fetch the auto re-install policy for this version
@@ -790,8 +790,6 @@ module Xolo
               Jamf::Policy.fetch(name: jamf_auto_reinstall_policy_name, cnx: jamf_cnx)
             else
               return if deleting?
-              # don't create unless there's been a re-upload of the pkg
-              return unless reupload_date
 
               create_jamf_auto_reinstall_policy
             end
