@@ -146,6 +146,8 @@ module Xolo
           progress msg, log: :info
 
           version.jamf_pkg_file = dist_pkg_filename(version)
+          log_debug "Jamf: Uploaded package filename will be '#{version.jamf_pkg_file}'"
+          version.save_local_data
 
           # The pkg_src will be staged here before uploading to the Dist Point
           staged_pkg = Xolo::Server::Title.title_dir(version.title) + version.jamf_pkg_file
@@ -228,7 +230,7 @@ module Xolo
                 version.upload_date = Time.now
                 version.uploaded_by = uploaded_by
               end # if re_uploading
-
+              version.save_local_data
               version.log_change msg: "#{action}ed pkg file '#{staged_pkg.basename}' to Jamf Pro dist point(s)"
             rescue => e
               msg = "Error in pkg upload thread: #{e.class}: #{e}"
@@ -312,23 +314,19 @@ module Xolo
         # @return [String] the filename to use for the pkg on the dist point
         ####################
         def dist_pkg_filename(version)
-          dist_pkg_filename =
-            if version.upload_date.pix_empty?
-              # no upload date, this is the first upload
-              "#{version.jamf_pkg_name}#{Xolo::DOT_PKG}"
+          if version.upload_date.pix_empty?
+            # no upload date, this is the first upload
+            "#{version.jamf_pkg_name}#{Xolo::DOT_PKG}"
 
-            elsif version.jamf_pkg_file =~ /_(\d+)_\.pkg$/
-              # this is a re-upload, does the filename indicat a previous re-upload with a _N_ in the name?
-              next_num = Regexp.last_match[1].to_i + 1
-              "#{version.jamf_pkg_name}_#{next_num}_#{Xolo::DOT_PKG}"
+          elsif version.jamf_pkg_file.to_s =~ /_(\d+)_\.pkg$/
+            # this is a re-upload, does the filename indicat a previous re-upload with a _N_ in the name?
+            next_num = Regexp.last_match[1].to_i + 1
+            "#{version.jamf_pkg_name}_#{next_num}_#{Xolo::DOT_PKG}"
 
-            else
-              # the first re-upload, just add _2_ before the extension
-              "#{version.jamf_pkg_name}_2_#{Xolo::DOT_PKG}"
-            end
-
-          log_debug "Jamf: Uploaded package filename will be '#{dist_pkg_filename}'"
-          dist_pkg_filename
+          else
+            # the first re-upload, just add _2_ before the extension
+            "#{version.jamf_pkg_name}_2_#{Xolo::DOT_PKG}"
+          end
         end
 
         # If this pkg needs signing, do so putting the signed pkg in the staged_pkg location,

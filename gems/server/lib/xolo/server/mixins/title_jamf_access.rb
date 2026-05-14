@@ -1491,8 +1491,6 @@ module Xolo
         # @return [void]
         ##################################
         def add_title_to_self_service(pol = nil)
-          return unless self_service?
-
           pol ||= jamf_manual_install_released_policy
 
           msg = "Jamf: Adding Manual Install Policy '#{pol.name}' to Self Service."

@@ -312,8 +312,6 @@ module Xolo
         # @return [Jamf::JPackage] the Package object associated with this version
         ######################
         def jamf_package
-          log_debug "Jamf: running jamf_package for version '#{version}'. @jamf_package is '#{@jamf_package}' (#{@jamf_package.class})"
-
           return @jamf_package if @jamf_package
 
           id = jamf_pkg_id || Jamf::JPackage.valid_id(name: jamf_pkg_name, cnx: jamf_cnx)
@@ -333,7 +331,7 @@ module Xolo
         # @return [Boolean] does the jamf_package exist?
         #########################
         def jamf_package_exist?
-          Jamf::JPackage.all_packageNames(cnx: jamf_cnx).include? jamf_pkg_name
+          !Jamf::JPackage.valid_id(packageName: jamf_pkg_name, cnx: jamf_cnx).nil?
         end
 
         # @return [Jamf::JPackage] Create the Jamf::JPackage object for this version and return it
@@ -692,8 +690,6 @@ module Xolo
             )
           else
             return if deleting?
-            # don't create unless there's been a re-upload of the pkg
-            return unless reupload_date
 
             create_jamf_installed_group
           end
@@ -819,6 +815,9 @@ module Xolo
         # @param pol [Jamf::Policy] the policy to configure
         ######################
         def configure_jamf_auto_reinstall_policy(pol)
+          # this creates the installed group if it doesn't already exist
+          jamf_installed_group
+
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, true
           pol.set_trigger_event :custom, Xolo::BLANK
@@ -826,7 +825,7 @@ module Xolo
           pol.recon = false
           pol.retry_event = :checkin
           pol.retry_attempts = 5
-          pol.scope.set_targets :computer_groups, [jamf_installed_group_name]
+          pol.scope.set_targets :computer_groups, [jamf_installed_group.name]
 
           # exclusions are for always
           set_policy_exclusions pol

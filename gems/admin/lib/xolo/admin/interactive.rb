@@ -185,9 +185,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def app_name_bundleid_na
-        unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:title_id] || walkthru_cmd_opts[:subscribed]
-          return
-        end
+        return unless walkthru_cmd_opts[:version_script] || walkthru_cmd_opts[:subscribed]
 
         'N/A when using Version Script, or subcribing via a Patch Source'
       end

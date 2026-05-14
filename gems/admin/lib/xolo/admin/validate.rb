@@ -570,9 +570,10 @@ module Xolo
       ##########################
       def validate_pkg_to_upload(val)
         val = Pathname.new val.to_s.strip
+        show_debug "Validating pkg_to_upload: '#{val}'. Checking if file? #{val.file?}, readable? #{val.readable?}, extname '#{val.extname}'"
         return val if val.file? && val.readable? && (Xolo::OK_PKG_EXTS.include? val.extname)
 
-        raise_invalid_data_error val, VERSION_ATTRS[:jamf_pkg_file][:invalid_msg]
+        raise_invalid_data_error val, VERSION_ATTRS[:pkg_to_upload][:invalid_msg]
       end
 
       # Version Attributes
