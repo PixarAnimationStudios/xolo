@@ -1118,6 +1118,12 @@ module Xolo
         # versions
         elsif version_command?
 
+          # make note of the title being subscribed or managed
+          title_obj = Xolo::Admin::Title.fetch(cli_cmd.title, server_cnx)
+
+          @current_opt_values[:subscribed] = title_obj.subscribed?
+          @current_opt_values[:display_name] = title_obj.display_name
+
           # adding a new one?
           if add_command?
             prev_version = Xolo::Admin::Title.latest_version cli_cmd.title, server_cnx

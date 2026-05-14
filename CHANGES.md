@@ -4,17 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[2.0.0] Unreleased
+## \[2.1.0] Unreleased
 
-## Added
+### Fixed 
+
+  - Many bugfixes and small improvements including: 
+    - Validation and Interactive/walkthru choices for managed vs subscribed titles.
+    - Handling of re-uploaded pkgs
+
+## \[2.0.0] Internal Release
+
+### Added
 
   - Subscribed Titles
 
     Normal Xolo titles are "managed" - All aspects of the title are managed via `xadm` including the addition of new verions. Such titles are maintained via the Title Editor patch source.
 
-    Xolo can now also subscribe to titles maintained by other Patch Sources (e.g. the Jamf Built-In) or those maintained separately in the Title Editor. For these titles you cannot specify `--display-name`, `--publisher`, `--app-name` & `--app-bundle-id` or `--version-script`, those will be set by the patch-source. Other values for the title are set as usual. New versions appear via the subscription, and the xoloserver handles them via Webhook Events. 
+    Xolo can now also subscribe to titles maintained by other Patch Sources (e.g. the Jamf Built-In) or those maintained in the Title Editor outside of Xolo. For these titles you cannot specify `--display-name`, `--publisher`, `--app-name` & `--app-bundle-id` or `--version-script`, those will be set by the patch-source. Other values for the title are set as usual. New versions appear via the subscription, and the xoloserver handles them via Webhook Events. 
 
     To subscribe to a title,specify `--subscribed` when you use `xadm add-title`. This means you must provide a valid `--patch-source` and `--title-id`. See the new `list-available` xadm command, below.
+
+    Titles cannot be changed between subscribed and managed once created. To do so requires deleting the title (and all its versions) and re-adding it.
 
     Once the title is added, xoloserver will recieve [PatchSoftwareTitleUpdated webhook events](https://developer.jamf.com/developer-guide/docs/webhooks#patchsoftwaretitleupdated) from Jamf Pro when new versions become available. The xoloserver automatically creates a new xolo version (the equivalent of `xadm add-version`) and will either notify someone to upload a .pkg for it, or, if the server and title are configured for it, use autopkg to acquire and upload the .pkg.
 
@@ -22,11 +32,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     NOTE 2: If a subscribed title uses an Extension Attribute ('version-script') it must be manually accepted in the Jamf Pro web UI. Xolo cannot auto-accept extension attributes it does not manage. Patch Policies and reporting will not work until it has been accepted.
 
-  - New xadm command `list-available`. 
+  - New xadm command `list-available`
   
     This outputs a list of all titles available for subscription on all defined Jamf Patch Sources.  Titles already activated/subscribed in Jamf Patch (including all managed or subscribed Xolo titles) will not appear. This is useful/needed when adding a subscribed title, to identify the correct patch source and title id.
 
-  - AutoPkg support.
+  - AutoPkg support
 
     Titles can be configured to acquire the .pkg files for new versions via [AutoPkg](https://github.com/autopkg/autopkg)
 
@@ -61,7 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     If the `create_distribution_pkgs` config is set to true on the xoloserver, it will examine each .pkg it recieves, via xadm upload, or autpkg. If the pkg is not a distribution pkg, it will be wrapped inside one, so that it can be deployed via MDM. The wrapper pkg will be signed based on the `sign_pkgs` and `sign_autopkg_pkgs` settings.
 
 
-## Changed
+### Changed
 
   - Retaining Title Editor Version definitions.
     
@@ -82,13 +92,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     __IMPORTANT SYNTAX CHANGE__: To avoid complex commandline parsing, we've changed how you indicate a specific version to install. If you want a version other than the current release, you have to connect the version to the title with `=`, for example `xolo install title-1=1.2.3 title-2 title-3=123.4.5`. This will install version 1.2.3 of title-1, the current release of title-2, and version 123.4.5 of title-3.
 
 
-## Fixed
+### Fixed
    
   - When using walkthru to add or edit a version's "Package to upload", you no longer get an error when dragging files in from the Finder with spaces in their paths.
 
 
 
-## Removed
+### Removed
 
   - Xolo no longer supports bundle-style non-flat .pkg/.mpkg installers.
     
@@ -96,7 +106,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
     Flat Packages have been around since macOS 10.5, and have been preferred for years. They are required for deployment via MDM. Until recently at least one major software company was still deplying bundle-style packages. Now that they are not, there's little reason for Xolo to support them, helping to simplify the code a bit.
 
-## \[1.0.2] Unreleased
+## \[1.0.2] Internal Release
 
 ### Fixed
   - Setting KillApps in walkthru mode now shows a prompt for each line expecting input.

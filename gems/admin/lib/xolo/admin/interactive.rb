@@ -98,6 +98,10 @@ module Xolo
 
             # The menu items for setting values
             cmd_details(cmd)[:opts].each do |key, deets|
+              # dont displau items for the other kind of action
+              next if deets[:add_only] && edit_command?
+              next if deets[:edit_only] && add_command?
+
               # only show items for the current title type, if applicable
               if deets[:title_type]
                 if walkthru_cmd_opts[:subscribed]
@@ -277,7 +281,14 @@ module Xolo
 
         header_text.sub! Xolo::Admin::Options::TARGET_TITLE_PLACEHOLDER, cli_cmd.title if cli_cmd.title
         header_text.sub! Xolo::Admin::Options::TARGET_VERSION_PLACEHOLDER, cli_cmd.version if cli_cmd.version
-
+        if edit_command?
+          header_text <<
+            if current_opt_values[:subscribed]
+              " (subscribed as '#{current_opt_values[:display_name]}')"
+            else
+              ' (managed)'
+            end
+        end
         header_sep_line = Xolo::DASH * header_text.length
 
         system 'clear'

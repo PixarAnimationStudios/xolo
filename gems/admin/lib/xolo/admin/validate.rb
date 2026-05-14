@@ -923,10 +923,18 @@ module Xolo
 
         Xolo::Admin::Title.cli_opts.each do |key, deets|
           next unless opts[key]
-          # ignore values not given on the commandline
-          next if !walkthru? && !opts["#{key}_given"]
           next unless deets[:title_type]
           next if deets[:title_type] == ttl_type
+
+          # ignore values not used for this command type
+          next if add_command? && deets[:edit_only]
+          next if edit_command? && deets[:add_only]
+
+          # ignore values not given on the commandline
+          next if !walkthru? && !opts["#{key}_given"]
+
+          # display_name is stored for subscribed titles, but only editable for managed
+          next if key == :display_name && ttl_type == Xolo::SUBSCRIBED
 
           bad_opts << (walkthru? ? deets[:label] : "--#{key.to_s.gsub('_', '-')}")
         end

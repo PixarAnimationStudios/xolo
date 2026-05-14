@@ -213,7 +213,7 @@ module Xolo
 
               When a subscribed title is added, a Xolo Version is automatically added for the most recent version available from the Patch Source.
 
-              Once created as subscribed or managed, a title cannot be changed to the other type. If you need to change the type, you must delete and re-create the title.
+              Once created as subscribed or managed, a title cannot be changed to the other type. If you need to change the type, you must delete and re-create the title. Also once created, the patch source and title id for a subscribed title cannot be changed.
 
               In all cases, a .pkg must be provided for each version known to Xolo, either by uploading it via xadm or configuring the server and the title to use AutoPkg to acquire it.
             ENDDESC
@@ -376,6 +376,7 @@ module Xolo
             type: :string,
             immutable: true,
             validate: true,
+            add_only: true,
             walkthru_na: :patch_source_na,
             readline: :jamf_patch_sources_with_available_titles,
             invalid_msg: 'Invalid Patch Source. Unknown Patch Source Name, or it has no available titles.',
@@ -385,6 +386,8 @@ module Xolo
               This value and --title-id are required for 'subscribed' titles.
 
               To see a list of titles available for subscription, with their Patch Sources and IDs, use `xadm list-available`.
+
+              Can only be used when adding a new title, not when editing an existing one.
             ENDDESC
 
           },
@@ -397,6 +400,7 @@ module Xolo
             cli: :T,
             type: :string,
             immutable: true,
+            add_only: true,
             walkthru_na: :title_id_na,
             validate: true,
             invalid_msg: 'Invalid Title ID. Not available in any Patch Source.',
@@ -406,6 +410,8 @@ module Xolo
               This is the unique identifier for each title on a patch source, it is a sometimes-meaningless string of alphanumeric characters.
 
               To find the TitleID of a title available for subscription, use `xadm list-available`
+
+              Can only be used when adding a new title, not when editing an existing one.
             ENDDESC
 
           },

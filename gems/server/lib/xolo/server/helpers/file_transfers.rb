@@ -262,10 +262,13 @@ module Xolo
             sleep 60
           end # until
 
-          log_info "Pkg '#{version.jamf_pkg_file}' is now on Cloud DP and ready to go, enabling reinstall policy"
+          log_debug "Pkg '#{version.jamf_pkg_file}' is now on Cloud DP, enabling reinstall policy"
           pol = version.jamf_auto_reinstall_policy
           pol.enable
           pol.save
+
+          msg = "Re-uploaded pkg '#{version.jamf_pkg_file}' is on the dist point and ready to go, reinstall policy '#{pol.name}' has been enabled"
+          log_info msg, alert: true
         end
 
         # After uploading a pkg, update the version with info about the pkg,

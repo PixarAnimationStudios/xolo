@@ -681,8 +681,9 @@ module Xolo
         # otherwise tell someone we need a .pkg
         else
           msg = "No --pkg-to-upload given for version '#{version}' of title #{title}, and no autopkg recipe enabled. Please upload a pkg via xadm or enable autopkg for this title."
-          progress msg, log: :warn, alert: true
 
+          # no alert when subscribed because a better alert mesg is sent from add_version_via_subscription
+          subscribed? ? progress(msg, log: :warn) : progress(msg, log: :warn, alert: true)
         end
       ensure
         unlock
