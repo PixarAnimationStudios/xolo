@@ -1024,13 +1024,9 @@ module Xolo
         toggle_jamf_manual_install_released_policy pol, vobj
 
         if self_service?
-          msg = "Jamf: Adding Manual Install Policy '#{pol.name}' to Self Service."
-          progress msg, log: :info
-
-          pol.add_to_self_service
-          configure_pol_for_self_service(pol)
-        elsif pol.in_self_service?
-          pol.remove_from_self_service
+          add_title_to_self_service(pol)
+        else
+          remove_title_from_self_service(pol)
         end
 
         pol.save

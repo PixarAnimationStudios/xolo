@@ -130,7 +130,6 @@ module Xolo
 
           update_description_in_jamf
           update_ssvc
-          update_ssvc_category
           # TODO: deal with icon changes: if changes_for_update&.key? :self_service_icon
 
           if jamf_title_active?
@@ -224,8 +223,6 @@ module Xolo
             vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update&.key? :release_groups
             vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key? :excluded_groups
             vers_obj.update_jamf_package_notes(ttl_obj: self) if need_to_update_description?
-            # vers_obj.update_ssvc(ttl_obj: self) if changes_for_update&.key? :self_service
-            # vers_obj.update_ssvc_category(ttl_obj: self) if changes_for_update&.key? :self_service_category
           end
         end
 
@@ -1430,12 +1427,10 @@ module Xolo
 
           pol.scope.set_exclusions :computer_groups, excls
 
-          return unless self_service?
-
-          if pol.in_self_service?
-            configure_pol_for_self_service(pol)
-          else
+          if self_service?
             add_title_to_self_service(pol)
+          else
+            remove_title_from_self_service(pol)
           end
         end
 
@@ -1493,105 +1488,96 @@ module Xolo
         def add_title_to_self_service(pol = nil)
           pol ||= jamf_manual_install_released_policy
 
-          msg = "Jamf: Adding Manual Install Policy '#{pol.name}' to Self Service."
-          progress msg, log: :info
+          unless pol.in_self_service?
+            msg = "Jamf: Adding Manual Install Policy '#{pol.name}' to Self Service."
+            progress msg, log: :info
+            pol.add_to_self_service
+          end
 
-          pol.add_to_self_service
           configure_pol_for_self_service(pol)
+          pol.save
+        end
+
+        # Add the jamf_manual_install_released_policy to self service if needed
+        # @param pol [Jamf::Policy] The jamf_manual_install_released_policy, which may not be saved yet.
+        # @return [void]
+        ##################################
+        def remove_title_from_self_service(pol = nil)
+          pol ||= jamf_manual_install_released_policy
+          return unless pol.in_self_service?
+
+          msg = "Jamf: Removing Manual Install Policy '#{pol.name}' from Self Service."
+          progress msg, log: :info
+          pol.remove_from_self_service
+
+          pol.save
         end
 
         # Update whether or not we are in self service, based on the setting in the title
         #
         #########################
         def update_ssvc
-          return unless changes_for_update.key? :self_service
-
-          # Update the manual install policy
           pol = jamf_manual_install_released_policy
-          return unless pol
 
-          # we should be in SSvc - changes_for_update[:self_service][:new] is a boolean
-          if changes_for_update[:self_service][:new]
-            add_title_to_self_service(pol) unless pol.in_self_service?
+          adding_to_ssvc = changes_for_update.dig :self_service, :new
 
-          # we should not be in SSvc
-          elsif pol.in_self_service?
-            msg = "Jamf: Removing Manual Install Policy '#{pol.name}' from Self Service."
-            progress msg, log: :info
-            pol.remove_from_self_service
+          updating_config = changes_for_update.dig :self_service_category, :new
+          updating_config ||= changes_for_update.dig :description, :new
+          updating_config ||= changes_for_update.dig :display_name, :new
+
+          # if adding_to_ssvc is nil, we aren't changing it at all
+          # it must be false to indicate removal.
+          removing_from_ssvc = adding_to_ssvc == false
+
+          if adding_to_ssvc
+            add_title_to_self_service(pol)
+
+          elsif updating_config
+            configure_pol_for_self_service(pol)
+
+          # we should not be in SSvc, remove it, but leave all the settings
+          elsif removing_from_ssvc
+            remove_title_from_self_service(pol)
           end
+
           pol.save
 
           # TODO: if we decide to use ssvc in patch policies, loop thru versions to make any changes
-        end
-
-        # Update our self service category, based on the setting in the title
-        # TODO: Allow multiple categories, and 'featuring' ?
-        #
-        #########################
-        def update_ssvc_category
-          return unless changes_for_update.key? :self_service_category
-
-          pol = jamf_manual_install_released_policy
-          return unless pol
-
-          new_cat = changes_for_update[:self_service_category][:new]
-
-          progress(
-            "Jamf: Updating Self Service Category to '#{new_cat}' for Manual Install Policy '#{pol.name}'.",
-            log: :info
-          )
-
-          old_cats = pol.self_service_categories.map { |c| c[:name] }
-          old_cats.each { |c| pol.remove_self_service_category c }
-          pol.add_self_service_category new_cat
-          pol.save
-
-          # TODO: if we decide to use ssvc in patch policies, loop thru versions to make any changes
-        end
-
-        # Update the SSvc Icon for the policies used by this version
-        #
-        # @param ttl_obj [Xolo::Server::Title] The pre-instantiated title for ths version.
-        #   if nil, we'll instantiate it now
-        #
-        # @return [void]
-        ###############################
-        def update_ssvc_icon(ttl_obj: nil)
-          ttl_obj ||= title_object
-          # update manual install policy
-
-          log_debug "Jamf: Updating SSvc Icon for Manual Install Policy '#{jamf_manual_install_policy_name}'"
-          pol = jamf_manual_install_policy
-          return unless pol
-
-          pol.upload :icon, ttl_obj.ssvc_icon_file
-          progress "Jamf: Updated Icon for Manual Install Policy '#{jamf_manual_install_policy_name}'",
-                   log: :debug
-
-          # TODO: When we figure out if we want patch policies to use
-          # ssvc - they will need to be updated also
         end
 
         # configure the self-service settings of the manual_install_released_policy
         # NOTE this doesn't actually add it to self service, just configures the settings
+        # See add_title_to_self_service
+        #
         # @param pol [Jamf::Policy] The jamf_manual_install_released_policy, which may not be saved yet.
         # @return [void]
         ############################
         def configure_pol_for_self_service(pol = nil)
           pol ||= jamf_manual_install_released_policy
 
-          # clear existing categories, re-add correct one
-          pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
-          pol.add_self_service_category self_service_category
+          new_cat = changes_for_update&.dig(:self_service_category, :new) || self_service_category
+          if new_cat
+            progress "Jamf: Setting Self Service category to '#{new_cat}'", log: :debug
+            # clear existing categories, re-add correct one
+            pol.self_service_categories.each { |cat| pol.remove_self_service_category cat }
+            pol.add_self_service_category new_cat if new_cat
+          end
 
-          pol.self_service_description = description
-          pol.self_service_display_name = display_name
+          new_display_name = changes_for_update&.dig(:self_service_display_name, :new) || display_name
+          progress "Jamf: Setting Self Service display name to '#{new_display_name}'", log: :debug
+          pol.self_service_display_name = new_display_name
+
+          new_desc = changes_for_update&.dig(:self_service_description, :new) || description
+          progress "Jamf: Setting Self Service description to '#{new_desc}'", log: :debug
+          pol.self_service_description = new_desc
+
           pol.self_service_install_button_text = Xolo::Server::Title::SELF_SERVICE_INSTALL_BTN_TEXT
           return unless ssvc_icon_file
 
+          progress 'Jamf: Uploading Self Service icon', log: :debug
           pol.save # won't do anything unless needed, but has to exist before we can upload icons
           pol.upload :icon, ssvc_icon_file
+          # re-fetch the pol to get the icon id
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
         end
 
