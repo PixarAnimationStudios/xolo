@@ -212,16 +212,7 @@ module Xolo
           update_jamf_pkg_reboot if changes_for_update&.key? :reboot
           update_jamf_pkg_min_os if changes_for_update&.key? :min_os
 
-          # TODO: Update the critera for the jamf_installed_group IF
-          #
-          # - the group exists AND
-          # - the title has changed how it determines installed versions, e.g. by adding or
-          #   changing a version_script or app_bundle_id
-          #   Changing those is very rare, and ill-advised, so we will implement
-          #   this later.
-          #
-          # if jamf_installed_group_exist?
-          # end
+          update_jamf_patch_policy_patch_unknown if changes_for_update&.key? :patch_unknown
         end
 
         # Validate and fix any Jamf::JPackage objects that
@@ -409,6 +400,19 @@ module Xolo
                    log: :debug
           jamf_package.osRequirements = ">=#{new_min}"
           jamf_package.save
+        end
+
+        # update the :patch_unknown for the patch policy
+        # @return [void]
+        ##############################
+        def update_jamf_patch_policy_patch_unknown
+          return unless changes_for_update&.key? :patch_unknown
+
+          ppol = jamf_patch_policy
+          action = changes_for_update[:patch_unknown][:new] ? 'Enabling' : 'Disabling'
+          progress "Jamf: #{action} 'patch_unknown' for patch policy  #{ppol.name}", log: :debug
+          ppol.patch_unknown = changes_for_update[:patch_unknown][:new] ? true : false
+          ppol.save
         end
 
         # repair the package object only
