@@ -474,6 +474,8 @@ module Xolo
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members will automatically have new versions installed or updated for testing before it is released.
 
+              These groups affect both the initial installation of and updates to a title when a version is added, before it is released.
+
               These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
 
               Pilot groups can also be defined per version, in which case these will be ignored. Defining them in the title is useful for subscribed titles, where new versions are created automatically.
@@ -505,7 +507,9 @@ module Xolo
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid release group(s). Must exist in Jamf and not be excluded.',
             desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members will automatically have this title installed when new versions are released.
+              One or more Jamf Computer Groups whose members will automatically have this title installed.
+
+              These groups affect the _initial_ installation of a title when a version is released. Any Mac with the title installed, will get updates (if not excluded) regardless of the release-groups.
 
               If your Xolo administrators allow it, you can use '#{Xolo::TARGET_ALL}' to auto-install on all computers that aren't excluded. If not, you'll be told how to request setting release groups to '#{Xolo::TARGET_ALL}'.
 
@@ -534,7 +538,7 @@ module Xolo
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members are not allowed to install this title.
 
-              When a computer is in one of these groups, the title is not available even if the computer is in a pilot or release group.
+              When a computer is in one of these groups, the title is not available at all, for installation or updates, even if the computer is in a pilot or release group.
 
               When using the --excluded-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
@@ -663,6 +667,7 @@ module Xolo
               It will never be available to excluded computers.
 
               Self Service is not available for titles with the release_group 'all'.
+              To remove the self-service option, use --no-self-service.
             ENDDESC
           },
 

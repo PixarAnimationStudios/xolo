@@ -170,6 +170,7 @@ module Xolo
             changelog: true,
             desc: <<~ENDDESC
               The installation of this version requires the computer to reboot. Users will be notified before installation.
+              To remove the reboot option, use --no-reboot.
             ENDDESC
           },
 
@@ -186,6 +187,7 @@ module Xolo
             changelog: true,
             desc: <<~ENDDESC
               The installer for this version is a full installer, not an incremental patch that must be installed on top of an earlier version.
+              To remove the standalone option, use --no-standalone.
             ENDDESC
           },
 
@@ -217,6 +219,7 @@ module Xolo
               use them as a killapp by specifying '#{USE_TITLE_FOR_KILLAPP}'
 
               If not using --walkthru you can use --killapps multiple times
+              To remove all killapps, use '#{Xolo::NONE}'.
             ENDDESC
           },
 
@@ -237,6 +240,8 @@ module Xolo
               This can cause problems if that unknown version is actually newer than this version, e.g. a beta or pre-release version, or when the app has a 'self-update' mechanism that installs newer versions outside of Jamf Patch before it is aware of them.
 
               But sometimes it may be desirable to have all unknown versions updated to this version, e.g. when the title is a helper app that is not regularly updated, or when the title is being newly managed by Xolo/Jamf Patch and you want to get all existing installations onto this version.
+
+              To remove the patch-unknown option, use --no-patch-unknown.
             ENDDESC
           },
 
@@ -262,7 +267,7 @@ module Xolo
 
               When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
-              When adding a new version, the pilot groups from the previous version will be inherited if you don't specify any. To make the new version have no pilot groups use '#{Xolo::NONE}'.
+              When adding a new version, the pilot groups from the previous version will be inherited if you don't specify any. To make the version have no pilot groups use '#{Xolo::NONE}'.
 
               NOTE: Any non-excluded computer can be used for piloting at any time by manually installing the yet-to-be-released version using `sudo xolo install <title> <version>`.  The members of the pilot groups are just the ones that will have it auto-installed.
             ENDDESC
