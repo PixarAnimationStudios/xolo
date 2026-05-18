@@ -410,7 +410,7 @@ module Xolo
 
           ppol = jamf_patch_policy
           action = changes_for_update[:patch_unknown][:new] ? 'Enabling' : 'Disabling'
-          progress "Jamf: #{action} 'patch_unknown' for patch policy  #{ppol.name}", log: :debug
+          progress "Jamf: #{action} 'patch_unknown' for patch policy #{ppol.name}", log: :debug
           ppol.patch_unknown = changes_for_update[:patch_unknown][:new] ? true : false
           ppol.save
         end
@@ -962,6 +962,7 @@ module Xolo
           # exclusions are for always
           set_policy_exclusions ppol
 
+          # only pilot and released versions should have the patch policy enabled
           if pilot? || released?
             ppol.enable
           else
