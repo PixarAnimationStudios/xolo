@@ -671,7 +671,8 @@ module Xolo
         # so we don't want to do it here in the create method
 
         # do we have an uploaded pkg?
-        if pkg_to_upload.to_s.start_with? '/'
+        if !pkg_to_upload.pix_empty?
+
           progress "Pkg will be uploaded to xolo via xadm shortly, from path '#{pkg_to_upload}'", log: :info
 
         # if we have an autopkg recipe and dir, get the .pkg and upload it to Jamf
