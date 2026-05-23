@@ -140,11 +140,11 @@ module Xolo
             pkgs.max_by(&:mtime)
 
           else
-            progress "ERROR: AutoPkg recipe #{autopkg_recipe} failed with status #{status.exitstatus}.", log: :error, alert: true
+            progress "ERROR: AutoPkg recipe #{recipe} failed with status #{status.exitstatus}.", log: :error, alert: true
             log_error 'AutoPkg output:'
             souterr.lines.each { |l| log_error "AutoPkg: #{l.chomp}" }
 
-            raise "AutoPkg recipe #{autopkg_recipe} failed."
+            raise "AutoPkg recipe #{recipe} failed."
           end
         end
 
