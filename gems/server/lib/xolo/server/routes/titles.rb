@@ -53,12 +53,6 @@ module Xolo
 
           with_streaming do
             title.create
-            # we don't need to update client data when managed titles are created
-            # because they don't have any versions yet, so there's nothing a
-            # client can do with them.
-            #
-            # However subscribed titles will have their latest version activated
-            # will need client data updated
           end
         end
 
@@ -99,7 +93,8 @@ module Xolo
           log_info "Admin #{session[:admin]} is updating title '#{params[:title]}'"
           with_streaming do
             title.update new_data
-            update_client_data
+            # Moved to title.update
+            # update_client_data
           end
         end
 
@@ -127,7 +122,8 @@ module Xolo
 
           with_streaming do
             title.release vers_to_release
-            update_client_data
+            # moved to title.release
+            # update_client_data
           end
         end
 
@@ -148,7 +144,8 @@ module Xolo
 
           with_streaming do
             title.repair repair_versions: do_versions
-            update_client_data
+            # moved to title.repair
+            # update_client_data
           end
         end
 
@@ -162,7 +159,8 @@ module Xolo
 
           with_streaming do
             title.delete
-            update_client_data
+            # moved to title.delete
+            # update_client_data
           end
         end
 

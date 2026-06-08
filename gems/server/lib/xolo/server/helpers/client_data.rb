@@ -19,7 +19,7 @@ module Xolo
       # This is used as a 'helper' in the Sinatra server
       #
       # This means methods here are available in all routes, views, and helpers
-      # the Sinatra server app.
+      # in the Sinatra server app.
       #
       # The client data package is a Jamf::JPackage that installs a JSON file on all
       # managed Macs. This JSON file contains data about all titles and versions, and

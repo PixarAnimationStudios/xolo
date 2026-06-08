@@ -77,7 +77,8 @@ module Xolo
           Xolo::Server.rw_lock(data[:title], data[:version]).with_write_lock do
             with_streaming do
               vers.create
-              update_client_data
+              # moved to vers.create
+              # update_client_data
             end
           end
         end
@@ -126,7 +127,8 @@ module Xolo
 
           with_streaming do
             vers.update new_data
-            update_client_data
+            # moved to vers.update
+            # update_client_data
           end
         end
 
@@ -149,7 +151,8 @@ module Xolo
 
           with_streaming do
             vers.delete
-            update_client_data
+            # moved to vers.delete
+            # update_client_data
           end
         end
 
@@ -206,7 +209,8 @@ module Xolo
 
           with_streaming do
             vers.repair
-            update_client_data
+            # moved to vers.repair
+            # update_client_data
           end
         end
 

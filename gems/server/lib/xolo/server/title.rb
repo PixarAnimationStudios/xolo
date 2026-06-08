@@ -677,6 +677,10 @@ module Xolo
 
         log_change msg: 'Title Created'
 
+        # we don't need to update client data when titles are created
+        # because they don't have any versions yet, so there's nothing a
+        # client can do with them. It'll be updated when the version is created
+
         # ssvc icon is uploaded in a separate process, and the
         # title data file will be updated as needed then.
       ensure
@@ -729,7 +733,8 @@ module Xolo
 
         # any new self svc icon will be uploaded in a separate process
         # and the local data will be updated again then
-        #
+
+        server_app_instance.update_client_data
       rescue => e
         log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
 
@@ -929,6 +934,7 @@ module Xolo
 
         progress "Deleting Xolo server data for title '#{title}'", log: :info
         title_dir.rmtree
+        server_app_instance.update_client_data
       ensure
         unlock
       end
@@ -950,12 +956,10 @@ module Xolo
 
         update_versions_for_release version_to_release
 
-        # the jamf 'manual install released' policy for the new release
-        # is updated in the release_version method below
-
         # update the title
         self.released_version = version_to_release
         save_local_data
+        server_app_instance.update_client_data
       ensure
         unlock
       end
@@ -1110,6 +1114,8 @@ module Xolo
           progress '#########'
           vobj.repair
         end
+
+        server_app_instance.update_client_data
       ensure
         unlock
       end

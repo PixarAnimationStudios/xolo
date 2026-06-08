@@ -280,6 +280,8 @@ module Xolo
 
         # create it in xolo
         vobj.create
+        # moved to vobj.create
+        # vobj.server_app_instance.update_client_data
 
         # tell someone
         msg = "ACTION REQUIRED: New pilot version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription."
@@ -686,6 +688,8 @@ module Xolo
           # no alert when subscribed because a better alert mesg is sent from add_version_via_subscription
           subscribed? ? progress(msg, log: :warn) : progress(msg, log: :warn, alert: true)
         end
+
+        server_app_instance.update_client_data
       ensure
         unlock
       end
@@ -758,6 +762,7 @@ module Xolo
         update_local_instance_values
         save_local_data
 
+        server_app_instance.update_client_data
         # new pkg uploads happen in a separate process
       rescue => e
         log_change msg: "ERROR: The update failed and the changes didn't all go through!\n#{e.class}: #{e.message}\nSee server log for details."
@@ -817,6 +822,10 @@ module Xolo
 
         end
         save_local_data
+        # no need to update client data now if we're being repaired along with our title
+        return if title_object.current_action == :repairing
+
+        server_app_instance.update_client_data
       ensure
         unlock
       end
@@ -1003,6 +1012,7 @@ module Xolo
         log_change msg: 'Version Deleted'
 
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
+        server_app_instance.update_client_data
       ensure
         unlock
       end
