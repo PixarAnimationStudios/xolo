@@ -92,6 +92,7 @@ module Xolo
         # the autopkg run command for this title
         #####################################
         def autopkg_run_command(title_object)
+          # is autopkg enabled for the server as a whole?
           return unless autopkg_enabled?
 
           [
@@ -118,6 +119,7 @@ module Xolo
         #   or nil if the recipe is not enabled for this title
         ##############################
         def run_autopkg_recipe(title_object)
+          # is autopkg enabled for this title?
           return unless title_object.autopkg_enabled?
 
           recipe = title_object.autopkg_recipe
