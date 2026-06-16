@@ -1563,11 +1563,11 @@ module Xolo
             pol.add_self_service_category new_cat if new_cat
           end
 
-          new_display_name = changes_for_update&.dig(:self_service_display_name, :new) || display_name
+          new_display_name = changes_for_update&.dig(:display_name, :new) || display_name
           progress "Jamf: Setting Self Service display name to '#{new_display_name}'", log: :debug
           pol.self_service_display_name = new_display_name
 
-          new_desc = changes_for_update&.dig(:self_service_description, :new) || description
+          new_desc = changes_for_update&.dig(:description, :new) || description
           progress "Jamf: Setting Self Service description to '#{new_desc}'", log: :debug
           pol.self_service_description = new_desc
 
