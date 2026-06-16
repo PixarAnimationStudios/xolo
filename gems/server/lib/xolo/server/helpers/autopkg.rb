@@ -101,10 +101,10 @@ module Xolo
             'sudo',
             '-u',
             Xolo::Server.config.autopkg_user,
-            Xolo::Server.config.autopkg_executable.shellescape,
+            Xolo::Server.config.autopkg_executable,
             'run',
             '--verbose',
-            title_object.autopkg_recipe.shellescape,
+            title_object.autopkg_recipe,
             FAIL_UNTRUSTED_RECIPES_CLI_OPT
           ]
         end
