@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed 
 
-  - Changing `patch_unknown` with `xadm edit-version` now actually works.
+  - Changing `patch_unknown` with `xadm edit-version` now actually works
+  - `--pkg-to-upload` no longer requires an absolute path
+  - Errors for unknown vars in error messages
+  - The client-data package is updated in more appropriate places
+  - Removed problematic/unneeded shell-escapes
+  - Self Service description and display name are now updated correctly with `xadm edit-title`
 
 ## \[2.0.2] 2026-05-16
 
