@@ -177,7 +177,6 @@ module Xolo
           delete_jamf_uninstall_policy
           delete_jamf_manual_install_released_policy
           delete_jamf_uninstall_script
-          delete_lingering_policies_for_title
           sleep 5
 
           # must delete this group before the patch title
@@ -190,19 +189,6 @@ module Xolo
           # static group deleted last,
           # was used in scopes for patch and normal policies
           delete_jamf_frozen_group
-        end
-
-        ################################
-        def delete_lingering_policies_for_title
-          Jamf::Policy.all_names(:refresh, cnx: jamf_cnx).each do |polname|
-            next unless polname.start_with? jamf_obj_name_pfx
-
-            polid = Jamf::Policy.valid_id(polname, cnx: jamf_cnx)
-            next unless polid
-
-            progress "Jamf: Deleting lingering policy #{polname}, possibly from a failed version action.", log: :info
-            Jamf::Policy.delete(polid, cnx: jamf_cnx)
-          end
         end
 
         # If any title changes require updates to existing versions in
