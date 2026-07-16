@@ -883,28 +883,6 @@ module Xolo
         def create_jamf_patch_policy
           progress "Jamf: Creating Patch Policy for Version '#{version}' of Title '#{title}'.", log: :info
 
-          # TODO: decide how many patch policies - see comments at top
-          # Probably one: for pilots initially and then rescoped to all for release
-          #
-          # TODO: How to set these, and should they be settable
-          # at the Xolo::Title or  Xolo::Version level?
-          #
-          # allow downgrade? No, to start with.
-          # When a version is released, IF we are rolling back, then this will be set.
-          # This is to be set only on the current release and only when it was a rollback.
-          #
-          # patch_unknown_versions... yes?
-          #
-          # if not in ssvc:
-          # - grace period?
-          # - update warning Message and Subject
-          #
-          # if in ssvc:
-          # - any way to use existing icon?
-          # - use title desc... do we want a version desc??
-          # - notifications?  Message and Subject? SSvc only, Notif Ctr?
-          # - deadline and grace period message and subbject
-
           ppol = Jamf::PatchPolicy.create(
             cnx: jamf_cnx,
             name: jamf_patch_policy_name,
@@ -912,25 +890,11 @@ module Xolo
             target_version: version
           )
 
-          # when first creating a patch policy, its status is always
-          # 'pilot' so the scope targets are the pilot groups, if any.
-          # When the version is released, the patch policy will be
-          # rescoped to all targets (limited by eligibility)
-          set_policy_pilot_groups ppol
+          configure_jamf_patch_policy(ppol)
 
-          # exclusions are for always
-          set_policy_exclusions ppol
-
-          # This will be set to true as needed if
+          # This is always false to start will be set to true as needed if
           # a rollback is being done
           ppol.allow_downgrade = false
-
-          # This should default to false, so that
-          # we don't accidentally downgrade non-xolo test installs,
-          # or server-pushed updates (like with commvault or cisco VPN)
-          ppol.patch_unknown = patch_unknown ? true : false
-
-          ppol.enable
 
           ppol.save
 
@@ -945,14 +909,28 @@ module Xolo
           assign_pkg_to_patch_in_jamf
 
           ppol = jamf_patch_policy
+
+          configure_jamf_patch_policy(ppol)
+
+          ppol.save
+        end
+
+        # Configure the patch policy
+        # NOTE: This doesn't save the changes!
+        ##############################
+        def configure_jamf_patch_policy(ppol)
           ppol.name = jamf_patch_policy_name
           ppol.target_version = version
 
-          # This should default tofalse, so that
+          # This should default to false, so that
           # we don't accidentally downgrade non-xolo test installs,
           # or server-pushed updates (like with commvault or cisco VPN)
           ppol.patch_unknown = patch_unknown ? true : false
 
+          # when first creating a patch policy, its status is always
+          # 'pilot' so the scope targets are the pilot groups, if any.
+          # When the version is released, the patch policy will be
+          # rescoped to all targets (limited by eligibility)
           if pilot?
             set_policy_pilot_groups ppol
           else
@@ -969,7 +947,24 @@ module Xolo
             ppol.disable
           end
 
-          ppol.save
+          unless title_object.self_service?
+            ppol.remove_from_self_service
+            return
+          end
+
+          # if we're here we're in ssvc
+          # TODO: icon, when either API supports it
+
+          msg = "#{title_object.display_name} is ready to be updated to version #{version}"
+
+          ppol.add_to_self_service
+          ppol.self_service_install_button_text = 'Update'
+          ppol.self_service_description = msg
+          ppol.self_service_notifications_enabled = true
+          ppol.self_service_notification_type = :ssvc_and_nctr
+          ppol.self_service_notification_subject = "#{title_object.display_name} update available"
+          ppol.self_service_notification_message = msg
+          # TODO: reminders, deadlines, graceperiod
         end
 
         # @return [String] the URL for the Jamf Pro Patch Policy that updates to this version
