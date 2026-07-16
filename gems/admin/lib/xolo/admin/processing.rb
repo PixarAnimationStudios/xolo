@@ -750,6 +750,9 @@ module Xolo
           # description is handled specially below
           next if attr == :description
 
+          # only show patch_source and title_id if subscribed
+          next if %i[patch_source title_id].include?(attr) && !title.subscribed?
+
           value = title.send attr
           value = value.join(Xolo::COMMA_JOIN) if value.is_a? Array
           puts "- #{deets[:label]}: #{value}".pix_word_wrap
