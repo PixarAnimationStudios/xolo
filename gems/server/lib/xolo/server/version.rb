@@ -640,6 +640,10 @@ module Xolo
         lock
         @current_action = :creating
 
+        # NOTE: this for later in this method,
+        # since uploads are processed in separate threads
+        pkg_upload_given = !pkg_to_upload.pix_empty?
+
         self.creation_date = Time.now
         self.created_by = admin
         self.status = STATUS_PENDING
@@ -673,7 +677,7 @@ module Xolo
         # so we don't want to do it here in the create method
 
         # do we have an uploaded pkg?
-        if !pkg_to_upload.pix_empty?
+        if pkg_upload_given
 
           progress "Pkg will be uploaded to xolo via xadm shortly, from path '#{pkg_to_upload}'", log: :info
 
