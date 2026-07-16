@@ -284,7 +284,7 @@ module Xolo
         # vobj.server_app_instance.update_client_data
 
         # tell someone
-        msg = "ACTION REQUIRED: New pilot version '#{new_version}' for subscribed title '#{title_object.title}' has been created in Xolo via subscription."
+        msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription."
 
         # if not autopkg enabled, we need to tell someone to upload a pkg for this new version
         unless title_object.autopkg_enabled?
