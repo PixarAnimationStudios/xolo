@@ -964,7 +964,10 @@ module Xolo
           ppol.self_service_notification_type = :ssvc_and_nctr
           ppol.self_service_notification_subject = "#{title_object.display_name} update available"
           ppol.self_service_notification_message = msg
-          # TODO: reminders, deadlines, graceperiod
+          ppol.self_service_reminders_enabled = true
+          ppol.self_service_reminder_frequency = 1
+          # TODO: xadm settings for most of these ssvc values.
+          # TODO: deadlines, graceperiod ? needed in ruby-jss
         end
 
         # @return [String] the URL for the Jamf Pro Patch Policy that updates to this version
