@@ -124,6 +124,7 @@ module Xolo
 
           recipe = title_object.autopkg_recipe
           pkgdir = Pathname.new title_object.autopkg_dir
+          clean_old_pkgs pkgdir
 
           cmd = autopkg_run_command(title_object)
           progress "Running AutoPkg recipe for #{title_object.title} via command: #{cmd.join(' ')}", log: :info
@@ -148,6 +149,16 @@ module Xolo
 
             raise "AutoPkg recipe #{recipe} failed."
           end
+        end
+
+        # remove any existing pkgs from the given autopkg output dir
+        #
+        # @param pkgdir[Pathname] the directory to clean
+        # @return [void]
+        ##################
+        def clean_old_pkgs(pkgdir)
+          log_debug "Removing .pkg files from #{pkgdir} before running autopkg recipe"
+          pkgdir.children.each { |c| c.delete if c.extname == '.pkg' }
         end
 
       end # AutoPkg
