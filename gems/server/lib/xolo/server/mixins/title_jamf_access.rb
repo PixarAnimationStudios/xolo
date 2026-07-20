@@ -267,12 +267,13 @@ module Xolo
         ######################
         def patch_report(vers: nil)
           vers = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION if vers == Xolo::UNKNOWN
-          vers &&= CGI.escape vers.to_s
 
           page_size = Xolo::Server::Helpers::JamfPro::PATCH_REPORT_JPAPI_PAGE_SIZE
           page = 0
-          paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
-          paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
+          paged_rsrc = +"#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
+
+          filter = vers ? jp_api_filter_string_for_version(vers) : nil
+          paged_rsrc << filter if filter
 
           report = []
           loop do
@@ -283,7 +284,7 @@ module Xolo
             report += data
             page += 1
             paged_rsrc = "#{patch_report_rsrc}?page=#{page}&page-size=#{page_size}"
-            paged_rsrc << "&filter=version%3D%3D#{vers}" if vers
+            paged_rsrc << filter if filter
           end
 
           # log_debug "REPORT: #{report}"
@@ -294,6 +295,22 @@ module Xolo
             h[:version] = Xolo::UNKNOWN if h[:version] == Xolo::Server::Helpers::JamfPro::PATCH_REPORT_UNKNOWN_VERSION
           end
           report
+        end
+
+        # given a version, return a patch report filter
+        # with it properly quoted and URL escaped
+        # e.g. this string: 7.1.5 (84650)
+        # becomes: version=="7.1.5 (84650)"
+        # becomes: version%3D%3D%227.1.5+%2884650%29%22
+        # becomes: &filter=version%3D%3D%227.1.5+%2884650%29%22
+        #
+        # @param vers [String] the version the filter for
+        # @return [String] the quoted and escaped filter string
+        ################################
+        def jp_api_filter_string_for_version(vers)
+          raw_fiter_query = "version==\"#{vers}\""
+          escaped_filter_query = CGI.escape raw_fiter_query
+          "&filter=#{escaped_filter_query}"
         end
 
         #######  The Patch Ext Attribute

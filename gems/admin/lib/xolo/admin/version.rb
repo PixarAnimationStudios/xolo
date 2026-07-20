@@ -50,7 +50,9 @@ module Xolo
       ####################
       def self.server_route(title, version = nil)
         route = SERVER_ROUTE.sub(Xolo::Admin::Title::TARGET_TITLE_PLACEHOLDER, title)
-        route << "/#{version}" if version
+        route << "/#{URI::Parser.new.escape(version)}" if version
+        ### the CGI escape one doesn't seem to work with, e.g. "7.1.5 (84650)"
+        # route << "/#{CGI.escape(version)}" if version
         route
       end
 

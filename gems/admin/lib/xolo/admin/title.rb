@@ -169,7 +169,9 @@ module Xolo
       # @return [Hash] the response body from the server
       ####################
       def release(cnx = self.cnx, version:)
-        resp = cnx.patch "#{SERVER_ROUTE}/#{title}/release/#{version}", {}
+        resp = cnx.patch "#{SERVER_ROUTE}/#{title}/release/#{URI::Parser.new.escape version}", {}
+        ### the CGI escape one doesn't seem to work with, e.g. "7.1.5 (84650)"
+        # resp = cnx.patch "#{SERVER_ROUTE}/#{title}/release/#{CGI.escape version}", {}
         resp.body
       end
 
