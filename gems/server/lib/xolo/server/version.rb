@@ -280,7 +280,8 @@ module Xolo
 
         # create it in xolo
         vobj.create
-        # moved to vobj.create
+
+        # moved to vobj.create:
         # vobj.server_app_instance.update_client_data
 
         # tell someone
