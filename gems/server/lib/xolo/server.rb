@@ -43,6 +43,10 @@ require 'concurrent/atomic/reentrant_read_write_lock'
 require 'concurrent/executor/thread_pool_executor'
 require 'concurrent/timer_task'
 
+# Temp fixes or overrides, esp for ruby-jss or windoo
+#############
+require 'xolo/server/tmp_overrides'
+
 # Xolo Server - order matters
 ######
 require 'xolo/server/constants'
