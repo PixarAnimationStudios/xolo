@@ -299,10 +299,15 @@ module Xolo
 
         # given a version, return a patch report filter
         # with it properly quoted and URL escaped
+        #
         # e.g. this string: 7.1.5 (84650)
         # becomes: version=="7.1.5 (84650)"
         # becomes: version%3D%3D%227.1.5+%2884650%29%22
         # becomes: &filter=version%3D%3D%227.1.5+%2884650%29%22
+        #
+        # Use CGI.escape because it encodes all special cars, like parens,
+        # which we want here, rather than URI::Parser.new.escape
+        # which is meant to parse whole URLs leaving URL functional characters.
         #
         # @param vers [String] the version the filter for
         # @return [String] the quoted and escaped filter string
