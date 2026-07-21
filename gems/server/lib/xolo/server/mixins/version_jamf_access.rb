@@ -953,8 +953,6 @@ module Xolo
           end
 
           # if we're here we're in ssvc
-          # TODO: icon, when either API supports it
-
           msg = "#{title_object.display_name} is ready to be updated to version #{version}"
 
           ppol.add_to_self_service
@@ -965,9 +963,41 @@ module Xolo
           ppol.self_service_notification_subject = "#{title_object.display_name} update available"
           ppol.self_service_notification_message = msg
           ppol.self_service_reminders_enabled = true
-          ppol.self_service_reminder_frequency = 1
+          ppol.self_service_reminder_frequency = 24
+
+          return unless title_object.ssvc_icon_id
+
+          set_patch_policy_ssvc_icon ppol, title_object.ssvc_icon_id
+
           # TODO: xadm settings for most of these ssvc values.
           # TODO: deadlines, graceperiod ? needed in ruby-jss
+        end
+
+        # Set an existing ssvc icon for a given patch policy
+        #
+        # NOTE: Update this if/when ruby-jss and the JPAPI can handle
+        # PatchPolicy Icons.
+        #
+        # This shouldn't interfere with a future #save of a PatchPolicy
+        # object, since that xml won't contain self_service_icon data at all.
+        #
+        # @param ppol [Jamf::PatchPolicy] The Patch Pol. to set the icon for
+        # @param icon_id [Integer, String] The id of the existing icon to use.
+        # @return [Void]
+        ##########################
+        def set_patch_policy_ssvc_icon(ppol, icon_id)
+          icon_xml = <<~ENDXML
+            <?xml version="1.0" encoding="UTF-8"?>
+            <patch_policy>
+              <user_interaction>
+                <self_service_icon>
+                  <id>#{icon_id}</id>
+                </self_service_icon>
+              </user_interaction>
+            </patch_policy>
+          ENDXML
+
+          jamf_cnx.c_put ppol.rest_rsrc, icon_xml
         end
 
         # @return [String] the URL for the Jamf Pro Patch Policy that updates to this version
