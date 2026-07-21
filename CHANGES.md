@@ -15,6 +15,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Removed problematic/unneeded shell-escapes
   - Self Service description and display name are now updated correctly with `xadm edit-title`
   - Remove method `delete_lingering_policies_for_title` - can delete things from other titles!
+  - run update_client_data when new versions come from subscriptions
+  - fix erroneous alert about no --pkg-to-upload
+  - fix handling of versions with spaces and non-alphanumeric characters.
+
+### Changed
+  - When a title is in Self Service, the patch policies are also deployed via Self Service
+    - TODO: allow setting of various SSvc/User interaction parameters in patch policies.
+  - Title Info only shows title_id and patch_source in human output if title is subscribed
+  - ensure no pkg files in the autopkg_directory before running an autopkg recipe
+
+### Added
+  
 
 ## \[2.0.2] 2026-05-16
 
