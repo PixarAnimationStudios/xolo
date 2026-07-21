@@ -804,7 +804,7 @@ module Xolo
           # @!attribute ted_id_number
           #   @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
           ted_id_number: {
-            label: 'Title Editor ID Number',
+            label: 'Title Editor ID',
             type: :integer,
             cli: false,
             changelog: false,
@@ -817,7 +817,7 @@ module Xolo
           # @!attribute jamf_patch_title_id
           #   @return [Integer] The Windoo::SoftwareTitle#softwareTitleId
           jamf_patch_title_id: {
-            label: 'The Jamf ID Number of this Patch Title',
+            label: 'Jamf Patch Title ID',
             type: :integer,
             cli: false,
             changelog: false,
