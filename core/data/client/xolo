@@ -54,8 +54,14 @@ JAMF='/usr/local/bin/jamf'
 # The path to the client data json file
 CLIENT_DATA_JSON_FILE="/Library/Application Support/xolo/client-data.json"
 
+# The path to the test client data json file, from a text xolo server
+TEST_CLIENT_DATA_JSON_FILE="/Library/Application Support/xolo/test-client-data.json"
+
 # The jamf policy trigger to update the client data
 UPDATE_CLIENT_DATA_TRIGGER='update-xolo-client-data'
+
+# The jamf policy trigger to update the test client data
+TEST_UPDATE_CLIENT_DATA_TRIGGER='test-update-xolo-client-data'
 
 # In the CLI args, titles and versions are separated by the first
 # occurrence of the equals sign
@@ -141,6 +147,10 @@ Options:
   -v, --verbose:     Enable verbose mode, extra information will be printed.
   -d, --debug:       Enable debug mode, extra debug information will be printed.
                      Implies --verbose.
+  -t, --test         If your site has a "test" xolo server running via the same
+                     Jamf Pro server, this causes 'xolo' to only see data, titles,
+                     policies, etc, from test xolo server, not the production server.
+                     Setting the XOLO_TEST_MODE env. variable does the same thing.
   -r, --recon:       With 'install' or 'uninstall' run a 'jamf recon' after the
                      operation completes successfully.
   -n, --no-versions: With the 'list-titles' and 'list-installed' commands,
@@ -221,6 +231,7 @@ function parse_cli() {
     {h,H,-help}=show_help \
     {v,-verbose}=be_verbose \
     {d,-debug}=debugging_on \
+    {t,-test}=test_mode \
     {n,-no-versions}=no_versions \
     {r,-recon}=do_recon \
     {V,-version}=show_xolo_version || \
@@ -230,9 +241,13 @@ function parse_cli() {
   show_help=$show_help[-1]
   be_verbose=$be_verbose[-1]
   debugging_on=$debugging_on[-1]
+  test_mode=$test_mode[-1]
   no_versions=$no_versions[-1]
   do_recon=$do_recon[-1]
   show_xolo_version=$show_xolo_version[-1]
+
+  # test mode can be triggered by an env var
+  [[ -n "$XOLO_TEST_MODE" ]] && test_mode=1
 
   # if debugging is on, verbose is also on
   [[ -n $debugging_on ]] && be_verbose=1
@@ -246,6 +261,8 @@ function parse_cli() {
   debug "..show_help is: $show_help"
   debug "..be_verbose is: $be_verbose"
   debug "..debugging_on is: $debugging_on"
+  debug "..test_mode is: $test_mode"
+  [[ -n "$XOLO_TEST_MODE" ]] && debug "  ..via XOLO_TEST_MODE env."
   debug "..no_versions is: $no_versions"
   debug "..show_xolo_version is: $show_xolo_version"
 
@@ -381,7 +398,7 @@ app.includeStandardAdditions = true;
 
 // run() is automatically executed when the program is called, and will print any output returned.
 function run() {
-    var parsed_data = JSON.parse(app.read("${CLIENT_DATA_JSON_FILE}"));
+    var parsed_data = JSON.parse(app.read("${client_data_json_file}"));
     var result;
 
     // the line below will sub-in whatever code we were passed
@@ -761,7 +778,7 @@ function refresh_client_data() {
 
   [[ "$command" == 'refresh' ]] && say "Refreshing client data..." || debug "Refreshing client data..."
 
-  run_jamf_policy_trigger $UPDATE_CLIENT_DATA_TRIGGER
+  run_jamf_policy_trigger "$update_client_data_trigger"
 
   client_data_refreshed=1
 }
@@ -1156,6 +1173,10 @@ function expire() {
 ###############################
 
 function main() {
+  # defaults
+  client_data_json_file="$CLIENT_DATA_JSON_FILE"
+  update_client_data_trigger="$UPDATE_CLIENT_DATA_TRIGGER"
+
   # Parse the command line
   parse_cli "$@"
 
@@ -1171,10 +1192,16 @@ function main() {
     exit 0
   fi
 
+  # use the test data file if in test mode
+  if [[ -n "$test_mode" ]] ; then
+    client_data_json_file="$TEST_CLIENT_DATA_JSON_FILE"
+    update_client_data_trigger="$TEST_UPDATE_CLIENT_DATA_TRIGGER"
+  fi
+
   if [[ "$command" != "refresh" ]] ; then
     # If we're not refreshing, we need to have the client data file
     # and it needs to be up to date
-    [[ -f "$CLIENT_DATA_JSON_FILE" ]] || die "No client data file found at $CLIENT_DATA_JSON_FILE.\nPlease run the 'refresh' command to update the client data."
+    [[ -f "$client_data_json_file" ]] || die "No client data file found at $client_data_json_file.\nPlease run the 'refresh' command to update the client data."
   fi
 
   [[ -z "$command" ]] && die "No command given.\nUsage: $USAGE\nUse --help for more information."
