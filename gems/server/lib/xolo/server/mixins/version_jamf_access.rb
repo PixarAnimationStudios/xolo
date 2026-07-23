@@ -947,14 +947,21 @@ module Xolo
             ppol.disable
           end
 
-          unless title_object.self_service?
-            ppol.remove_from_self_service
-            return
-          end
+          configure_patch_pol_for_self_service ppol
+        end
+
+        # Configure the patch policy for self service or not, as needed
+        # NOTE: Does NOT save the policy changes!
+        # @param ppol [Jamf::PatchPolicy] The patch policy to configure
+        # @return [void]
+        # ###############################
+        def configure_patch_pol_for_self_service(ppol = nil)
+          ppol ||= jamf_patch_policy
 
           # if we're here we're in ssvc
-          msg = "#{title_object.display_name} is ready to be updated to version #{version}"
+          progress "Jamf: Configuring patch policy for version '#{version}' of title '#{title}' for Self Service'", log: :info
 
+          msg = "#{title_object.display_name} is ready to be updated to version #{version}"
           ppol.add_to_self_service
           ppol.self_service_install_button_text = 'Update'
           ppol.self_service_description = msg
@@ -963,12 +970,11 @@ module Xolo
           ppol.self_service_notification_subject = "#{title_object.display_name} update available"
           ppol.self_service_notification_message = msg
           ppol.self_service_reminders_enabled = true
-          ppol.self_service_reminder_frequency = 24
+          ppol.self_service_reminder_frequency = 24 # hours
 
           return unless title_object.ssvc_icon_id
 
           set_patch_policy_ssvc_icon ppol, title_object.ssvc_icon_id
-
           # TODO: xadm settings for most of these ssvc values.
           # TODO: deadlines, graceperiod ? needed in ruby-jss
         end
@@ -986,7 +992,8 @@ module Xolo
         # @return [Void]
         ##########################
         def set_patch_policy_ssvc_icon(ppol, icon_id)
-          icon_xml = <<~ENDXML
+          # this str can't be frozen for now
+          icon_xml = +<<~ENDXML
             <?xml version="1.0" encoding="UTF-8"?>
             <patch_policy>
               <user_interaction>
@@ -997,6 +1004,9 @@ module Xolo
             </patch_policy>
           ENDXML
 
+          log_debug "Jamf: Adding existing SSvc icon to patch policy for version '#{version}' of title '#{title}'"
+          # TODO: in ruby-jss, update c_put and related methods to
+          # use unfrozen dups of strings for #gsub
           jamf_cnx.c_put ppol.rest_rsrc, icon_xml
         end
 

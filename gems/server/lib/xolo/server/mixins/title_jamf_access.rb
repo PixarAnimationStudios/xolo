@@ -1504,6 +1504,13 @@ module Xolo
 
           configure_pol_for_self_service(pol)
           pol.save
+
+          # loop thru versions to make any SSvc changes
+          version_objects.each do |vobj|
+            ppol = vobj.jamf_patch_policy
+            vobj.configure_patch_pol_for_self_service ppol
+            ppol.save
+          end
         end
 
         # Add the jamf_manual_install_released_policy to self service if needed
@@ -1519,6 +1526,14 @@ module Xolo
           pol.remove_from_self_service
 
           pol.save
+
+          # loop thru versions to make any SSvc changes
+          version_objects.each do |vobj|
+            progress "Jamf: Removing patch policy for version '#{vobj.version}' of title '#{title}' from Self Service'", log: :info
+            ppol = vobj.jamf_patch_policy
+            ppol.remove_from_self_service
+            ppol.save
+          end
         end
 
         # Update whether or not we are in self service, based on the setting in the title
@@ -1549,8 +1564,6 @@ module Xolo
           end
 
           pol.save
-
-          # TODO: if we decide to use ssvc in patch policies, loop thru versions to make any changes
         end
 
         # configure the self-service settings of the manual_install_released_policy
@@ -1582,6 +1595,7 @@ module Xolo
           pol.self_service_install_button_text = Xolo::Server::Title::SELF_SERVICE_INSTALL_BTN_TEXT
           return unless ssvc_icon_file
 
+          # TODO: Is this needed if we already have a ssvc_icon_id ??
           progress 'Jamf: Uploading Self Service icon', log: :debug
           pol.save # won't do anything unless needed, but has to exist before we can upload icons
           pol.upload :icon, ssvc_icon_file
