@@ -21,12 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
   - When a title is in Self Service, the patch policies are also deployed via Self Service
-    - TODO: allow setting of various SSvc/User interaction parameters in patch policies.
+    - TODO: allow setting of various SSvc/User interaction parameters in patch policies via xadm.
   - Title Info only shows title_id and patch_source in human output if title is subscribed
-  - ensure no pkg files in the autopkg_directory before running an autopkg recipe
+  - Ensure no pkg files in the autopkg_directory before running an autopkg recipe
 
-### Added
-  
 
 ## \[2.0.2] 2026-05-16
 
