@@ -950,7 +950,7 @@ module Xolo
           configure_patch_pol_for_self_service ppol
         end
 
-        # Configure the patch policy for self service or not, as needed
+        # Configure the patch policy for self service
         # NOTE: Does NOT save the policy changes!
         # @param ppol [Jamf::PatchPolicy] The patch policy to configure
         # @return [void]
@@ -961,6 +961,8 @@ module Xolo
           # if we're here we're in ssvc
           progress "Jamf: Configuring patch policy for version '#{version}' of title '#{title}' for Self Service'", log: :info
 
+          # TODO: xadm settings for most of these ssvc values.
+          # TODO: deadlines, graceperiod ? needed in ruby-jss
           msg = "#{title_object.display_name} is ready to be updated to version #{version}"
           ppol.add_to_self_service
           ppol.self_service_install_button_text = 'Update'
@@ -975,8 +977,6 @@ module Xolo
           return unless title_object.ssvc_icon_id
 
           set_patch_policy_ssvc_icon ppol, title_object.ssvc_icon_id
-          # TODO: xadm settings for most of these ssvc values.
-          # TODO: deadlines, graceperiod ? needed in ruby-jss
         end
 
         # Set an existing ssvc icon for a given patch policy
