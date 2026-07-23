@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## \[2.0.3] Unreleased
 
 ### Fixed 
-
   - Changing `patch_unknown` with `xadm edit-version` now actually works
   - `--pkg-to-upload` no longer requires an absolute path
   - Errors for unknown vars in error messages
@@ -25,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Title Info only shows title_id and patch_source in human output if title is subscribed
   - Ensure no pkg files in the autopkg_directory before running an autopkg recipe
 
+### Added
+  - The `xolo` client CLI tool now takes a `--test` option. 
+    
+    If your environment has a second xolo server configured as a test server, using the same Jamf Pro and Title Editor as your production xolo server, then this option makes `xolo` use the data-file, policies, patch policies, and other xolo objects maintained by the test server. Setting the `XOLO_TEST_MODE` environment variable will do the same thing.
 
 ## \[2.0.2] 2026-05-16
 
