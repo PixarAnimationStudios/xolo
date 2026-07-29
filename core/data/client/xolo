@@ -162,6 +162,8 @@ Commands:
   install, i <title>[=<version>] [<title2>[=<version2>] ...]
     Install a title, or specific version thereof (e.g. a version currently in pilot)
     If no version is specified, the currently released version will be installed.
+    If you are only installing only one specific version of one title, you can
+    omit the =, e.g. install <title> <version>.
 
   uninstall, u <title> [<title2> ...]
     Uninstall a title, if possible. Not all titles are uninstallable via xolo.
@@ -255,7 +257,23 @@ function parse_cli() {
   command=$1
   [[ ${#@} -gt 0 ]] && shift
 
+  # the remaining positional parameters as an array called targets
+  # It'll either be exactly 1 item: title
+  # or exactly 2 items containing no '=' : title, version
+  # or exactly 2 items containing no '=' : title, title
+  # or any number if items in the form: title[=version]  where the =version is optional.
   targets=("${(@)@}")
+
+  # if targets has exactly 2 items, and neither of them contains
+  # '=' and the second one isn't an existing title then treat
+  # them as the title and a version and reset 'targets' to be 'title=version'
+  if [[ "$#targets" == 2  ]] \
+    && [[ "$targets[1]" != *"$TITLE_VERSION_SEPARATOR"* ]] \
+    && [[ "$targets[2]" != *"$TITLE_VERSION_SEPARATOR"* ]] \
+    && ! echo "$(all_xolo_titles)" | grep -qE "^${targets[2]}$"  ; then
+
+    targets=("$targets[1]=$targets[2]")
+  fi
 
   debug "Parsed command line:"
   debug "..show_help is: $show_help"
