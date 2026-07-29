@@ -293,6 +293,9 @@ function parse_cli() {
 #################################
 function parse_title_and_version() {
   local arg=$1
+  unset title_is_valid
+  unset version_is_valid
+
   debug "Parsing title and version from arg: '$arg'"
 
   if [[ "$arg" == *"$TITLE_VERSION_SEPARATOR"* ]] ; then
@@ -804,8 +807,12 @@ function refresh_client_data() {
 # validate that the title exists
 ###############################
 function validate_title() {
+
   # if we've already validated the title, we're done
   [[ -n "$title_is_valid" ]] && return
+
+  # use passed arg if needed
+  [[ -z "$title" ]] && title=$1
 
   debug "Validating title: $title"
 
