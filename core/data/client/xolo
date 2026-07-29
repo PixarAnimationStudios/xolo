@@ -848,7 +848,7 @@ function validate_version() {
   all_versions=$(versions_for_title $title)
   debug "All versions for title $title:\n$all_versions"
   # [[ $all_versions =~ (^|\n)$version($|\n) ]] || die "No such version: $version"
-  echo "$all_versions" | grep -q "^$version$" || die "No such version: $version"
+  echo "$all_versions" | grep -q "^$version$" || die "No such version '$version' for title '$title'"
   version_is_valid=1
 }
 
