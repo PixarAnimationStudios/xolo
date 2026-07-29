@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## \[2.0.4] Unreleased
+
+### Changed
+  - The `xolo` client tool now (again) accepts the original syntax of `xolo install title version` without an `=` between them, as long as you're only installing that one item. Using an `=` will still work too.  If you want to install multiple items with specific versions, you must use the `=`.
+  ```
+  # installs version 1.2.4 of title foobar
+  % xolo install foobar 1.2.3  
+
+  # the same: installs version 1.2.4 of title foobar
+  % xolo install foobar=1.2.3  
+
+  # installs the currently released versions titles foobar and barbaz
+  % xolo install foobar barbaz  
+
+  # installs version 1.2.4 of title foobar, current release of title   
+  # barbaz and version "45.2 (413)" of title zip
+  % xolo install foobar=1.2.3 barbaz 'zip=45.2 (413)'
+  
+  ```
+
 ## \[2.0.3] 2026-07-25
 
 ### Fixed 
