@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[2.0.4] Unreleased
+## \[2.1.0] Unreleased
+
+### Added
+  - The `xadm list-titles` command now takes 4 new CLI options
+    - `-s, --subscribed    Show only 'subscribed' titles. Can be combined with --autopkg.`
+    - `-m, --managed       Show only 'managed' titles. Can be combined with --autopkg.`
+    - `-a, --autopkg       Show only titles configured for AutoPkg. Can be combined with --subscribed or --managed.`
+    - `-p, --pilots        Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details for a title. Can be combined with --subscribed or --managed.`
+      
+      These options are useful for finding titles and versions that need attention, such as new pilot versions automatically created by subscription and autopkg, but haven't been released yet.
+
+  - The `xadm list-versions <title>` command now indicates if a version doesn't yet have a .pkg file uploaded, by marking the end of the line with ` **`
 
 ### Changed
   - The `xolo` client tool now (again) accepts the original syntax of `xolo install title version` without an `=` between them, as long as you're only installing that one item. Using an `=` will still work too.  If you want to install multiple items with specific versions, you must use the `=`.

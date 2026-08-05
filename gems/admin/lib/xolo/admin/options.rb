@@ -198,6 +198,52 @@ module Xolo
       TARGET_TITLE_PLACEHOLDER = Xolo::Admin::Title::TARGET_TITLE_PLACEHOLDER
       TARGET_VERSION_PLACEHOLDER = 'TARGET_VERSION_PH'
 
+      LIST_TITLES_OPTIONS = {
+        subscribed: {
+          label: 'Subscribed Only',
+          cli: :s,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only 'subscribed' titles. Can be combined with --autopkg.
+          ENDDESC
+        },
+
+        managed: {
+          label: 'Managed Only',
+          cli: :m,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only 'managed' titles. Can be combined with --autopkg.
+          ENDDESC
+        },
+
+        autopkg: {
+          label: 'AutoPkg Only',
+          cli: :a,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only titles configured for AutoPkg. Can be combined with --subscribed or --managed.
+          ENDDESC
+        },
+
+        pilots: {
+          label: 'Pilots Only',
+          cli: :p,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details for a title. Can be combined with --subscribed or --managed.
+          ENDDESC
+        }
+      }.freeze
+
       PATCH_REPORT_OPTIONS = {
         summary: {
           label: 'Summary Only',
@@ -410,7 +456,7 @@ module Xolo
         LIST_TITLES_CMD => {
           desc: 'List all software titles.',
           display: LIST_TITLES_CMD,
-          opts: {},
+          opts: LIST_TITLES_OPTIONS,
           arg_banner: :none,
           process_method: :list_titles,
           target: :none

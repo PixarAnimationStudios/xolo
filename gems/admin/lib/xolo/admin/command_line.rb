@@ -398,6 +398,7 @@ module Xolo
               opt opt_key, desc, short: deets[:cli], type: type, required: required, multi: deets[:multi]
             end # opts_to_use.each
           end # if cmd_opts
+          conflicts :subscribed, :managed if cmd == Xolo::Admin::Options::LIST_TITLES_CMD
         end # Optimist.options
       end
 

@@ -211,7 +211,18 @@ module Xolo
           return
         end
 
-        report_title = 'All titles in Xolo'
+        type = opts_to_process.subscribed ? ' subscribed' : nil
+        type ||= opts_to_process.managed ? ' managed' : nil
+        autopkg = opts_to_process.autopkg ? ' autopkg' : nil
+        pilots = opts_to_process.pilots ? ' with unreleased pilots' : nil
+
+        report_title = "All#{type}#{autopkg} titles in Xolo#{pilots}"
+
+        titles.select! { |t| t.subscribed? } if opts_to_process.subscribed
+        titles.reject! { |t| t.subscribed? } if opts_to_process.managed
+        titles.select! { |t| t.autopkg_recipe } if opts_to_process.autopkg
+        titles.select! { |t| pending_pilots? t } if opts_to_process.pilots
+
         header = %w[Title Created By SSvc? Released Latest]
         data = titles.map do |t|
           [
@@ -228,6 +239,16 @@ module Xolo
         show_text generate_report(data, header_row: header, title: report_title)
       rescue StandardError => e
         handle_processing_error e
+      end
+
+      # @param title [Xolo::Admin::Title] The title in question
+      # @return [Boolean] Does a given Title object have pilots?
+      ###########################
+      def pending_pilots?(title)
+        return false if title.version_order.pix_empty?
+        return false if title.released_version == title.version_order.first
+
+        true
       end
 
       # Add a title to Xolo
@@ -487,16 +508,19 @@ module Xolo
           return
         end
 
-        report_title = "All versions of '#{cli_cmd.title}' in Xolo"
+        report_title = "All versions of '#{cli_cmd.title}' in Xolo.  ** = No .pkg uploaded"
         header = %w[Vers Created By Released By Status]
         data = versions.sort_by(&:creation_date).map do |v|
+          no_pkg = v.pkg_to_upload.pix_empty? && v.jamf_pkg_file.pix_empty?
+          status = no_pkg ? "#{v.status} **" : v.status
+
           [
             v.version,
             v.creation_date.to_date,
             v.created_by,
             v.release_date&.to_date,
             v.released_by,
-            v.status
+            status
           ]
         end
         show_text generate_report(data, header_row: header, title: report_title)
