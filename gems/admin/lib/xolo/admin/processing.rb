@@ -223,15 +223,15 @@ module Xolo
         titles.select! { |t| t.autopkg_recipe } if opts_to_process.autopkg
         titles.select! { |t| pending_pilots? t } if opts_to_process.pilots
 
-        header = %w[Title Created By SSvc? Released Latest]
+        header = %w[Title Created By SSvc? Latest Released]
         data = titles.map do |t|
           [
             t.title,
             t.creation_date.to_date,
             t.created_by,
             t.self_service || false,
-            t.released_version,
-            t.latest_version
+            t.latest_version,
+            t.released_version
           ]
         end
         data.sort_by! { |d| d[0].downcase } # sort by title
