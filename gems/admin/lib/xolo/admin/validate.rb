@@ -449,6 +449,28 @@ module Xolo
         raise_invalid_data_error bad_grps, TITLE_ATTRS[:excluded_groups][:invalid_msg]
       end
 
+      # validate an array  of jamf groups to use as targets.
+      # 'none' is also acceptable
+      #
+      # target groups cannot be in the excluded groups
+      #
+      # @param val [Array<String>] The value to validate:  names of jamf comp.
+      #   groups, or 'none'
+      #
+      # @return [Array<String>] The valid value
+      ##########################
+      def validate_target_groups(val)
+        val = [val] unless val.is_a? Array
+        return [] if val.include? Xolo::NONE
+
+        bad_grps = bad_jamf_groups(val)
+        return val if bad_grps.empty?
+
+        bad_grps = "No Such Groups: #{bad_grps.join(Xolo::COMMA_JOIN)}"
+
+        raise_invalid_data_error bad_grps, TITLE_ATTRS[:target_groups][:invalid_msg]
+      end
+
       # validate an array  of jamf groups to use as MDM deployment targets.
       # 'none' is also acceptable
       #

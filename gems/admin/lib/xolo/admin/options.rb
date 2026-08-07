@@ -512,6 +512,16 @@ module Xolo
             all policies and patch policies related to this title and its versions.
             If a computer doesn't have any version of the title, this will prevent
             it from being installed via xolo (it will be 'frozen' in that state).
+
+            Excluding vs Freezing:
+              - Excluded Groups (via the --excluded-groups option for titles) are
+                how to prevent members from accessing titles in Xolo. They can be
+                thought of as 'freezing for groups'
+
+              - Freezing (via 'xadm freeze...') is how to prevent individual computers
+                from accessing titles in Xolo. It can be thought of as 'exclusion for
+                individual computers'
+
           ENDLONG
           display: "#{FREEZE_TITLE_CMD} title [--users] target [target ...] ",
           opts: FREEZE_THAW_OPTIONS,

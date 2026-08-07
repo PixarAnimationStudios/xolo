@@ -474,7 +474,7 @@ module Xolo
             desc: <<~ENDDESC
               One or more Jamf Computer Groups whose members will automatically have new versions installed or updated for testing before it is released.
 
-              These groups affect both the initial installation of and updates to a title when a version is added, before it is released.
+              These groups affect both the initial installation and updates of a title when a version is added, before it is released.
 
               These computers will be used for testing not just the software, but the installation process itself. Exclusions win, so computers that are also in an excluded group for the title will not be used as pilots.
 
@@ -485,6 +485,10 @@ module Xolo
               When using the --pilot-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
 
               When adding a new version, the pilot groups from the previous version will be inherited if you don't specify any. To make the new version have no pilot groups, and fall back to these defined in the title, use '#{Xolo::NONE}'
+
+              Xolos Group Types:
+              - Excluded & Target Groups: affect which computers an see a title & its versions.
+              - Release & Pilot Groups: affect which computers have the title automatically installed or updated, and when. Note, when a version is released all targeted/non-excluded/non-frozen computers with it installed will get the update.
 
               NOTE: Any non-excluded computer can be used for piloting at any time by manually installing the yet-to-be-released version using `sudo xolo install` or `xadm deploy`.  The members of the pilot groups are just the ones that will have it auto-installed.
             ENDDESC
@@ -507,7 +511,7 @@ module Xolo
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid release group(s). Must exist in Jamf and not be excluded.',
             desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members will automatically have this title installed.
+              One or more Jamf Computer Groups whose members will automatically have this title installed if it isn't already.
 
               These groups affect the _initial_ installation of a title when a version is released. Any Mac with the title installed, will get updates (if not excluded) regardless of the release-groups.
 
@@ -519,12 +523,16 @@ module Xolo
 
               To remove all existing, use '#{Xolo::NONE}'.
 
+              Xolos Group Types:
+              - Excluded & Target Groups: affect which computers an see a title & its versions.
+              - Release & Pilot Groups: affect which computers have the title automatically installed or updated, and when.
+
               NOTE: When a version is in 'pilot', before it is released, these groups are ignored, but instead a set of 'pilot' groups is defined for each version - and those groups will have that version auto-installed.
             ENDDESC
           },
 
           # @!attribute excluded_groups
-          #   @return [Array<String>] Jamf groups that are not allowed to install this title
+          #   @return [Array<String>] Jamf groups that are not allowed to install or update this title
           excluded_groups: {
             label: 'Excluded Computer Groups',
             cli: :x,
@@ -536,7 +544,7 @@ module Xolo
             readline: :jamf_computer_group_names,
             invalid_msg: 'Invalid excluded computer group(s). Must exist in Jamf.',
             desc: <<~ENDDESC
-              One or more Jamf Computer Groups whose members are not allowed to install this title.
+              One or more Jamf Computer Groups whose members are not allowed to install this title. Computers that are members cannot see the title's existance.
 
               When a computer is in one of these groups, the title is not available at all, for installation or updates, even if the computer is in a pilot or release group.
 
@@ -544,7 +552,48 @@ module Xolo
 
               To remove all existing, use '#{Xolo::NONE}'.
 
-              NOTE: Regardless of the excluded groups set here, if the server has defined a 'forced_exclusion' in its config, that group is always excluded from all xolo titles. Also, computers that are 'frozen' for a title are excluded.
+              Xolos Group Types:
+              - Excluded & Target Groups: affect which computers an see a title & its versions.
+              - Release & Pilot Groups: affect which computers have the title automatically installed or updated, and when. Note, when a version is released all targeted/non-excluded/non-frozen computers with it installed will get the update.
+
+              Excluding vs Freezing:
+              - Excluded Groups are how to prevent members from accessing titles in Xolo. It can be thought of as 'freezing for groups'
+              - Freezing (via 'xadm freeze...') is how to prevent individual computers from accessing titles in Xolo. It can be thought of as 'exclusion for individual computers'
+
+              NOTE: Regardless of the excluded groups set here, if the server has defined a 'forced_exclusion' in its config, that group is always excluded from all xolo titles.
+
+              See also --target-groups
+            ENDDESC
+          },
+
+          # @!attribute target_groups
+          #   @return [Array<String>] Jamf groups that are exclusively allowed to install or update this title.
+          target_groups: {
+            label: 'Target Computer Groups',
+            cli: :t,
+            validate: true,
+            type: :string,
+            multi: true,
+            changelog: true,
+            readline_prompt: 'Group Name',
+            readline: :jamf_computer_group_names,
+            invalid_msg: 'Invalid target computer group(s). Must exist in Jamf.',
+            desc: <<~ENDDESC
+              One or more Jamf Computer Groups whose members are exclusively allowed to install this title. Computers that are NOT members cannot see the title's existance.
+
+              This is the opposite of --excluded-groups, however if a computer is in both target and excluded groups, the exclusion wins.
+
+              When a computer is not in one of these groups, the title is not available at all, for installation or updates, even if the computer is in a pilot or release group.
+
+              When using the --target-groups CLI option, you can specify more than one group by using the option more than once, or by providing a single option value with the groups separated by commas.
+
+              To remove all existing, use '#{Xolo::NONE}'.
+
+              Xolos Group Types:
+              - Excluded & Target Groups: affect which computers an see a title & its versions.
+              - Release & Pilot Groups: affect which computers have the title automatically installed or updated, and when. Note, when a version is released all targeted/non-excluded/non-frozen computers with it installed will get the update.
+
+              See also --excluded-groups
             ENDDESC
           },
 
