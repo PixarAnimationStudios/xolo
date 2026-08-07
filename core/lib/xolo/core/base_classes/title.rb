@@ -668,12 +668,12 @@ module Xolo
               Self Service is not available for titles with the release_group 'all'.
               To remove the self-service option, use --no-self-service.
 
-              Note that versions have their own --self-service setting, which controls how updates are pushed. This setting controls initial installations.
+              See also --self-service-updates.
             ENDDESC
           },
 
           # @!attribute self_service_updates
-          #   @return [Boolean] Does this version appear in Self Service for updates?
+          #   @return [Boolean] Do versions appear in Self Service for updates?
           self_service_updates: {
             label: 'Self Service Updates?',
             cli: :V,
@@ -709,7 +709,7 @@ module Xolo
             invalid_msg: 'Invalid category. Must exist in Jamf Pro.',
             desc: <<~ENDDESC
               The Category in which to display this title in Self Service.
-              REQUIRED if self_service is true, ignored otherwise
+              REQUIRED if --self-service is true, recommended if --self-service-updates is true.
             ENDDESC
           },
 
