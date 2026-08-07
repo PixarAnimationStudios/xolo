@@ -273,9 +273,8 @@ module Xolo
             ENDDESC
           },
 
-          # @!attribute jamf_pkg
-          #   @return [String] The file name of the installer for the Jamf Package object that
-          #     installs this version.  'xolo-<title>-<version>.pkg' (or .zip)
+          # @!attribute pkg_to_upload
+          #   @return [String] The path to a local pkg, or 'uploaded'
           pkg_to_upload: {
             label: 'Upload Package',
             type: :string,
@@ -288,9 +287,9 @@ module Xolo
             desc: <<~ENDDESC
               The path to a local copy of the installer package for this version. Will be uploaded to Xolo and then Jamf Pro distribution point(s), replacing any previously uploaded.
 
-              Must be a flat .pkg file, or a .zip compressed old-style bundle package.
+              It must be a flat .pkg file. Old-school zipped bundle-style packages are not supported by Xolo.
 
-              It will be renamed to 'xolo-<title>-<version>.pkg' (or .zip).
+              It will be renamed to 'xolo-<title>-<version>.pkg'.
               If your Xolo server is confiured to sign unsigned packages, it will do so along the way.
 
               Required when creating a new version unless the title is configrued to use autopkg.
