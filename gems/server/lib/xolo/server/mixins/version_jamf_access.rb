@@ -45,6 +45,14 @@ module Xolo
         # changes
         JAMF_POLICY_NAME_AUTO_REINSTALL_SFX = 'auto-reinstall'
 
+        PATCH_POL_SSVC_NOTIFICATION_TYPE = :ssvc_and_nctr
+        PATCH_POL_SSVC_INSTALL_BTN_TXT = 'Update'
+        PATCH_POL_SSVC_REMINDER_FREQ_HRS = 24
+        PATCH_POL_SSVC_DEADLINE_DAYS = 7
+
+        PATCH_POL_GRACE_PERIOD_MINUTES = 15
+        PATCH_POL_GRACE_PERIOD_SUBJ = 'Important'
+        PATCH_POL_GRACE_PERIOD_MSG = '$APP_NAMES will quit in $DELAY_MINUTES minutes so that $SOFTWARE_TITLE can be updated. Please save anything you are working on and quit the app(s).'
         # POLICIES, PATCH POLICIES, SCOPING
         #############################
         #
@@ -400,19 +408,6 @@ module Xolo
                    log: :debug
           jamf_package.osRequirements = ">=#{new_min}"
           jamf_package.save
-        end
-
-        # update the :patch_unknown for the patch policy
-        # @return [void]
-        ##############################
-        def update_jamf_patch_policy_patch_unknown
-          return unless changes_for_update&.key? :patch_unknown
-
-          ppol = jamf_patch_policy
-          action = changes_for_update[:patch_unknown][:new] ? 'Enabling' : 'Disabling'
-          progress "Jamf: #{action} 'patch_unknown' for patch policy #{ppol.name}", log: :debug
-          ppol.patch_unknown = changes_for_update[:patch_unknown][:new] ? true : false
-          ppol.save
         end
 
         # repair the package object only
@@ -915,16 +910,33 @@ module Xolo
           ppol.save
         end
 
+        # update the :patch_unknown for the patch policy
+        # @return [void]
+        ##############################
+        def update_jamf_patch_policy_patch_unknown
+          return unless changes_for_update&.key? :patch_unknown
+
+          ppol = jamf_patch_policy
+          action = changes_for_update[:patch_unknown][:new] ? 'Enabling' : 'Disabling'
+          progress "Jamf: #{action} 'patch_unknown' for patch policy #{ppol.name}", log: :debug
+          ppol.patch_unknown = changes_for_update[:patch_unknown][:new] ? true : false
+          ppol.save
+        end
+
         # Configure the patch policy
         # NOTE: This doesn't save the changes!
         ##############################
         def configure_jamf_patch_policy(ppol)
+          progress "Jamf: Configuring Patch Policy for Version '#{version}' of Title '#{title}'.", log: :info
+
           ppol.name = jamf_patch_policy_name
           ppol.target_version = version
 
           # This should default to false, so that
           # we don't accidentally downgrade non-xolo test installs,
           # or server-pushed updates (like with commvault or cisco VPN)
+          # The ternary operator is used here so that nils become
+          # explicit false
           ppol.patch_unknown = patch_unknown ? true : false
 
           # when first creating a patch policy, its status is always
@@ -940,43 +952,79 @@ module Xolo
           # exclusions are for always
           set_policy_exclusions ppol
 
+          # deployment method
+          configure_patch_pol_deployment ppol: ppol
+
           # only pilot and released versions should have the patch policy enabled
           if pilot? || released?
             ppol.enable
           else
             ppol.disable
           end
-
-          configure_patch_pol_for_self_service ppol
         end
 
-        # Configure the patch policy for self service
+        # Update the patch policy deployment settings if
+        # they were changed in the title.
+        #
+        # @param ttl_obj [Xolo::Server::Title] the title object that is being changed.
+        ###############################
+        def update_patch_policy_deployment(ttl_obj:)
+          return unless ttl_obj.changes_for_update[:self_service_updates]
+
+          ppol = jamf_patch_policy
+          configure_patch_pol_deployment ttl_obj: ttl_obj, ppol: ppol
+          ppol.save
+        end
+
+        # Configure the patch policy for self service or automatic deployment
         # NOTE: Does NOT save the policy changes!
         # @param ppol [Jamf::PatchPolicy] The patch policy to configure
         # @return [void]
         # ###############################
-        def configure_patch_pol_for_self_service(ppol = nil)
+        def configure_patch_pol_deployment(ppol: nil, ttl_obj: nil)
           ppol ||= jamf_patch_policy
+          ttl_obj ||= title_object
 
-          # if we're here we're in ssvc
-          progress "Jamf: Configuring patch policy for version '#{version}' of title '#{title}' for Self Service'", log: :info
+          use_ssvc_updates =
+            if ttl_obj.changes_for_update&.dig :self_service_updates
+              ttl_obj.changes_for_update[:self_service_updates][:new]
+            else
+              ttl_obj.self_service_updates
+            end
 
-          # TODO: xadm settings for most of these ssvc values.
-          # TODO: deadlines, graceperiod ? needed in ruby-jss
-          msg = "#{title_object.display_name} is ready to be updated to version #{version}"
-          ppol.add_to_self_service
-          ppol.self_service_install_button_text = 'Update'
-          ppol.self_service_description = msg
-          ppol.self_service_notifications_enabled = true
-          ppol.self_service_notification_type = :ssvc_and_nctr
-          ppol.self_service_notification_subject = "#{title_object.display_name} update available"
-          ppol.self_service_notification_message = msg
-          ppol.self_service_reminders_enabled = true
-          ppol.self_service_reminder_frequency = 24 # hours
+          # always set the grace period regardless of deployment type
+          progress "Jamf: Configuring Patch Policy grace period for version '#{version}' of title '#{title}' ", log: :info
+          ppol.grace_period = PATCH_POL_GRACE_PERIOD_MINUTES
+          ppol.grace_period_subject = PATCH_POL_GRACE_PERIOD_SUBJ
+          ppol.grace_period_message = PATCH_POL_GRACE_PERIOD_MSG
 
-          return unless title_object.ssvc_icon_id
+          # Self Service deployment
+          if use_ssvc_updates
+            progress "Jamf: Configuring Patch Policy for version '#{version}' of title '#{title}' for Self Service", log: :info
 
-          set_patch_policy_ssvc_icon ppol, title_object.ssvc_icon_id
+            ppol.add_to_self_service
+
+            msg = "#{title_object.display_name} is ready to be updated to version #{version}"
+
+            ppol.self_service_install_button_text = PATCH_POL_SSVC_INSTALL_BTN_TXT
+            ppol.self_service_description = msg
+            ppol.self_service_notifications_enabled = true
+            ppol.self_service_notification_type = PATCH_POL_SSVC_NOTIFICATION_TYPE
+            ppol.self_service_notification_subject = "#{title_object.display_name} update available"
+            ppol.self_service_notification_message = msg
+            ppol.self_service_reminders_enabled = true
+            ppol.self_service_reminder_frequency = PATCH_POL_SSVC_REMINDER_FREQ_HRS
+            ppol.deadline = PATCH_POL_SSVC_DEADLINE_DAYS
+
+            return unless title_object.ssvc_icon_id
+
+            set_patch_policy_ssvc_icon ppol, title_object.ssvc_icon_id
+
+          # Automatic deployment
+          else
+            progress "Jamf: Configuring Patch Policy for version '#{version}' of title '#{title}' for automatic deployment", log: :info
+            ppol.remove_from_self_service
+          end
         end
 
         # Set an existing ssvc icon for a given patch policy

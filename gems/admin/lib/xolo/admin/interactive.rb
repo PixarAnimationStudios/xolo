@@ -21,7 +21,7 @@ module Xolo
         'vim (vi)' => '/usr/bin/vim',
         'mg (emacs)' => '/usr/bin/mg',
         'pico (nano)' => '/usr/bin/pico'
-      }
+      }.freeze
 
       MULTILINE_HEADER_SEPARATOR = "\nDO NOT EDIT anything above the next line:\n=================================="
 

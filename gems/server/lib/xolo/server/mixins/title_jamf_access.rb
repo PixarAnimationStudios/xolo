@@ -206,9 +206,11 @@ module Xolo
         ############################
         def update_versions_for_title_changes_in_jamf
           version_objects.each do |vers_obj|
+            progress "Jamf: Applying changes to version '#{vers_obj.version}' of title '#{title}' (#{self.class})", log: :info
             vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update&.key? :release_groups
             vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key? :excluded_groups
             vers_obj.update_jamf_package_notes(ttl_obj: self) if need_to_update_description?
+            vers_obj.update_patch_policy_deployment(ttl_obj: self) if changes_for_update&.key? :self_service_updates
           end
         end
 
@@ -1504,13 +1506,6 @@ module Xolo
 
           configure_pol_for_self_service(pol)
           pol.save
-
-          # loop thru versions to make any SSvc changes
-          version_objects.each do |vobj|
-            ppol = vobj.jamf_patch_policy
-            vobj.configure_patch_pol_for_self_service ppol
-            ppol.save
-          end
         end
 
         # Add the jamf_manual_install_released_policy to self service if needed
@@ -1593,12 +1588,17 @@ module Xolo
           pol.self_service_description = new_desc
 
           pol.self_service_install_button_text = Xolo::Server::Title::SELF_SERVICE_INSTALL_BTN_TEXT
+          # icon already uploaded to jamf
+          return if ssvc_icon_id
+
+          # icon never uploaded to xolo
           return unless ssvc_icon_file
 
-          # TODO: Is this needed if we already have a ssvc_icon_id ??
+          # Upload the icon from xolo to jamd
           progress 'Jamf: Uploading Self Service icon', log: :debug
           pol.save # won't do anything unless needed, but has to exist before we can upload icons
           pol.upload :icon, ssvc_icon_file
+
           # re-fetch the pol to get the icon id
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
         end

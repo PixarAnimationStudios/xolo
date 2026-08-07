@@ -659,14 +659,13 @@ module Xolo
             changelog: true,
             walkthru_na: :ssvc_na,
             desc: <<~ENDDESC
-              Make this title available in Self Service for initial installation. Only the currently released version will be available.
-
-              While in pilot, a version is installed based on its 'pilot-groups' or manally via 'xadm deploy' or 'xolo install'.
+              Make this title available in Self Service for initial installation. Only the currently released version will be available. (Pilot versions can be installed based on their --pilot-groups or manally via 'xadm deploy' or 'xolo install')
 
               It will never be available to excluded computers, even via self service.
 
               Self Service is not available for titles with the release_group 'all'.
-              To remove the self-service option, use --no-self-service.
+
+              To explicitly set this to false, use --no-self-service.
 
               See also --self-service-updates.
             ENDDESC
@@ -682,17 +681,19 @@ module Xolo
             default: false,
             changelog: true,
             desc: <<~ENDDESC
-              Make versions available in Self Service for updates. This setting is independent of the --self-service setting for the title as a whole. It can also be set when the release-group is 'all'.
+              Make versions available in Self Service for updates. This setting is independent of the --self-service setting for initial installs. Unlike that setting, this can be set when the release-group is 'all'.
 
               By default this is false, Patch Policies for versions will be set to 'Install Automatically'.
 
               If set to true, Patch Policies for versions will be set to 'Make Available in Self Service' and the version will appear in the Updates section when available. The update won't happen until the user clicks a button, or the 7-day deadline passes. Notifications will be displayed daily.
 
-              When installing automatically, or the deadline passes, the update will happen at the next checkin. If the version has any KillApps, the user will be prompted to quit them, with a grace period of 15 minutes before they are force-quit.
+              When installing automatically, or the deadline passes, the update will happen at the checkin after the next recon. If the version has any KillApps, the user will be prompted to quit them, with a grace period of 15 minutes before the update starts.
 
               Any Self Service icon uploaded for the title will be used for its versions. If needed, upload one for the title with 'xadm edit-title --self-service-icon /path/to/image/file' (the title itself doesn't need to be in Self Service)
 
               To explicitly set this to false, use --no-self-service-updates.
+
+              See also --self-service.
             ENDDESC
           },
 
