@@ -4,7 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[2.1.0] Unreleased
+## \[2.2.0] Unreleased
+
+### Added
+  - Titles can now take the `--self-service-updates` boolean option. This means that initial installs of a title via a Self Service Policy (the `--self-service` option) are completely independent from updates pushed out via Patch Policies in Self Service Updates.
+  
+    Here is the help output for the new option:
+    
+    > Make versions available in Self Service for updates. This setting is independent of the `--self-service` setting for initial installs. Unlike that setting, this can be set when the release-group is 'all'.
+
+    > By default this is false, Patch Policies for versions will be set to 'Install Automatically'.
+
+    > If set to true, Patch Policies for versions will be set to 'Make Available in Self Service' and the version will appear in the Updates section when available. The update won't happen until the user clicks a button, or the 7-day deadline passes. Notifications will be displayed daily.
+
+    > When installing automatically, or the deadline passes, the update will happen at the checkin after the next recon. If the version has any KillApps, the user will be prompted to quit them, with a grace period of 15 minutes before the update starts.
+
+    > Any Self Service icon uploaded for the title will be used for its versions. If needed, upload one for the title with 'xadm edit-title `--self-service-icon /path/to/image/file'` (the title itself doesn't need to be in Self Service)
+
+    > To explicitly set this to false, use --no-self-service-updates.
+
+      
+
+## \[2.1.0] 2026-08-05
 
 ### Added
   - The `xadm list-titles` command now takes 4 new CLI options
