@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
     Target groups are literally the opposite of `--excluded-groups`. Computers NOT in the target groups are not able to see the Title or its versions using Xolo. This is useful when you want to restrict the ability to install or update a title to only a small set of computers. Previously you would have to create a 'large' Jamf group of computers NOT allowed to see the title and use that as an excluded-group. 
 
-    __IMPORTANT__:  target-groups are very different from release-groups or pilot-groups.  Release- and pilot-groups define computers that will _automatically_ get installs and updates, and when that will happen.  Target- and excluded-groups define computers that can even see that the title exists.  Targets and exclsions win over everything else.
+    __IMPORTANT__:  target-groups are very different from release-groups or pilot-groups.  Release- and pilot-groups define computers that will _automatically_ get installs and updates, and when that will happen.  Target- and excluded-groups define computers that can even see that the title exists.  Targets and exclusions win over everything else.
       
 
 ## \[2.1.0] 2026-08-05
