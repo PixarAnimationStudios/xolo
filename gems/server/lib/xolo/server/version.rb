@@ -506,14 +506,17 @@ module Xolo
         return @excluded_groups_to_use if @excluded_groups_to_use
 
         ttl_obj ||= title_object
-        # get the excluded groups from the title
-        # Use .dup so we don't modify the original
-        @excluded_groups_to_use = ttl_obj.changes_for_update&.key?(:excluded_groups) ? ttl_obj.changes_for_update[:excluded_groups][:new].dup : ttl_obj.excluded_groups.dup
 
         # always exclude the frozen static group
         # calling ttl_obj.jamf_frozen_group will create the group if needed
-        @excluded_groups_to_use << ttl_obj.jamf_frozen_group.name
-        log_debug "Appended '#{ttl_obj.jamf_frozen_group_name}' to @excluded_groups_to_use"
+        @excluded_groups_to_use = [ttl_obj.jamf_frozen_group.name]
+        log_debug "Added '#{ttl_obj.jamf_frozen_group_name}' to @excluded_groups_to_use"
+
+        # get the excluded groups from the title
+        @excluded_groups_to_use += ttl_obj.changes_for_update&.key?(:excluded_groups) ? ttl_obj.changes_for_update[:excluded_groups][:new] : ttl_obj.excluded_groups
+
+        # add the jamf_target_groups_exclusion_group - it must have been created before now
+        @excluded_groups_to_use << ttl_obj.jamf_target_groups_exclusion_group_name if ttl_obj.use_jamf_target_groups_exclusion_group?
 
         # always exclude Xolo::Server.config.forced_exclusion if defined
         @excluded_groups_to_use << valid_forced_exclusion_group_name if valid_forced_exclusion_group_name

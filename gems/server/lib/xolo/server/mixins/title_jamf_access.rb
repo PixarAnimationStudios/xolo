@@ -56,7 +56,7 @@ module Xolo
         end
 
         # Create title-level things in jamf when creating a title.
-        #
+        # No need to deal with versions here, there are none yet.
         # @return [void]
         ################################
         def create_title_in_jamf
@@ -85,6 +85,10 @@ module Xolo
           # Just calling this will create it if it doesn't exist.
           jamf_frozen_group
 
+          # If we have target-groups, create the jamf_target_groups_exclusion_group
+          # to use as an exclusion
+          jamf_target_groups_exclusion_group if target_groups && !target_groups.pix_empty?
+
           # This either notifies, or does it
           # TODO: EAs for subscribed titles can change at any time and need
           # re-accepted - Notifications must happen.
@@ -100,9 +104,29 @@ module Xolo
         def update_title_in_jamf
           # ORDER MATTERS
 
+          # target group changes are tricky cuz the related group is in scopes
+          # all over the place.
+          need_to_delete_jamf_target_groups_exclusion_group = false
+
+          # TODO: Move this to a sep. method
+          if changes_for_update[:target_groups]
+            # if some-to-none, update the scopes later, then delete the group at the end
+            if changes_for_update[:target_groups][:new].empty?
+              need_to_delete_jamf_target_groups_exclusion_group = true
+
+            # if from none-to-some, create the group - add to scopes later
+            elsif changes_for_update[:target_groups][:old].empty?
+              # create the group
+              jamf_target_groups_exclusion_group
+            # if tgt grps changed, just update the smartgroup, don't change any scopes
+            else
+              configure_jamf_target_groups_exclusion_group changes_for_update[:target_groups][:new]
+            end
+          end
+
           # if the exclusions have changed update the manual install released policy
-          if changes_for_update[:excluded_groups]
-            progress "Jamf: Updating excluded groups for Manual Released Policy '#{jamf_manual_install_released_policy_name}'."
+          if changes_for_update[:target_groups] || changes_for_update[:excluded_groups]
+            progress "Jamf: Updating scope for Manual Released Policy '#{jamf_manual_install_released_policy_name}'."
             configure_jamf_manual_install_released_policy(jamf_manual_install_released_policy)
           end
 
@@ -132,11 +156,19 @@ module Xolo
           update_ssvc
           # TODO: deal with icon changes: if changes_for_update&.key? :self_service_icon
 
+          # are there any versions yet? if no, not active
           if jamf_title_active?
             update_versions_for_title_changes_in_jamf
+            # deal with need_to_add_jamf_target_groups_exclusion_group_to_scopes
+            # and delete_jamf_target_groups_exclusion_group here
+
           else
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
           end
+
+          # version scopes should have been updated, now do the title
+          configure_jamf_manual_install_released_policy
+          delete_jamf_target_groups_exclusion_group if need_to_delete_jamf_target_groups_exclusion_group
         end
 
         # Repair this title in Jamf Pro
@@ -165,6 +197,7 @@ module Xolo
           repair_jamf_uninstall_script
           repair_jamf_expire_policy
           repair_frozen_group
+          repair_jamf_target_groups_exclusion_group
           repair_jamf_manual_install_released_policy
         end
 
@@ -186,9 +219,11 @@ module Xolo
 
           delete_jamf_patch_title
 
-          # static group deleted last,
+          # excl groups deleted last,
           # was used in scopes for patch and normal policies
           delete_jamf_frozen_group
+
+          delete_jamf_target_groups_exclusion_group
         end
 
         # If any title changes require updates to existing versions in
@@ -208,7 +243,8 @@ module Xolo
           version_objects.each do |vers_obj|
             progress "Jamf: Applying changes to version '#{vers_obj.version}' of title '#{title}' (#{self.class})", log: :info
             vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update&.key? :release_groups
-            vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key? :excluded_groups
+            vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key?(:excluded_groups) || changes_for_update&.key?(:target_groups)
+
             vers_obj.update_jamf_package_notes(ttl_obj: self) if need_to_update_description?
             vers_obj.update_patch_policy_deployment(ttl_obj: self) if changes_for_update&.key? :self_service_updates
           end
@@ -848,6 +884,123 @@ module Xolo
           @jamf_installed_group_url = "#{jamf_gui_url}/smartComputerGroups.html?id=#{gr_id}&o=r"
         end
 
+        #######  The TargetGroups Exclusion Group
+        ###########################################
+        ###########################################
+
+        ############################
+        def jamf_target_groups_exclusion_group
+          return @jamf_target_groups_exclusion_group if @jamf_target_groups_exclusion_group
+
+          if jamf_target_groups_exclusion_group_exist?
+            @jamf_target_groups_exclusion_group = Jamf::ComputerGroup.fetch(
+              name: jamf_target_groups_exclusion_group_name,
+              cnx: jamf_cnx
+            )
+          else
+            return if deleting?
+
+            progress "Jamf: Creating smart group '#{jamf_target_groups_exclusion_group_name}'", log: :info
+
+            @jamf_target_groups_exclusion_group = Jamf::ComputerGroup.create(
+              name: jamf_target_groups_exclusion_group_name,
+              type: :smart,
+              cnx: jamf_cnx
+            )
+            @jamf_target_groups_exclusion_group.save
+            configure_jamf_target_groups_exclusion_group
+
+          end
+
+          @jamf_target_groups_exclusion_group
+        end
+
+        ############################
+        def jamf_target_groups_exclusion_group_exist?
+          Jamf::ComputerGroup.all_names(:refresh, cnx: jamf_cnx).include? jamf_target_groups_exclusion_group_name
+        end
+
+        ############################
+        def jamf_target_groups_exclusion_group_criteria(tgt_grps = nil)
+          tgt_grps ||= target_groups_to_use
+          criteria = []
+          tgt_grps.each do |tgrp|
+            progress "Jamf: Adding criterion for target group '#{tgrp}'", log: :info
+            criteria << Jamf::Criteriable::Criterion.new(
+              and_or: :and,
+              name: 'Computer Group',
+              search_type: 'not member of',
+              value: tgrp
+            )
+          end
+          criteria
+        end
+
+        ############################
+        def configure_jamf_target_groups_exclusion_group(tgt_grps = nil)
+          tgt_grps ||= target_groups_to_use
+          progress "Jamf: Configuring smart group '#{jamf_target_groups_exclusion_group_name}'", log: :info
+
+          jamf_target_groups_exclusion_group.criteria =
+            Jamf::Criteriable::Criteria.new jamf_target_groups_exclusion_group_criteria(tgt_grps)
+
+          jamf_target_groups_exclusion_group.save
+
+          log_debug 'Jamf: Sleeping 10 secs to let Jamf server see changes to TargetGroups Exclusion Group smart group.'
+          sleep 10
+        end
+
+        ############################
+        def repair_jamf_target_groups_exclusion_group
+          configure_jamf_target_groups_exclusion_group
+        end
+
+        ############################
+        def delete_jamf_target_groups_exclusion_group
+          return unless jamf_target_groups_exclusion_group_exist?
+
+          progress "Jamf: Deleting smart group '#{jamf_target_groups_exclusion_group_name}'", log: :info
+          jamf_target_groups_exclusion_group.delete
+
+          # give the server time to see the deletion
+          log_debug 'Sleeping to let server see deletion of smart group'
+          sleep 10
+        end
+
+        ############################
+        def jamf_target_groups_exclusion_group_url
+          return @jamf_target_groups_exclusion_group_url if @jamf_target_groups_exclusion_group_url
+
+          gr_id = Jamf::ComputerGroup.valid_id jamf_target_groups_exclusion_group_name, cnx: jamf_cnx
+          return unless gr_id
+
+          @jamf_target_groups_exclusion_group_url = "#{jamf_gui_url}/smartComputerGroups.html?id=#{gr_id}&o=r"
+        end
+
+        # should we use the jamf_target_groups_exclusion_group in our exclusions?
+        # If yes, it must have been created before now.
+        # If no, it can't have been deleted yet.
+        #
+        # @return [Boolean] should we use the jamf_target_groups_exclusion_group in our exclusions?
+        #########
+        def use_jamf_target_groups_exclusion_group?
+          if changes_for_update[:target_groups]
+            ## if some-to-none, no
+            if changes_for_update[:target_groups][:new].empty?
+              false
+            # if from none-to-some, yes
+            elsif changes_for_update[:target_groups][:old].empty?
+              true
+            # if tgt grps changed, just update the smartgroup, don't change any scopes
+            else
+              true
+            end
+
+          else
+            !target_groups.empty?
+          end
+        end
+
         #######  The Frozen Group
         ###########################################
         ###########################################
@@ -1410,7 +1563,11 @@ module Xolo
         # @param pol [Jamf::Policy] the policy we are configuring
         # @return [void]
         ###################
-        def configure_jamf_manual_install_released_policy(pol)
+        def configure_jamf_manual_install_released_policy(pol = nil)
+          progress "Jamf: Configuring manual install-released policy '#{jamf_manual_install_released_policy_name}'", log: :info
+
+          pol ||= jamf_manual_install_released_policy
+
           pol.category = Xolo::Server::JAMF_XOLO_CATEGORY
           pol.set_trigger_event :checkin, false
           pol.set_trigger_event :custom, jamf_manual_install_released_policy_name
@@ -1423,25 +1580,41 @@ module Xolo
 
           toggle_jamf_manual_install_released_policy pol
 
-          # figure out the exclusions.
-          #
-          # explicit exlusions for the title
-          excls = changes_for_update&.key?(:excluded_groups) ? changes_for_update[:excluded_groups][:new].dup : excluded_groups.dup
-          excls ||= []
-          # plus the frozen group
-          excls << jamf_frozen_group_name
-          # plus any forced group from the server config
-          excls << valid_forced_exclusion_group_name if valid_forced_exclusion_group_name
-          # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
-          log_debug "Setting exclusions for manual install policy for current release: #{excls}"
+          log_debug "Setting exclusions for manual install policy for current release: #{excluded_groups_to_use}"
 
-          pol.scope.set_exclusions :computer_groups, excls
+          pol.scope.set_exclusions :computer_groups, excluded_groups_to_use
 
           if self_service?
             add_title_to_self_service(pol)
           else
             remove_title_from_self_service(pol)
           end
+        end
+
+        # what exclusions should we use now on all title-level scopable things?
+        # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
+        #######################
+        def excluded_groups_to_use
+          # always the frozen group
+          excls = [jamf_frozen_group_name]
+
+          # plus any explicit exlusions for the title
+          excls += changes_for_update&.key?(:excluded_groups) ? changes_for_update[:excluded_groups][:new] : excluded_groups
+
+          # plus the target_groups_exclusion_group if needed
+          excls << jamf_target_groups_exclusion_group_name if use_jamf_target_groups_exclusion_group?
+
+          # plus any forced group from the server config
+          excls << valid_forced_exclusion_group_name if valid_forced_exclusion_group_name
+
+          excls
+        end
+
+        # what exclusions should we use now on all title-level scopable things?
+        # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
+        #######################
+        def target_groups_to_use
+          changes_for_update&.key?(:target_groups) ? changes_for_update[:target_groups][:new] : target_groups
         end
 
         # enable or disable the manual install policy for the current release, depending on

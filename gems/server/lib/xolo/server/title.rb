@@ -77,6 +77,7 @@ module Xolo
       JAMF_MANUAL_INSTALL_RELEASED_POL_SUFFIX = 'install'
       JAMF_UNINSTALL_SUFFIX = 'uninstall'
       JAMF_EXPIRE_SUFFIX = 'expire'
+      JAMF_TGT_GRP_EXCL_GRP_NAME_SUFFIX = 'target-group-exclusions'
 
       # the expire policy will run this client command,
       # appending the title
@@ -257,6 +258,17 @@ module Xolo
       # @return [String] the name of the smart group
       attr_reader :jamf_frozen_group_name
 
+      # If a title has 'target_groups', they act as the opposite of
+      # excluded groups - macs NOT in the target groups can't see the title.
+      #
+      # We implement this by maintaining a smart group
+      # named 'xolo-<title>-target-group-exclusions', which has the criteria:
+      #   computerGroup/not a member of/<target-group> ANDed together for each target-group
+      # and then we use that as an exclusion.
+      # This is the name of that smart group.
+      # @return [String] the name of the smart group
+      attr_reader :jamf_target_groups_exclusion_group_name
+
       # The name of the policy that does initial manual or self-service
       # installs of the currently-released version of this title.
       # It will be named 'xolo-<title>-install'
@@ -354,6 +366,7 @@ module Xolo
         @jamf_obj_name_pfx = "#{jamf_obj_name_pfx_base}#{data_hash[:title]}"
         @jamf_installed_group_name = "#{jamf_obj_name_pfx}-#{JAMF_INSTALLED_GROUP_NAME_SUFFIX}"
         @jamf_frozen_group_name = "#{jamf_obj_name_pfx}-#{JAMF_FROZEN_GROUP_NAME_SUFFIX}"
+        @jamf_target_groups_exclusion_group_name =  "#{jamf_obj_name_pfx}-#{JAMF_TGT_GRP_EXCL_GRP_NAME_SUFFIX}"
 
         @jamf_manual_install_released_policy_name = "#{jamf_obj_name_pfx}-#{JAMF_MANUAL_INSTALL_RELEASED_POL_SUFFIX}"
 

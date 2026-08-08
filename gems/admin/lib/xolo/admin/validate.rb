@@ -452,7 +452,6 @@ module Xolo
       # validate an array  of jamf groups to use as targets.
       # 'none' is also acceptable
       #
-      # target groups cannot be in the excluded groups
       #
       # @param val [Array<String>] The value to validate:  names of jamf comp.
       #   groups, or 'none'

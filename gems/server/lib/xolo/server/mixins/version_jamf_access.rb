@@ -1134,6 +1134,7 @@ module Xolo
         ############################
         def set_policy_exclusions(pol, ttl_obj: nil)
           ttl_obj ||= title_object
+
           # dup, so when we add the installed group below, we don't
           # keep that for future calls to this method.
           exclusions = excluded_groups_to_use(ttl_obj: ttl_obj).dup
@@ -1302,7 +1303,7 @@ module Xolo
           pol = jamf_patch_policy
           return unless pol
 
-          progress "Jamf: Updating exccluded groups for Patch Policy '#{jamf_patch_policy_name}'."
+          progress "Jamf: Updating excluded groups for Patch Policy '#{jamf_patch_policy_name}'."
           set_policy_exclusions(pol, ttl_obj: ttl_obj)
           pol.save
         end
