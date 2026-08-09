@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     Computers NOT in the target groups are not able to see the title or its versions using Xolo. This is useful when you want to restrict the ability to install or update a title to only a small set of computers. Previously you would have to create a 'large' Jamf group of computers NOT allowed to see the title and use that as an excluded-group. 
 
     This is implemented by maintaining a smart computer group that contains computers NOT in the target-groups, and then using that smart-group in the exclusions for all scopes releated to the title.
-    
+
     __IMPORTANT__:  target-groups are very different from release-groups or pilot-groups.  Release- and pilot-groups define computers that will _automatically_ get installs and updates, and when that will happen.  Target- and excluded-groups define computers that can even see that the title exists.  Targets and exclusions win over everything else.
       
 
@@ -40,17 +40,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
   - The `xadm list-titles` command now takes 4 new CLI options
-    - `-s, --subscribed    Show only 'subscribed' titles. Can be combined with --autopkg.`
-    - `-m, --managed       Show only 'managed' titles. Can be combined with --autopkg.`
-    - `-a, --autopkg       Show only titles configured for AutoPkg. Can be combined with --subscribed or --managed.`
-    - `-p, --pilots        Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details for a title. Can be combined with --subscribed or --managed.`
+    - `-s, --subscribed    Show only 'subscribed' titles.`
+    - `-m, --managed       Show only 'managed' titles.`
+    - `-a, --autopkg       Show only titles configured for AutoPkg.`
+    - `-p, --pilots        Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details of versions for a title.`
       
-      These options are useful for finding titles and versions that need attention, such as new pilot versions automatically created by subscription and autopkg, but haven't been released yet.
+      These options can be combined and are useful for finding titles and versions that need attention, such as new pilot versions automatically created by subscription and autopkg, but haven't been released yet.
 
-  - The `xadm list-versions <title>` command now indicates if a version doesn't yet have a .pkg file uploaded, by marking the end of the line with ` **`
+  - The `xadm list-versions <title>` command now indicates if a version doesn't yet have a .pkg file uploaded, by marking the end of the line with `**`
 
 ### Changed
-  - The `xolo` client tool now (again) accepts the original syntax of `xolo install title version` without an `=` between them, as long as you're only installing that one item. Using an `=` will still work too.  If you want to install multiple items with specific versions, you must use the `=`.
+  - The `xolo` client tool now (again) accepts the original syntax of `xolo install title version` without an `=` between the title and version, as long as you're only installing that one item. Using an `=` will still work too.  If you want to install multiple items with specific versions, you must use the `=`.
+
   ```
   # installs version 1.2.3 of title foobar
   % sudo xolo install foobar 1.2.3  
