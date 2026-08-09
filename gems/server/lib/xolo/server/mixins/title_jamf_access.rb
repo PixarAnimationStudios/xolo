@@ -110,14 +110,15 @@ module Xolo
 
           # TODO: Move this to a sep. method
           if changes_for_update[:target_groups]
-            # if some-to-none, update the scopes later, then delete the group at the end
+            # if some->none, update the scopes later, then delete the group at the end
             if changes_for_update[:target_groups][:new].empty?
               need_to_delete_jamf_target_groups_exclusion_group = true
 
-            # if from none-to-some, create the group - add to scopes later
+            # if from none->some, create the group - add to scopes later
             elsif changes_for_update[:target_groups][:old].empty?
               # create the group
               jamf_target_groups_exclusion_group
+
             # if tgt grps changed, just update the smartgroup, don't change any scopes
             else
               configure_jamf_target_groups_exclusion_group changes_for_update[:target_groups][:new]
@@ -159,9 +160,6 @@ module Xolo
           # are there any versions yet? if no, not active
           if jamf_title_active?
             update_versions_for_title_changes_in_jamf
-            # deal with need_to_add_jamf_target_groups_exclusion_group_to_scopes
-            # and delete_jamf_target_groups_exclusion_group here
-
           else
             log_debug "Jamf: Title '#{display_name}' (#{title}) is not yet active to Jamf, nothing to update in versions."
           end
@@ -172,27 +170,14 @@ module Xolo
         end
 
         # Repair this title in Jamf Pro
-        # - TODO: activate title in patch mgmt
-        #   - TODO: Accept Patch EA
-        # - title-installed smart group 'xolo-<title>-installed'
-        # - frozen static group 'xolo-<title>-frozen'
-        # - manual/SSvc install-current-release policy 'xolo-<title>-install'
-        #   - trigger 'xolo-<title>-install'
-        #   - ssvc icon
-        #   - ssvc category
-        #   - description
-        # - if uninstallable
-        #   - uninstall script 'xolo-<title>-uninstall'
-        #   - uninstall policy 'xolo-<title>-uninstall'
-        #   - if expirable
-        #     - expire policy 'xolo-<title>-expire'
-        #       - trigger  'xolo-<title>-expire'
+        # - TODO: activate title in patch mgmt if needed
+        #   - TODO: Accept Patch EA if needed
         #
         ###############################################
         def repair_jamf_title_objects
           progress "Jamf: Repairing Jamf objects for title '#{title}'", log: :info
 
-          configure_jamf_installed_group
+          repair_jamf_installed_group
           repair_jamf_uninstall_policy
           repair_jamf_uninstall_script
           repair_jamf_expire_policy
@@ -243,6 +228,7 @@ module Xolo
           version_objects.each do |vers_obj|
             progress "Jamf: Applying changes to version '#{vers_obj.version}' of title '#{title}' (#{self.class})", log: :info
             vers_obj.update_release_groups(ttl_obj: self)  if changes_for_update&.key? :release_groups
+
             vers_obj.update_excluded_groups(ttl_obj: self) if changes_for_update&.key?(:excluded_groups) || changes_for_update&.key?(:target_groups)
 
             vers_obj.update_jamf_package_notes(ttl_obj: self) if need_to_update_description?
@@ -832,6 +818,11 @@ module Xolo
           jamf_installed_group.save
           log_debug 'Jamf: Sleeping 30 secs to let Jamf server see changes to Installed smart group.'
           sleep 30
+        end
+
+        ############################
+        def repair_jamf_installed_group
+          configure_jamf_installed_group
         end
 
         # The criteria for the smart group in Jamf that contains all Macs

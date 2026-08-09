@@ -263,9 +263,12 @@ module Xolo
       #
       # We implement this by maintaining a smart group
       # named 'xolo-<title>-target-group-exclusions', which has the criteria:
-      #   computerGroup/not a member of/<target-group> ANDed together for each target-group
-      # and then we use that as an exclusion.
+      #   computerGroup...not a member of...<target-group>
+      # ANDed together for each target-group
+      # and then we use that smart group as an exclusion.
+      #
       # This is the name of that smart group.
+      #
       # @return [String] the name of the smart group
       attr_reader :jamf_target_groups_exclusion_group_name
 
