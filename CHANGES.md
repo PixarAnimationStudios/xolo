@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## \[2.2.0] Unreleased
 
 ### Added
+
   - Titles can now take the `--self-service-updates` boolean option. This means that initial installs of a title via a Self Service Policy (the `--self-service` option) are completely independent from updates pushed out via Patch Policies in Self Service Updates.
   
     Here is the help output for the new option:

@@ -159,11 +159,23 @@ Options:
   -V, --version:     Show the version of xolo.
 
 Commands:
-  install, i <title>[=<version>] [<title2>[=<version2>] ...]
-    Install a title, or specific version thereof (e.g. a version currently in pilot)
+  install, i <title> [<version>] [...]
+  install, i <title>[=<version>] [...]
+
+    Install one or more titles, or specific versions thereof (e.g. currently in pilot)
     If no version is specified, the currently released version will be installed.
-    If you are only installing only one specific version of one title, you can
-    omit the =, e.g. install <title> <version>.
+
+    To install more than one item at a time, use 'title=version' if you need a non-
+    released version of the title.
+
+    So 'install <title1> <title2>' installs the current release of each title, and
+    'install <title1> <version1>'  installs version1 of title1, but
+    'install <title1>=<version1> <title2>' installs version1 of title1 and the
+    current release of title2. You can install as many items as needed this way.
+
+    In short, you can always use '=' between titles and versions, but you can
+    only omit it when the there are only two arguments and they are a title
+    and a version.
 
   uninstall, u <title> [<title2> ...]
     Uninstall a title, if possible. Not all titles are uninstallable via xolo.

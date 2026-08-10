@@ -206,7 +206,7 @@ module Xolo
           validate: :validate_boolean,
           default: false,
           desc: <<~ENDDESC
-            Show only 'subscribed' titles. Can be combined with --autopkg.
+            Show only 'subscribed' titles. Can be combined with all other options except --managed.
           ENDDESC
         },
 
@@ -217,7 +217,7 @@ module Xolo
           validate: :validate_boolean,
           default: false,
           desc: <<~ENDDESC
-            Show only 'managed' titles. Can be combined with --autopkg.
+            Show only 'managed' titles. Can be combined with all other options excepted --subscribed.
           ENDDESC
         },
 
@@ -228,7 +228,7 @@ module Xolo
           validate: :validate_boolean,
           default: false,
           desc: <<~ENDDESC
-            Show only titles configured for AutoPkg. Can be combined with --subscribed or --managed.
+            Show only titles configured for AutoPkg. Can be combined with all other options.
           ENDDESC
         },
 
@@ -239,7 +239,7 @@ module Xolo
           validate: :validate_boolean,
           default: false,
           desc: <<~ENDDESC
-            Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details for a title. Can be combined with --subscribed or --managed.
+            Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details for a title. Can be combined with all other options.
           ENDDESC
         }
       }.freeze

@@ -611,7 +611,7 @@ module Xolo
         },
 
         # @!attribute forced_exclusion
-        #   @return [String] The name of a single Jamf Pro computer groups that will ALWAYS be excluded
+        #   @return [String] The name of a single Jamf Pro computer group that will ALWAYS be excluded
         #      and will never see any titles or versions in Xolo.
         forced_exclusion: {
           type: :string,
