@@ -882,6 +882,7 @@ module Xolo
         ############################
         def jamf_target_groups_exclusion_group
           return @jamf_target_groups_exclusion_group if @jamf_target_groups_exclusion_group
+          return if target_groups_to_use.pix_empty?
 
           if jamf_target_groups_exclusion_group_exist?
             @jamf_target_groups_exclusion_group = Jamf::ComputerGroup.fetch(
@@ -929,6 +930,8 @@ module Xolo
 
         ############################
         def configure_jamf_target_groups_exclusion_group(tgt_grps = nil)
+          return if target_groups_to_use.pix_empty?
+
           tgt_grps ||= target_groups_to_use
           progress "Jamf: Configuring smart group '#{jamf_target_groups_exclusion_group_name}'", log: :info
 
@@ -937,13 +940,17 @@ module Xolo
 
           jamf_target_groups_exclusion_group.save
 
-          log_debug 'Jamf: Sleeping 10 secs to let Jamf server see changes to TargetGroups Exclusion Group smart group.'
+          log_debug "Jamf: Sleeping 10 secs to let Jamf server see changes to smart group '#{jamf_target_groups_exclusion_group_name}'"
           sleep 10
         end
 
         ############################
         def repair_jamf_target_groups_exclusion_group
-          configure_jamf_target_groups_exclusion_group
+          if target_groups_to_use.pix_empty?
+            delete_jamf_target_groups_exclusion_group
+          else
+            configure_jamf_target_groups_exclusion_group
+          end
         end
 
         ############################
@@ -954,7 +961,7 @@ module Xolo
           jamf_target_groups_exclusion_group.delete
 
           # give the server time to see the deletion
-          log_debug 'Sleeping to let server see deletion of smart group'
+          log_debug "Jamf: Sleeping 10 secs to let server see deletion of smart group '#{jamf_target_groups_exclusion_group_name}'"
           sleep 10
         end
 
@@ -1583,7 +1590,6 @@ module Xolo
         end
 
         # what exclusions should we use now on all title-level scopable things?
-        # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
         #######################
         def excluded_groups_to_use
           # always the frozen group
@@ -1601,8 +1607,7 @@ module Xolo
           excls
         end
 
-        # what exclusions should we use now on all title-level scopable things?
-        # NOTE: we do not exclude existing installs, so that manual re-installs can be a thing.
+        # what target groups should we use now on all title-level scopable things?
         #######################
         def target_groups_to_use
           changes_for_update&.key?(:target_groups) ? changes_for_update[:target_groups][:new] : target_groups
