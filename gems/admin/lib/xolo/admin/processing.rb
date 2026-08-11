@@ -218,10 +218,10 @@ module Xolo
 
         report_title = "All#{type}#{autopkg} titles in Xolo#{pilots}"
 
-        titles.select! { |t| t.subscribed? } if opts_to_process.subscribed
-        titles.reject! { |t| t.subscribed? } if opts_to_process.managed
-        titles.select! { |t| t.autopkg_recipe } if opts_to_process.autopkg
-        titles.select! { |t| pending_pilots? t } if opts_to_process.pilots
+        titles.select!(&:subscribed?) if opts_to_process.subscribed
+        titles.reject!(&:subscribed?) if opts_to_process.managed
+        titles.select!(&:autopkg_recipe) if opts_to_process.autopkg
+        titles.select!(&:pending_pilots?) if opts_to_process.pilots
 
         header = %w[Title Created By SSvc? Latest Released]
         data = titles.map do |t|
