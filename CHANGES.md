@@ -32,10 +32,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
     Computers NOT in the target groups are not able to see the title or its versions using Xolo. This is useful when you want to restrict the ability to install or update a title to only a small set of computers. Previously you would have to create a 'large' Jamf group of computers NOT allowed to see the title and use that as an excluded-group. 
 
-    This is implemented by maintaining a smart computer group that contains computers NOT in the target-groups, and then using that smart-group in the exclusions for all scopes releated to the title.
+    This is implemented by maintaining a smart computer group that contains computers NOT in the target-groups, and then using that smart-group in the exclusions for all scopes releated to the title. Basically it's a way to use computer-groups as scope-limitations, which Jamf Pro doesn't do directly.
 
-    __IMPORTANT__:  target-groups are very different from release-groups or pilot-groups.  Release- and pilot-groups define computers that will _automatically_ get installs and updates, and when that will happen.  Target- and excluded-groups define computers that can even see that the title exists.  Targets and exclusions win over everything else.
+    __IMPORTANT__:  `target-groups` are very different from `release-groups` or `pilot-groups`.  Release- and pilot-groups define computers that will _automatically_ get installs and updates, and when that will happen.  Target- and excluded-groups define computers that can even see that the title exists.  Targets and exclusions win over everything else.
       
+### Changed
+  
+  - If you try to release a version before Jamf Pro has seen it in the Title Editor, you'll get a better error message early in the process. Before it would just fail when it tried to access the not-yet-existent Patch Policy.
 
 ## \[2.1.0] 2026-08-05
 
