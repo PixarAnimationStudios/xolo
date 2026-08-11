@@ -458,6 +458,28 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute auto_release_delay
+          #   @return [Integer] How many days before new versions are automatically released?
+          #     Applies only to subscribed titles with autopkg recipes.
+          auto_release_delay: {
+            label: 'Automatic Release Delay',
+            cli: :A,
+            type: :string,
+            changelog: true,
+            invalid_msg: "Must be a non-negative integer, or '#{Xolo::NONE}'.",
+            desc: <<~ENDDESC
+              Specify how many days after a new version appears before it is automatically released from pilot.
+
+              This option is only available for titles that are both subscribed, and have an AutoPkg recipe configured. Any other title requires manual release of pilot versions using `xadm release <title> <version>`.
+
+              Setting this to 7 means that a week after a new version appears as a pilot, it will automatically be released as if someone did `xadm release <title> <version>`. The delay period should be used for piloting the version, either automatically using pilot-groups, or manually. *** USE WITH CAUTION ***
+
+              Setting it to zero means that new versions will be released at the next nightly auto-release task. *** USE WITH EXTREME CAUTION ***
+
+              To unset, meaning versions are never auto-released, use '#{Xolo::NONE}'
+            ENDDESC
+          },
+
           # @!attribute pilot_groups
           #   @return [Array<String>] Jamf groups that will automatically get new versions installed or
           #     updated when added, for piloting

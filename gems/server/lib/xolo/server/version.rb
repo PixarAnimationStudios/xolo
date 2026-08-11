@@ -227,6 +227,8 @@ module Xolo
       # This doesn't upload a pkg - it just creates the version in Xolo, and then
       # someone can upload a pkg to it via xadm or autopkg will do it if configured.
       #
+      # TODO: Split this long method.
+      #
       # @param title_object [Xolo::Server::Title] the title object for the subscribed title
       # @param new_version [String] the new version to add
       # @return [void]
@@ -284,11 +286,21 @@ module Xolo
         # moved to vobj.create:
         # vobj.server_app_instance.update_client_data
 
-        # tell someone
-        msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription."
+        # if here, and auto_release_delay is zero, release it immediately
+        if title_object.autopkg_enabled?
+
+          # is auto_release_delay an integer?
+          if title_object.auto_release_delay.is_a? Integer
+            how_soon = title_object.auto_release_delay.zero? ? 'tonight' : "in #{title_object.auto_release_delay} days"
+            msg = "New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\n   It will be released #{how_soon}"
+
+          # nil, empty or 'none', no auto release
+          else
+            msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\n   Requires manual release."
+          end
 
         # if not autopkg enabled, we need to tell someone to upload a pkg for this new version
-        unless title_object.autopkg_enabled?
+        else
           # update general alert msg
           msg = "#{msg}\nPlease upload a .pkg for it ASAP using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/installer.pkg"
 

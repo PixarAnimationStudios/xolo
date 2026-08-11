@@ -153,6 +153,7 @@ module Xolo
 
           # add new cleanup tasks/methods here
           accept_title_editor_eas
+          auto_release_versions
           cleanup_versions
 
           log_info 'Cleanup: complete'
@@ -185,6 +186,29 @@ module Xolo
           end # Xolo::Server::Title.all_titles.each
 
           log_info 'Cleanup: Done with Title Editor EAs to auto-accept'
+        end
+
+        # Do any pending auto-releases
+        # @return [void]
+        ##############################
+        def auto_release_versions
+          log_info 'Cleanup: Auto-releasing appropriate versions'
+          Xolo::Server::Title.all_titles.each do |title|
+            title_obj = instantiate_title title
+            next unless title_obj.auto_release_delay.is_a?(Integer) && !title_obj.auto_release_delay.negative?
+            next unless title_obj.subscribed? && !title_obj.autopkg_recipe.pix_empty?
+
+            # Any version with this creation date should be released now
+            creation_date_to_be_released_today = Date.today - title_obj.auto_release_delay
+
+            title_obj.version_objects.each do |version|
+              next unless version.creation_date.to_date == creation_date_to_be_released_today
+
+              log_info "Cleanup: Auto-releasing version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
+              version.release
+              log_debug "Auto-released version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
+            end # each version
+          end # each title
         end
 
         # Cleanup versions.

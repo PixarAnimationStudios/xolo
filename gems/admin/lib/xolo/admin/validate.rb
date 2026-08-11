@@ -366,6 +366,26 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:uninstall_script][:invalid_msg]
       end
 
+      # validate a title auto_release_delay:
+      # - a non-negative integer?
+      # OR
+      # - 'none' to unset the value
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [String, Integer] The valid value
+      ###########################
+      def validate_auto_release_delay
+        return if val == Xolo::NONE
+
+        if val.pix_integer?
+          val = val.to_i
+          return val unless val.negative?
+        end
+
+        raise_invalid_data_error val, TITLE_ATTRS[:auto_release_delay][:invalid_msg]
+      end
+
       # validate a title uninstall ids:
       # - an array of package identifiers
       # OR
@@ -935,6 +955,9 @@ module Xolo
 
         # if self-service category given, must be in self-service
         validate_title_consistency_ssvc_needs_category(opts)
+
+        # if auto_release_delay is non-negative integer, must be subbscribed and autopkg
+        validate_title_consistency_auto_release_delay(opts)
       end # title_consistency(opts)
 
       # Complain about using options not meant for the chosen title type
@@ -1059,6 +1082,19 @@ module Xolo
           end
 
         raise_consistency_error msg
+      end
+
+      # if auto_release_delay, must be subbscribed and autopkg
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_auto_release_delay(opts)
+        return if opts[:auto_release_delay].pix_empty? || opts[:auto_release_delay] == Xolo::NONE
+        return if current_title_type(opts) == Xolo::SUBSCRIBED && !opts[:autopkg_recipe].pix_empty?
+
+        raise_consistency_error '--auto-release-delay can only be used with subscribed titles that use autopkg.'
       end
 
       # If using app_name and bundle id, both must be given
