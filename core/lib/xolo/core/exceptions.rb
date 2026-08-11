@@ -39,11 +39,13 @@ module Xolo
 
       class InvalidTokenError < ConnectionError; end
 
+      class TooSoonError < ConnectionError; end
+
       class ServerError < ConnectionError; end
 
       # Parsing errors
 
-      class DisallowedYAMLDumpClass; end
+      class DisallowedYAMLDumpClass < ConnectionError; end
 
     end # module Exceptions
 

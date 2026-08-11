@@ -989,10 +989,16 @@ module Xolo
                 "Version '#{version_to_release}' of title '#{title}' is already released"
         end
 
-        return if versions.include? version_to_release
+        unless versions.include? version_to_release
+          raise Xolo::NoSuchItemError,
+                "No version '#{version_to_release}' for title '#{title}'"
+        end
 
-        raise Xolo::NoSuchItemError,
-              "No version '#{version_to_release}' for title '#{title}'"
+        jamf_patch_title(refresh: true)
+        return if jamf_patch_title.versions.key?(version_to_release)
+
+        raise Xolo::TooSoonError,
+              "Version '#{version_to_release}' of title '#{title}' is not yet visible to Jamf Pro. Please wait at least 10 minutes after adding it before releasing it. An alert notification will be sent when it is ready."
       end
 
       # Update all versions when releasing one
