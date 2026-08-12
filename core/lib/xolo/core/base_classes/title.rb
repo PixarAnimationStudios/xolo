@@ -477,6 +477,8 @@ module Xolo
               Setting it to zero means that new versions will be released at the next nightly auto-release task. *** USE WITH EXTREME CAUTION ***
 
               To unset, meaning versions are never auto-released, use '#{Xolo::NONE}'
+
+              Auto-release happens during the server's nightly maintenance between 2-3am.
             ENDDESC
           },
 

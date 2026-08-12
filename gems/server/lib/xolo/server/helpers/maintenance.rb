@@ -35,6 +35,9 @@ module Xolo
         # At what hour should the nightly maintenance run?
         MAINT_HOUR = 2
 
+        # the route we POST to, to start the nightly process.
+        TIMED_MAINT_TRIGGER_ROUTE = '/maint/maint-internal'
+
         # on which day of the month should we send the unreleased pilot notifications?
         UNRELEASED_PILOTS_NOTIFICATION_DAY = 1
 
@@ -69,10 +72,10 @@ module Xolo
         # nightly maint is done by a Concurrent::TimerTask, which checks every
         # hour to see if it should do anything.
         #
-        # It will only do the maint if the current time is in the 2am hour
-        # (02:00 - 02:59)
+        # It will only do the maint if the current time is in the MAINT_HOUR hour
+        # (02:00 - 02:59 if MAINT_HOUR = 2)
         #
-        # We trigger the maint by POSTing to /maint, so that it runs
+        # We trigger the maint by POSTing to TIMED_MAINT_TRIGGER_ROUTE, so that it runs
         # in the context of a request, having access to Title and Version instantiation.
         #
         # @return [Concurrent::TimerTask] the timed task to do log rotation
@@ -120,7 +123,7 @@ module Xolo
           last_maint_hrs_ago = (Time.now - last_maint) / 3600
           return unless force || (Time.now.hour == MAINT_HOUR && last_maint_hrs_ago > 23)
 
-          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/maint/maint-internal"
+          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}#{TIMED_MAINT_TRIGGER_ROUTE}"
           https = Net::HTTP.new(uri.host, uri.port)
           https.use_ssl = true
           # The server cert may be self-signed and/or doesn't
