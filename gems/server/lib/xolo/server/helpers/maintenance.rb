@@ -202,10 +202,16 @@ module Xolo
             creation_date_to_be_released_today = Date.today - title_obj.auto_release_delay
 
             title_obj.version_objects.each do |version|
+              # don't release this version if the current release is newer - could happen
+              # if two versions are added in the same day
+              next if title.released_version.creation_date > version.creation_date
+
               next unless version.creation_date.to_date == creation_date_to_be_released_today
 
               log_info "Cleanup: Auto-releasing version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
-              version.release
+
+              title.release version.version
+
               log_debug "Auto-released version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
             end # each version
           end # each title
