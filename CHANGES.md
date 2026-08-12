@@ -35,7 +35,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     This is implemented by maintaining a smart computer group that contains computers NOT in the target-groups, and then using that smart-group in the exclusions for all scopes releated to the title. Basically it's a way to use computer-groups as scope-limitations, which Jamf Pro doesn't do directly.
 
     __IMPORTANT__:  `target-groups` are very different from `release-groups` or `pilot-groups`.  Release- and pilot-groups define computers that will _automatically_ get installs and updates, and when that will happen.  Target- and excluded-groups define computers that can even see that the title exists.  Targets and exclusions win over everything else.
-      
+
+
+  - Titles can now take the `--auto-release-delay <days>` option, but only if the title is subscribed and uses an AutoPkg recipe.
+    
+    This allows you to set a pilot-period of some number of days (including zero) for new versions that appear automatically via subscriptions and autopkg to remain in pilot. After that period, they are automatically released during the server's nightly maintenance tasks. During the pilot period, piloting can happen automatically via pilot-groups, or manually by installing the version on test machines.
+
+    Use this option with caution! For many titles, like browswers, you probably want them to be auto-released quickly, to get the latest security changes. But every title is different and things like how it's used in your environment, and the source of the packages, may increase the risks involved in auto-release .
+
+    Titles that are managed, or do not use AutoPkg, cannot use this. Releasing their versions from pilot requires someone to use `xadm release <title> <version>`
+    
 ### Changed
   
   - If you try to release a version before Jamf Pro has seen it in the Title Editor, you'll get a better error message early in the process. Before it would just fail when it tried to access the not-yet-existent Patch Policy.
