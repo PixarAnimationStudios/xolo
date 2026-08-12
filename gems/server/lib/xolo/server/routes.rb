@@ -127,7 +127,7 @@ module Xolo
         @no_json = true
         stream_file = Pathname.new params[:stream_file]
 
-        stream do |stream_out|
+        stream :keep_open do |stream_out|
           stream_progress(stream_file: stream_file, stream: stream_out)
         rescue => e
           stream_out << "ERROR DURING PROGRESS STREAM: #{e.class}: #{e}"

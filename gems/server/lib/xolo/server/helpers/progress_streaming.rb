@@ -174,16 +174,49 @@ module Xolo
         def stream_progress(stream_file:, stream:)
           log_debug "About to tail: usr/bin/tail -f -c +1 #{Shellwords.escape stream_file.to_s}"
 
-          stdin, stdouterr, wait_thr = Open3.popen2e("/usr/bin/tail -f -c +1 #{Shellwords.escape stream_file.to_s}")
-          stdin.close
+          begin
+            File.open(stream_file, 'r') do |file|
+              # Go straight to the end of the file if you only want new lines
+              file.seek(0, IO::SEEK_END)
 
-          while line = stdouterr.gets
-            break if line.chomp == Xolo::Server::PROGRESS_COMPLETE
+              heartbeat_counter = 0
+              loop do
+                # Check if the stream was closed by the user
+                break if stream.closed?
 
-            stream << line
-          end
-          stdouterr.close
-          wait_thr.exit
+                # Try to read the next line
+                # This won't block but will return nil if no line is ready
+                if line = file.gets
+                  break if line.chomp == Xolo::Server::PROGRESS_COMPLETE
+
+                  # Send the line to the browser immediately
+                  stream << line
+                else
+                  # If no new line, sleep for a fraction of a second
+                  # This saves your computer's CPU from working too hard
+                  sleep 0.1
+                  heartbeat_counter += 1
+                  if heartbeat_counter == 100 # every 10 secs
+                    stream << ':heartbeat'
+                    heartbeat_counter = 0
+                  end
+                end # if
+              end # loop
+            end # file open
+          rescue IOError, Errno::ECONNRESET
+            nil
+          end # begin
+
+          # stdin, stdouterr, wait_thr = Open3.popen2e("/usr/bin/tail -f -c +1 #{Shellwords.escape stream_file.to_s}")
+          # stdin.close
+
+          # while line = stdouterr.gets
+          #   break if line.chomp == Xolo::Server::PROGRESS_COMPLETE
+
+          #   stream << line
+          # end
+          # stdouterr.close
+          # wait_thr.exit
           # TODO: deal with wait_thr.value.exitstatus > 0 ?
         end
 

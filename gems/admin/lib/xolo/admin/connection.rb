@@ -19,8 +19,8 @@ module Xolo
       ##############################
       ##############################
 
-      TIMEOUT = 300
-      UPLOAD_TIMEOUT = 1800
+      TIMEOUT = 1800
+      UPLOAD_TIMEOUT = 3600
       OPEN_TIMEOUT = 10
 
       PING_ROUTE = '/ping'
@@ -151,8 +151,18 @@ module Xolo
 
         # this proc every time we get a chunk, just print it to stdout
         # and make note if any of them conain an error
+        # every 10 secs with no real data, we get ':heartbeat'
+        # which we use to display dots on a line as we wait for more data.
+        need_newline = nil
+
         streaming_proc = proc do |chunk, _size, _env|
-          puts chunk
+          if chunk == ':heartbeat'
+            print '.'
+            need_newline = "\n"
+          else
+            puts "#{need_newline}#{chunk}"
+            need_newline = nil
+          end
           @streaming_error ||= chunk.include? STREAMING_OUTPUT_ERROR
         end
 

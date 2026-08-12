@@ -966,7 +966,11 @@ module Xolo
           return unless jamf_target_groups_exclusion_group_exist?
 
           progress "Jamf: Deleting smart group '#{jamf_target_groups_exclusion_group_name}'", log: :info
-          jamf_target_groups_exclusion_group.delete
+          grp = Jamf::ComputerGroup.fetch(
+            name: jamf_target_groups_exclusion_group_name,
+            cnx: jamf_cnx
+          )
+          grp.delete
 
           # give the server time to see the deletion
           log_debug "Jamf: Sleeping 10 secs to let server see deletion of smart group '#{jamf_target_groups_exclusion_group_name}'"
