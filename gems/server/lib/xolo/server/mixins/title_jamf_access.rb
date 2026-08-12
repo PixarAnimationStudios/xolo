@@ -122,6 +122,7 @@ module Xolo
             # if tgt grps changed, just update the smartgroup, don't change any scopes
             else
               configure_jamf_target_groups_exclusion_group changes_for_update[:target_groups][:new]
+              progress "Jamf: Done updating smart group '#{jamf_target_groups_exclusion_group_name}'", log: :debug
             end
           end
 
@@ -901,6 +902,7 @@ module Xolo
             )
             @jamf_target_groups_exclusion_group.save
             configure_jamf_target_groups_exclusion_group
+            progress "Jamf: Done creating smart group '#{jamf_target_groups_exclusion_group_name}'", log: :debug
 
           end
 
@@ -914,10 +916,12 @@ module Xolo
 
         ############################
         def jamf_target_groups_exclusion_group_criteria(tgt_grps = nil)
+          # for some reason this can be really slow
+          jamf_cnx.timeout = 1800
           tgt_grps ||= target_groups_to_use
           criteria = []
           tgt_grps.each do |tgrp|
-            progress "Jamf: Adding criterion for target group '#{tgrp}'", log: :info
+            progress "Jamf: Adding criterion for target group '#{tgrp}' (can be slow)", log: :info
             criteria << Jamf::Criteriable::Criterion.new(
               and_or: :and,
               name: 'Computer Group',
@@ -940,16 +944,20 @@ module Xolo
 
           jamf_target_groups_exclusion_group.save
 
-          log_debug "Jamf: Sleeping 10 secs to let Jamf server see changes to smart group '#{jamf_target_groups_exclusion_group_name}'"
+          progress "Jamf: Sleeping 10 secs to let Jamf server see changes to smart group '#{jamf_target_groups_exclusion_group_name}'", log: :debug
           sleep 10
         end
 
         ############################
         def repair_jamf_target_groups_exclusion_group
+          progress "Jamf: Repairing smart group '#{jamf_target_groups_exclusion_group_name}'", log: :info
+
           if target_groups_to_use.pix_empty?
             delete_jamf_target_groups_exclusion_group
           else
             configure_jamf_target_groups_exclusion_group
+            progress "Jamf: Done repairing smart group '#{jamf_target_groups_exclusion_group_name}'", log: :debug
+
           end
         end
 
