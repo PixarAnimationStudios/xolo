@@ -460,7 +460,7 @@ module Xolo
             desc: <<~ENDDESC
               When this version was skipped in Xolo.
               This is when the Xolo sets the status of this version to 'skipped', meaning it was never released in Xolo, and now a newer version has been released.
-              It will be automatically deleted at the next nightly cleanup, unless the server is configured otherwise.
+              It will be automatically deleted at the next nightly maintenance, unless the server is configured otherwise.
             ENDDESC
           },
 

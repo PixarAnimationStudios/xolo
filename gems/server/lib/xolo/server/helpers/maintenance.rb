@@ -12,7 +12,10 @@ module Xolo
 
     module Helpers
 
-      # Nightly cleanup of deprecated and skipped packages.
+      # Nightly maintenance tasks
+      # - accept TEd EAs
+      # - autorelease versions
+      # - clean up old versions
       #
       # Also, alerts will be posted, and Emails will be sent to the
       # admins who added versions that have been in pilot for more than
@@ -29,8 +32,8 @@ module Xolo
         # Constants
         #####################################
 
-        # At what hour should the nightly cleanup run?
-        CLEANUP_HOUR = 2
+        # At what hour should the nightly maintenance run?
+        MAINT_HOUR = 2
 
         # on which day of the month should we send the unreleased pilot notifications?
         UNRELEASED_PILOTS_NOTIFICATION_DAY = 1
@@ -39,7 +42,7 @@ module Xolo
         # be automatically deleted this many days later.
         # If not set in the server config, this is
         # the default value.
-        # use 0 or less to disable cleanup of deprecated versions
+        # use 0 or less to disable maintenance of deprecated versions
         DFT_DEPRECATED_LIFETIME_DAYS = 30
 
         # If a pilot has not been released in this many
@@ -55,71 +58,69 @@ module Xolo
         # Module Methods
         #####################################
 
-        # A mutex for the cleanup process
-        #
-        # TODO: use Concrrent Ruby instead of Mutex
+        # A mutex for the maint process
         #
         # @return [Mutex] the mutex
         #####################
-        def self.cleanup_mutex
-          @cleanup_mutex ||= Mutex.new
+        def self.maint_mutex
+          @maint_mutex ||= Mutex.new
         end
 
-        # nightly cleanup is done by a Concurrent::TimerTask, which checks every
+        # nightly maint is done by a Concurrent::TimerTask, which checks every
         # hour to see if it should do anything.
         #
-        # It will only do the cleanup if the current time is in the 2am hour
+        # It will only do the maint if the current time is in the 2am hour
         # (02:00 - 02:59)
         #
-        # We trigger the cleanup by POSTing to /cleanup, so that it runs
+        # We trigger the maint by POSTing to /maint, so that it runs
         # in the context of a request, having access to Title and Version instantiation.
         #
         # @return [Concurrent::TimerTask] the timed task to do log rotation
         ######################################
-        def self.cleanup_timer_task
-          return @cleanup_timer_task if @cleanup_timer_task
+        def self.maint_timer_task
+          return @maint_timer_task if @maint_timer_task
 
-          @cleanup_timer_task =
-            Concurrent::TimerTask.new(execution_interval: 3600) { post_to_start_cleanup }
+          @maint_timer_task =
+            Concurrent::TimerTask.new(execution_interval: 3600) { post_to_start_maint }
 
-          Xolo::Server.logger.info 'Created Concurrent::TimerTask for nightly cleanup.'
-          @cleanup_timer_task
+          Xolo::Server.logger.info 'Created Concurrent::TimerTask for nightly maintenance.'
+          @maint_timer_task
         end
 
-        # When was our last cleanup?
-        # @return [Time] the time of the last cleanup, or the epoch if never
+        # When was our last maint?
+        # @return [Time] the time of the last maint, or the epoch if never
         ######################################
-        def self.last_cleanup
-          @last_cleanup ||= Time.at(0)
+        def self.last_maint
+          @last_maint ||= Time.at(0)
         end
 
-        # Set the time of the last cleanup
-        # @param time [Time] the time of the last cleanup
-        # @return [Time] the time of the last cleanup
+        # Set the time of the last maint
+        # @param time [Time] the time of the last maint
+        # @return [Time] the time of the last maint
         ######################################
-        def self.last_cleanup=(time)
-          @last_cleanup = time
+        def self.last_maint=(time)
+          @last_maint = time
         end
 
-        # post to the server to start the cleanup process
-        # This is done so that the cleanup can run in the context of a request,
+        # post to the server to start the maint process
+        # This is done so that the maint can run in the context of a request,
         # having access to Title and Version instantiation.
         #
-        # @param force [Boolean] force the cleanup to run now
+        # @param force [Boolean] force the maint to run now
         # @return [void]
         ######################################
-        def self.post_to_start_cleanup(force: false)
+        def self.post_to_start_maint(force: false)
           if Xolo::Server.shutting_down?
-            Xolo::Server.logger.info 'Not starting cleanup, server is shutting down'
+            Xolo::Server.logger.info 'Not starting maintenance, server is shutting down'
             return
           end
 
-          # only run the cleanup if it's between 2am and 3am
+          # only run the maintenance if it's between 2am and 3am
           # and the last one was more than 23 hrs ago
-          last_cleanup_hrs_ago = (Time.now - last_cleanup) / 3600
-          return unless force || (Time.now.hour == CLEANUP_HOUR && last_cleanup_hrs_ago > 23)
+          last_maint_hrs_ago = (Time.now - last_maint) / 3600
+          return unless force || (Time.now.hour == MAINT_HOUR && last_maint_hrs_ago > 23)
 
-          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/maint/cleanup-internal"
+          uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}/maint/maint-internal"
           https = Net::HTTP.new(uri.host, uri.port)
           https.use_ssl = true
           # The server cert may be self-signed and/or doesn't
@@ -130,33 +131,33 @@ module Xolo
           request['Authorization'] = Xolo::Server::Helpers::Auth.internal_auth_token_header
 
           response = https.request(request)
-          Xolo::Server.logger.info "Cleanup request response: #{response.code} #{response.body}"
+          Xolo::Server.logger.info "Maintenance request response: #{response.code} #{response.body}"
         end
 
-        # Cleanup things that need to be cleaned up
+        # Perform maintenance tasks
         # @return [void]
         ################################
-        def run_cleanup
+        def run_maint
           if Xolo::Server.shutting_down?
-            log_info 'Cleanup: Not starting cleanup, server is shutting down'
+            log_info 'Maint: Not starting maint, server is shutting down'
             return
           end
-          # TODO: Use Concurrent ruby rather than this instance variable
-          mutex = Xolo::Server::Helpers::Maintenance.cleanup_mutex
+
+          mutex = Xolo::Server::Helpers::Maintenance.maint_mutex
 
           if mutex.locked?
-            log_warn 'Cleanup: already running, skipping this run'
+            log_warn 'Maint: already running, skipping this run'
             return
           end
           mutex.lock
-          log_info 'Cleanup: starting'
+          log_info 'Maint: starting'
 
-          # add new cleanup tasks/methods here
+          # add new maintenance tasks/methods here
           accept_title_editor_eas
           auto_release_versions
           cleanup_versions
 
-          log_info 'Cleanup: complete'
+          log_info 'Maint: complete'
         ensure
           mutex&.unlock
         end
@@ -167,11 +168,11 @@ module Xolo
         ######################################
         def accept_title_editor_eas
           unless Xolo::Server.config.jamf_auto_accept_xolo_eas
-            log_info 'Cleanup: The xolo server is not configured to auto-accept Title Editor EAs'
+            log_info 'Maint: The xolo server is not configured to auto-accept Title Editor EAs'
             return
           end
 
-          log_info 'Cleanup: Looking for Title Editor EAs to auto-accept'
+          log_info 'Maint: Looking for Title Editor EAs to auto-accept'
 
           # TODO: Be DRY with this stuff and similar in title_jamf_access.rb
           Xolo::Server::Title.all_titles.each do |title|
@@ -179,20 +180,20 @@ module Xolo
             next if title_obj.subscribed?
             next unless title_obj.jamf_patch_ea_awaiting_acceptance?
 
-            log_info "Cleanup: Auto-accepting Title Editor EA for title '#{title}'"
+            log_info "Maint: Auto-accepting Title Editor EA for title '#{title}'"
             title_obj.accept_jamf_patch_ea_via_api
           rescue => e
-            log_error "Cleanup: Error auto-accepting Title Editor EA for title '#{title}': #{e}"
+            log_error "Maint: Error auto-accepting Title Editor EA for title '#{title}': #{e}"
           end # Xolo::Server::Title.all_titles.each
 
-          log_info 'Cleanup: Done with Title Editor EAs to auto-accept'
+          log_info 'Maint: Done with Title Editor EAs to auto-accept'
         end
 
         # Do any pending auto-releases
         # @return [void]
         ##############################
         def auto_release_versions
-          log_info 'Cleanup: Auto-releasing appropriate versions'
+          log_info 'Maint: Auto-releasing appropriate versions'
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
             next unless title_obj.auto_release_delay.is_a?(Integer) && !title_obj.auto_release_delay.negative?
@@ -208,7 +209,7 @@ module Xolo
 
               next unless version.creation_date.to_date == creation_date_to_be_released_today
 
-              log_info "Cleanup: Auto-releasing version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
+              log_info "Maint: Auto-releasing version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
 
               title.release version.version
 
@@ -221,7 +222,7 @@ module Xolo
         # @return [void]
         ################################
         def cleanup_versions
-          log_info 'Cleanup: cleaning up deprecated and skipped versions'
+          log_info 'Maint: cleaning up deprecated and skipped versions'
 
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
@@ -237,8 +238,8 @@ module Xolo
             notify_admins_of_unreleased_pilots(title_obj)
           end # each title
 
-          Xolo::Server::Helpers::Maintenance.last_cleanup = Time.now
-          log_info 'Cleanup: versions cleanup complete'
+          Xolo::Server::Helpers::Maintenance.last_maint = Time.now
+          log_info 'Maint: versions cleanup complete'
         end
 
         # Cleanup a deprecated version.
@@ -321,7 +322,7 @@ module Xolo
 
           progress "Server Shutdown by #{session[:admin]}", log: :info
 
-          stop_cleanup_timer_task
+          stop_maint_timer_task
           stop_log_rotation_timer_task
           shutdown_pkg_deletion_pool
           wait_for_object_locks
@@ -346,12 +347,12 @@ module Xolo
           system "/bin/launchctl unload #{SERVER_LAUNCHD_PLIST}"
         end
 
-        # Stop the cleanup timer task
+        # Stop the maintenance timer task
         # @return [void]
         ################################
-        def stop_cleanup_timer_task
-          progress 'Stopping the cleanup timer task', log: :info
-          Xolo::Server::Helpers::Maintenance.cleanup_timer_task.shutdown
+        def stop_maint_timer_task
+          progress 'Stopping the maint timer task', log: :info
+          Xolo::Server::Helpers::Maintenance.maint_timer_task.shutdown
         end
 
         # Stop the log rotation timer task

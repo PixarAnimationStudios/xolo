@@ -111,7 +111,7 @@ module Xolo
         Xolo::Server.start_time = Time.now
 
         Xolo::Server::Log.log_rotation_timer_task.execute
-        Xolo::Server::Helpers::Maintenance.cleanup_timer_task.execute
+        Xolo::Server::Helpers::Maintenance.maint_timer_task.execute
 
         # Disable warnings in logs about known scope bug in Jamf Classic API
         Jamf::Scopable::Scope.do_not_warn_about_policy_scope_bugs

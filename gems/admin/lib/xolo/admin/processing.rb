@@ -26,7 +26,7 @@ module Xolo
       # Routes for server admins
 
       SERVER_STATUS_ROUTE = '/maint/state'
-      SERVER_CLEANUP_ROUTE = '/maint/cleanup'
+      SERVER_MAINT_ROUTE = '/maint/maint-start'
       SERVER_ROTATE_LOGS_ROUTE = '/maint/rotate-logs'
       SERVER_UPDATE_CLIENT_DATA_ROUTE = '/maint/update-client-data'
       SERVER_LOG_LEVEL_ROUTE = '/maint/set-log-level'
@@ -1001,14 +1001,14 @@ module Xolo
         handle_processing_error e
       end
 
-      # kick off server cleanup
+      # kick off server maintenance
       #
       # @return [void]
       ###############################
-      def server_cleanup
-        return unless confirmed? 'Run the Xolo Server cleanup process'
+      def server_maint
+        return unless confirmed? 'Run the Xolo Server maintenance process'
 
-        result = server_cnx.post(SERVER_CLEANUP_ROUTE).body
+        result = server_cnx.post(SERVER_MAINT_ROUTE).body
         puts result[:result]
       rescue StandardError => e
         handle_processing_error e
@@ -1174,7 +1174,6 @@ module Xolo
         puts "Saved 'xolo' client tool to '#{dest}'"
       end
 
-      # run the cleanup
       # get the /test route to do whatever testing it does.
       # during testing - this will return all kinds of things.
       #

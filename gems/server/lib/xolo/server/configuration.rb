@@ -159,7 +159,7 @@ module Xolo
         server_admin_jamf_group: {
           type: :string,
           desc: <<~ENDDESC
-            The name of a Jamf account-group (not a User group) that allows the use of the server admin commands of 'xadm', including --run-server-cleanup,
+            The name of a Jamf account-group (not a User group) that allows the use of the server admin commands of 'xadm', including --run-server-maint,
             --update-client-data, --rotate-server-logs and --set-server-log-level.
 
             Members of this group can also use the xadm commands that require the 'admin_jamf_group' group.
@@ -353,7 +353,7 @@ module Xolo
           default: Xolo::Server::Helpers::Maintenance::DFT_DEPRECATED_LIFETIME_DAYS,
           type: :integer,
           desc: <<~ENDDESC
-            When a version is deprecated, it will be automatically deleted by the nightly cleanup this many days later. If set to 0 or less,
+            When a version is deprecated, it will be automatically deleted by the nightly maintenance this many days later. If set to 0 or less,
             deprecated versions will never be deleted.
 
             Deprecated versions are those that have been released, but a newer version has been released since then.
@@ -369,7 +369,7 @@ module Xolo
           default: false,
           type: :boolean,
           desc: <<~ENDDESC
-            Normally, skipped versions are deleted during nightly cleanup. If you set this to true, skipped versions will be kept.
+            Normally, skipped versions are deleted during nightly maintenance. If you set this to true, skipped versions will be kept.
 
             Skipped versions are those that were never released, but a newer version has been released.
 

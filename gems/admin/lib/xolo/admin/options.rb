@@ -182,7 +182,7 @@ module Xolo
       HELP_CMD = 'help'
 
       # server-admin commands
-      SERVER_CLEANUP_CMD = 'run-server-cleanup'
+      SERVER_MAINT_CMD = 'run-server-maint'
       UPDATE_CLIENT_DATA_CMD = 'update-client-data'
       ROTATE_SERVER_LOGS_CMD = 'rotate-server-logs'
       SET_SERVER_LOG_LEVEL_CMD = 'set-server-log-level'
@@ -815,21 +815,29 @@ module Xolo
           process_method: :server_status
         },
 
-        SERVER_CLEANUP_CMD => {
-          desc: "[Server Admins Only] Run the server's cleanup process now.",
+        SERVER_MAINT_CMD => {
+          desc: "[Server Admins Only] Run the server's nightly maintenance process now.",
           long_desc: <<~ENDLONG,
             Requires server-admin privileges.
-            Once a version of a title is released, the preveiously released
-            version is marked as 'deprecated', and any older unreleased versions
-            are marked as 'skipped'. A nightly task will then delete all skipped
-            versions from xolo, as well as deprecated versions that have been than
-            deprecated more than some number of days, as configured configured on
-            the server. Running this command will do that cleanup now.
+            Performs various nightly tasks immediately.
+
+            These tasks happen automatically between 2-3am:
+            - Accepts lingering Title Editor Extension Attributes, if the server is
+              configured to do so.
+            - Auto-releases appropriate verions of titles configured to do so.
+            - Cleans up old versions:
+              Once a version of a title is released, the preveiously released
+              version is marked as 'deprecated', and any older unreleased versions
+              are marked as 'skipped'. The nightly maintenance task will then:
+              - delete all skipped versions of the title
+              - delete all deprecated versions that have been than deprecated more
+                than some number of days, as configured configured on the server.
+              - email title owners about pending pilots more than some number of days old.
           ENDLONG
-          display: SERVER_CLEANUP_CMD,
+          display: SERVER_MAINT_CMD,
           opts: {},
           arg_banner: :none,
-          process_method: :server_cleanup,
+          process_method: :server_maint,
           confirmation: true
         },
 

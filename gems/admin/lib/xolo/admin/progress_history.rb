@@ -34,7 +34,7 @@ module Xolo
       PROGRESS_HISTORY_FILENAME = 'com.pixar.xolo.admin.progress_history.yaml'
 
       # prog files on the server last 3 days, add an extra to
-      # account for timing of daily cleanup on the server.
+      # account for timing of daily maint on the server.
       # if the file is already gone from the server, we'll tell
       # the user
       PROGRESS_FILE_LIFETIME = 4 * 24 * 3600

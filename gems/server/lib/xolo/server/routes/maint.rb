@@ -80,29 +80,29 @@ module Xolo
           body state
         end
 
-        # run the cleanup process from the internal timer task
+        # run the maint process from the internal timer task
         # The before filter will ensure the request came from the server itself.
         # with a valid internal auth token.
         ################
-        post '/maint/cleanup-internal' do
-          log_info 'Starting internal cleanup'
-          session[:admin] = 'Automated Cleanup'
+        post '/maint/maint-internal' do
+          log_info 'Starting internal maint'
+          session[:admin] = 'Automated Maintenance'
 
-          thr = Thread.new { run_cleanup }
-          thr.name = 'Internal Cleanup Thread'
-          result = { result: 'Internal Cleanup Underway' }
+          thr = Thread.new { run_maint }
+          thr.name = 'Internal Maintenance Thread'
+          result = { result: 'Internal Maintenance Underway' }
           body result
         end
 
-        # run the cleanup process manually from a server admin via xadm
+        # run the maintenance process manually from a server admin via xadm
         ################
-        post '/maint/cleanup' do
-          log_info "Starting manual server cleanup by #{session[:admin]}"
+        post '/maint/maint-start' do
+          log_info "Starting manual server maintenance by #{session[:admin]}"
 
-          session[:admin] = "Cleanup by #{session[:admin]}"
-          thr = Thread.new { run_cleanup }
-          thr.name = 'Manual Cleanup Thread'
-          result = { result: 'Manual Cleanup Underway' }
+          session[:admin] = "Maintenance by #{session[:admin]}"
+          thr = Thread.new { run_maint }
+          thr.name = 'Manual Maintenance Thread'
+          result = { result: 'Manual Maintenance Underway' }
           body result
         end
 
@@ -146,7 +146,7 @@ module Xolo
         # Shutdown the server gracefully
         # stop accepting new requests
         # wait for all queues and threads to finish, including:
-        #  the cleanup timer task & mutex
+        #  the maintenance timer task & mutex
         #  the log rotation timer task & mutex
         #  the pkg deletion pool
         #  the object locks

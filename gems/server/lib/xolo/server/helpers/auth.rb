@@ -39,14 +39,14 @@ module Xolo
         # We use routes like this for internal tasks that require a
         # server-request context.
         INTERNAL_ROUTES = [
-          '/maint/cleanup-internal'
+          '/maint/maint-internal'
         ].freeze
 
         # these routes must
         SERVER_ADMIN_ROUTES = [
           '/maint/threads',
           '/maint/state',
-          '/maint/cleanup',
+          '/maint/maint-start',
           '/maint/update-client-data',
           '/maint/rotate-logs',
           '/maint/set-log-level',
@@ -74,7 +74,7 @@ module Xolo
         #
         # This allows the xolo server to send requests to itself without needing
         # to authenticate, as is needed for some kinds of maintenance tasks
-        # such as cleanup.
+        # such as maintenance.
         #
         # The token value is generated anew at startup and is a long random string, it
         # is only available to the xolo server itself from its memory, and
