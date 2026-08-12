@@ -197,27 +197,45 @@ module Xolo
         ##############################
         def auto_release_versions
           log_info 'Maint: Auto-releasing appropriate versions'
+
+          today = Date.today
+
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
-            next unless title_obj.auto_release_delay.is_a?(Integer) && !title_obj.auto_release_delay.negative?
+
+            # title must be subscribed and autopkg
+            # (enforced in xadm)
             next unless title_obj.subscribed? && !title_obj.autopkg_recipe.pix_empty?
 
-            # Any version with this creation date should be released now
-            creation_date_to_be_released_today = Date.today - title_obj.auto_release_delay
+            # title must have a non-negative integer for auto_release_delay,
+            # could be zero. (enforced in xadm)
+            # NOTE: it is stored as a string because it might be 'none'
+            # TODO: store none as nil, so we don't have to do the pix_integer check??
+            delay = title_obj.auto_release_delay.to_i
+            next unless title_obj.auto_release_delay.pix_integer? && !delay.negative?
 
-            title_obj.version_objects.each do |version|
-              # don't release this version if the current release is newer - could happen
-              # if two versions are added in the same day
-              next if title.released_version.creation_date > version.creation_date
+            # the newest version of the title, which must exist
+            newest_vers = title_obj.version_order.first
+            next unless newest_vers
 
-              next unless version.creation_date.to_date == creation_date_to_be_released_today
+            # get the newest version obj, it must be in pilot
+            newest_vers_obj = title_obj.version_object newest_vers
+            next unless newest_vers_obj.pilot?
 
-              log_info "Maint: Auto-releasing version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
+            # Any version with this creation date should be released now, skip if not
+            # So if the auto_release_delay is 7, its today - 7 days.
+            # if the auto_release_delay is 0, its today - 0 days, aka today
+            creation_date_to_be_released_today = today - delay
+            next unless newest_vers_obj.creation_date.to_date == creation_date_to_be_released_today
 
-              title.release version.version
+            # release it
+            log_debug "Maint: Auto-releasing version '#{newest_vers}' of '#{title}' which came out #{newest_vers_obj.creation_date}"
 
-              log_debug "Auto-released version '#{version.version}' of '#{title.title}' which came out #{version.creation_date}"
-            end # each version
+            # releasing a version is done via the title obj, since it affects the status
+            # of all versions.
+            title_obj.release newest_vers
+
+            log_info "Maint: Auto-released version '#{newest_vers}' of '#{title}' which came out #{newest_vers_obj.creation_date}", alert: true
           end # each title
         end
 

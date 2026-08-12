@@ -218,6 +218,15 @@ module Xolo
       # @return [String, nil] If a string, a reason why the given menu item is not available now.
       #   If nil, the menu item is displayed normally.
       ##############################
+      def auto_release_delay_na
+        return if walkthru_cmd_opts[:subscribed] && !walkthru_cmd_opts[:autopkg_recipe].pix_empty?
+
+        'N/A unless title is Subscribed and uses an AutoPkg Recipe'
+      end
+
+      # @return [String, nil] If a string, a reason why the given menu item is not available now.
+      #   If nil, the menu item is displayed normally.
+      ##############################
       def ssvc_na
         tgt_all = walkthru_cmd_opts[:release_groups]&.include?(Xolo::TARGET_ALL)
 
@@ -251,7 +260,7 @@ module Xolo
       #   If nil, the menu item is displayed normally.
       ##############################
       def expiration_paths_na
-        'N/A unless expiration is > 0' unless walkthru_cmd_opts[:expiration].to_i.positive?
+        'N/A unless expiration days is > 0' unless walkthru_cmd_opts[:expiration].to_i.positive?
       end
 
       # @return [String, nil] If a string, a reason why the given menu item is not available now.

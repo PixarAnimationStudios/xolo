@@ -290,13 +290,21 @@ module Xolo
         if title_object.autopkg_enabled?
 
           # is auto_release_delay an integer?
-          if title_object.auto_release_delay.is_a? Integer
-            how_soon = title_object.auto_release_delay.zero? ? 'tonight' : "in #{title_object.auto_release_delay} days"
-            msg = "New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\n   It will be released #{how_soon}"
+          if title_object.auto_release_delay.pix_integer? && !title_object.auto_release_delay.negative?
+            delay = title_object.auto_release_delay.to_i
+            how_soon =
+              if delay.zero?
+                'tonight'
+              elsif delay == 1
+                'tomorrow night'
+              else
+                "in #{title_object.auto_release_delay} days"
+              end
+            msg = "New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nIt will be released #{how_soon}"
 
-          # nil, empty or 'none', no auto release
+          # nil, empty, 'none', or negative = no auto release
           else
-            msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\n   Requires manual release."
+            msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nRequires manual release."
           end
 
         # if not autopkg enabled, we need to tell someone to upload a pkg for this new version

@@ -459,12 +459,13 @@ module Xolo
           },
 
           # @!attribute auto_release_delay
-          #   @return [Integer] How many days before new versions are automatically released?
+          #   @return [String] 'none' or an integer in string. How many days before new versions are automatically released?
           #     Applies only to subscribed titles with autopkg recipes.
           auto_release_delay: {
             label: 'Automatic Release Delay',
             cli: :A,
             type: :string,
+            walkthru_na: :auto_release_delay_na,
             changelog: true,
             invalid_msg: "Must be a non-negative integer, or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
@@ -679,7 +680,7 @@ module Xolo
           # @!attribute expiration
           #   @return [Integer] Number of days of disuse before the title is uninstalled.
           expiration: {
-            label: 'Expire Days',
+            label: 'Expiration Days',
             cli: :e,
             validate: true,
             type: :integer,
