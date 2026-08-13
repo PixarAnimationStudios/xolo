@@ -227,8 +227,6 @@ module Xolo
       # This doesn't upload a pkg - it just creates the version in Xolo, and then
       # someone can upload a pkg to it via xadm or autopkg will do it if configured.
       #
-      # TODO: Split this long method.
-      #
       # @param title_object [Xolo::Server::Title] the title object for the subscribed title
       # @param new_version [String] the new version to add
       # @return [void]
@@ -236,13 +234,37 @@ module Xolo
       def self.add_version_via_subscription(title_object:, new_version:)
         title_object.log_info "Adding new version '#{new_version}' for subscribed title '#{title_object.title}'"
 
-        # get more details about this version from the JPAPI
-        patch_version_data = title_object.patch_versions(version: new_version).first
-        unless patch_version_data
+        vobj_data = new_subscribed_version_data(title_object: title_object, new_version: new_version)
+
+        unless vobj_data
           msg = "Could not get patch version data from JPAPI for version '#{new_version}' of subscribed title '#{title_object.title}'. Cannot create new version in Xolo without this data. Aborting."
           title_object.log_error msg, alert: true
           return
         end
+
+        # instantiate the version object
+        title_object.log_debug "Instantiating version via subscription '#{new_version}' of title '#{title_object.title}' (#{title_object.class}) with data: #{vobj_data}"
+
+        vobj = title_object.server_app_instance.instantiate_version(
+          title: title_object,
+          version: new_version,
+          **vobj_data
+        )
+
+        # create it in xolo
+        vobj.create
+
+        # tell someone
+        send_alerts_about_new_subscribed_version(title_object: title_object, vobj: vobj)
+      end
+
+      # Gather the data needed to create a new xolo version from a subscription
+      # @return [Hash] the data needed to create the version object
+      ################
+      def new_subscribed_version_data(title_object:, new_version:)
+        patch_version_data = title_object.patch_versions(version: new_version).first
+        # return nil if not found - will send error alert
+        return unless patch_version_data
 
         title_object.log_debug "Got patch version data from JPAPI for version '#{new_version}': #{patch_version_data}"
 
@@ -271,52 +293,46 @@ module Xolo
           end
         end
 
-        # instantiate the version object
-        title_object.log_debug "Instantiating version via subscription '#{new_version}' of title '#{title_object.title}' (#{title_object.class}) with data: #{vobj_data}"
+        vobj_data
+      end
 
-        vobj = title_object.server_app_instance.instantiate_version(
-          title: title_object,
-          version: new_version,
-          **vobj_data
-        )
-
-        # create it in xolo
-        vobj.create
-
-        # moved to vobj.create:
-        # vobj.server_app_instance.update_client_data
+      # Handle alerts for newly-created subscribed version
+      ##################
+      def send_alerts_about_new_subscribed_version(title_object:, vobj:)
+        title = title_object.title
+        new_version = vobj.version
 
         # if here, and auto_release_delay is zero, release it immediately
         if title_object.autopkg_enabled?
 
+          auto_release_delay = title_object.auto_release_delay.to_i
           # is auto_release_delay an integer?
-          if title_object.auto_release_delay.pix_integer? && !title_object.auto_release_delay.negative?
-            delay = title_object.auto_release_delay.to_i
+          if title_object.auto_release_delay.pix_integer? && !auto_release_delay.negative?
             how_soon =
-              if delay.zero?
+              if auto_release_delay.zero?
                 'tonight'
-              elsif delay == 1
+              elsif auto_release_delay == 1
                 'tomorrow night'
               else
-                "in #{title_object.auto_release_delay} days"
+                "in #{auto_release_delayy} days"
               end
-            msg = "New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nIt will be released during nightly maintenance #{how_soon}"
+            msg = "New pilot for subscribed title '#{title}', version '#{new_version}' has been created in Xolo via subscription.\nIt will be released during nightly maintenance #{how_soon}"
 
           # nil, empty, 'none', or negative = no auto release
           else
-            msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nRequires manual release."
+            msg = "ACTION REQUIRED: New pilot for subscribed title '#{title}', version '#{new_version}' has been created in Xolo via subscription.\nRequires manual release."
           end
 
         # if not autopkg enabled, we need to tell someone to upload a pkg for this new version
         else
           # update general alert msg
-          msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nPlease upload a .pkg for it ASAP using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/installer.pkg"
+          msg = "ACTION REQUIRED: New pilot for subscribed title '#{title}', version '#{new_version}' has been created in Xolo via subscription.\nPlease upload a .pkg for it ASAP using this command:\n   xadm edit-version #{title} #{new_version} --pkg-to-upload /path/to/installer.pkg"
 
           # email to title contact
           vobj.server_app_instance.send_email to: title_object.contact_email, subject: 'Need manual upload of xolo pkg', msg: msg
         end # if title_object.autopkg_enabled?
 
-        # send general alert
+        # send alert
         vobj.log_info msg, alert: true
       end
 
