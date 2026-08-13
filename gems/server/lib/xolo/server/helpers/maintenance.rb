@@ -200,6 +200,7 @@ module Xolo
 
           today = Date.today
 
+          # Loop thru the titles
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
 
@@ -208,35 +209,43 @@ module Xolo
             next unless title_obj.subscribed? && !title_obj.autopkg_recipe.pix_empty?
 
             # title must have a non-negative integer for auto_release_delay,
+            # (number of days to wait before release)
             # could be zero. (enforced in xadm)
             # NOTE: it is stored as a string because it might be 'none'
             # TODO: store none as nil, so we don't have to do the pix_integer check??
             delay = title_obj.auto_release_delay.to_i
             next unless title_obj.auto_release_delay.pix_integer? && !delay.negative?
 
-            # the newest version of the title, which must exist
-            newest_vers = title_obj.version_order.first
-            next unless newest_vers
-
-            # get the newest version obj, it must be in pilot
-            newest_vers_obj = title_obj.version_object newest_vers
-            next unless newest_vers_obj.pilot?
-
             # Any version with this creation date should be released now, skip if not
             # So if the auto_release_delay is 7, its today - 7 days.
             # if the auto_release_delay is 0, its today - 0 days, aka today
             creation_date_to_be_released_today = today - delay
-            next unless newest_vers_obj.creation_date.to_date == creation_date_to_be_released_today
+
+            # Find the newest pilot version whose creation date is creation_date_to_be_released_today
+            # That one should be released now.
+            vobj_to_release = nil
+            title_obj.version_objects.each do |vobj|
+              next unless vobj.pilot?
+              next unless vobj.creation_date.to_date == creation_date_to_be_released_today
+
+              vobj_to_release = vobj
+              break
+            end
+
+            # no versions to release today
+            next unless vobj_to_release
 
             # release it
-            log_debug "Maint: Auto-releasing version '#{newest_vers}' of '#{title}' which came out #{newest_vers_obj.creation_date}"
+            log_debug "Maint: About to auto-release version '#{vobj_to_release.version}' of '#{title}' which came out #{vobj_to_release.creation_date}"
 
             # releasing a version is done via the title obj, since it affects the status
             # of all versions.
-            title_obj.release newest_vers
+            title_obj.release vobj_to_release.version
 
-            log_info "Maint: Auto-released version '#{newest_vers}' of '#{title}' which came out #{newest_vers_obj.creation_date}", alert: true
+            log_info "Maint: Auto-released version '#{vobj_to_release.version}' of '#{title}' which came out #{vobj_to_release.creation_date}", alert: true
           end # each title
+
+          log_debug 'Maint: Done auto-releasing'
         end
 
         # Cleanup versions.

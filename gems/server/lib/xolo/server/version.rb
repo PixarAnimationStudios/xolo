@@ -300,7 +300,7 @@ module Xolo
               else
                 "in #{title_object.auto_release_delay} days"
               end
-            msg = "New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nIt will be released #{how_soon}"
+            msg = "New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nIt will be released during nightly maintenance #{how_soon}"
 
           # nil, empty, 'none', or negative = no auto release
           else
