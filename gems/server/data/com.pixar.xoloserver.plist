@@ -10,14 +10,21 @@
   <key>EnvironmentVariables</key>
   <dict>
     <key>GEM_PATH</key>
-    <string></string>
+    <string>/path/to/gems1:/path/to/gems2</string>
     <key>PATH</key>
-    <string></string>
+    <string>/path/to/things1:/path/to/things2</string>
   </dict>
   -->
   <key>ProgramArguments</key>
   <array>
     <string>/usr/local/bin/xoloserver</string>
+    <!-- On production servers, uncomment this line:
+    <string>-p</string>
+    -->
+
+    <!-- to start the server with debug-logging on, uncomment this line:
+    <string>-d</string>
+    -->
   </array>
   <key>RunAtLoad</key>
   <true/>
