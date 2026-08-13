@@ -310,7 +310,7 @@ module Xolo
         # if not autopkg enabled, we need to tell someone to upload a pkg for this new version
         else
           # update general alert msg
-          msg = "#{msg}\nPlease upload a .pkg for it ASAP using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/installer.pkg"
+          msg = "ACTION REQUIRED: New pilot for subscribed title '#{title_object.title}', version '#{new_version}' has been created in Xolo via subscription.\nPlease upload a .pkg for it ASAP using this command:\n   xadm edit-version #{title_object.title} #{new_version} --pkg-to-upload /path/to/installer.pkg"
 
           # email to title contact
           vobj.server_app_instance.send_email to: title_object.contact_email, subject: 'Need manual upload of xolo pkg', msg: msg
