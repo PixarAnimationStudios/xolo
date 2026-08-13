@@ -261,7 +261,7 @@ module Xolo
       # Gather the data needed to create a new xolo version from a subscription
       # @return [Hash] the data needed to create the version object
       ################
-      def new_subscribed_version_data(title_object:, new_version:)
+      def self.new_subscribed_version_data(title_object:, new_version:)
         patch_version_data = title_object.patch_versions(version: new_version).first
         # return nil if not found - will send error alert
         return unless patch_version_data
@@ -298,7 +298,7 @@ module Xolo
 
       # Handle alerts for newly-created subscribed version
       ##################
-      def send_alerts_about_new_subscribed_version(title_object:, vobj:)
+      def self.send_alerts_about_new_subscribed_version(title_object:, vobj:)
         title = title_object.title
         new_version = vobj.version
 
