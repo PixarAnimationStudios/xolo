@@ -241,6 +241,28 @@ module Xolo
           desc: <<~ENDDESC
             Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details for a title. Can be combined with all other options.
           ENDDESC
+        },
+
+        self_service: {
+          label: 'Self Service Installs Only',
+          cli: :i,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only titles that are available for initial instalation via Self Service. To see those with updates depolyed via Self Service, use --self-service-updates.
+          ENDDESC
+        },
+
+        self_service_updates: {
+          label: 'Self Service Updates Only',
+          cli: :u,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only titles that are available for updates via Self Service. To see those with initial installation via Self Service, use --self-service.
+          ENDDESC
         }
       }.freeze
 

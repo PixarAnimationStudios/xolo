@@ -216,12 +216,23 @@ module Xolo
         autopkg = opts_to_process.autopkg ? ' autopkg' : nil
         pilots = opts_to_process.pilots ? ' with unreleased pilots' : nil
 
-        report_title = "All#{type}#{autopkg} titles in Xolo#{pilots}"
+        ssvc =
+          if opts_to_process.self_service && opts_to_process.self_service_updates
+            ' installed or updated via Self Service'
+          elsif opts_to_process.self_service
+            ' installed via Self Service'
+          elsif opts_to_process.self_service_updates
+            ' updated via Self Service'
+          end
+
+        report_title = "All#{type}#{autopkg} titles in Xolo#{pilots}#{ssvc}"
 
         titles.select!(&:subscribed?) if opts_to_process.subscribed
         titles.reject!(&:subscribed?) if opts_to_process.managed
         titles.select!(&:autopkg_recipe) if opts_to_process.autopkg
         titles.select!(&:pending_pilots?) if opts_to_process.pilots
+        titles.select!(&:self_service?) if opts_to_process.self_service
+        titles.select!(&:self_service_updates?) if opts_to_process.self_service_updates
 
         header = %w[Title Created By SSvc? Latest Released]
         data = titles.map do |t|

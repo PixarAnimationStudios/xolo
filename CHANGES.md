@@ -55,11 +55,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
   - The `xadm list-titles` command now takes 4 new CLI options
-    - `-s, --subscribed    Show only 'subscribed' titles.`
-    - `-m, --managed       Show only 'managed' titles.`
-    - `-a, --autopkg       Show only titles configured for AutoPkg.`
-    - `-p, --pilots        Show only titles with pending pilot (un-released) versions. Use 'list-versions' to see details of versions for a title.`
+    - `-s, --subscribed            Show only 'subscribed' titles.`
+    - `-m, --managed               Show only 'managed' titles.`
+    - `-a, --autopkg               Show only titles configured for AutoPkg.`
+    - `-p, --pilots                Show only titles with pending pilot (un-released) versions.`
+    - `-i, --self-service          Show only titles that are available for initial instalation via Self Service.`
+    - `-u, --self-service-updates  Show only titles that are available for updates via Self Service.`
       
+
+        -i, --self-service            Show only titles that are available for initial instalation via Self Service. To see those with updates
+                                depolyed via Self Service, use --self-service-updates.
+
+  -u, --self-service-updates    Show only titles that are available for updates via Self Service. To see those with initial installation via
+                                Self Service, use --self-service.
       These options can be combined and are useful for finding titles and versions that need attention, such as new pilot versions automatically created by subscription and autopkg, but haven't been released yet.
 
   - The `xadm list-versions <title>` command now indicates if a version doesn't yet have a .pkg file uploaded, by marking the end of the line with `**`
