@@ -45,16 +45,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     Titles that are managed, or do not use AutoPkg, cannot use this. Releasing their versions from pilot requires someone to use `xadm release <title> <version>`
     
+  - The `xadm list-titles` command now takes 2 new CLI options
+    - `-i, --self-service          Show only titles that are available for initial instalation via Self Service.`
+    - `-u, --self-service-updates  Show only titles that are available for updates via Self Service.`
+
+
 ### Changed
   
   - If you try to release a version before Jamf Pro has seen it in the Title Editor, you'll get a better error message early in the process. Before it would just fail when it tried to access the not-yet-existent Patch Policy.
 
   - Progress streaming from the server to xadm will no longer die during long-lasting steps. A line of dots will appear, one dot for every 10 seconds of waiting for actual progress data.
-
-### Added
-  - The `xadm list-titles` command now takes 2 new CLI options
-    - `-i, --self-service          Show only titles that are available for initial instalation via Self Service.`
-    - `-u, --self-service-updates  Show only titles that are available for updates via Self Service.`
 
 ## \[2.1.0] 2026-08-05
 
