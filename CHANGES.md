@@ -51,16 +51,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - Progress streaming from the server to xadm will no longer die during long-lasting steps. A line of dots will appear, one dot for every 10 seconds of waiting for actual progress data.
 
+### Added
+  - The `xadm list-titles` command now takes 2 new CLI options
+    - `-i, --self-service          Show only titles that are available for initial instalation via Self Service.`
+    - `-u, --self-service-updates  Show only titles that are available for updates via Self Service.`
+
 ## \[2.1.0] 2026-08-05
 
 ### Added
   - The `xadm list-titles` command now takes 4 new CLI options
-    - `-s, --subscribed            Show only 'subscribed' titles.`
-    - `-m, --managed               Show only 'managed' titles.`
-    - `-a, --autopkg               Show only titles configured for AutoPkg.`
-    - `-p, --pilots                Show only titles with pending pilot (un-released) versions.`
-    - `-i, --self-service          Show only titles that are available for initial instalation via Self Service.`
-    - `-u, --self-service-updates  Show only titles that are available for updates via Self Service.`
+    - `-s, --subscribed  Show only 'subscribed' titles.`
+    - `-m, --managed     Show only 'managed' titles.`
+    - `-a, --autopkg     Show only titles configured for AutoPkg.`
+    - `-p, --pilots      Show only titles with pending pilot (un-released) versions.`
       
       These options can be combined and are useful for finding titles and versions that need attention, such as new pilot versions automatically created by subscription and autopkg, but haven't been released yet.
 
