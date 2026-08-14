@@ -1460,34 +1460,34 @@ module Xolo
         def set_subscribed_display_name_and_publisher
           return unless subscribed?
 
+          # if we already have a patch title id, the title won't be available from the patch source,
+          # so use the JPAPI endpoint to look up the data from the already active title.
+          # TODO: update this when ruby-jss uses the JPAPI for patch title stuff
           if jamf_patch_title_id
-            # if we already have a patch title id, the title won't be available from the patch source,
-            # so use the JPAPI endpoint to look up the data from the already active title.
-            # TODO: update this when ruby-jss uses the JPAPI for patch title stuff
-
+            log_debug 'Jamf: Getting display name and publisher from already-active title.'
             patch_title_data = jamf_cnx.jp_get "v2/patch-software-title-configurations/#{jamf_patch_title_id}"
 
             dname = patch_title_data[:displayName]
             publ = patch_title_data[:softwareTitlePublisher]
 
+          # we don't yet have the patch title id, so the title is still 'available' from the patch source
+          # so get the data there
           else
-            # we don't yet have the patch title id, so the title is still 'available' from the patch source
-            # so get the data there
-
+            log_debug 'Jamf: Getting display name and publisher from avilable/not-yet-active title.'
             patch_title_data = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first
 
             dname = patch_title_data&.dig :app_name
             publ = patch_title_data&.dig :publisher
-          end
+          end # if jamf_patch_title_id
 
           if dname
-            progress "Setting display name for subscribed title: #{dname}", log: :debug
+            progress "Jamf: Setting display name for subscribed title: #{dname}", log: :debug
             self.display_name = dname
           end
 
           return unless publ
 
-          progress "Setting publisher for subscribed title: #{publ}", log: :debug
+          progress "Jamf: Setting publisher for subscribed title: #{publ}", log: :debug
           self.publisher = publ
         end
 

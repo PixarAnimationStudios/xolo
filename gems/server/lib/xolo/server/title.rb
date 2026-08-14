@@ -1128,8 +1128,8 @@ module Xolo
 
         progress "Starting repair of title '#{title}'"
         repair_ted_title
-        repair_jamf_title_objects
         set_subscribed_display_name_and_publisher
+        repair_jamf_title_objects
         save_local_data
         return unless repair_versions
 
