@@ -1426,7 +1426,7 @@ module Xolo
             log_debug "Jamf: Display Name in managed? after setting patch_source and title_id: #{display_name}"
 
           # display name & publisher are required for managed titles, but will be empty for subbed
-          # so for subbed, we look them up from the patch source
+          # so for subbed, we look them up from the patch source in set_subscribed_display_name_and_publisher
           else
             log_debug "Jamf: Title '#{title}' is subscribed, so looking up patch source and title_id"
             log_debug "Jamf: Display Name in NOT managed?: #{display_name}"
@@ -1449,6 +1449,7 @@ module Xolo
             )
           jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
           self.jamf_patch_title_id = jamf_patch_title.save
+
           log_debug "Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
 
           jamf_patch_title
@@ -1459,15 +1460,31 @@ module Xolo
         def set_subscribed_display_name_and_publisher
           return unless subscribed?
 
-          patch_title_data = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first
+          if jamf_patch_title_id
+            # if we already have a patch title id, the title won't be available from the patch source,
+            # so use the JPAPI endpoint to look up the data from the already active title.
+            # TODO: update this when ruby-jss uses the JPAPI for patch title stuff
 
-          dname = patch_title_data&.dig :app_name
+            patch_title_data = jamf_cnx.jp_get "v2/patch-software-title-configurations/#{jamf_patch_title_id}"
+
+            dname = patch_title_data[:displayName]
+            publ = patch_title_data[:softwareTitlePublisher]
+
+          else
+            # we don't yet have the patch title id, so the title is still 'available' from the patch source
+            # so get the data there
+
+            patch_title_data = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first
+
+            dname = patch_title_data&.dig :app_name
+            publ = patch_title_data&.dig :publisher
+          end
+
           if dname
             progress "Setting display name for subscribed title: #{dname}", log: :debug
             self.display_name = dname
           end
 
-          publ = patch_title_data&.dig :publisher
           return unless publ
 
           progress "Setting publisher for subscribed title: #{publ}", log: :debug
