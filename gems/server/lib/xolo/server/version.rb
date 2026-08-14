@@ -306,8 +306,9 @@ module Xolo
         if title_object.autopkg_enabled?
 
           auto_release_delay = title_object.auto_release_delay.to_i
+
           # is auto_release_delay an integer?
-          if title_object.auto_release_delay.pix_integer? && !auto_release_delay.negative?
+          if title_object.auto_release_delay&.pix_integer? && !auto_release_delay.negative?
             how_soon =
               if auto_release_delay.zero?
                 'tonight'
@@ -1056,7 +1057,8 @@ module Xolo
         log_change msg: 'Version Deleted'
 
         progress "Version '#{version}' of Title '#{title}' has been deleted from Xolo.", log: :info
-        server_app_instance.update_client_data
+
+        server_app_instance.update_client_data unless deleting_title
       ensure
         unlock
       end

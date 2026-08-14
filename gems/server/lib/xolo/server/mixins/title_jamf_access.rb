@@ -817,8 +817,8 @@ module Xolo
 
           jamf_installed_group.criteria = Jamf::Criteriable::Criteria.new(jamf_installed_group_criteria)
           jamf_installed_group.save
-          log_debug 'Jamf: Sleeping 30 secs to let Jamf server see changes to Installed smart group.'
-          sleep 30
+          log_debug 'Jamf: Sleeping 15 secs to let Jamf server see changes to Installed smart group.'
+          sleep 15
         end
 
         ############################
@@ -1425,14 +1425,17 @@ module Xolo
             self.title_id = title
             log_debug "Jamf: Display Name in managed? after setting patch_source and title_id: #{display_name}"
 
-          # display name is required for managed titles, but will be empty for subbed
-          # so for subbed, we look it up from the patch source
+          # display name & publisher are required for managed titles, but will be empty for subbed
+          # so for subbed, we look them up from the patch source
           else
-            log_debug "Jamf: Title '#{title}' is subscribed, so looking up patch source and title_id from"
+            log_debug "Jamf: Title '#{title}' is subscribed, so looking up patch source and title_id"
             log_debug "Jamf: Display Name in NOT managed?: #{display_name}"
-            if display_name.pix_empty?
-              self.display_name = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first&.dig :app_name
-            end
+
+            patch_title_data = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first
+
+            self.display_name = patch_title_data&.dig :app_name
+            self.publisher = patch_title_data&.dig :publisher
+
           end # if managed
 
           log_debug "Jamf: class: #{self.class}, display_name: #{display_name}, patch_source: #{patch_source}, title_id: #{title_id}"

@@ -145,18 +145,24 @@ module Xolo
       # @return [String] the string to display for the search result
       ###################################
       def title_search_result_str(title, one_line: false)
+        title_type = []
+        title_type << (title.subscribed? ? 'subscribed' : 'managed')
+        title_type << 'autopkg' if title.autopkg_enabled?
+        title_display = "#{title.title} (#{title_type.join(',')})"
+
         versions = versions_str(title)
+
         if one_line
-          [title.title, title.display_name, title.publisher, title.contact_email, versions]
+          [title_display, title.display_name, title.publisher, title.contact_email, versions]
         else
           titleout = +'#---------------------------------------'
-          titleout << "\nTitle: #{title.title}"
+          titleout << "\nTitle: #{title_display}"
           titleout << "\nDisplay Name: #{title.display_name}"
           titleout << "\nPublisher: #{title.publisher}"
           titleout << "\nApp: #{title.app_name}\nBundleID: #{title.app_bundle_id}" if title.app_name
           titleout << "\nVersions: #{versions}"
-          titleout << "\nDescription:"
-          titleout << "\n#{title.description}"
+          titleout << "\nContact: #{title.contact_email}"
+          titleout << "\nDescription: #{title.description}"
           titleout
         end # json?
       end
