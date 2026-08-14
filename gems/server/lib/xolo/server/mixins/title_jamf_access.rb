@@ -1431,10 +1431,7 @@ module Xolo
             log_debug "Jamf: Title '#{title}' is subscribed, so looking up patch source and title_id"
             log_debug "Jamf: Display Name in NOT managed?: #{display_name}"
 
-            patch_title_data = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first
-
-            self.display_name = patch_title_data&.dig :app_name
-            self.publisher = patch_title_data&.dig :publisher
+            set_subscribed_display_name_and_publisher
 
           end # if managed
 
@@ -1455,6 +1452,26 @@ module Xolo
           log_debug "Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
 
           jamf_patch_title
+        end
+
+        # set the display name and publisher from the patch title data
+        ########################
+        def set_subscribed_display_name_and_publisher
+          return unless subscribed?
+
+          patch_title_data = Jamf::PatchSource.available_titles(patch_source, cnx: jamf_cnx).select { |t| t[:name_id] == title_id }.first
+
+          dname = patch_title_data&.dig :app_name
+          if dname
+            progress "Setting display name for subscribed title: #{dname}", log: :debug
+            self.display_name = dname
+          end
+
+          publ = patch_title_data&.dig :publisher
+          return unless publ
+
+          progress "Setting publisher for subscribed title: #{publ}", log: :debug
+          self.publisher = publ
         end
 
         # wait up to 60secs for a managed title to become available to be activated
