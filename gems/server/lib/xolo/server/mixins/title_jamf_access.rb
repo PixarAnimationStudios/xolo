@@ -1450,7 +1450,7 @@ module Xolo
           jamf_patch_title.category = Xolo::Server::JAMF_XOLO_CATEGORY
           self.jamf_patch_title_id = jamf_patch_title.save
 
-          log_debug "Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
+          log_debug "Jamf: Activated Jamf Patch Title '#{display_name}' (#{title}) with id #{jamf_patch_title_id}"
 
           jamf_patch_title
         end

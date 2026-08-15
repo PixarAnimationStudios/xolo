@@ -13,9 +13,10 @@ module Xolo
     module Helpers
 
       # Nightly maintenance tasks
-      # - accept TEd EAs
+      # - accept lingering TEd EAs, if configured to
       # - autorelease versions
       # - clean up old versions
+      # - notify title maintainers of old unreleased pilots
       #
       # Also, alerts will be posted, and Emails will be sent to the
       # admins who added versions that have been in pilot for more than
@@ -32,8 +33,20 @@ module Xolo
         # Constants
         #####################################
 
+        # TODO: ? use the next 3 values as defaults, and
+        # set them in the server config
+
+        # how often does our maint timer check to see if it should run maintenance?
+        MAINT_CHECK_INTERVAL = 3600
+        # MAINT_CHECK_INTERVAL = 600
+
         # At what hour should the nightly maintenance run?
         MAINT_HOUR = 2
+        # MAINT_HOUR = 10
+
+        # Maint won't run unless the last run was at least this many
+        # seconds ago
+        MAINT_MAX_FREQ_SECS = 23 * 3600
 
         # the route we POST to, to start the nightly process.
         TIMED_MAINT_TRIGGER_ROUTE = '/maint/maint-internal'
@@ -84,9 +97,10 @@ module Xolo
           return @maint_timer_task if @maint_timer_task
 
           @maint_timer_task =
-            Concurrent::TimerTask.new(execution_interval: 3600) { post_to_start_maint }
+            Concurrent::TimerTask.new(execution_interval: MAINT_CHECK_INTERVAL) { post_to_start_maint }
 
-          Xolo::Server.logger.info 'Created Concurrent::TimerTask for nightly maintenance.'
+          Xolo::Server.logger.info "Created Concurrent::TimerTask for nightly maintenance. Will check every #{MAINT_CHECK_INTERVAL} secs, and run during the hour of: #{MAINT_HOUR}"
+
           @maint_timer_task
         end
 
@@ -118,10 +132,18 @@ module Xolo
             return
           end
 
-          # only run the maintenance if it's between 2am and 3am
-          # and the last one was more than 23 hrs ago
-          last_maint_hrs_ago = (Time.now - last_maint) / 3600
-          return unless force || (Time.now.hour == MAINT_HOUR && last_maint_hrs_ago > 23)
+          # only run the maintenance if it's during the MAINT_HOUR
+          # and the last one was more than MAINT_MAX_FREQ_SECS ago
+          if force
+            Xolo::Server.logger.info 'Maint: Starting now due to force'
+
+          elsif Time.now.hour == MAINT_HOUR && (Time.now - last_maint) > MAINT_MAX_FREQ_SECS
+            Xolo::Server.logger.info 'Maint: Starting nightly run now'
+
+          else
+            Xolo::Server.logger.info "Maint: Not starting, it isn't time"
+            return
+          end
 
           uri = URI.parse "https://#{Xolo::Server::Helpers::Auth::IPV4_LOOPBACK}#{TIMED_MAINT_TRIGGER_ROUTE}"
           https = Net::HTTP.new(uri.host, uri.port)

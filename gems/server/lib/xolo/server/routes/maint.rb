@@ -51,6 +51,7 @@ module Xolo
             start_time: Xolo::Server.start_time,
             uptime: uptime_secs.pix_humanize_secs,
             uptime_secs: uptime_secs,
+            last_maint: Xolo::Server::Helpers::Maintenance.last_maint,
             app_env: Xolo::Server.app_env,
             test_server: Xolo::Server.test_server?,
             data_dir: Xolo::Server::DATA_DIR,

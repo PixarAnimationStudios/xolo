@@ -435,7 +435,7 @@ module Xolo
       def jamf_patch_title_id
         return @jamf_patch_title_id if @jamf_patch_title_id
 
-        log_debug "Getting jamf_patch_title_id for title '#{title}'"
+        log_debug "Jamf: Getting jamf_patch_title_id for title '#{title}'"
 
         self.jamf_patch_title_id =
           if managed?
