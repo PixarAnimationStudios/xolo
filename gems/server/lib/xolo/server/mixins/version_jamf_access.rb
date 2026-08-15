@@ -956,7 +956,7 @@ module Xolo
           configure_patch_pol_deployment ppol: ppol
 
           # only pilot and released versions should have the patch policy enabled
-          if pilot? || released?
+          if pilot? || released? || creating? || releasing?
             ppol.enable
           else
             ppol.disable

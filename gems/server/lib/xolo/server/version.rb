@@ -525,6 +525,7 @@ module Xolo
       # this title.
       #
       # Excluded groups are defined in the title, applying to all versions, and may be augmented by:
+      # - A smart group of computers NOT in the target_groups, if any target groups are defined.
       # - Xolo::Server.config.forced_exclusion, a group excluded from ALL of xolo, defined
       #   in the server config.
       # - The title's jamf_frozen_group_name, if it exists, containing computers that have been
@@ -898,6 +899,7 @@ module Xolo
         msg = "Jamf: Version '#{version}': Setting scope targets of patch policy to all eligible computers"
         progress msg, log: :info
         ppol = jamf_patch_policy
+        ppol.enable
         ppol.scope.set_all_targets
 
         # if rollback, make sure the patch policy is set to 'allow downgrade'
