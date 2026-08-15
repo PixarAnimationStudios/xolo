@@ -181,11 +181,16 @@ module Xolo
           mutex.lock
           log_info 'Maint: starting'
 
-          # add new maintenance tasks/methods here
-          accept_title_editor_eas
-          auto_release_versions
-          cleanup_versions
+          # instantiate all the titles once now, rather than in all the task methods
+          title_objects_for_maint = Xolo::Server::Title.all_titles.map { |t| instantiate_title t }
 
+          # add new maintenance tasks/methods here
+          accept_title_editor_eas title_objects_for_maint
+          auto_release_versions title_objects_for_maint
+          cleanup_versions title_objects_for_maint
+          notify_admins_of_unreleased_pilots title_objects_for_maint
+
+          Xolo::Server::Helpers::Maintenance.last_maint = Time.now
           log_info 'Maint: complete'
         ensure
           mutex&.unlock
@@ -195,17 +200,16 @@ module Xolo
         # and auto accept them if we need to
         # @return [void]
         ######################################
-        def accept_title_editor_eas
+        def accept_title_editor_eas(title_objects)
           unless Xolo::Server.config.jamf_auto_accept_xolo_eas
-            log_info 'Maint: The xolo server is not configured to auto-accept Title Editor EAs'
+            log_debug 'Maint: The xolo server is not configured to auto-accept Title Editor EAs'
             return
           end
 
           log_info 'Maint: Looking for Title Editor EAs to auto-accept'
 
-          # TODO: Be DRY with this stuff and similar in title_jamf_access.rb
-          Xolo::Server::Title.all_titles.each do |title|
-            title_obj = instantiate_title title
+          title_objects.each do |title_obj|
+            title = title_obj.title
             next if title_obj.subscribed?
             next unless title_obj.jamf_patch_ea_awaiting_acceptance?
 
@@ -221,17 +225,17 @@ module Xolo
         # Do any pending auto-releases
         # @return [void]
         ##############################
-        def auto_release_versions
+        def auto_release_versions(title_objects)
           log_info 'Maint: Auto-releasing appropriate versions'
 
           today = Date.today
 
           # Loop thru the titles
-          Xolo::Server::Title.all_titles.each do |title|
-            title_obj = instantiate_title title
+          title_objects.each do |title_obj|
+            title = title_obj.title
 
             # nothing to do if its nil or 'none'
-            next if title_obj.auto_release_delay
+            next if title_obj.auto_release_delay.nil? || title_obj.auto_release_delay == Xolo::NONE
 
             # title must be subscribed and autopkg
             # (enforced in xadm)
@@ -283,12 +287,11 @@ module Xolo
         # Cleanup versions.
         # @return [void]
         ################################
-        def cleanup_versions
-          log_info 'Maint: cleaning up deprecated and skipped versions'
+        def cleanup_versions(title_objects)
+          log_info 'Maint: Cleaning up deprecated and skipped versions'
 
-          Xolo::Server::Title.all_titles.each do |title|
-            title_obj = instantiate_title title
-
+          # Loop thru the titles
+          title_objects.each do |title_obj|
             title_obj.version_objects.each do |version|
               if version.deprecated?
                 cleanup_deprecated_version version
@@ -296,12 +299,8 @@ module Xolo
                 cleanup_skipped_version version
               end # case
             end # each version
-
-            notify_admins_of_unreleased_pilots(title_obj)
           end # each title
-
-          Xolo::Server::Helpers::Maintenance.last_maint = Time.now
-          log_info 'Maint: versions cleanup complete'
+          log_info 'Maint: Version cleanup complete'
         end
 
         # Cleanup a deprecated version.
@@ -316,7 +315,7 @@ module Xolo
           days_deprecated = (Time.now - version.deprecation_date) / 86_400
           return unless days_deprecated > deprecated_lifetime_days
 
-          log_info "Cleanup: Deleting deprecated version '#{version.version}' of title '#{version.title}'"
+          log_info "Maint: Deleting deprecated version '#{version.version}' of title '#{version.title}'"
           version.delete
         end
 
@@ -327,38 +326,50 @@ module Xolo
         def cleanup_skipped_version(version)
           return if Xolo::Server.config.keep_skipped_versions
 
-          log_info "Cleanup: Deleting skipped version '#{version.version}' of title '#{version.title}'"
+          log_info "Maint: Deleting skipped version '#{version.version}' of title '#{version.title}'"
           version.delete
         end
 
         # Notify the admins about unreleased pilots if needed
         # @return [void]
         ################################
-        def notify_admins_of_unreleased_pilots(title_obj)
-          return unless Time.now.day == UNRELEASED_PILOTS_NOTIFICATION_DAY
-          return unless unreleased_pilots_notification_days.positive?
-          return unless title_obj.latest_version
+        def notify_admins_of_unreleased_pilots(title_objects)
+          unless Time.now.day == UNRELEASED_PILOTS_NOTIFICATION_DAY
+            log_debug 'Maint: Not notifying admins of old pilots, wrong day of the month.'
+            return
+          end
+          unless unreleased_pilots_notification_days&.positive?
+            log_debug 'Maint: Not notifying admins of old pilots, unreleased_pilots_notification_days is not a positive integer'
+            return
+          end
 
-          latest_vers_obj = instantiate_version title: title_obj, version: title_obj.latest_version
-          return unless latest_vers_obj.pilot?
+          log_info 'Maint: Notifying admins about old unreleased pilots'
 
-          days_in_pilot = ((Time.now - latest_vers_obj.creation_date) / 86_400).to_i
+          title_objects.each do |title_obj|
+            next unless title_obj.latest_version
 
-          return unless days_in_pilot > unreleased_pilots_notification_days
+            latest_vers_obj = instantiate_version title: title_obj, version: title_obj.latest_version
+            next unless latest_vers_obj.pilot?
 
-          alert_msg = "Cleanup: Notifying #{title_obj.contact_email} about unreleased pilot '#{latest_vers}' of title '#{title_obj.title}', in pilot for #{days_in_pilot} days"
+            days_in_pilot = ((Time.now - latest_vers_obj.creation_date) / 86_400).to_i
 
-          log_info alert_msg
-          send_alert alert_msg
+            next unless days_in_pilot > unreleased_pilots_notification_days
 
-          email_msg = <<~MSG
+            alert_msg = "Maint: Notifying #{title_obj.contact_email} about unreleased pilot '#{latest_vers}' of title '#{title_obj.title}', in pilot for #{days_in_pilot} days"
+
+            log_info alert_msg
+            send_alert alert_msg
+
+            email_msg = <<~MSG
             The newest version '#{latest_vers_obj.version}' of title '#{title_obj.title}' has been in pilot for #{days_in_pilot} days, which makes it seem like it's not going to be released.
 
             To reduce clutter, please consider releasing it, deleting it, or deleting the whole title if it's no longer needed.
 
             If this is intentional, you can ignore this monthly message.
-          MSG
-          send_email to: title_obj.contact_email, subject: 'Unreleased Pilot Notification', msg: email_msg
+            MSG
+            send_email to: title_obj.contact_email, subject: 'Unreleased Pilot Notification', msg: email_msg
+          end # each title
+          log_info 'Maint: Done notifying admins about old unreleased pilots'
         end
 
         # how many days can a version be deprecated?

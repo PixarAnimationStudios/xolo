@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## \[2.2.1] 2026-08-16
 
+### Changed
+
+  - Improved logic and efficiency in nightly maintenance.
+
+## \[2.2.1] Internal Release
+
 ### Fixed
 
   - A bug in `xadm list-titles --pilots`
