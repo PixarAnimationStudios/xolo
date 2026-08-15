@@ -230,6 +230,9 @@ module Xolo
           Xolo::Server::Title.all_titles.each do |title|
             title_obj = instantiate_title title
 
+            # nothing to do if its nil or 'none'
+            next if title_obj.auto_release_delay
+
             # title must be subscribed and autopkg
             # (enforced in xadm)
             next unless title_obj.subscribed? && !title_obj.autopkg_recipe.pix_empty?
@@ -240,19 +243,22 @@ module Xolo
             # NOTE: it is stored as a string because it might be 'none'
             # TODO: store none as nil, so we don't have to do the pix_integer check??
             delay = title_obj.auto_release_delay.to_i
-            next unless title_obj.auto_release_delay.pix_integer? && !delay.negative?
+            next unless title_obj.auto_release_delay&.pix_integer? && !delay.negative?
 
             # Any version with this creation date should be released now, skip if not
             # So if the auto_release_delay is 7, its today - 7 days.
             # if the auto_release_delay is 0, its today - 0 days, aka today
             creation_date_to_be_released_today = today - delay
 
-            # Find the newest pilot version whose creation date is creation_date_to_be_released_today
+            # Find the newest pilot version whose creation date is
+            # creation_date_to_be_released_today or earlier
             # That one should be released now.
             vobj_to_release = nil
+
+            # version objects are in order of newest to oldest
             title_obj.version_objects.each do |vobj|
               next unless vobj.pilot?
-              next unless vobj.creation_date.to_date == creation_date_to_be_released_today
+              next unless vobj.creation_date.to_date <= creation_date_to_be_released_today
 
               vobj_to_release = vobj
               break
