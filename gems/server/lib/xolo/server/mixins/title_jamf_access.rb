@@ -1644,7 +1644,7 @@ module Xolo
           # always the frozen group
           excls = [jamf_frozen_group_name]
 
-          # plus any explicit exlusions for the title
+          # plus any explicit exclusions for the title
           excls += changes_for_update&.key?(:excluded_groups) ? changes_for_update[:excluded_groups][:new] : excluded_groups
 
           # plus the target_groups_exclusion_group if needed
