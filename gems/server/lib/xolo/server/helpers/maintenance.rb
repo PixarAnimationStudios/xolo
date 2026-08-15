@@ -37,7 +37,9 @@ module Xolo
         # set them in the server config
 
         # how often does our maint timer check to see if it should run maintenance?
-        MAINT_CHECK_INTERVAL = 3600
+        # Slightly less than an hour means there will always be at least one check every
+        # hour, sometimes two.
+        MAINT_CHECK_INTERVAL = 3500
         # MAINT_CHECK_INTERVAL = 600
 
         # At what hour should the nightly maintenance run?
@@ -45,7 +47,9 @@ module Xolo
         # MAINT_HOUR = 10
 
         # Maint won't run unless the last run was at least this many
-        # seconds ago
+        # seconds ago.
+        # 23 hrs ago means that even if we check twice within the
+        # MAINT_HOUR, only the first one will run.
         MAINT_MAX_FREQ_SECS = 23 * 3600
 
         # the route we POST to, to start the nightly process.
