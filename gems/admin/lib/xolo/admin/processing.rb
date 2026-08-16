@@ -240,17 +240,30 @@ module Xolo
         titles.select!(&:self_service?) if opts_to_process.self_service
         titles.select!(&:self_service_updates?) if opts_to_process.self_service_updates
 
-        header = %w[Title Created By SSvc? Latest Released]
+        header = %w[Title Created By SSvc Latest Released]
+
         data = titles.map do |t|
+          ssvc_disp =
+            if t.self_service && t.self_service_updates
+              'Ins & Upd'
+            elsif t.self_service
+              'Install'
+            elsif t.self_service_updates
+              'Update'
+            else
+              '-'
+            end
+
           [
             t.title,
             t.creation_date.to_date,
             t.created_by,
-            t.self_service || false,
+            ssvc_disp,
             t.latest_version,
             t.released_version
           ]
         end
+
         data.sort_by! { |d| d[0].downcase } # sort by title
 
         show_text generate_report(data, header_row: header, title: report_title)
