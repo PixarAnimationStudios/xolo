@@ -37,6 +37,10 @@ module Xolo
       # the lack of sinatra and such.
       LOG_LEVELS = %w[debug info warn error fatal].freeze
 
+      INSTALL = 'Install'
+      UPDATE = 'Update'
+      INS_UPD = 'Ins & Upd'
+
       # Module Methods
       ##########################
       ##########################
@@ -236,22 +240,24 @@ module Xolo
         titles.select!(&:subscribed?) if opts_to_process.subscribed
         titles.reject!(&:subscribed?) if opts_to_process.managed
         titles.select!(&:autopkg_recipe) if opts_to_process.autopkg
-        titles.select! { |t| pending_pilots? t } if opts_to_process.pilots
         titles.select!(&:self_service?) if opts_to_process.self_service
         titles.select!(&:self_service_updates?) if opts_to_process.self_service_updates
+
+        # pending_pilots is a local method, not a title attribute!
+        titles.select! { |t| pending_pilots? t } if opts_to_process.pilots
 
         header = %w[Title Created By SSvc Latest Released]
 
         data = titles.map do |t|
           ssvc_disp =
             if t.self_service && t.self_service_updates
-              'Ins & Upd'
+              INS_UPD
             elsif t.self_service
-              'Install'
+              INSTALL
             elsif t.self_service_updates
-              'Update'
+              UPDATE
             else
-              '-'
+              Xolo::DASH
             end
 
           [
