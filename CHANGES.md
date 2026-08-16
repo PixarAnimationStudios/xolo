@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## \[2.3.0] Unreleased
+
+### Changed
+
+  - Output of `xadm list-titles` indicates installs and/or updates via Self Service.
+  - Sleep a minute between auto-releases during nightlly maint task.
+
 ## \[2.2.2] 2026-08-16
 
 ### Changed
