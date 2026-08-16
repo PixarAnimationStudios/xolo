@@ -279,6 +279,9 @@ module Xolo
             title_obj.release vobj_to_release.version
 
             log_info "Maint: Auto-released version '#{vobj_to_release.version}' of '#{title}' which came out #{vobj_to_release.creation_date}", alert: true
+
+            # pause for server to catch up
+            sleep 60
           end # each title
 
           log_debug 'Maint: Done auto-releasing'
