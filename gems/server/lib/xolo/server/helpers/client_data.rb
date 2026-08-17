@@ -160,12 +160,21 @@ module Xolo
         #
         # This process is protected by a mutex to prevent multiple updates at the same time.
         #
+        # @param post_maint [Boolean] Are we being called at the end of the run_maint method?
+        #
         # @return [void]
         #####################
-        def update_client_data
+        def update_client_data(post_maint: false)
           # don't do anything if we are in developer/test mode
           if Xolo::Server.config.developer_mode?
             log_debug 'Jamf: Skipping client-data update in developer mode'
+            return
+          end
+
+          # don't do anything if maintenance is running,
+          # the main process will call this method once at the end
+          if Xolo::Server::Helpers::Maintenance.maint_running? && !post_maint
+            log_debug 'Jamf: Skipping client-data update while maintenance is running'
             return
           end
 

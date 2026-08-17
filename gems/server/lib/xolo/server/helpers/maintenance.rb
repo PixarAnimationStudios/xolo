@@ -123,6 +123,12 @@ module Xolo
           @last_maint = time
         end
 
+        # @return [Time] Is maintenance running right now? true if the mutex is locked
+        ######################################
+        def self.maint_running?
+          maint_mutex.locked?
+        end
+
         # post to the server to start the maint process
         # This is done so that the maint can run in the context of a request,
         # having access to Title and Version instantiation.
@@ -179,19 +185,25 @@ module Xolo
             return
           end
           mutex.lock
+
           log_info 'Maint: starting'
 
           # instantiate all the titles once now, rather than in all the task methods
-          title_objects_for_maint = Xolo::Server::Title.all_titles.map { |t| instantiate_title t }
+          title_objects_for_maint = all_title_objects refresh: true
 
           # add new maintenance tasks/methods here
+          ######
           accept_title_editor_eas title_objects_for_maint
           auto_release_versions title_objects_for_maint
           cleanup_versions title_objects_for_maint
           notify_admins_of_unreleased_pilots title_objects_for_maint
 
+          # make note of the time.
           Xolo::Server::Helpers::Maintenance.last_maint = Time.now
           log_info 'Maint: complete'
+
+          log_debug 'Maint: running update_client_data after all tasks'
+          update_client_data post_maint: true
         ensure
           mutex&.unlock
         end
