@@ -4,14 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[Unreleased] 
+## \[2.2.3] 2026-08-18
 
 ### Fixed
 
   - Scope targets are now set properly for Patch Policies based on version status:
     - Pilot: scope targets are the `pilot_groups` if any
     - Released: scope targets are `all computers`  (limited to eligible comptuers, as all Patch Policies are)
-    - Anything else: no scope targets, effectively disabling the policy, even if its enabled.
+    - Anything else: no scope targets, effectively disabling the policy, even if it's enabled.
+
+  - Improved handling of Self Service icons, both in Policies and Patch Policies.
 
 ### Added
   - The `xadm list-titles` command now takes the `--released-to-all` option

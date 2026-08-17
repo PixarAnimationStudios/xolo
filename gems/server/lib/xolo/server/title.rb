@@ -1130,6 +1130,7 @@ module Xolo
         repair_ted_title
         set_subscribed_display_name_and_publisher
         repair_jamf_title_objects
+        self.ssvc_icon_id = jamf_manual_install_released_policy.self_service_icon.id
         save_local_data
         return unless repair_versions
 

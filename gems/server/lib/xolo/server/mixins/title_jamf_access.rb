@@ -1716,7 +1716,9 @@ module Xolo
         def add_title_to_self_service(pol = nil)
           pol ||= jamf_manual_install_released_policy
 
-          unless pol.in_self_service?
+          if pol.in_self_service?
+            progress "Jamf: Manual Install Policy '#{pol.name}' already in Self Service."
+          else
             msg = "Jamf: Adding Manual Install Policy '#{pol.name}' to Self Service."
             progress msg, log: :info
             pol.add_to_self_service

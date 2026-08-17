@@ -1024,9 +1024,11 @@ module Xolo
             ppol.self_service_reminder_frequency = PATCH_POL_SSVC_REMINDER_FREQ_HRS
             ppol.deadline = PATCH_POL_SSVC_DEADLINE_DAYS
 
-            return unless title_object.ssvc_icon_id
+            icon_id =
+              title_object.ssvc_icon_id || title_object.jamf_manual_install_released_policy.self_service_icon.id
+            return unless icon_id
 
-            set_patch_policy_ssvc_icon ppol, title_object.ssvc_icon_id
+            set_patch_policy_ssvc_icon ppol, icon_id
 
           # Automatic deployment
           else
