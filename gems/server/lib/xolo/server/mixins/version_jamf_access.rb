@@ -939,14 +939,22 @@ module Xolo
           # explicit false
           ppol.patch_unknown = patch_unknown ? true : false
 
+          # Patch Pol. Scope Targets:
           # when first creating a patch policy, its status is always
           # 'pilot' so the scope targets are the pilot groups, if any.
+          #
           # When the version is released, the patch policy will be
-          # rescoped to all targets (limited by eligibility)
-          if pilot?
+          # rescoped to all computers (limited by eligibility)
+          #
+          # Any other state should have no scope targets
+          if pilot? || creating?
             set_policy_pilot_groups ppol
-          else
+          elsif released? || releasing?
+            log_debug "Setting Patch Policy Scope for Version '#{version}' of Title '#{title}' to all comptuers, for release"
             ppol.scope.set_all_targets
+          else
+            log_debug "Setting Patch Policy Scope for Version '#{version}' of Title '#{title}' to no targets: not in pilot or released"
+            ppol.scope.set_targets :computer_groups, []
           end
 
           # exclusions are for always

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## \[Unreleased] 
 
+### Fixed
+
+  - Scope targets are now set properly for Patch Policies based on version status:
+    - Pilot: scope targets are the `pilot_groups` if any
+    - Released: scope targets are `all computers`  (limited to eligible comptuers, as all Patch Policies are)
+    - Anything else: no scope targets, effectively disabling the policy, even if its enabled.
+
 ### Added
   - The `xadm list-titles` command now takes the `--released-to-all` option
     - `-A, --released-to-all   Show only titles that have --release-groups set to 'all'.`
