@@ -15,16 +15,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - Improved handling of Self Service icons, both in Policies and Patch Policies.
 
-### Added
-  - The `xadm list-titles` command now takes the `--released-to-all` option
-    - `-A, --released-to-all   Show only titles that have --release-groups set to 'all'.`
-  
 ### Changed
   - Output of `xadm list-titles` indicates installs and/or updates via Self Service.
   - Sleep a minute between auto-releases during nightlly maintenance task.
   - Actions during nightly maintenence runs will not call update_client_data, it will be called onces at the end of maintenance.
   
-
+### Added
+  - The `xadm list-titles` command now takes the `--released-to-all` option
+    - `-A, --released-to-all   Show only titles that have --release-groups set to 'all'.`
+  
 ## \[2.2.2] 2026-08-16
 
 ### Changed
