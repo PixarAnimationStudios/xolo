@@ -142,12 +142,14 @@ module Xolo
             return
           end
 
+          now = Time.now
+
           # only run the maintenance if it's during the MAINT_HOUR
           # and the last one was more than MAINT_MAX_FREQ_SECS ago
           if force
             Xolo::Server.logger.info 'Maint: Starting now due to force'
 
-          elsif Time.now.hour == MAINT_HOUR && (Time.now - last_maint) > MAINT_MAX_FREQ_SECS
+          elsif now.hour == MAINT_HOUR && (now - last_maint) > MAINT_MAX_FREQ_SECS
             Xolo::Server.logger.info 'Maint: Starting nightly run now'
 
           else
