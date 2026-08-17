@@ -263,7 +263,19 @@ module Xolo
           desc: <<~ENDDESC
             Show only titles that are available for updates via Self Service. To see those with initial installation via Self Service, use --self-service.
           ENDDESC
+        },
+
+        released_to_all: {
+          label: 'Released to All',
+          cli: :A,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only titles that have --release-groups set to 'all'.
+          ENDDESC
         }
+
       }.freeze
 
       PATCH_REPORT_OPTIONS = {

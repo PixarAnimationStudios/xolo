@@ -225,6 +225,7 @@ module Xolo
         type ||= opts_to_process.managed ? ' managed' : nil
         autopkg = opts_to_process.autopkg ? ' autopkg' : nil
         pilots = opts_to_process.pilots ? ' with unreleased pilots' : nil
+        to_all = opts_to_process.released_to_all ? ",\n# released to all non-excluded computers." : nil
 
         ssvc =
           if opts_to_process.self_service && opts_to_process.self_service_updates
@@ -235,7 +236,7 @@ module Xolo
             ' updated via Self Service'
           end
 
-        report_title = "All#{type}#{autopkg} titles in Xolo#{pilots}#{ssvc}"
+        report_title = "All#{type}#{autopkg} titles in Xolo#{pilots}#{ssvc}#{to_all}"
 
         titles.select!(&:subscribed?) if opts_to_process.subscribed
         titles.reject!(&:subscribed?) if opts_to_process.managed
@@ -245,6 +246,7 @@ module Xolo
 
         # pending_pilots is a local method, not a title attribute!
         titles.select! { |t| pending_pilots? t } if opts_to_process.pilots
+        titles.select! { |t| t.release_groups.include? Xolo::TARGET_ALL } if opts_to_process.released_to_all
 
         header = %w[Title Created By SSvc Latest Released]
 
