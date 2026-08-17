@@ -4,12 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[2.3.0] Unreleased
+## \[Unreleased] 
 
+### Added
+  - The `xadm list-titles` command now takes the `--released-to-all` option
+    - `-A, --released-to-all   Show only titles that have --release-groups set to 'all'.`
+  
 ### Changed
-
   - Output of `xadm list-titles` indicates installs and/or updates via Self Service.
-  - Sleep a minute between auto-releases during nightlly maint task.
+  - Sleep a minute between auto-releases during nightlly maintenance task.
+  
 
 ## \[2.2.2] 2026-08-16
 
