@@ -144,8 +144,6 @@ module Xolo
 
           with_streaming do
             title.repair repair_versions: do_versions
-            # moved to title.repair
-            # update_client_data
           end
         end
 
@@ -159,8 +157,6 @@ module Xolo
 
           with_streaming do
             title.delete
-            # moved to title.delete
-            # update_client_data
           end
         end
 

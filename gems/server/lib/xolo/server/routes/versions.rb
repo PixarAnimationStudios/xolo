@@ -127,8 +127,6 @@ module Xolo
 
           with_streaming do
             vers.update new_data
-            # moved to vers.update
-            # update_client_data
           end
         end
 
@@ -160,7 +158,10 @@ module Xolo
         # param with the uploaded file must be :file
         ######################
         post '/titles/:title/versions/:version/pkg' do
+          @pkg_upload_happening = true
+          log_debug "Starting POST to upload pkg for #{params[:title]}, #{params[:version]}"
           process_and_upload_uploaded_pkg
+          @pkg_upload_happening = false
           body({ result: :uploaded })
         end
 

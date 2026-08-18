@@ -172,7 +172,14 @@ module Xolo
         # @return [void]
         #############################
         def stream_progress(stream_file:, stream:)
-          log_debug "About to tail: usr/bin/tail -f -c +1 #{Shellwords.escape stream_file.to_s}"
+          # log_debug "About to tail: usr/bin/tail -f -c +1 #{Shellwords.escape stream_file.to_s}"
+          log_debug "About to stream file: #{Shellwords.escape stream_file.to_s}"
+
+          # a moment for the file to exist..
+          until stream_file.readable?
+            log_debug 'Waiting for stream file to be readable'
+            sleep 2
+          end
 
           begin
             File.open(stream_file, 'r') do |file|

@@ -124,6 +124,8 @@ module Xolo
           pkg_src = Pathname.new pkg_src
           orig_filename ||= pkg_src.basename.to_s
 
+          log_debug "Starting process_and_upload_to_jamf for #{title}, #{version}, pkg src: #{pkg_src}, orig filename: #{orig_filename}"
+
           version = instantiate_version(title: title, version: version) if version.is_a?(String)
 
           staged_pkg = prep_pkg_for_upload(version, pkg_src)

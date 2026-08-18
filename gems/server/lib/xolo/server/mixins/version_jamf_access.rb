@@ -470,7 +470,7 @@ module Xolo
             Jamf::JPackage.delete pkg_id, cnx: jamf_cnx
             finish = Time.now
             duration = (finish - start).to_i.pix_humanize_secs
-            log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}", alert: true
+            log_info "Jamf: Deleted Package '#{jamf_pkg_name}' id #{jamf_pkg_id} in #{duration}"
           rescue => e
             log_error "Package Deletion thread: #{e.class}: #{e}"
             e.backtrace.each { |l| log_error "..#{l}" }
@@ -887,14 +887,19 @@ module Xolo
 
           configure_jamf_patch_policy(ppol)
 
-          # This is always false to start will be set to true as needed if
-          # a rollback is being done
+          # This is always false to start, which is why we set it here in the create method
+          # will be set to true as needed if a rollback is being done
           ppol.allow_downgrade = false
 
           ppol.save
 
           # refetch it rather than using the one we just created
-          Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
+          ppol = Jamf::PatchPolicy.fetch(name: jamf_patch_policy_name, cnx: jamf_cnx)
+
+          # set the ssvc icon, must happen after the policy is saved
+          set_patch_policy_ssvc_icon ppol
+
+          ppol
         end
 
         # repair the patch policy only
@@ -908,6 +913,9 @@ module Xolo
           configure_jamf_patch_policy(ppol)
 
           ppol.save
+
+          # set the ssvc icon, must happen after the policy is saved
+          set_patch_policy_ssvc_icon ppol
         end
 
         # update the :patch_unknown for the patch policy
@@ -982,23 +990,30 @@ module Xolo
           ppol = jamf_patch_policy
           configure_patch_pol_deployment ttl_obj: ttl_obj, ppol: ppol
           ppol.save
+          # set the ssvc icon, must happen after the policy is saved
+          set_patch_policy_ssvc_icon ppol
+        end
+
+        # @return [Boolean] should this version use ssvc updates?
+        ##################
+        def use_ssvc_updates?(ttl_obj = nil)
+          ttl_obj ||= title_object
+
+          if ttl_obj.changes_for_update&.dig :self_service_updates
+            ttl_obj.changes_for_update[:self_service_updates][:new]
+          else
+            ttl_obj.self_service_updates
+          end
         end
 
         # Configure the patch policy for self service or automatic deployment
-        # NOTE: Does NOT save the policy changes!
+        # NOTE: this does not save changes to the policy - the caller must
         # @param ppol [Jamf::PatchPolicy] The patch policy to configure
         # @return [void]
         # ###############################
         def configure_patch_pol_deployment(ppol: nil, ttl_obj: nil)
           ppol ||= jamf_patch_policy
           ttl_obj ||= title_object
-
-          use_ssvc_updates =
-            if ttl_obj.changes_for_update&.dig :self_service_updates
-              ttl_obj.changes_for_update[:self_service_updates][:new]
-            else
-              ttl_obj.self_service_updates
-            end
 
           # always set the grace period regardless of deployment type
           progress "Jamf: Configuring Patch Policy grace period for version '#{version}' of title '#{title}' ", log: :info
@@ -1007,7 +1022,7 @@ module Xolo
           ppol.grace_period_message = PATCH_POL_GRACE_PERIOD_MSG
 
           # Self Service deployment
-          if use_ssvc_updates
+          if use_ssvc_updates?
             progress "Jamf: Configuring Patch Policy for version '#{version}' of title '#{title}' for Self Service", log: :info
 
             ppol.add_to_self_service
@@ -1023,12 +1038,6 @@ module Xolo
             ppol.self_service_reminders_enabled = true
             ppol.self_service_reminder_frequency = PATCH_POL_SSVC_REMINDER_FREQ_HRS
             ppol.deadline = PATCH_POL_SSVC_DEADLINE_DAYS
-
-            icon_id =
-              title_object.ssvc_icon_id || title_object.jamf_manual_install_released_policy.self_service_icon.id
-            return unless icon_id
-
-            set_patch_policy_ssvc_icon ppol, icon_id
 
           # Automatic deployment
           else
@@ -1049,7 +1058,23 @@ module Xolo
         # @param icon_id [Integer, String] The id of the existing icon to use.
         # @return [Void]
         ##########################
-        def set_patch_policy_ssvc_icon(ppol, icon_id)
+        def set_patch_policy_ssvc_icon(ppol)
+          return unless use_ssvc_updates?
+
+          if title_object.ssvc_icon_id
+            icon_id = title_object.ssvc_icon_id
+            log_debug "Jamf: ssvc_icon_id from title object is: #{icon_id}"
+          else
+            icon_id = title_object.jamf_manual_install_released_policy.self_service_icon.id
+            log_debug "Jamf: ssvc_icon_id from manual install policy is: #{icon_id}"
+
+          end
+
+          if icon_id.pix_empty?
+            log_debug 'Jamf: could not find ssvc icon id, not setting icon for patch policy.'
+            return
+          end
+
           # this str can't be frozen for now
           icon_xml = +<<~ENDXML
             <?xml version="1.0" encoding="UTF-8"?>
@@ -1063,9 +1088,11 @@ module Xolo
           ENDXML
 
           log_debug "Jamf: Adding existing SSvc icon to patch policy for version '#{version}' of title '#{title}'"
+
           # TODO: in ruby-jss, update c_put and related methods to
           # use unfrozen dups of strings for #gsub
-          jamf_cnx.c_put ppol.rest_rsrc, icon_xml
+
+          jamf_cnx.c_put "patchpolicies/id/#{ppol.id}", icon_xml
         end
 
         # @return [String] the URL for the Jamf Pro Patch Policy that updates to this version

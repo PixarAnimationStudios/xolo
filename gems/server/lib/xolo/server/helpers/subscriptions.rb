@@ -91,6 +91,7 @@ module Xolo
           rescue => e
             msg = "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
             log_error msg
+            e.backtrace.each { |l| log_error "..#{l}" }
             raise e, msg
           end # thread
         end
