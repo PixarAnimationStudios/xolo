@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
   - Output of `xadm list-titles` indicates installs and/or updates via Self Service.
   - Sleep a minute between auto-releases during nightlly maintenance task.
-  - Actions during nightly maintenence runs will not call update_client_data, it will be called onces at the end of maintenance.
+  - Actions during nightly maintenence runs will not call update_client_data, it will be called once at the end of maintenance.
   
 ### Added
   - The `xadm list-titles` command now takes the `--released-to-all` option
