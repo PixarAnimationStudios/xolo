@@ -183,9 +183,6 @@ module Xolo
 
           begin
             File.open(stream_file, 'r') do |file|
-              # Go straight to the end of the file if you only want new lines
-              file.seek(0, IO::SEEK_END)
-
               heartbeat_counter = 0
               loop do
                 # Check if the stream was closed by the user
@@ -194,10 +191,16 @@ module Xolo
                 # Try to read the next line
                 # This won't block but will return nil if no line is ready
                 if line = file.gets
-                  break if line.chomp == Xolo::Server::PROGRESS_COMPLETE
+                  # log_debug "STREAMING: line is: '#{line}'"
+
+                  if line.chomp == Xolo::Server::PROGRESS_COMPLETE
+                    stream.close
+                    break
+                  end
 
                   # Send the line to the browser immediately
                   stream << line
+
                 else
                   # If no new line, sleep for a fraction of a second
                   # This saves your computer's CPU from working too hard
@@ -212,8 +215,12 @@ module Xolo
             end # file open
           rescue IOError, Errno::ECONNRESET
             nil
+          ensure
+            stream.close unless stream.closed?
           end # begin
 
+          # the old way, using tail
+          ######
           # stdin, stdouterr, wait_thr = Open3.popen2e("/usr/bin/tail -f -c +1 #{Shellwords.escape stream_file.to_s}")
           # stdin.close
 
