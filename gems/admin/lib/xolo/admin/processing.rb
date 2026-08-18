@@ -195,8 +195,7 @@ module Xolo
       # @return [void]
       ###############################
       def update_config
-        debug? && puts("DEBUG: opts_to_process: #{opts_to_process}")
-
+        show_debug "DEBUG: opts_to_process: #{opts_to_process}"
         # Xolo::Admin::Configuration::KEYS.each_key do |key|
         #   config.send "#{key}=", opts_to_process[key]
         # end
@@ -310,10 +309,8 @@ module Xolo
 
         response_data = new_title.add(server_cnx)
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
+
         if response_data[:progress_stream_url_path]
           display_progress response_data[:progress_stream_url_path]
         else
@@ -350,10 +347,7 @@ module Xolo
         title = Xolo::Admin::Title.new opts_to_process
         response_data = title.update server_cnx
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
 
@@ -420,10 +414,7 @@ module Xolo
 
         response_data = Xolo::Admin::Title.delete cli_cmd.title, server_cnx
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
 
@@ -448,10 +439,7 @@ module Xolo
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
         response_data = title.freeze ARGV, cli_cmd_opts.users_given, server_cnx
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         if json?
           puts JSON.pretty_generate(response_data)
@@ -473,10 +461,7 @@ module Xolo
       def list_frozen
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
         frozen_computers = title.frozen server_cnx
-        if debug?
-          puts "DEBUG: response_data: #{frozen_computers}"
-          puts
-        end
+        show_debug "response_data: #{frozen_computers}"
 
         if json?
           puts JSON.pretty_generate(frozen_computers)
@@ -511,10 +496,7 @@ module Xolo
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
         response_data = title.thaw ARGV, cli_cmd_opts.users_given, server_cnx
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         if json?
           puts JSON.pretty_generate(response_data)
@@ -580,14 +562,13 @@ module Xolo
         new_vers = Xolo::Admin::Version.new opts_to_process
         response_data = new_vers.add(server_cnx)
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
 
         # Upload the pkg, if any?
+        # for pkg creation, no upload if autopkg.
+        # but yes for edits.
         upload_pkg(new_vers) unless title_obj.autopkg_enabled?
 
         speak 'It can take up to 15 minutes for the version to be available for use. Please do not release it before then'
@@ -608,11 +589,16 @@ module Xolo
       # @return [void]
       ################################
       def upload_pkg(version)
-        return unless version.pkg_to_upload.is_a? Pathname
+        unless version.pkg_to_upload.is_a? Pathname
+          show_debug "version.pkg_to_upload.is_a?: #{version.pkg_to_upload.is_a?}"
+          return
+        end
 
-        # TODO: deal with autopkg pkgs, should we be able to do this?
+        # pause a moment for the previous stream to end.
+        sleep 5
 
         speak "Uploading #{version.pkg_to_upload.basename}, #{version.pkg_to_upload.pix_humanize_size} to Xolo"
+
         # start the upload in a thread
         upload_thr = Thread.new { version.upload_pkg(upload_cnx) }
 
@@ -642,14 +628,12 @@ module Xolo
 
         response_data = vers.update server_cnx
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
 
         # Upload the pkg, if any?
+        # speak 'Upload would happen here'
         upload_pkg(vers)
 
         speak "Version '#{cli_cmd.version}' of title '#{cli_cmd.title}' has been updated in Xolo."
@@ -712,10 +696,7 @@ module Xolo
 
         response_data = Xolo::Admin::Version.delete cli_cmd.title, cli_cmd.version, server_cnx
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
       rescue StandardError => e
@@ -734,10 +715,7 @@ module Xolo
         title = Xolo::Admin::Title.new opts_to_process
         response_data = title.release server_cnx, version: cli_cmd.version
 
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
         speak "Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' has been released."
@@ -886,10 +864,7 @@ module Xolo
           title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
           response_data = title.repair server_cnx, versions: opts_to_process[:versions]
         end
-        if debug?
-          puts "DEBUG: response_data: #{response_data}"
-          puts
-        end
+        show_debug "response_data: #{response_data}"
 
         display_progress response_data[:progress_stream_url_path]
       rescue StandardError => e
@@ -1113,10 +1088,7 @@ module Xolo
         result = server_cnx.post(SERVER_SHUTDOWN_ROUTE, payload).body
         puts "result[:result] = #{result[:result]}"
 
-        if debug?
-          puts "DEBUG: response_data: #{result}"
-          puts
-        end
+        show_debug "response_data: #{result}"
 
         display_progress result[:progress_stream_url_path]
 
