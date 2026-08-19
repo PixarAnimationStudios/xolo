@@ -75,6 +75,11 @@ module Xolo
             subscribed_title = subscribed_title_objects.select { |tobj| tobj.jamf_patch_title_id.to_i == title_id.to_i }.first
 
             if subscribed_title
+              if subscribed_title.version_exist? new_version
+                log_info "Incoming Subscribed version '#{new_version}' of title '#{subscribed_title.title}' (#{subscribed_title.display_name}) already exists, nothing to do."
+                return
+              end
+
               msg = +"New version '#{new_version}' is available for subscribed title '#{subscribed_title.title}' (#{subscribed_title.display_name})."
 
               msg << " Running autopkg recipe '#{subscribed_title.autopkg_recipe}'." if subscribed_title.autopkg_enabled?

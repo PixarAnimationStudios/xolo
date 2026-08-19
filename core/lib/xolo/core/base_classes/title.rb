@@ -966,6 +966,14 @@ module Xolo
           version_order&.first
         end
 
+        # Does a given version exist for this title?
+        # @param vers [String] the version in question
+        # @return [Boolean]
+        #######################
+        def version_exist?(vers)
+          version_order.include? vers
+        end
+
         # Is this a managed title?
         # @return [Boolean]
         #######################
