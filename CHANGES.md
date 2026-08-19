@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## \[Unreleased]
+
+### Changed
+  - More debug logging
+  - Don't try to add a new version of a subscribed title if it already exists.
+
 ## \[2.2.3] 2026-08-18
 
 ### Fixed
-
   - Scope targets are now set properly for Patch Policies based on version status:
     - Pilot: scope targets are the `pilot_groups` if any
     - Released: scope targets are `all computers`  (limited to eligible comptuers, as all Patch Policies are)
@@ -27,19 +32,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## \[2.2.2] 2026-08-16
 
 ### Changed
-
   - Improved logic and efficiency in nightly maintenance.
 
 ## \[2.2.1] Internal Release
 
 ### Fixed
-
   - A bug in `xadm list-titles --pilots`
 
 ## \[2.2.0] 2026-08-15
 
 ### Added
-
   - Titles can now take the `--self-service-updates` boolean option. This means that initial installs of a title via a Self Service Policy (the `--self-service` option) are completely independent from updates pushed out via Patch Policies in Self Service Updates.
   
     Here is the help output for the new option:
@@ -90,7 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 ### Changed
-  
+
   - If you try to release a version before Jamf Pro has seen it in the Title Editor, you'll get a better error message early in the process. Before it would just fail when it tried to access the not-yet-existent Patch Policy.
 
   - Progress streaming from the server to xadm will no longer die during long-lasting steps. A line of dots will appear, one dot for every 10 seconds of waiting for actual progress data.
