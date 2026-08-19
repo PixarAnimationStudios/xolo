@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - More debug logging
   - Don't try to add a new version of a subscribed title if it already exists.
 
+### Added
+  - The `xadm list-titles` command now takes the `--version-scripts` option
+    - `-v, --version-scripts         Show only titles that use a version script.`
+    
 ## \[2.2.3] 2026-08-18
 
 ### Fixed

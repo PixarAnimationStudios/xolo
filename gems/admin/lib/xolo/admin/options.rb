@@ -274,6 +274,17 @@ module Xolo
           desc: <<~ENDDESC
             Show only titles that have --release-groups set to 'all'.
           ENDDESC
+        },
+
+        version_scripts: {
+          label: 'Using Version Scripts',
+          cli: :v,
+          type: :boolean,
+          validate: :validate_boolean,
+          default: false,
+          desc: <<~ENDDESC
+            Show only titles that use a version script.
+          ENDDESC
         }
 
       }.freeze
