@@ -15,12 +15,12 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with Versions/Patches in the
-      # Xolo Server, Admin, and Client modules.
+      # Xolo Server & Admin modules.
       #
       # This class holds the common aspects of Xolo Versinos as used
-      # on the Xolo server, in the Xolo Admin CLI app 'xadm', and the
-      # client app 'xolo' - most importately it defines which data they
-      # exchange.
+      # on the Xolo server and in the Xolo Admin CLI app 'xadm'
+      # and the 'xolo' client app (as JSON data).
+      # - most importately it defines which data they exchange.
       #
       ############################
       class Version < Xolo::Core::BaseClasses::ServerObject

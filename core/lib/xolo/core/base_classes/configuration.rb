@@ -33,7 +33,7 @@ module Xolo
       # Instance method #conf_file [Pathname]
       #  The full expanded absolute path to the config yaml file.
       #
-      # Constant KEYS [Hash{Symbol: Hash}]
+      # Constant KEYS [Hash {Symbol: Hash}]
       #   The keys of this Hash are the keys that may be found in the yaml file.
       #   The Hash values here define the value in the YAML file, with these keys:
       #

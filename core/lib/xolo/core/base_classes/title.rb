@@ -15,12 +15,12 @@ module Xolo
     module BaseClasses
 
       # The base class for dealing with Titles in the
-      # Xolo Server, Admin, and Client modules.
+      # Xolo Server & Admin modules.
       #
       # This class holds the common aspects of Xolo Titles as used
-      # on the Xolo server, in the Xolo Admin CLI app 'xadm', and the
-      # client app 'xolo' - most importately it defines which data they
-      # exchange.
+      # on the Xolo server and in the Xolo Admin CLI app 'xadm'
+      # and the 'xolo' client app (as JSON data).
+      # - most importately it defines which data they exchange.
       #
       ############################
       class Title < Xolo::Core::BaseClasses::ServerObject
@@ -43,7 +43,7 @@ module Xolo
         #
         # This hash defines the common attributes of all Xolo titles - which should
         # be available in all subclasses, both on the server, in xadm, and via the
-        # client.
+        # client (as JSON data).
         #
         # Each of those subclasses might define (and store or calculate) other
         # attributes as needed.

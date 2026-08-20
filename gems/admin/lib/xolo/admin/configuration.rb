@@ -17,7 +17,7 @@ module Xolo
 
       include Singleton
 
-      # Save to yaml file in ~/Library/Preferences/com.pixar.xolo.admin.prefs.yaml
+      # Save to yaml file in ~/Library/Preferences/com.pixar.xolo.admin.config.yaml
       #
       # - hostname of xolo server
       #   - always port 443, for now
