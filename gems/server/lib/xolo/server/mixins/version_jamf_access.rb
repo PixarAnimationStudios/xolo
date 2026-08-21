@@ -438,8 +438,10 @@ module Xolo
         end
 
         # Delete the package for this version from Jamf Pro.
-        # Package deletion takes a long time, so we do it in a threadpool
+        # Package deletion in some versions of Jamf Pro takes a long time,
+        # especially when you have a lot of pkgs. so we do it in a threadpool
         # and tell the admin to check the Alert Tool for completion
+        #
         # (if we have an alert tool in place) or to wait at least 5 min before
         # re-adding the same version.
         #
@@ -452,16 +454,8 @@ module Xolo
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
           progress msg, log: :info
 
-          warning = +"IMPORTANT: Package deletion can be slow. If you plan to re-add this version, '#{version}', please\n  "
-          warning <<
-            if Xolo::Server.config.alert_tool
-              'check your Xolo alerts for completion, which can take up to 5 minutes,'
-            else
-              'wait at least 5 minutes'
-            end
-          warning << ' before re-adding this version.'
-
-          progress warning, log: nil
+          warning = "IMPORTANT: Package deletion can be slow. If you plan to re-add this version, '#{version}', please\nwait at least 5 minutes before doing so."
+          progress warning
 
           self.class.pkg_deletion_pool.post do
             start = Time.now
