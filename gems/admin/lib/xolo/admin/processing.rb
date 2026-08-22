@@ -592,7 +592,7 @@ module Xolo
       ################################
       def upload_pkg(version)
         unless version.pkg_to_upload.is_a? Pathname
-          show_debug "version.pkg_to_upload.is_a?: #{version.pkg_to_upload.is_a?}"
+          show_debug "version.pkg_to_upload class: #{version.pkg_to_upload.class}"
           return
         end
 
