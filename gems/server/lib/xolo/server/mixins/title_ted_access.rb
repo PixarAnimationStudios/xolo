@@ -119,7 +119,8 @@ module Xolo
 
           # the capabilites
           stub_patch.capabilities.add_criterion(
-            name: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_NAME,
+            # name: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_NAME,
+            name: title,
             operator: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_OPERATOR,
             value: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_VALUE
           )
@@ -424,17 +425,34 @@ module Xolo
         # update the patch compotent criteria for all versions
         # to match changes in the title requirements
         #
+        # NOTE: we do all versions in the title editor, not just the ones known to
+        # xolo.
+        #
+        #
         # @return [void]
         ##############################
         def set_ted_patch_component_criteria_after_update(app_name: nil, app_bundle_id: nil, ea_name: nil)
-          version_objects.each do |vers_obj|
-            vers_obj.set_ted_patch_component_criteria(
+          ted_title.patches.each do |ted_patch|
+            Xolo::Server::Helpers::TitleEditor.set_patch_component_criteria(
+              ted_patch,
               app_name: app_name,
               app_bundle_id: app_bundle_id,
               ea_name: ea_name
             )
-            vers_obj.enable_ted_patch
-          end
+          end # ted_title.patches.each
+
+          # # this only dealt with versions currently known to xolo
+          # # but the title editor keeps all versions ever known
+          # # even if deleted from xolo.
+          #
+          # version_objects.each do |vers_obj|
+          #   vers_obj.set_ted_patch_component_criteria(
+          #     app_name: app_name,
+          #     app_bundle_id: app_bundle_id,
+          #     ea_name: ea_name
+          #   )
+          #   vers_obj.enable_ted_patch
+          # end
         end
 
         # Enable the title in the title editor when at least one patch is enabled
@@ -538,18 +556,35 @@ module Xolo
             version_objects.each do |vobj|
               vobj.repair_ted_patch
             end
+
+            # also update the component criteria for patches not known to xolo anymore.
+            ted_title.patches.each do |ted_patch|
+              # we've already done the known version objects, above
+              next if version_order.include? ted_patch.version
+
+              Xolo::Server::Helpers::TitleEditor.set_patch_component_criteria(
+                ted_patch,
+                app_name: app_name,
+                app_bundle_id: app_bundle_id,
+                ea_name: ted_ea_key
+              )
+            end
           end
 
           ted_title.enable unless ted_title(refresh: true).enabled?
         end
 
         # Re-enable all patches in the title editor
+        # not just those known to xolo
+        #
         # @return [void]
         ###########################
         def reenable_all_ted_patches
           # re-enable all patches, after any change, which might have disabled them
           progress "Title Editor: Re-enabling all patches for '#{title}'", log: :info
-          version_objects.each { |vobj| vobj.enable_ted_patch }
+
+          # version_objects.each { |vobj| vobj.enable_ted_patch }
+          ted_title.patches.each { |ted_patch| ted_patch.enable }
         end
 
       end # TitleEditorTitle

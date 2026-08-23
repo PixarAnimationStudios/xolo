@@ -85,7 +85,7 @@ module Xolo
       STUB_PATCH_CAPABILITY_CRITERION_VALUE = '10.0'
 
       # machines that have this version installed
-      STUB_PATCH_COMPONENT_NAME = 'Xolo Stub'
+      # STUB_PATCH_COMPONENT_NAME = 'Xolo Stub'
       STUB_PATCH_COMPONENT_CRITERION_NAME = 'Application Title'
       STUB_PATCH_COMPONENT_CRITERION_OPERATOR = 'is'
       STUB_PATCH_COMPONENT_CRITERION_VALUE = 'XoloStub-DoesNotExist.app'

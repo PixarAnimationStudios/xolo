@@ -50,6 +50,77 @@ module Xolo
           Xolo.verbose_include includer, self
         end
 
+        # Module Methods
+        # These must be called using Xolo::Server::Helpers::TitleEditor.<method>
+        ###############################
+        ##############################
+
+        # Given a Windoo::Patch object, and an
+        # app_name: & app_bundle_id: or an ea_name:
+        # Set the component criteria for the patch to
+        # be based either on the app data, or ea
+        #
+        # @param patch [Windoo::Patch] the patch to set
+        #
+        # @param title [String] the title for this patch
+        # @param app_name [String] the name of the app to use in app-based requirements,
+        #   must be used with app_bundle_id, cannot be used with ea_name
+        #
+        # @param app_bundle_id [String] the bundle id of the app to use in app-based requirements
+        #   must be used with app_name, cannot be used with ea_name
+        #
+        # @param ea_name [String] the name of the EA to use in EA-based requirements (the ted_ea_key)
+        #   Cannot be used with app_name or app_bundle_id
+        #
+        # @return [void]
+        ################################
+        def self.set_patch_component_criteria(ted_patch, app_name: nil, app_bundle_id: nil, ea_name: nil)
+          # delete any already there and make a new one
+          ted_patch.delete_component
+          ted_patch.add_component name: ted_patch.container.id, version: ted_patch.version
+
+          comp = ted_patch.component
+
+          if ea_name
+            set_ea_component(comp, ea_name, ted_patch.version)
+          else
+            set_app_component(comp, app_name, app_bundle_id, ted_patch.version)
+          end
+        end
+
+        # @return [void]
+        ##############################
+        def self.set_ea_component(comp, ea_name, version)
+          comp.criteria.add_criterion(
+            type: 'extensionAttribute',
+            name: ea_name,
+            operator: 'is',
+            value: version
+          )
+        end
+
+        # @return [void]
+        ##############################
+        def self.set_app_component(comp, app_name, app_bundle_id, version)
+          comp.criteria.add_criterion(
+            name: 'Application Title',
+            operator: 'is',
+            value: app_name
+          )
+
+          comp.criteria.add_criterion(
+            name: 'Application Bundle ID',
+            operator: 'is',
+            value: app_bundle_id
+          )
+
+          comp.criteria.add_criterion(
+            name: 'Application Version',
+            operator: 'is',
+            value: version
+          )
+        end
+
         # Instance methods
         #
         # These are available directly in sinatra routes and views

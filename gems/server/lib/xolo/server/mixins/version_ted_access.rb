@@ -253,12 +253,12 @@ module Xolo
           msg = "Title Editor: Setting #{type}-based component criteria for Patch '#{version}' of SoftwareTitle '#{title}'"
           progress msg, log: :info
 
-          # delete any already there and make a new one
-          ted_patch.delete_component
-          ted_patch.add_component name: title, version: version
-          comp = ted_patch.component
-
-          ea_name ? set_ea_component(comp, ea_name) : set_app_component(comp, app_name, app_bundle_id)
+          Xolo::Server::Helpers::TitleEditor.set_patch_component_criteria(
+            ted_patch,
+            app_name: app_name,
+            app_bundle_id: app_bundle_id,
+            ea_name: ea_name
+          )
         end
 
         # get the param values for patch component criteria from the title object,
@@ -285,39 +285,6 @@ module Xolo
           end
 
           [app_name, app_bundle_id, ea_name]
-        end
-
-        # @return [void]
-        ##############################
-        def set_ea_component(comp, ea_name)
-          comp.criteria.add_criterion(
-            type: 'extensionAttribute',
-            name: ea_name,
-            operator: 'is',
-            value: version
-          )
-        end
-
-        # @return [void]
-        ##############################
-        def set_app_component(comp, app_name, app_bundle_id)
-          comp.criteria.add_criterion(
-            name: 'Application Title',
-            operator: 'is',
-            value: app_name
-          )
-
-          comp.criteria.add_criterion(
-            name: 'Application Bundle ID',
-            operator: 'is',
-            value: app_bundle_id
-          )
-
-          comp.criteria.add_criterion(
-            name: 'Application Version',
-            operator: 'is',
-            value: version
-          )
         end
 
         # For a patch to be enabled in the Title Editor, it needs at least a component criterion
