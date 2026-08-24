@@ -119,6 +119,8 @@ module Xolo
 
           # the capabilites
           stub_patch.capabilities.add_criterion(
+            # Use the title as the name, so it matches all the future versions/patches
+            # avoiding a warning message in the TEd gui.
             # name: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_NAME,
             name: title,
             operator: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_OPERATOR,
@@ -439,6 +441,8 @@ module Xolo
               app_bundle_id: app_bundle_id,
               ea_name: ea_name
             )
+            # ensure its enabled
+            ted_patch.enable
           end # ted_title.patches.each
 
           # # this only dealt with versions currently known to xolo
@@ -568,6 +572,7 @@ module Xolo
                 app_bundle_id: app_bundle_id,
                 ea_name: ted_ea_key
               )
+              ted_patch.enable
             end
           end
 
