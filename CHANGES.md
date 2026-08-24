@@ -4,15 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[Unreleased]
+## \[2.2.4] 2026-08-24
 
 ### Changed
   - More debug logging
   - Don't try to add a new version of a subscribed title if it already exists.
 
 ### Added
-  - The `xadm list-titles` command now takes the `--version-scripts` option
+  - The `xadm list-titles` command now takes the `--version-scripts` option.
     - `-v, --version-scripts         Show only titles that use a version script.`
+
+### Fixed
+  - When editing the version-script or app-name/app-bundle-id of a title, make sure to update
+    all the patches in the Title Editor, even those that have been deleted from Xolo. See v2.0.0
+    below "Retaining Title Editor Version definitions".
+
+    If the deleted patches are ignored, their Title Editor definitions can become corrupted and they
+    will be disabled automatically - AND will cause a Jamf Pro server error when it tries to read those
+    definitions from the Title Editor, meaning Jamf Pro will not see any changes to the title. 
+    This fix prevents that.
     
 ## \[2.2.3] 2026-08-18
 
