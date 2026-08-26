@@ -119,17 +119,17 @@ module Xolo
 
           # the capabilites
           stub_patch.capabilities.add_criterion(
-            # Use the title as the name, so it matches all the future versions/patches
-            # avoiding a warning message in the TEd gui.
-            # name: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_NAME,
-            name: title,
+            name: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_NAME,
             operator: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_OPERATOR,
             value: Xolo::Server::Version::STUB_PATCH_CAPABILITY_CRITERION_VALUE
           )
 
           # the component
           stub_patch.add_component(
-            name: Xolo::Server::Version::STUB_PATCH_COMPONENT_NAME,
+            # Use the title as the name, so it matches all the future versions/patches
+            # avoiding a warning message in the TEd gui.
+            # name: Xolo::Server::Version::STUB_PATCH_COMPONENT_NAME,
+            name: title,
             version: Xolo::Server::Version::STUB_PATCH_VERSION
           )
 
