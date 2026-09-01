@@ -1086,11 +1086,14 @@ function list_installed_titles() {
   local ttl
   local app_data
 
-
   verbose "Locating installed titles..."
 
   # populate the installed_apps associative array
   get_installed_apps
+
+  # gather output here, display it at the end
+  # rather than interspersed with debug lines
+  installed_titles_report=""
 
   while IFS= read -r ttl; do
     app_data=$(app_data_for_title $ttl)
@@ -1102,6 +1105,8 @@ function list_installed_titles() {
       display_title_if_installed_by_version_script $ttl
     fi
   done <<<"$(all_xolo_titles)"
+
+  say "$installed_titles_report"
   return 0
 }
 
@@ -1141,9 +1146,9 @@ function display_title_if_installed_by_app_data() {
   [[ "$inst_app_name" == "$app_name" ]] || return
 
   if [[ -n "$no_versions" ]] ; then
-    echo $ttl
+    installed_titles_report="$installed_titles_report\n$ttl"
   else
-    echo "$ttl ($inst_app_vers)"
+    installed_titles_report="$installed_titles_report\n$ttl ($inst_app_vers)"
   fi
 }
 
@@ -1180,9 +1185,9 @@ function display_title_if_installed_by_version_script() {
   [[ -n "$app_vers" ]] || return
 
   if [[ -n "$no_versions" ]] ; then
-    echo $ttl
+    installed_titles_report="$installed_titles_report\n$ttl"
   else
-    echo "$ttl ($app_vers)"
+    installed_titles_report="$installed_titles_report\n$ttl ($inst_app_vers)"
   fi
 }
 
