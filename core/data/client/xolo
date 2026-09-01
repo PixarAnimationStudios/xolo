@@ -27,6 +27,9 @@ zmodload zsh/zutil
 ###############################
 ###############################
 
+# just in case
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/libexec:$PATH"
+
 # Needed for the UTF-8 chars in the lsreg output
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
@@ -363,35 +366,36 @@ function debug() {
 # e.g. 'com.apple.Safari => Safari.app;14.0.3'
 ###############################
 function get_installed_apps() {
+  # debug "PATH is $PATH"
   debug "Getting all installed .apps on this Mac..."
   local app_name
   local app_bundle_id
   local app_vers
+  local app_plist
 
-  # loop thru lsreg output
-  "$LSREG" -dump Bundle | while IFS= read -r line ; do
-    # a line if ------ starts a new record
-    if [[ "$line" =~ '^-+$' ]] ; then
-      unset app_name
-      unset app_bundle_id
-      unset app_vers
-      continue
-    fi
+  json_app_data=$(/usr/sbin/system_profiler -json SPApplicationsDataType | jq '.SPApplicationsDataType')
 
-    # $MATCH is the whole matched string, $match is the array of captures
-    # NOTE this only works if the path is listed before the CFBundleIdentifier
-    # which seems to be the case in the lsreg output
-    [[ "$line" =~ '^path:[[:space:]]+/.*/(.+\.app) \(' ]] && app_name=$match[1]
-    [[ "$line" =~ '^[[:space:]]+CFBundleIdentifier = \"(.+)\";' ]] && app_bundle_id=$match[1]
-    [[ "$line" =~ '^[[:space:]]+CFBundleShortVersionString = \"(.+)\";' ]] && app_vers=$match[1]
+  apps_to_look_at=$(echo "$json_app_data" | grep '"path":' | cut -d'"' -f4 | grep -v '^/System/')
 
-    if [[ -n "$app_name" && -n "$app_bundle_id" && -n "$app_vers" ]] ; then
+  for app_path in ${(f)apps_to_look_at} ; do
+    app_name=$(/usr/bin/basename "$app_path")
+    app_plist="$app_path/Contents/Info.plist"
+
+    if [[ -f "$app_plist" ]] ; then
+      app_bundle_id=$(/usr/bin/plutil -extract CFBundleIdentifier raw "$app_plist" 2>/dev/null)
+
+      app_vers=$(/usr/bin/plutil -extract CFBundleShortVersionString raw "$app_plist" 2>/dev/null)
+
+      # Use CFBundleVersion if no CFBundleShortVersionString
+      [[ -z "$app_vers" ]] && \
+        app_vers=$(/usr/bin/plutil -extract CFBundleVersion raw "$app_plist" 2>/dev/null)
+
       installed_apps[$app_bundle_id]="$app_name;$app_vers"
-      unset app_name
-      unset app_bundle_id
-      unset app_vers
+    else
+      debug "App Path '$app_path' has no Info.plist"
     fi
   done
+
   # installed_apps is now an associative array with bundle ids as keys and app names as values
 
   # print the installed apps - this is a long list
@@ -402,7 +406,69 @@ function get_installed_apps() {
     done
   fi
 
+# debug "PATH is $PATH"
 } # end installed_apps
+
+########################################
+########################################
+########################################
+########################################
+########################################
+########################################
+# Gather all installed bundle ids and installed versions from lsreg
+# store them in an associative array in $installed_apps.
+# keys are bundle ids, values are app name & installed version
+# separated by a semicolon
+# e.g. 'com.apple.Safari => Safari.app;14.0.3'
+###############################
+# function get_installed_apps() {
+#   debug "Getting all installed .apps on this Mac..."
+#   local app_name
+#   local app_bundle_id
+#   local app_vers
+
+#   # loop thru lsreg output
+#   "$LSREG" -dump Bundle | while IFS= read -r line ; do
+#     # a line if ------ starts a new record
+#     if [[ "$line" =~ '^-+$' ]] ; then
+#       unset app_name
+#       unset app_bundle_id
+#       unset app_vers
+#       continue
+#     fi
+
+#     # $MATCH is the whole matched string, $match is the array of captures
+#     # NOTE this only works if the path is listed before the CFBundleIdentifier
+#     # which seems to be the case in the lsreg output
+#     [[ "$line" =~ '^path:[[:space:]]+/.*/(.+\.app) \(' ]] && app_name=$match[1]
+#     [[ "$line" =~ '^[[:space:]]+CFBundleIdentifier = \"(.+)\";' ]] && app_bundle_id=$match[1]
+#     [[ "$line" =~ '^[[:space:]]+CFBundleShortVersionString = \"(.+)\";' ]] && app_vers=$match[1]
+
+#     if [[ -n "$app_name" && -n "$app_bundle_id" && -n "$app_vers" ]] ; then
+#       installed_apps[$app_bundle_id]="$app_name;$app_vers"
+#       unset app_name
+#       unset app_bundle_id
+#       unset app_vers
+#     fi
+#   done
+#   # installed_apps is now an associative array with bundle ids as keys and app names as values
+
+#   # print the installed apps - this is a long list
+#   if debugging_on ; then
+#     debug "All installed .apps on this Mac:"
+#     for bundle app in ${(kv)installed_apps}; do
+#           debug "'$bundle' -> '$app'"
+#     done
+#   fi
+
+# } # end installed_apps
+########################################
+########################################
+########################################
+########################################
+########################################
+########################################
+########################################
 
 # Extract data from the client-data.json file
 #
@@ -463,7 +529,7 @@ function all_xolo_titles() {
   read -r -d '' jscode <<ENDJAVASCRIPT
     result = Object.keys(parsed_data.titles).join('\n');
 ENDJAVASCRIPT
-  extract_json_data "$jscode" | sort
+  extract_json_data "$jscode" | /usr/bin/sort
 }
 
 # Outputs all known titles, one per line, with versions and statuses
