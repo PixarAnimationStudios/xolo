@@ -373,9 +373,9 @@ function get_installed_apps() {
   local app_vers
   local app_plist
 
-  json_app_data=$(/usr/sbin/system_profiler -json SPApplicationsDataType | jq '.SPApplicationsDataType')
+  json_app_data=$(/usr/sbin/system_profiler -json SPApplicationsDataType )
 
-  apps_to_look_at=$(echo "$json_app_data" | grep '"path":' | cut -d'"' -f4 | grep -v '^/System/')
+  apps_to_look_at=$(echo "$json_app_data" | grep '"path"' | cut -d'"' -f4 | grep -v '^/System/')
 
   for app_path in ${(f)apps_to_look_at} ; do
     app_name=$(/usr/bin/basename "$app_path")
