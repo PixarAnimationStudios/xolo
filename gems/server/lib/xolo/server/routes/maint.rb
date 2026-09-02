@@ -71,6 +71,14 @@ module Xolo
           }
 
           if params[:extended]
+            ssl_cert_data ||= OpenSSL::X509::Certificate.new(Xolo::Server::Configuration::SSL_CERT_FILE.read)
+            state[:ssl_cert_subject] = ssl_cert_data.subject
+            state[:ssl_cert_issuer] = ssl_cert_data.issuer
+            state[:ssl_cert_valid_from] = ssl_cert_data.not_before.localtime
+            state[:ssl_cert_expires] = ssl_cert_data.not_after.localtime
+            state[:ssl_cert_serial] = ssl_cert_data.serial
+            state[:ssl_cert_signature_algorithm] = ssl_cert_data.signature_algorithm
+
             state[:gem_path] = Gem.paths.path
             state[:load_path] = $LOAD_PATH
             state[:object_locks] = Xolo::Server.object_locks
