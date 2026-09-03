@@ -195,6 +195,7 @@ module Xolo
 
           # add new maintenance tasks/methods here
           ######
+          update_ssl_cert_and_key
           accept_title_editor_eas title_objects_for_maint
           auto_release_versions title_objects_for_maint
           cleanup_versions title_objects_for_maint
@@ -208,6 +209,51 @@ module Xolo
           update_client_data post_maint: true
         ensure
           mutex&.unlock
+        end
+
+        # Re-fetch the SSL certificate and key, as defined in the server config,
+        # and compare to the current values. If they are different, save and activate
+        # the new ones.
+        #
+        # NOTE, to get the current values we read the active files from disk,
+        # not the value in memory in the Xolo::Server.config object.
+        # In other words we use this:
+        #     curr_crt = Xolo::Server::Configuration::SSL_CERT_FILE.read.strip
+        # Not this:
+        #     curr_crt = Xolo::Server.config.ssl_cert
+        # This is because the file contents are what get sent to the https clients,
+        # so that's what matters.
+        # We do however update the in-memory value if an update is needed, just in case.
+        ######################################
+        def update_ssl_cert_and_key
+          log_info 'Maint: Checking if SSL Certificate & Key need updating.'
+          update = false
+
+          # check the cert
+          new_crt_src = Xolo::Server.config.raw_data[:ssl_cert]
+          log_debug "Maint: Re-fetching SSL Certificate from: #{new_crt_src}"
+          new_crt = Xolo::Server.config.data_from_command_file_or_string(new_crt_src).strip
+          curr_crt = Xolo::Server::Configuration::SSL_CERT_FILE.read.strip
+          update = true unless new_crt == curr_crt
+
+          # check the key
+          new_key_src = Xolo::Server.config.raw_data[:ssl_key]
+          log_debug "Maint: Re-fetching SSL Private Key from: #{new_key_src}"
+          new_key = Xolo::Server.config.data_from_command_file_or_string(new_key_src).strip
+          curr_key = Xolo::Server::Configuration::SSL_KEY_FILE.read.strip
+          update = true unless new_key == curr_key
+
+          if update
+            log_info 'Maint: SSL Certificate or Key has been updated, installing...'
+            Xolo::Server.config.ssl_cert = new_crt
+            Xolo::Server.config.ssl_key = new_key
+            Xolo::Server::Configuration::SSL_CERT_FILE.pix_save new_crt
+            Xolo::Server::Configuration::SSL_KEY_FILE.pix_save new_key
+          else
+            log_debug 'Maint: SSL Certificate and Private Key are unchanged.'
+          end
+
+          log_info 'Maint: Done Checking if SSL Certificate & Key.'
         end
 
         # look for any titles that need their Title Editor EA's accepted,
