@@ -4,15 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[Unreleased]
+## \[2.3.0] 2026-09-05
+
+### Added
+  - When the xoloserver maintenence is run (nightly automatic, or on-demand via xadm), the SSL certificate and private key are re-fetched from the source (as defined in the server config) and compared to the currently active ones. If they differ, the active ones are updated. This allows for automated certificate renewals, e.g. using an ACME client, without needing to restart the xoloserver. Just have your ACME client put new certs/keys whereever they will be fetched from at server startup, and they'll be seen and applied within 24 hrs.
+
+  - SSL Certificate data is now included in the output of `xadm server-status --extended`
+
+### Changed
+  - When running `xolo list-installed` with `--debug` the full list appears at the end, not interspersed line-by-line with the mountains of debug info.
 
 ### Fixed
   - Use correct naming of the Title Editor Stub Version Component.
+  
+  - The `xolo list-installed` command now actually sees all (most?) installed titles, using `system_profiler` rather than `lsregister`
+
 
 ## \[2.2.4] 2026-08-24
 
 ### Changed
   - More debug logging
+
   - Don't try to add a new version of a subscribed title if it already exists.
 
 ### Added
