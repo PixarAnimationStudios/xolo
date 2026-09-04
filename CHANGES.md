@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
   - When running `xolo list-installed` with `--debug` the full list appears at the end, not interspersed line-by-line with the mountains of debug info.
 
+  - Only update the server's timestamp for the last maintenance run if that run was a nightly automated one. When it's updated from manual runs (via xadm) they may prevent the next nightly run from happening.
+
 ### Fixed
   - Use correct naming of the Title Editor Stub Version Component.
   

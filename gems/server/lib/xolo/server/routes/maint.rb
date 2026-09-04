@@ -106,6 +106,8 @@ module Xolo
         # run the maintenance process manually from a server admin via xadm
         ################
         post '/maint/maint-start' do
+          @manual_maintenance = true
+
           log_info "Starting manual server maintenance by #{session[:admin]}"
 
           session[:admin] = "Maintenance by #{session[:admin]}"

@@ -359,7 +359,7 @@ function debug() {
   debugging_on && echo "DEBUG: $*" 1>&2
 }
 
-# Gather all installed bundle ids and installed versions from lsreg
+# Gather all installed bundle ids and installed versions from system_profiler
 # store them in an associative array in $installed_apps.
 # keys are bundle ids, values are app name & installed version
 # separated by a semicolon

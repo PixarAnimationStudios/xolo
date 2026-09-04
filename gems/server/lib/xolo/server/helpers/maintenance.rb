@@ -108,14 +108,14 @@ module Xolo
           @maint_timer_task
         end
 
-        # When was our last maint?
+        # When was our last automated maint?
         # @return [Time] the time of the last maint, or the epoch if never
         ######################################
         def self.last_maint
           @last_maint ||= Time.at(0)
         end
 
-        # Set the time of the last maint
+        # Set the time of the last maint, if it was automated
         # @param time [Time] the time of the last maint
         # @return [Time] the time of the last maint
         ######################################
@@ -153,7 +153,7 @@ module Xolo
             Xolo::Server.logger.info 'Maint: Starting nightly run now'
 
           else
-            Xolo::Server.logger.info "Maint: Not starting, it isn't time"
+            Xolo::Server.logger.debug "Maint: Not starting, it isn't time"
             return
           end
 
@@ -201,8 +201,10 @@ module Xolo
           cleanup_versions title_objects_for_maint
           notify_admins_of_unreleased_pilots title_objects_for_maint
 
-          # make note of the time.
-          Xolo::Server::Helpers::Maintenance.last_maint = Time.now
+          # make note of the time, but only for automated runs.
+          # Manual runs don't affect this.
+          Xolo::Server::Helpers::Maintenance.last_maint = Time.now unless @manual_maintenance
+
           log_info 'Maint: complete'
 
           log_debug 'Maint: running update_client_data after all tasks'
