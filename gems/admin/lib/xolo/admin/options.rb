@@ -382,6 +382,10 @@ module Xolo
         }
       }.freeze
 
+      DEPLOY_RELEASED = 'released'
+      DEPLOY_LATEST = 'latest'
+      DEPLOY_SPECIAL_VERSIONS = [DEPLOY_RELEASED, DEPLOY_LATEST].freeze
+
       DEPLOY_VERSION_OPTIONS = {
         groups: {
           label: 'Computer group whose computers will be targeted',
@@ -517,17 +521,6 @@ module Xolo
           streamed_response: true,
           confirmation: true
         },
-
-        # SUBSCRIBE_CMD => {
-        #   desc: 'Subscribe to a software title from a Patch Source defined in Jamf Pro',
-        #   display: "#{SUBSCRIBE_CMD} title",
-        #   opts: Xolo::Admin::Title.subscribe_cli_opts,
-        #   walkthru_header: "Subscribing to Xolo Title '#{TARGET_TITLE_PLACEHOLDER}'",
-        #   target: :title,
-        #   process_method: :subscribe_title,
-        #   streamed_response: true,
-        #   confirmation: true
-        # },
 
         EDIT_TITLE_CMD => {
           desc: 'Edit an exising software title',
@@ -666,6 +659,8 @@ module Xolo
             install the version. If the version is already installed, it will be updated immediately.
             Computers in any excluded-groups for the target will be removed from the list of targets
             before the MDM command is sent.
+
+            You can use the words '#{DEPLOY_RELEASED}' or '#{DEPLOY_LATEST}' as the version, or a specific one.
 
             Computers can be specified by name, serial number, or Jamf ID. Groups can be specified by
             name.

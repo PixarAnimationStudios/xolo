@@ -648,7 +648,23 @@ module Xolo
       # @return [void]
       ###############################
       def deploy_version
-        return unless confirmed? "Deploy Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' via MDM?"
+        # If version is 'latest' or 'released', figure out the actual version to deploy
+        if Xolo::Admin::Options::DEPLOY_SPECIAL_VERSIONS.include? cli_cmd.version
+          title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+          vers_display =
+            case cli_cmd.version
+            when Xolo::Admin::Options::DEPLOY_RELEASED
+              cli_cmd.version = title.released_version
+              "#{cli_cmd.version} (#{Xolo::Admin::Options::DEPLOY_RELEASED})"
+            when Xolo::Admin::Options::DEPLOY_LATEST
+              cli_cmd.version = title.version_order.first
+              "#{cli_cmd.version} (#{Xolo::Admin::Options::DEPLOY_LATEST})"
+            else
+              cli_cmd.version
+            end
+        end
+
+        return unless confirmed? "Deploy Version '#{vers_display}' of Title '#{cli_cmd.title}' via MDM?"
 
         unless json? || quiet?
           puts "Deploying Version '#{cli_cmd.version}' of Title '#{cli_cmd.title}' to computers: #{ARGV.join(', ')}"

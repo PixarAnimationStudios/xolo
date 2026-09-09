@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## \[Unreleased] 
+
+### Added
+  - When deploying a version with `xadm deploy title version ...` the version can be specified as 'released' or 'latest'
+
 ## \[2.3.0] 2026-09-05
 
 ### Added
