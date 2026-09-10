@@ -97,6 +97,7 @@ be_verbose=
 debugging_on=
 no_versions=
 show_xolo_version=
+do_recon=
 
 # arguments
 command=
@@ -155,7 +156,9 @@ Options:
                      policies, etc, from test xolo server, not the production server.
                      Setting the XOLO_TEST_MODE env. variable does the same thing.
   -r, --recon:       With 'install' or 'uninstall' run a 'jamf recon' after the
-                     operation completes successfully.
+                     operation completes successfully. With 'update', run a 'jamf recon'
+                     before the checkin. NOTE: With update, the whole process may take
+                     many minutes.
   -n, --no-versions: With the 'list-titles' and 'list-installed' commands,
                      do not show the versions available, or the version
                      installed, respectively.
@@ -190,6 +193,9 @@ Commands:
     every time this computer checks in with Jamf Pro.
     Note: this just runs the 'jamf policy' command, which will execute any pending
     Jamf policies triggered by "recurring check-in".
+    If --recon is given, a Jamf recon will run first, followed by a 1 minute pause
+    for Jamf to process the data before doing the check-in. This helps the Mac to see
+    very recently-released versions as patch updates.
 
   refresh, r
     Update xolo's information about current titles and versions.
@@ -1034,6 +1040,12 @@ function run_recon() {
 ###############################
 function update() {
   say "Updating installed titles, or installing newly scoped ones..."
+
+  if [[ -n "$do_recon" ]]  ; then
+    run_recon
+    say "Pausing to let Jamf Pro process recon data..."
+    sleep 60
+  fi
 
   debug "Running jamf policy..."
     if be_verbose ; then

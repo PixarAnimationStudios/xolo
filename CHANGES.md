@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
   - When deploying a version with `xadm deploy title version ...` the version can be specified as 'released' or 'latest'
 
+### Changed
+  - When using the `--recon` option with `xolo update` a recon is done followed by a 1 minute pause _before_ the checkin. This allows xolo to see very recently released patch updates. Patch updates won't be applied until the first checkin _after the first recon_ after a xolo version is released, so this option makes that happen sooner.
+
 ## \[2.3.0] 2026-09-05
 
 ### Added
