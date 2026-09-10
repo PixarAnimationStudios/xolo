@@ -334,13 +334,13 @@ module Xolo
             next unless vobj_to_release
 
             # release it
-            log_debug "Maint: About to auto-release version '#{vobj_to_release.version}' of '#{title}' which came out #{vobj_to_release.creation_date}"
+            log_debug "Maint: About to auto-release '#{title}' version '#{vobj_to_release.version}' which came out #{vobj_to_release.creation_date}"
 
             # releasing a version is done via the title obj, since it affects the status
             # of all versions.
             title_obj.release vobj_to_release.version
 
-            log_info "Maint: Auto-released version '#{vobj_to_release.version}' of '#{title}' which came out #{vobj_to_release.creation_date}", alert: true
+            log_info "Maint: Auto-released '#{title}' version '#{vobj_to_release.version}' which came out #{vobj_to_release.creation_date}", alert: true
 
             # pause for server to catch up
             sleep 60
