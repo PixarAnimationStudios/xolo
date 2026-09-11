@@ -9,8 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
   - When deploying a version with `xadm deploy title version ...` the version can be specified as 'released' or 'latest'
 
+  - If an autopkg recipe fails, you can make it run again using `xadm rerun-autopkg-recipe title`. It will re-run the recipe and (re-)upload the new .pkg for the latest version of the title. 
+
 ### Changed
   - When using the `--recon` option with `xolo update` a recon is done followed by a 1 minute pause _before_ the checkin. This allows xolo to see very recently released patch updates. Patch updates won't be applied until the first checkin _after the first recon_ after a xolo version is released, so this option makes that happen sooner.
+
+  - When an autopkg recipe fails, an email with details and further instructions is sent to the contact-email for the title, as well as the normal server logging and server alert. The alert text has changed to indicate the email was sent.
 
 ## \[2.3.0] 2026-09-05
 
