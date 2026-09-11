@@ -132,7 +132,9 @@ module Xolo
           clean_old_pkgs pkgdir
 
           cmd = autopkg_run_command(title_object)
-          progress "Running AutoPkg recipe for #{title_object.title} via command: #{cmd.join(' ')}", log: :info
+          progress "Running AutoPkg recipe '#{recipe}' for #{title_object.title}..."
+
+          log_info "Running AutoPkg recipe for #{title_object.title} via command: #{cmd.join(' ')}"
 
           unlock_autopkg_user_keychain
 
@@ -140,13 +142,15 @@ module Xolo
           souterr.strip!
 
           if status.success?
-            progress "AutoPkg recipe #{recipe} for title '#{title_object.title}' completed successfully.", log: :info, alert: true
+            progress "AutoPkg recipe '#{recipe}' for title '#{title_object.title}' completed successfully.", log: :info, alert: true
             log_debug 'AutoPkg output:'
             souterr.lines.each { |l| log_debug "AutoPkg: #{l.chomp}" }
 
             pkgs = pkgdir.children.select { |c| c.extname == '.pkg' }
+            # the Pathname of the newest .pkg
             pkgs.max_by(&:mtime)
 
+          # Failure is a option
           else
             handle_failed_recipe(
               recipe: recipe,
@@ -183,9 +187,9 @@ module Xolo
 
                autopkg update-trust-info '#{recipe}'
 
-            Then tell xolo the xolo server to re-run the recipe (which will always be assigned to the latest version)
+            Then tell xolo the xolo server to re-run the recipe - the .pkg will always be assigned to the latest version.
 
-               xadm rerun-recipe #{title_object.title}
+               xadm rerun-autopkg-recipe #{title_object.title}
 
             If needed, contact your xoloserver administrator to perform the autopkg commands.
 

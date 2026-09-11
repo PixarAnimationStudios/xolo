@@ -1155,10 +1155,6 @@ module Xolo
       # and re-upload the pkg
       ############################
       def rerun_autopkg_recipe
-        raise ArgumentError, "Title '#{title}' is not configured to use AutoPkg" unless autopkg_enabled?
-
-        raise Xolo::NoSuchItemError, "No versions of '#{title}' exist, cannot re-run the recipe." unless latest_version
-
         pkg_src = server_app_instance.run_autopkg_recipe self
 
         return unless server_app_instance.validate_autopkg_pkg pkg_src

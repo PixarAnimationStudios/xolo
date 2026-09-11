@@ -221,7 +221,7 @@ module Xolo
       # @return [Hash] the response data
       #########################
       def rerun_autopkg_recipe(_nx = cnx)
-        resp = cnx.post "#{SERVER_ROUTE}/#{title}/rerun_autopkg_recipe", data
+        resp = cnx.post "#{SERVER_ROUTE}/#{title}/rerun_autopkg_recipe", {}
         resp.body
       end
 

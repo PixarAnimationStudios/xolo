@@ -527,6 +527,8 @@ module Xolo
         display_progress response_data[:progress_stream_url_path]
 
         speak "Recipe is running for '#{cli_cmd.title}'. Upload to distribution points will happen soon."
+      rescue StandardError => e
+        handle_processing_error e
       end
 
       # List all versions of a title in Xolo
