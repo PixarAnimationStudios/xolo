@@ -288,6 +288,18 @@ module Xolo
           body data
         end
 
+        # rerun the titles autopkg recipe
+        ######################
+        post '/titles/:title/rerun_autopkg_recipe' do
+          halt_on_missing_title params[:title]
+          halt_on_locked_title params[:title]
+          title = instantiate_title params[:title]
+
+          with_streaming do
+            title.rerun_autopkg_recipe
+          end
+        end
+
       end # Titles
 
     end #  Routes

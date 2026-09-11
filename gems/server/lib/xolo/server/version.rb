@@ -748,18 +748,7 @@ module Xolo
 
         pkg_src = title_object.run_autopkg_recipe
 
-        if pkg_src.nil?
-          msg = 'AutoPkg recipe is enabled for this title, but no pkg was found after running the recipe. Please check the AutoPkg recipe and the server log for details.'
-          progress msg, log: :warn, alert: true
-          return
-        end
-
-        oldest_allowed = Time.now - 1200 # 20 minutes ago
-        if pkg_src.mtime < oldest_allowed
-          msg = "AutoPkg recipe is enabled for this title, and a pkg was found after running the recipe, but it was last modified at #{pkg_src.mtime}, which is more than 20 minutes ago. To avoid accidentally uploading an old pkg, the server will not upload this pkg. Please check the AutoPkg recipe and the server log for details."
-          progress msg, log: :warn, alert: true
-          return
-        end
+        return unless server_app_instance.validate_autopkg_pkg pkg_src
 
         # this lets future code know that the pkg we're working with came from autopkg
         self.pkg_is_from_autopkg = true

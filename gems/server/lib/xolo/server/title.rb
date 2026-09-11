@@ -1144,6 +1144,31 @@ module Xolo
         unlock
       end
 
+      # run the autopkg recipe if defined
+      # See Helpers::AutoPkg for more details
+      ############################
+      def run_autopkg_recipe
+        server_app_instance.run_autopkg_recipe self
+      end
+
+      # Re run the autopkg recipe
+      # and re-upload the pkg
+      ############################
+      def rerun_autopkg_recipe
+        raise ArgumentError, "Title '#{title}' is not configured to use AutoPkg" unless autopkg_enabled?
+
+        raise Xolo::NoSuchItemError, "No versions of '#{title}' exist, cannot re-run the recipe." unless latest_version
+
+        pkg_src = server_app_instance.run_autopkg_recipe self
+
+        return unless server_app_instance.validate_autopkg_pkg pkg_src
+
+        latest_version_obj = version_object latest_version
+        latest_version_obj.pkg_is_from_autopkg = true
+
+        server_app_instance.process_and_upload_autopkg_pkg title, latest_version_obj, pkg_src
+      end
+
       # Is this title locked for updates?
       #############################
       def locked?

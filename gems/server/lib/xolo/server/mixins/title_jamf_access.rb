@@ -1823,13 +1823,6 @@ module Xolo
           self.ssvc_icon_id = Jamf::Policy.fetch(id: pol.id, cnx: jamf_cnx).icon.id
         end
 
-        # run the autopkg recipe if defined
-        # See Helpers::AutoPkg for more details
-        ############################
-        def run_autopkg_recipe
-          server_app_instance.run_autopkg_recipe self
-        end
-
         # Methods used by subscription stuff
         ##############################
 

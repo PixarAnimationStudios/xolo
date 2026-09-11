@@ -156,6 +156,7 @@ module Xolo
 
         # @!attribute server_admin_jamf_group
         #   @return [String] The name of a Jamf account-group containing users of 'xadm'
+        #     who are allowed to manage the xoloserver itself
         server_admin_jamf_group: {
           type: :string,
           desc: <<~ENDDESC

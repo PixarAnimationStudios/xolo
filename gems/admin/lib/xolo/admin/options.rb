@@ -158,6 +158,7 @@ module Xolo
       FREEZE_TITLE_CMD = 'freeze'
       THAW_TITLE_CMD = 'thaw'
       LIST_FROZEN_CMD = 'list-frozen'
+      RERUN_AUTOPKG_RECIPE_CMD = 'rerun-autopkg-recipe'
 
       LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
@@ -596,6 +597,19 @@ module Xolo
           opts: {},
           target: :title,
           process_method: :list_versions
+        },
+
+        RERUN_AUTOPKG_RECIPE_CMD => {
+          desc: 'Run the AutoPkg recipe for this title again, and re-upload the new pkg.',
+          display: "#{RERUN_AUTOPKG_RECIPE_CMD} title",
+          long_desc: <<~ENDLONG,
+            The recipe will be run immediately, and the resulting .pkg will be re-uploaded for the latest version of the title.
+          ENDLONG
+          opts: {},
+          target: :title,
+          process_method: :rerun_autopkg_recipe,
+          streamed_response: true,
+          confirmation: true
         },
 
         ADD_VERSION_CMD => {
