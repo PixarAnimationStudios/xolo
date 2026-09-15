@@ -120,6 +120,7 @@ module Xolo
       JPAPI_PATCH_REPORT_RSRC = 'patch-report'
 
       SELF_SERVICE_INSTALL_BTN_TEXT = 'Install'
+      SELF_SERVICE_REINSTALL_BTN_TEXT = 'Re-Install'
 
       # Class Methods
       ######################

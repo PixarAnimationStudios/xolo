@@ -1808,6 +1808,8 @@ module Xolo
           pol.self_service_description = new_desc
 
           pol.self_service_install_button_text = Xolo::Server::Title::SELF_SERVICE_INSTALL_BTN_TEXT
+          pol.self_service_reinstall_button_text = Xolo::Server::Title::SELF_SERVICE_REINSTALL_BTN_TEXT
+
           # icon already uploaded to jamf
           return if ssvc_icon_id
 
