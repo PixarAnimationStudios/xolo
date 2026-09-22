@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## \[Unreleased]
+
+### Added
+
+  - Validate the version fetched by AutoPkg and don't upload it if it doesn't match the desired version, just report the issue.
+
+### Fixed
+
+  - Don't auto-release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
+
 ## \[2.4.0] 2026-09-21 
 
 ### Added
