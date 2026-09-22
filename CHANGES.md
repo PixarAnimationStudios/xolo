@@ -26,12 +26,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - When an autopkg recipe fails, an email with details and further instructions is sent to the contact-email for the title, as well as the normal server logging and server alert. The alert text has changed to indicate the email was sent.
 
-## \[Unreleased]
-
-### Fixed
-
-  - Don't auto-release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails.
-
 ## \[2.3.0] 2026-09-05
 
 ### Added
