@@ -1158,7 +1158,7 @@ module Xolo
       def rerun_autopkg_recipe
         pkg_src = server_app_instance.run_autopkg_recipe self
 
-        return unless server_app_instance.validate_autopkg_pkg pkg_src
+        return unless server_app_instance.validate_autopkg_pkg pkg_src, latest_version
 
         latest_version_obj = version_object latest_version
         latest_version_obj.pkg_is_from_autopkg = true

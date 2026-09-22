@@ -748,7 +748,7 @@ module Xolo
 
         pkg_src = title_object.run_autopkg_recipe
 
-        return unless server_app_instance.validate_autopkg_pkg pkg_src
+        return unless server_app_instance.validate_autopkg_pkg pkg_src, version
 
         # this lets future code know that the pkg we're working with came from autopkg
         self.pkg_is_from_autopkg = true

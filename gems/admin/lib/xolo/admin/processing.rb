@@ -526,7 +526,7 @@ module Xolo
 
         display_progress response_data[:progress_stream_url_path]
 
-        speak "Recipe has run for '#{cli_cmd.title}'. Upload to distribution points will happen soon."
+        speak "Recipe has run for '#{cli_cmd.title}'. Please wait up to 15 minutes for a new pkg to be available."
       rescue StandardError => e
         handle_processing_error e
       end
