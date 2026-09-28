@@ -156,7 +156,6 @@ module Xolo
 
           update_description_in_jamf
           update_ssvc
-          # TODO: deal with icon changes: if changes_for_update&.key? :self_service_icon
 
           # are there any versions yet? if no, not active
           if jamf_title_active?
@@ -234,6 +233,7 @@ module Xolo
 
             vers_obj.update_jamf_package_notes(ttl_obj: self) if need_to_update_description?
             vers_obj.update_patch_policy_deployment(ttl_obj: self) if changes_for_update&.key? :self_service_updates
+            vers_obj.set_patch_policy_ssvc_icon if self_service_updates?
           end
         end
 

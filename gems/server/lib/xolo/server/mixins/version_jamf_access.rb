@@ -978,7 +978,8 @@ module Xolo
         #
         # @param ttl_obj [Xolo::Server::Title] the title object that is being changed.
         ###############################
-        def update_patch_policy_deployment(ttl_obj:)
+        def update_patch_policy_deployment(ttl_obj: nil)
+          ttl_obj ||= title_object
           return unless ttl_obj.changes_for_update[:self_service_updates]
 
           ppol = jamf_patch_policy
@@ -1033,6 +1034,7 @@ module Xolo
             ppol.self_service_reminder_frequency = PATCH_POL_SSVC_REMINDER_FREQ_HRS
             ppol.deadline = PATCH_POL_SSVC_DEADLINE_DAYS
 
+            set_patch_policy_ssvc_icon ppol
           # Automatic deployment
           else
             progress "Jamf: Configuring Patch Policy for version '#{version}' of title '#{title}' for automatic deployment", log: :info
@@ -1052,8 +1054,10 @@ module Xolo
         # @param icon_id [Integer, String] The id of the existing icon to use.
         # @return [Void]
         ##########################
-        def set_patch_policy_ssvc_icon(ppol)
+        def set_patch_policy_ssvc_icon(ppol = nil)
           return unless use_ssvc_updates?
+
+          ppol ||= jamf_patch_policy
 
           if title_object.ssvc_icon_id
             icon_id = title_object.ssvc_icon_id
@@ -1065,9 +1069,11 @@ module Xolo
           end
 
           if icon_id.pix_empty?
-            log_debug 'Jamf: could not find ssvc icon id, not setting icon for patch policy.'
+            progress "Jamf: could not find ssvc icon id for title '#{title}', not setting icon for patch policy of version '#{version}'.", log: :info
             return
           end
+
+          progress "Jamf: Setting icon for Self Service Updates of version '#{version}' of title '#{title}'", log: :info
 
           # this str can't be frozen for now
           icon_xml = +<<~ENDXML
