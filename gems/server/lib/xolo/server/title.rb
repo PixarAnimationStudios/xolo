@@ -491,7 +491,8 @@ module Xolo
       # @return [Pathname] The the local file containing the self-service icon
       #####################
       def ssvc_icon_file
-        @ssvc_icon_file ||= self.class.ssvc_icon_file title
+        # dont cache this, read it every time
+        self.class.ssvc_icon_file title
       end
 
       # @return [Pathname] The the local file containing the code of the version script
