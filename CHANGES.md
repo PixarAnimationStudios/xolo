@@ -4,13 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[Unreleased] 
+## \[Unreleased]
+
+### Added
+
+  - Validate the version fetched by AutoPkg and don't upload it if it doesn't match the desired version, just report the issue.
+
+### Fixed
+
+  - Don't auto-release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
+
+## \[2.4.0] 2026-09-21 
 
 ### Added
   - When deploying a version with `xadm deploy title version ...` the version can be specified as 'released' or 'latest'
 
+  - If an autopkg recipe fails, you can make it run again using `xadm rerun-autopkg-recipe title`. It will re-run the recipe and (re-)upload the new .pkg for the latest version of the title. 
+
 ### Changed
   - When using the `--recon` option with `xolo update` a recon is done followed by a 1 minute pause _before_ the checkin. This allows xolo to see very recently released patch updates. Patch updates won't be applied until the first checkin _after the first recon_ after a xolo version is released, so this option makes that happen sooner.
+
+  - When an autopkg recipe fails, an email with details and further instructions is sent to the contact-email for the title, as well as the normal server logging and server alert. The alert text has changed to indicate the email was sent.
 
 ## \[2.3.0] 2026-09-05
 

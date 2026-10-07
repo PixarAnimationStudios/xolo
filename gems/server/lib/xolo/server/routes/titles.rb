@@ -288,6 +288,30 @@ module Xolo
           body data
         end
 
+        # rerun the titles autopkg recipe
+        ######################
+        post '/titles/:title/rerun_autopkg_recipe' do
+          halt_on_missing_title params[:title]
+          halt_on_locked_title params[:title]
+          title = instantiate_title params[:title]
+
+          unless title.autopkg_enabled?
+            msg = "Title '#{params[:title]}' is not configured to use AutoPkg"
+            log_debug "ERROR: #{msg}"
+            halt 409, { status: 409, error: msg }
+          end
+
+          unless title.latest_version
+            msg = "Title '#{params[:title]}' has no versions, cannot re-run the recipe"
+            log_debug "ERROR: #{msg}"
+            halt 404, { status: 404, error: msg }
+          end
+
+          with_streaming do
+            title.rerun_autopkg_recipe
+          end
+        end
+
       end # Titles
 
     end #  Routes

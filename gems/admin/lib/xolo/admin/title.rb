@@ -216,6 +216,15 @@ module Xolo
         resp.body
       end
 
+      # Rerun the autopkg recipe for this title
+      # @param cnx [Faraday::Connection] The connection to use, must be logged in already
+      # @return [Hash] the response data
+      #########################
+      def rerun_autopkg_recipe(cnx = self.cnx)
+        resp = cnx.post "#{SERVER_ROUTE}/#{title}/rerun_autopkg_recipe", {}
+        resp.body
+      end
+
       # Fetch the frozen computers for this title
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash{String => String}] computer name => user name

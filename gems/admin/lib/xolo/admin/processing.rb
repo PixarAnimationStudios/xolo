@@ -513,6 +513,24 @@ module Xolo
         handle_processing_error e
       end
 
+      # Re run the autopkg recipe
+      ################################
+      def rerun_autopkg_recipe
+        return unless confirmed? "Re-run the AutoPkg recipe for '#{cli_cmd.title}' and re-upload the new pkg"
+
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+
+        response_data = title.rerun_autopkg_recipe server_cnx
+
+        show_debug "response_data: #{response_data}"
+
+        display_progress response_data[:progress_stream_url_path]
+
+        speak "Recipe has run for '#{cli_cmd.title}'. Please wait up to 15 minutes for a new pkg to be available."
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
       # List all versions of a title in Xolo
       #
       # @return [void]

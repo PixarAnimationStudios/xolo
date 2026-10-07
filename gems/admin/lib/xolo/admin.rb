@@ -20,24 +20,32 @@
 ######
 require 'openssl'
 
-# Monkeypatch OpenSSL::SSL::SSLContext to ignore unexpected EOF errors
-# happens with openssl v3 ??
+# Monkeypatch/workaround so that OpenSSL::SSL::SSLContext ignores unexpected EOF errors...
+# Seems to be a known problem  with openssl v3.x
+#
 # see https://stackoverflow.com/questions/76183622/since-a-ruby-container-upgrade-we-expirience-a-lot-of-opensslsslsslerror
+# and other googlings.
+#
+# In ruby 4.0 OpenSSL::SSL::SSLContext::DEFAULT_PARAMS[:options] is frozen so we have to .dup it
+# to make the change.
+#
+# TODO: Remove this when the underlying problem is fixed, in either openssl itself, or
+# the OpenSSL ruby module.
 if OpenSSL::SSL.const_defined?(:OP_IGNORE_UNEXPECTED_EOF)
+  if OpenSSL::SSL::SSLContext::DEFAULT_PARAMS.frozen?
+    # supress redefined const. warning
+    original_verbose = $VERBOSE
+    $VERBOSE = nil
+    OpenSSL::SSL::SSLContext::DEFAULT_PARAMS = OpenSSL::SSL::SSLContext::DEFAULT_PARAMS.dup
+    $VERBOSE = original_verbose
+  end
+
   OpenSSL::SSL::SSLContext::DEFAULT_PARAMS[:options] |= OpenSSL::SSL::OP_IGNORE_UNEXPECTED_EOF
 end
 
-require 'openssl'
 require 'faraday'
 require 'faraday/multipart'
 require 'highline'
-
-# Monkeypatch OpenSSL::SSL::SSLContext to ignore unexpected EOF errors
-# happens with openssl v3 ??
-# see https://stackoverflow.com/questions/76183622/since-a-ruby-container-upgrade-we-expirience-a-lot-of-opensslsslsslerror
-if OpenSSL::SSL.const_defined?(:OP_IGNORE_UNEXPECTED_EOF)
-  OpenSSL::SSL::SSLContext::DEFAULT_PARAMS[:options] |= OpenSSL::SSL::OP_IGNORE_UNEXPECTED_EOF
-end
 
 # Yes we're using a OpenStruct for our @opts, even though it's very slow.
 # It isn't so slow that it's a problem for processing a CLI tool.

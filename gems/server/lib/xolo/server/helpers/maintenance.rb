@@ -323,7 +323,14 @@ module Xolo
 
             # version objects are in order of newest to oldest
             title_obj.version_objects.each do |vobj|
+              # gotta be in pilot
               next unless vobj.pilot?
+
+              # must have a jamf pkg file uploaded
+              # (won't if autopkg recipe failed)
+              next if vobj.jamf_pkg_file.pix_empty?
+
+              # creation date has to be appropriate
               next unless vobj.creation_date.to_date <= creation_date_to_be_released_today
 
               vobj_to_release = vobj
