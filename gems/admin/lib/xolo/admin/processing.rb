@@ -982,7 +982,7 @@ module Xolo
             next
           end
 
-          vers = Gem::Version.new(d[:version])
+          vers = d[:version]
           version_counts[vers] ||= 0
           version_counts[vers] += 1
         end
