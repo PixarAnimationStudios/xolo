@@ -369,6 +369,8 @@ module Xolo
       # validate a title auto_release_delay:
       # - a non-negative integer?
       # OR
+      # - 'monthly'
+      # OR
       # - 'none' to unset the value
       #
       # @param val [Object] The value to validate
@@ -377,6 +379,7 @@ module Xolo
       ###########################
       def validate_auto_release_delay
         return if val == Xolo::NONE
+        return Xolo::MONTHLY if val.casecmp? Xolo::MONTHLY
 
         if val.pix_integer?
           val = val.to_i

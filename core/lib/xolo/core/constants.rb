@@ -23,6 +23,9 @@ module Xolo
 
       ERROR = 'ERROR'
 
+      # A possible value for a title's auto-release delay
+      MONTHLY = 'monthly'
+
       # Several things use x
       X = 'x'
 

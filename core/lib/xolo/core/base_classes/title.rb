@@ -459,7 +459,8 @@ module Xolo
           },
 
           # @!attribute auto_release_delay
-          #   @return [String] 'none' or an integer in string. How many days before new versions are automatically released?
+          #   @return [String] 'none', 'monthly', or an integer in string.
+          #     How many days before new versions are automatically released?
           #     Applies only to subscribed titles with autopkg recipes.
           auto_release_delay: {
             label: 'Automatic Release Delay',
@@ -467,7 +468,7 @@ module Xolo
             type: :string,
             walkthru_na: :auto_release_delay_na,
             changelog: true,
-            invalid_msg: "Must be a non-negative integer, or '#{Xolo::NONE}'.",
+            invalid_msg: "Must be a non-negative integer, '#{Xolo::MONTHLY}', or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC
               Specify how many days after a new version appears before it is automatically released from pilot.
 
@@ -476,6 +477,9 @@ module Xolo
               Setting this to 7 means that a week after a new version appears as a pilot, it will automatically be released as if someone did `xadm release <title> <version>`. The delay period should be used for piloting the version, either automatically using pilot-groups, or manually. *** USE WITH CAUTION ***
 
               Setting it to zero means that new versions will be released at the next nightly auto-release task. *** USE WITH EXTREME CAUTION ***
+
+              Setting it to '#{Xolo::MONTHLY}' will release it on whatever day of the month is defined in the Xolo server's 'auto_release_monthly' setting, or on the first day of the month if the server isn't set. The server may be set to a specific date, like '15' or to an ordinal-weekday, like
+              '3rd Mon'.
 
               To unset, meaning versions are never auto-released, use '#{Xolo::NONE}'
 

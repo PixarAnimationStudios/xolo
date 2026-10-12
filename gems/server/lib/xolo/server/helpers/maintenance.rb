@@ -43,14 +43,15 @@ module Xolo
         # MAINT_CHECK_INTERVAL = 600
 
         # At what hour should the nightly maintenance run?
+        # default to 2am
         MAINT_HOUR = 2
         # MAINT_HOUR = 10
 
-        # Maint won't run unless the last run was at least this many
+        # Automated maint won't run unless the last run was at least this many
         # seconds ago.
         # 23 hrs ago means that even if we check twice within the
         # MAINT_HOUR, only the first one will run.
-        MAINT_MAX_FREQ_SECS = 23 * 3600
+        AUTO_MAINT_MAX_FREQ_SECS = 23 * 3600
 
         # the route we POST to, to start the nightly process.
         TIMED_MAINT_TRIGGER_ROUTE = '/maint/maint-internal'
@@ -145,11 +146,11 @@ module Xolo
           now = Time.now
 
           # only run the maintenance if it's during the MAINT_HOUR
-          # and the last one was more than MAINT_MAX_FREQ_SECS ago
+          # and the last one was more than AUTO_MAINT_MAX_FREQ_SECS ago
           if force
             Xolo::Server.logger.info 'Maint: Starting now due to force'
 
-          elsif now.hour == MAINT_HOUR && (now - last_maint) > MAINT_MAX_FREQ_SECS
+          elsif now.hour == MAINT_HOUR && (now - last_maint) > AUTO_MAINT_MAX_FREQ_SECS
             Xolo::Server.logger.info 'Maint: Starting nightly run now'
 
           else
@@ -295,6 +296,7 @@ module Xolo
           # Loop thru the titles
           title_objects.each do |title_obj|
             title = title_obj.title
+            vobj_to_release = nil
 
             # nothing to do if its nil or 'none'
             next if title_obj.auto_release_delay.nil? || title_obj.auto_release_delay == Xolo::NONE
@@ -303,42 +305,52 @@ module Xolo
             # (enforced in xadm)
             next unless title_obj.subscribed? && !title_obj.autopkg_recipe.pix_empty?
 
-            # title must have a non-negative integer for auto_release_delay,
-            # (number of days to wait before release)
-            # could be zero. (enforced in xadm)
-            # NOTE: it is stored as a string because it might be 'none'
-            # TODO: store none as nil, so we don't have to do the pix_integer check??
-            delay = title_obj.auto_release_delay.to_i
-            next unless title_obj.auto_release_delay&.pix_integer? && !delay.negative?
+            # if the title is set for monthly release, is today the
+            # right day of the month?
+            if title_obj.auto_release_delay == Xolo::MONTHLY
+              next unless monthly_release_today?
 
-            # Any version with this creation date should be released now, skip if not
-            # So if the auto_release_delay is 7, its today - 7 days.
-            # if the auto_release_delay is 0, its today - 0 days, aka today
-            creation_date_to_be_released_today = today - delay
+              # For Monthlies, we only ever auto-release the newest version,
+              # and only if it is in pilot
+              latest_vobj = title_obj.version_objects.first
+              next unless latest_vobj&.pilot?
 
-            # Find the newest pilot version whose creation date is
-            # creation_date_to_be_released_today or earlier
-            # That one should be released now.
-            vobj_to_release = nil
+              vobj_to_release = latest_vobj
 
-            # version objects are in order of newest to oldest
-            title_obj.version_objects.each do |vobj|
-              # gotta be in pilot
-              next unless vobj.pilot?
+            # Look for a version to be released today.
+            # The delay value must be a positive integer
+            elsif title_obj.auto_release_delay.pix_integer?
+              delay = title_obj.auto_release_delay.to_i
+              next if delay.negative?
 
-              # must have a jamf pkg file uploaded
-              # (won't if autopkg recipe failed)
-              next if vobj.jamf_pkg_file.pix_empty?
+              # Given the title's delay, what creation date means
+              # we should release today?
+              # So if the auto_release_delay is 7, its today - 7 days.
+              # if the auto_release_delay is 0, its today - 0 days, aka today
+              creation_date_to_be_released_today = today - delay
 
-              # creation date has to be appropriate
-              next unless vobj.creation_date.to_date <= creation_date_to_be_released_today
+              # Find the newest pilot version whose creation date is
+              # creation_date_to_be_released_today or earlier
+              # That one should be released now.
+              # version objects are in order of newest to oldest
+              title_obj.version_objects.each do |vobj|
+                # gotta be in pilot
+                next unless vobj.pilot?
 
-              vobj_to_release = vobj
-              break
-            end
+                # creation date has to be appropriate
+                next unless vobj.creation_date.to_date <= creation_date_to_be_released_today
+
+                vobj_to_release = vobj
+                break
+              end # title_obj.version_objects.each
+            end # if title_obj.auto_release_delay == Xolo::MONTHLY
 
             # no versions to release today
             next unless vobj_to_release
+
+            # must have a jamf pkg file uploaded
+            # (won't if autopkg recipe failed)
+            next if vobj_to_release.jamf_pkg_file.pix_empty?
 
             # release it
             log_debug "Maint: About to auto-release '#{title}' version '#{vobj_to_release.version}' which came out #{vobj_to_release.creation_date}"
@@ -351,9 +363,76 @@ module Xolo
 
             # pause for server to catch up
             sleep 60
-          end # each title
+          end # title_objects.each do |title_obj|
 
           log_debug 'Maint: Done auto-releasing'
+        end
+
+        # Is today the day for a monthly release?
+        # The order we check:
+        # - If the server is set to an ordinal weekday, like '3rd Thu'
+        # - If the server is set to the last weekday, like 'Last Thu'
+        # - If the server is set to a specific day of the month, which may be beyond the last day
+        # - All other cases, the first of the month.
+        #
+        # @return [Boolean] is today the day for a monthly release?
+        #################################
+        def monthly_release_today?
+          return @monthly_release_today if defined? @monthly_release_today
+
+          today = Date.today
+          last_day_of_this_month = Date.new(today.year, today.month, -1)
+
+          # downcased string...
+          server_setting = Xolo::Server.config.auto_release_monthly.to_s.downcase
+
+          @monthly_release_today =
+            # matches, e.g. '2nd Mon'
+            ##########
+            if today.to_time.pix_ordinal_weekday.casecmp? server_setting
+              true
+
+            # matches e,g, 'last Mon'
+            ##########
+            elsif server_setting.start_with? 'last '
+              # e.g. 'Mon'
+              release_weekday = server_setting.split(' ').last
+
+              # is it the right weekday?
+              if today.strftime('%a').casecmp? release_weekday
+                # yes... so is it the last one?
+                last_week_of_the_month = (last_day_of_this_month - 6)..last_day_of_month
+                last_week_of_the_month.include? today
+
+              # it is not the right weekday
+              else
+                false
+              end
+
+            # matches an integer day of the month, or the last day of the month
+            # if server_setting is greater than the number of days in the month
+            ##########
+            elsif server_setting.pix_integer? && server_setting.to_i.positive?
+              # convert string to integer
+              server_setting = server_setting.to_i
+
+              # integer for the last day of the month
+              last_day = last_day_of_this_month.day
+
+              # use the last day of this month if the server is set beyond it
+              server_setting = last_day if server_setting >= last_day
+
+              # is it today?
+              server_setting == today.day
+
+            # All other cases, e.g. bad value or unset on the server,
+            # ... the first of the month.
+            ##########
+            else
+              today.day == 1
+            end
+
+          @monthly_release_today
         end
 
         # Cleanup versions.
