@@ -837,17 +837,18 @@ module Xolo
         auto_release_monthly: {
           type: :string,
           desc: <<~ENDDESC
-            If a title has an --auto-release-delay set to '#{Xolo::MONTHLY}', this defines which day of the month the release happens on. Releases happen during nightly maintenence, between 2 and 3am, which may affect the value you put here.
+            If a title has an --auto-release-delay set to '#{Xolo::MONTHLY}', this defines which day of the month the release happens. Releases happen during nightly maintenence, between 2 and 3am, which may affect the value you put here. Monthly releases will only release the newest version, if it's status is 'pilot'.
 
-            Setting it to an integer will cause the release to happen on that day of the month, so 15 makes it happen during the at the very end of the day on the 15th of the month. If you set the value to beyond the end of the month, it will happen on the last day of the month, so set it to 31 for the last day of every month.
+            Setting it to an integer will cause the release to happen on that day of the month, so 15 makes it happen on the 15th of the month. If you set the value to beyond the end of the month, it will happen on the last day of the month, so set it to 31 (or higher) for the last day of every month.
 
             Alternatively you can set it to a string specifying an 'ordinal-weekday', e.g. '2nd Tue', which will cause the release to happen on the second Tuesday of every month.
 
-            The string must be 2 space-separated values, one of '1st', '2nd', '3rd', '4th', or 'last', followed by a 3-letter English weekday, one of 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', or 'Sat' (all case-insensitive).
+            The string must be two space-separated values, one of '1st', '2nd', '3rd', '4th', or 'last', then a 3-letter English weekday, one of 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', or 'Sat'.
+            All of these are case-insensitive.
 
             If a title is set to 'monthly', and the server has no value here, releases happen on the 1st of every month, regardless of weekday.
 
-            Setting monthly auto-release can help avoid update-fatigue when you have lots of titles auto-releasing. Users can expect all their updates at around the same time once a month.
+            Setting monthly auto-release can help avoid user-update-fatigue when you have lots of titles auto-releasing frequently. Users can expect all their updates at around the same time once a month.
 
             Note that new versions of titles can always be manually released at any time once they are added to xolo, so if an important security update comes out and you don't want to wait up to a month to release it, you can do so manually with 'xadm release <title> <version>'
           ENDDESC
