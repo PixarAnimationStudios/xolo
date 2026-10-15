@@ -40,7 +40,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-  - Error when releasing a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
+  - An error is now generated when trying to release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
+
+### Changed
+
+  - xadm's `rerun-autopkg-recipe` command is now just `rerun-autopkg`, for the sake of brevity and terminal width.
 
 ## \[2.4.0] 2026-09-21 
 

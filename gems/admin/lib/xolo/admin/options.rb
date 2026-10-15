@@ -158,7 +158,7 @@ module Xolo
       FREEZE_TITLE_CMD = 'freeze'
       THAW_TITLE_CMD = 'thaw'
       LIST_FROZEN_CMD = 'list-frozen'
-      RERUN_AUTOPKG_RECIPE_CMD = 'rerun-autopkg-recipe'
+      RERUN_AUTOPKG_RECIPE_CMD = 'rerun-autopkg'
       RERUN_SUBSCRIPTION_CMD = 'rerun-sub'
 
       LIST_VERSIONS_CMD = 'list-versions'
