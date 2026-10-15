@@ -467,6 +467,7 @@ module Xolo
             cli: :A,
             type: :string,
             walkthru_na: :auto_release_delay_na,
+            validate: true,
             changelog: true,
             invalid_msg: "Must be a non-negative integer, '#{Xolo::MONTHLY}', or '#{Xolo::NONE}'.",
             desc: <<~ENDDESC

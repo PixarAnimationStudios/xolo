@@ -298,30 +298,39 @@ module Xolo
             title = title_obj.title
             vobj_to_release = nil
 
-            # nothing to do if its nil or 'none'
+            # nothing to do if auto_release_delay is nil or 'none'
             next if title_obj.auto_release_delay.nil? || title_obj.auto_release_delay == Xolo::NONE
 
             # title must be subscribed and autopkg
-            # (enforced in xadm)
+            # (enforced in xadm also)
             next unless title_obj.subscribed? && !title_obj.autopkg_recipe.pix_empty?
 
             # if the title is set for monthly release, is today the
             # right day of the month?
             if title_obj.auto_release_delay == Xolo::MONTHLY
-              next unless monthly_release_today?
+              unless monthly_release_today?
+                log_debug "Title '#{title}' is set to monthly, but today isn't '#{Xolo::Server.config.auto_release_monthly}'"
+                next
+              end
 
               # For Monthlies, we only ever auto-release the newest version,
               # and only if it is in pilot
               latest_vobj = title_obj.version_objects.first
-              next unless latest_vobj&.pilot?
+              unless latest_vobj&.pilot?
+                log_debug "Title '#{title}' is set to monthly, but the latest version isn't in pilot"
+                next
+              end
 
               vobj_to_release = latest_vobj
 
             # Look for a version to be released today.
-            # The delay value must be a positive integer
+            # The delay value must be a non-negative integer
             elsif title_obj.auto_release_delay.pix_integer?
               delay = title_obj.auto_release_delay.to_i
-              next if delay.negative?
+              if delay.negative?
+                log_debug "Title '#{title}': invalid auto_release_delay: #{delay}"
+                next
+              end
 
               # Given the title's delay, what creation date means
               # we should release today?
@@ -332,7 +341,7 @@ module Xolo
               # Find the newest pilot version whose creation date is
               # creation_date_to_be_released_today or earlier
               # That one should be released now.
-              # version objects are in order of newest to oldest
+              # version_objects are in order of newest to oldest
               title_obj.version_objects.each do |vobj|
                 # gotta be in pilot
                 next unless vobj.pilot?
@@ -346,7 +355,10 @@ module Xolo
             end # if title_obj.auto_release_delay == Xolo::MONTHLY
 
             # no versions to release today
-            next unless vobj_to_release
+            unless vobj_to_release
+              log_debug "Title '#{title}': nothing to auto-release"
+              next
+            end
 
             # must have a jamf pkg file uploaded
             # (won't if autopkg recipe failed)
@@ -355,14 +367,14 @@ module Xolo
             # release it
             log_debug "Maint: About to auto-release '#{title}' version '#{vobj_to_release.version}' which came out #{vobj_to_release.creation_date}"
 
-            # releasing a version is done via the title obj, since it affects the status
-            # of all versions.
+            # releasing a version is done via the title obj,
+            # since it affects the status of all versions.
             title_obj.release vobj_to_release.version
 
             log_info "Maint: Auto-released '#{title}' version '#{vobj_to_release.version}' which came out #{vobj_to_release.creation_date}", alert: true
 
             # pause for server to catch up
-            sleep 60
+            sleep 30
           end # title_objects.each do |title_obj|
 
           log_debug 'Maint: Done auto-releasing'
@@ -392,15 +404,15 @@ module Xolo
             if today.to_time.pix_ordinal_weekday.casecmp? server_setting
               true
 
-            # matches e,g, 'last Mon'
+            # matches 'last <wkday>' e.g. 'last mon'
             ##########
             elsif server_setting.start_with? 'last '
-              # e.g. 'Mon'
+              # e.g. 'Mmon'
               release_weekday = server_setting.split(' ').last
 
               # is it the right weekday?
               if today.strftime('%a').casecmp? release_weekday
-                # yes... so is it the last one?
+                # yes... so is it the last one? Make a Range and see it today is in it.
                 last_week_of_the_month = (last_day_of_this_month - 6)..last_day_of_month
                 last_week_of_the_month.include? today
 

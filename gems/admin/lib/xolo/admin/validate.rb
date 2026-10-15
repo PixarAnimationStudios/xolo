@@ -375,16 +375,12 @@ module Xolo
       #
       # @param val [Object] The value to validate
       #
-      # @return [String, Integer] The valid value
+      # @return [String] The valid value
       ###########################
-      def validate_auto_release_delay
+      def validate_auto_release_delay(val)
         return if val == Xolo::NONE
         return Xolo::MONTHLY if val.casecmp? Xolo::MONTHLY
-
-        if val.pix_integer?
-          val = val.to_i
-          return val unless val.negative?
-        end
+        return val if val.pix_integer? && !val.to_i.negative?
 
         raise_invalid_data_error val, TITLE_ATTRS[:auto_release_delay][:invalid_msg]
       end
