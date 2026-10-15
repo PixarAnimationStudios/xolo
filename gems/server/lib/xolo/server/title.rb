@@ -1164,6 +1164,8 @@ module Xolo
       # and re-upload the pkg
       ############################
       def rerun_autopkg_recipe
+        log_change msg: "Re-running autopkg recipe '#{autopkg_recipe}' for latest version '#{latest_version}'"
+
         pkg_src = server_app_instance.run_autopkg_recipe self
 
         return unless server_app_instance.validate_autopkg_pkg pkg_src, latest_version

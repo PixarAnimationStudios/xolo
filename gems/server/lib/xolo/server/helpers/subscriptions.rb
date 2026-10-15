@@ -119,6 +119,8 @@ module Xolo
                   "Latest version must be 'pending' or 'pilot' to rerun subscription updates. Version '#{version}' of title '#{title}' is '#{vobj.status}' "
           end
 
+          title_obj.log_change msg: "Re-running subscription update for latest version' #{version}'"
+
           progress "Deleting existing version '#{version}'...", log: :info
           vobj.delete
           progress 'Pausing for package deletion (sorry for delay)...'
