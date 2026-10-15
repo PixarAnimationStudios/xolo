@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     Titles that are elegible for Auto-Release (those both subscribed and autopkg) can have their `--auto-release-delay` set to `monthly`. 
     
-    When you have a lot of auto-released titles with frequent updates, monthly releases can help prevent 'update-fatigue'. Users can expect all of their updates at the same time each month. When set to montly, only the most recent version is released, and only if it is still in 'pilot'.
+    When you have a lot of auto-released titles with frequent updates, monthly releases can help prevent 'update-fatigue'. Users can expect all of their updates at the same time each month. When set to montly, only the most recent version is released, and only if it is still in 'pilot'. Urgent versions can still be manually released at any time.
 
     The server also now has a config value 'auto_release_monthly', which is a string that defines what day of the month such releases happen. 
 
