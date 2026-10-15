@@ -519,7 +519,6 @@ module Xolo
         return unless confirmed? "Re-run the AutoPkg recipe for '#{cli_cmd.title}' and re-upload the new pkg"
 
         title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
-
         response_data = title.rerun_autopkg_recipe server_cnx
 
         show_debug "response_data: #{response_data}"
@@ -527,6 +526,25 @@ module Xolo
         display_progress response_data[:progress_stream_url_path]
 
         speak "Recipe has run for '#{cli_cmd.title}'. Please wait up to 15 minutes for a new pkg to be available."
+      rescue StandardError => e
+        handle_processing_error e
+      end
+
+      #
+      ###########################
+      def rerun_subscription_update
+        unless confirmed? "Delete and re-create the latest version of '#{cli_cmd.title}' via the subscription process?"
+          return
+        end
+
+        title = Xolo::Admin::Title.fetch cli_cmd.title, server_cnx
+        response_data = title.rerun_subscription_update server_cnx
+
+        show_debug "response_data: #{response_data}"
+
+        display_progress response_data[:progress_stream_url_path]
+
+        speak "Subscription update for latest version of '#{cli_cmd.title}' has been triggered."
       rescue StandardError => e
         handle_processing_error e
       end

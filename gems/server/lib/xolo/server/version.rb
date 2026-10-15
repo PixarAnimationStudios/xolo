@@ -307,8 +307,22 @@ module Xolo
 
           auto_release_delay = title_object.auto_release_delay.to_i
 
-          # is auto_release_delay an integer?
-          if title_object.auto_release_delay&.pix_integer? && !auto_release_delay.negative?
+          # is auto_release_delay monthly?
+          if title_object.auto_release_delay == Xolo::MONTHLY
+            monthly = Xolo::Server.config.auto_release_monthly
+            day =
+              if monthly.pix_integer?
+                monthly.to_i.pix_ordinalize
+              elsif %w[sun mon tue wed thu fri sat].include? monthly[-3..-1].downcase
+                monthly
+              else
+                '1st'
+              end
+
+            msg = "New pilot for subscribed title '#{title}', version '#{new_version}' has been created in Xolo via subscription.\nIt will be released during nightly maintenance on the next #{day} of the month"
+
+            # is auto_release_delay an integer?
+          elsif title_object.auto_release_delay&.pix_integer? && !auto_release_delay.negative?
             how_soon =
               if auto_release_delay.zero?
                 'tonight'
@@ -696,8 +710,12 @@ module Xolo
         progress 'Saving version data to Xolo server'
         save_local_data
 
-        create_patch_in_ted unless subscribed?
+        # prepend our version to the version_order array of the title once
+        # our version data has been saved at least once.
+        progress "Updating title version_order, prepending '#{version}'", log: :info
+        title_object.prepend_version(version)
 
+        create_patch_in_ted unless subscribed?
         create_in_jamf
 
         self.status = STATUS_PILOT
@@ -705,10 +723,6 @@ module Xolo
         # save to file again now, because saving to TitleEd and Jamf will
         # add some data
         save_local_data
-
-        # prepend our version to the version_order array of the title
-        progress "Updating title version_order, prepending '#{version}'", log: :info
-        title_object.prepend_version(version)
 
         log_change msg: 'Version Created'
 

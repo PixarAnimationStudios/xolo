@@ -10,20 +10,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - Validate the version fetched by AutoPkg and don't upload it if it doesn't match the desired version, just report the issue.
 
+  - New `rerun-sub <title>` command for `xadm`.
+
+    For subscribed titles, if the latest version has status 'pilot' or 'pending', this will delete that version and re-add it as if a subscription update event was receieved. This can be useful when there were problems the first time the event was processed and the version was added. 
+
   - Monthly Auto-Release
 
-    Titles that are elegible for Auto-Release (those both subscribed and autopkg) can have their auto-release-delay set to 'monthly'. 
+    Titles that are elegible for Auto-Release (those both subscribed and autopkg) can have their `--auto-release-delay` set to `monthly`. 
     
     When you have a lot of auto-released titles with frequent updates, monthly releases can help prevent 'update-fatigue'. Users can expect all of their updates at the same time each month. When set to montly, only the most recent version is released, and only if it is still in 'pilot'.
 
-    The server also now has a config value 'auto_release_monthly', which defines what day of the month such releases happen. 
+    The server also now has a config value 'auto_release_monthly', which is a string that defines what day of the month such releases happen. 
 
     The server value can be a specific date of the month, e.g. '15' for the 15th of every month. If the value is beyond the end of the month (e.g. '31' and it's February) then the release happens on the last day of the month.
 
-    The value can also be an 'ordinal-weekday' - a 2-part, space-separated string like '1st Mon'. The first part must be one of:
+    The value can also be an 'ordinal-weekday' - a 2-part, space-separated string like '1st Mon'. 
+    
+    The first part must be one of:
     - 1st, 2nd, 3rd, 4th, last
     
-    then a 3-letter English weekday, one of:
+    and the second a 3-letter English weekday, one of:
     - Sun, Mon, Tue, Wed, Thu, Fri, Sat
     
     All of these are case-insensitive.
@@ -34,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-  - Don't auto-release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
+  - Error when releasing a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
 
 ## \[2.4.0] 2026-09-21 
 

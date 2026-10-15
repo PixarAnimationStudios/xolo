@@ -454,7 +454,7 @@ module Xolo
           msg = "Jamf: Starting deletion of Package '#{jamf_pkg_name}' id #{jamf_pkg_id} at #{Time.now.strftime '%F %T'}"
           progress msg, log: :info
 
-          warning = "IMPORTANT: Package deletion can be slow. If you plan to re-add this version, '#{version}', please\nwait at least 5 minutes before doing so."
+          warning = "IMPORTANT: Package deletion can be slow. If you plan to re-add this version, '#{version}', please wait a few minutes before doing so."
           progress warning
 
           self.class.pkg_deletion_pool.post do
@@ -1065,7 +1065,7 @@ module Xolo
           else
             icon_id = title_object.jamf_manual_install_released_policy.self_service_icon.id
             log_debug "Jamf: ssvc_icon_id from manual install policy is: #{icon_id}"
-
+            title_object.ssvc_icon_id = icon_id
           end
 
           if icon_id.pix_empty?
@@ -1087,12 +1087,14 @@ module Xolo
             </patch_policy>
           ENDXML
 
-          log_debug "Jamf: Adding existing SSvc icon to patch policy for version '#{version}' of title '#{title}'"
+          log_debug "Jamf: Adding existing SSvc icon id '#{icon_id}' to patch policy '#{ppol.id}' for version '#{version}' of title '#{title}'"
 
           # TODO: in ruby-jss, update c_put and related methods to
           # use unfrozen dups of strings for #gsub
 
           jamf_cnx.c_put "patchpolicies/id/#{ppol.id}", icon_xml
+        rescue Jamf::NoSuchItemError => e
+          log_error "Couldn't set SSvc icon id '#{icon_id}' to patch policy '#{ppol.id}' for version '#{version}' of title '#{title}': Jamf::NoSuchItemError: #{e}"
         end
 
         # @return [String] the URL for the Jamf Pro Patch Policy that updates to this version

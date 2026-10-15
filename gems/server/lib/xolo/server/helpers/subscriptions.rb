@@ -91,7 +91,7 @@ module Xolo
                 new_version: new_version
               )
             else
-              log_debug "Title '#{title_name}' ID #{title_id} is not a subscribed title. Ignoring webhook."
+              log_debug "Title '#{title_name}' ID #{title_id} is not a subscribed title on this Xolo server. Ignoring webhook."
             end
           rescue => e
             msg = "Error processing PatchSoftwareTitleUpdated webhook event: #{e.class}: #{e}"
@@ -99,6 +99,37 @@ module Xolo
             e.backtrace.each { |l| log_error "..#{l}" }
             raise e, msg
           end # thread
+        end
+
+        # Manually re-trigger a the latest version,
+        # if the subscription update failed.
+        #
+        # Will delete and re-create the latest version, which
+        # must be pilot or pending.
+        def rerun_subscription_update(title)
+          log_debug "Re-running subscription update for latest version of #{title}"
+
+          title_obj = instantiate_title title
+          raise Xolo::UnsupportedError, "Title #{title} is not a subscribed title." unless title_obj.subscribed?
+
+          version = title_obj.latest_version
+          vobj = instantiate_version title: title, version: version
+          unless %w[pilot pending].include? vobj.status
+            raise Xolo::UnsupportedError,
+                  "Latest version must be 'pending' or 'pilot' to rerun subscription updates. Version '#{version}' of title '#{title}' is '#{vobj.status}' "
+          end
+
+          progress "Deleting existing version '#{version}'...", log: :info
+          vobj.delete
+          progress 'Pausing for package deletion (sorry for delay)...'
+
+          sleep 60
+
+          progress "Re-adding version '#{version}' via subscription...", log: :info
+          Xolo::Server::Version.add_version_via_subscription(
+            title_object: title_obj,
+            new_version: version
+          )
         end
 
       end # Subscriptions

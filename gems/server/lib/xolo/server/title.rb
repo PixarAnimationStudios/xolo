@@ -986,16 +986,23 @@ module Xolo
       # @return [void]
       ######################################
       def validate_release(version_to_release)
+        # already released
         if released_version == version_to_release
           raise Xolo::InvalidDataError,
                 "Version '#{version_to_release}' of title '#{title}' is already released"
         end
 
+        # no such version
         unless versions.include? version_to_release
           raise Xolo::NoSuchItemError,
                 "No version '#{version_to_release}' for title '#{title}'"
         end
 
+        # missing .pkg file
+        vobj = version_object version_to_release
+        raise Xolo::MissingDataError, "Version '#{version_to_release}' of title '#{title}' has no uploaded .pkg" if vobj.jamf_pkg_file.pix_empty?
+
+        # visible to jamf?
         jamf_patch_title(refresh: true)
         return if jamf_patch_title.versions.key?(version_to_release)
 

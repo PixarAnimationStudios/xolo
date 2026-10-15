@@ -479,8 +479,7 @@ module Xolo
 
               Setting it to zero means that new versions will be released at the next nightly auto-release task. *** USE WITH EXTREME CAUTION ***
 
-              Setting it to '#{Xolo::MONTHLY}' will release it on whatever day of the month is defined in the Xolo server's 'auto_release_monthly' setting, or on the first day of the month if the server isn't set. The server may be set to a specific date, like '15' or to an ordinal-weekday, like
-              '3rd Mon'.
+              Setting it to '#{Xolo::MONTHLY}' will release it on whatever day of the month is defined in the Xolo server's 'auto_release_monthly' setting, or on the first day of the month if the server isn't set. The server may be set to a specific date, like '15' or to an ordinal-weekday, like '3rd Mon'.
 
               To unset, meaning versions are never auto-released, use '#{Xolo::NONE}'
 

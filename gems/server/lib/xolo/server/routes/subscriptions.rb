@@ -117,6 +117,22 @@ module Xolo
           body resp
         end
 
+        # Manually re-trigger a previous, failed subscription update
+        # Will delete and re-create the existing version, which
+        # must be pilot or pending.
+        ###############
+        post '/titles/:title/rerun-subscription' do
+          title = params[:title]
+          log_debug "Route for  subscription update for latest version of #{title}"
+
+          halt_on_missing_title title
+          halt_on_locked_title title
+
+          with_streaming do
+            rerun_subscription_update(title)
+          end
+        end
+
       end # Module
 
     end #  Routes

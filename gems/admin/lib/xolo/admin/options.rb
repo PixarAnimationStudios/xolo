@@ -159,6 +159,7 @@ module Xolo
       THAW_TITLE_CMD = 'thaw'
       LIST_FROZEN_CMD = 'list-frozen'
       RERUN_AUTOPKG_RECIPE_CMD = 'rerun-autopkg-recipe'
+      RERUN_SUBSCRIPTION_CMD = 'rerun-sub'
 
       LIST_VERSIONS_CMD = 'list-versions'
       ADD_VERSION_CMD = 'add-version'
@@ -608,6 +609,19 @@ module Xolo
           opts: {},
           target: :title,
           process_method: :rerun_autopkg_recipe,
+          streamed_response: true,
+          confirmation: true
+        },
+
+        RERUN_SUBSCRIPTION_CMD => {
+          desc: 'Re-add the latest version for this title as if a subscription update just happened.',
+          display: "#{RERUN_SUBSCRIPTION_CMD} title",
+          long_desc: <<~ENDLONG,
+            The most recent version of the title, if 'pilot' or 'pending', is deleted and the subscription update process is triggered again to re-create it.  Useful when the process had some error the previous time it ran.
+          ENDLONG
+          opts: {},
+          target: :title,
+          process_method: :rerun_subscription_update,
           streamed_response: true,
           confirmation: true
         },

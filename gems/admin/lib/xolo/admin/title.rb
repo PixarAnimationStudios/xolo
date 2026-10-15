@@ -225,6 +225,13 @@ module Xolo
         resp.body
       end
 
+      #
+      #########################
+      def rerun_subscription_update(cnx = self.cnx)
+        resp = cnx.post "#{SERVER_ROUTE}/#{title}/rerun-subscription", {}
+        resp.body
+      end
+
       # Fetch the frozen computers for this title
       # @param cnx [Faraday::Connection] The connection to use, must be logged in already
       # @return [Hash{String => String}] computer name => user name
