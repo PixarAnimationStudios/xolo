@@ -38,17 +38,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
     If the server value is unset or invalid, titles with monthly auto-release will happen on the first day of every month. 
 
+### Changed
+
+  - xadm's `rerun-autopkg-recipe` command is now just `rerun-autopkg`, for the sake of brevity and terminal width.
+
+  - xadm now validates that target-groups cannot be used if release-groups is 'all', and vice-versa.
+
 ### Fixed
 
   - An error is now generated when trying to release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
 
   - When updating a title's Self Service Icon, the patch policies are updated as well as the initial-install policy.
 
-### Changed
-
-  - xadm's `rerun-autopkg-recipe` command is now just `rerun-autopkg`, for the sake of brevity and terminal width.
-
-  - xadm now validates that target-groups cannot be used if release-groups is 'all', and vice-versa.
 
 ## \[2.4.0] 2026-09-21 
 
@@ -82,14 +83,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## \[2.2.4] 2026-08-24
 
+### Added
+  - The `xadm list-titles` command now takes the `--version-scripts` option.
+    - `-v, --version-scripts         Show only titles that use a version script.`
+
 ### Changed
   - More debug logging
 
   - Don't try to add a new version of a subscribed title if it already exists.
-
-### Added
-  - The `xadm list-titles` command now takes the `--version-scripts` option.
-    - `-v, --version-scripts         Show only titles that use a version script.`
 
 ### Fixed
   - When editing the version-script or app-name/app-bundle-id of a title, make sure to update
@@ -103,6 +104,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ## \[2.2.3] 2026-08-18
 
+### Added
+  - The `xadm list-titles` command now takes the `--released-to-all` option
+    - `-A, --released-to-all   Show only titles that have --release-groups set to 'all'.`
+
+### Changed
+  - Output of `xadm list-titles` indicates installs and/or updates via Self Service.
+  - Sleep a minute between auto-releases during nightlly maintenance task.
+  - Actions during nightly maintenence runs will not call update_client_data, it will be called once at the end of maintenance.
+  
 ### Fixed
   - Scope targets are now set properly for Patch Policies based on version status:
     - Pilot: scope targets are the `pilot_groups` if any
@@ -110,15 +120,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Anything else: no scope targets, effectively disabling the policy, even if it's enabled.
 
   - Improved handling of Self Service icons, both in Policies and Patch Policies.
-
-### Changed
-  - Output of `xadm list-titles` indicates installs and/or updates via Self Service.
-  - Sleep a minute between auto-releases during nightlly maintenance task.
-  - Actions during nightly maintenence runs will not call update_client_data, it will be called once at the end of maintenance.
-  
-### Added
-  - The `xadm list-titles` command now takes the `--released-to-all` option
-    - `-A, --released-to-all   Show only titles that have --release-groups set to 'all'.`
   
 ## \[2.2.2] 2026-08-16
 
@@ -225,6 +226,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## \[2.0.3] 2026-07-25
 
+### Added
+  - The `xolo` client CLI tool now takes a `--test` option. 
+    
+    If your environment has a second xolo server configured as a test server, using the same Jamf Pro and Title Editor as your production xolo server, then this option makes `xolo` use the data-file, policies, patch policies, and other xolo objects maintained by the test server, ignoring those maintained by the production server. 
+    
+    Setting the `XOLO_TEST_MODE` environment variable will do the same thing.
+
+### Changed
+  - When a title is in Self Service, the patch policies are also deployed via Self Service
+    - TODO: allow setting of various SSvc/User interaction parameters in patch policies via `xadm`.
+  - Title Info only shows title_id and patch_source in human output if title is subscribed
+  - Ensure no pkg files in the `autopkg_directory` before running an autopkg recipe
+
 ### Fixed 
   - Changing `patch_unknown` with `xadm edit-version` now actually works
   - `--pkg-to-upload` no longer requires an absolute path
@@ -236,19 +250,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Run update_client_data when new versions come from subscriptions
   - Fix erroneous alert about no `--pkg-to-upload`
   - Fix handling of versions with spaces and non-alphanumeric characters. (We're looking at you, Zoom!)
-
-### Changed
-  - When a title is in Self Service, the patch policies are also deployed via Self Service
-    - TODO: allow setting of various SSvc/User interaction parameters in patch policies via `xadm`.
-  - Title Info only shows title_id and patch_source in human output if title is subscribed
-  - Ensure no pkg files in the `autopkg_directory` before running an autopkg recipe
-
-### Added
-  - The `xolo` client CLI tool now takes a `--test` option. 
-    
-    If your environment has a second xolo server configured as a test server, using the same Jamf Pro and Title Editor as your production xolo server, then this option makes `xolo` use the data-file, policies, patch policies, and other xolo objects maintained by the test server, ignoring those maintained by the production server. 
-    
-    Setting the `XOLO_TEST_MODE` environment variable will do the same thing.
 
 ## \[2.0.2] 2026-05-16
 
