@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - An error is now generated when trying to release a version that doesn't have an uploaded .pkg, as might happen if the autopkg recipe fails or the pkg fetched is not valid.
 
+  - When updating a title's Self Service Icon, the patch policies are updated as well as the initial-install policy.
+
 ### Changed
 
   - xadm's `rerun-autopkg-recipe` command is now just `rerun-autopkg`, for the sake of brevity and terminal width.
