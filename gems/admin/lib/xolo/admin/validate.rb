@@ -952,6 +952,9 @@ module Xolo
         # if targeting 'all'  can't be in self-service
         validate_title_consistency_no_all_in_ssvc(opts)
 
+        # if target_groups is set, release_group scan't be  all, and vice versa
+        validate_title_consistency_no_tgt_groups_with_all(opts)
+
         # if self-service category given, must be in self-service
         validate_title_consistency_ssvc_needs_category(opts)
 
@@ -1196,7 +1199,7 @@ module Xolo
         end
       end
 
-      # if target_group is all, can't be in self service
+      # if release_groups is all, can't be in self service
       #
       # @param opts [OpenStruct] the current options
       #
@@ -1207,9 +1210,29 @@ module Xolo
 
         msg =
           if walkthru?
-            "Cannot be in Self Service when Target Group is '#{Xolo::TARGET_ALL}'"
+            "Cannot be in Self Service when Release Group is '#{Xolo::TARGET_ALL}'"
           else
             "--self-service cannot be used when --release-groups contains '#{Xolo::TARGET_ALL}'"
+          end
+        raise_consistency_error msg
+      end
+
+      # if target_groups is set, release_group scan't be  all, and vice versa
+      #
+      # @param opts [OpenStruct] the current options
+      #
+      # @return [void]
+      #######
+      def validate_title_consistency_no_tgt_groups_with_all(opts)
+        rel_all = opts[:release_groups].to_a.include?(Xolo::TARGET_ALL)
+        got_tgts = !opts[:target_groups].pix_empty?
+        return unless rel_all && got_tgts
+
+        msg =
+          if walkthru?
+            "Cannot use Target Group when Release Group is '#{Xolo::TARGET_ALL}'"
+          else
+            "--target-groups cannot be used when --release-groups contains '#{Xolo::TARGET_ALL}'"
           end
         raise_consistency_error msg
       end

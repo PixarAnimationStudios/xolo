@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - xadm's `rerun-autopkg-recipe` command is now just `rerun-autopkg`, for the sake of brevity and terminal width.
 
+  - xadm now validates that target-groups cannot be used if release-groups is 'all', and vice-versa.
+
 ## \[2.4.0] 2026-09-21 
 
 ### Added
