@@ -143,6 +143,25 @@ module Xolo
           ENDDESC
         },
 
+        # @!attribute xadm_authenticator
+        #   @return [String] How to authenticate users of 'xadm', either 'use-jamf' or a path to an authentication tool.
+        xadm_authenticator: {
+          required: true,
+          type: :string,
+          desc: <<~ENDDESC
+            The method for authenticating users of 'xadm'. The value 'use-jamf' will authenticate the user's name and password by trying
+            to connect to the Jamf Pro API. This may not work for Jamf Cloud instances with an identity provider or other more complex
+            authentication processes. There are plans to address this in a future version of xolo.
+
+            Alternatively, provide the full path to a CLI tool installed on the xolo server. This tool must take two lines on its standard-input:
+            the username, then the password. It must return 'OK' to its standard-output, and exit with status 0, for the credentials to be
+            considered correct.
+
+            After authentication, the username provided must be a member of the Jamf account-group defined in 'admin_jamf_group', and/or
+            that defined in 'server_admin_jamf_group'.
+          ENDDESC
+        },
+
         # @!attribute admin_jamf_group
         #   @return [String] The name of a Jamf account-group containing users of 'xadm'
         admin_jamf_group: {

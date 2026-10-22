@@ -59,6 +59,9 @@ module Xolo
         # The loopback address for IPV4, aka 'localhost'
         IPV4_LOOPBACK = '127.0.0.1'
 
+        # This is a possible value for xadm_authenticator
+        USE_JAMF = 'use-jamf'
+
         # Module methods
         #####################
         #####################
@@ -237,6 +240,33 @@ module Xolo
           end
         rescue Jamf::NoSuchItemError
           false
+        end
+
+        # authenticate via an external xadm authenticator tool.
+        # it must exit with status 0, and send 'OK' to its stdout
+        #
+        # @param admin [String] The jamf acct name of the person seeking access
+        #
+        # @param pw [String] The password for the jamf acct
+        #
+        # @return [Boolean] Did the password work for the user?
+        ####################
+        def authenticated_via_xadm_authenticator?(admin, pw)
+          upw = "#{admin}\n#{pw}"
+          out = nil
+          err = nil
+          success = false
+
+          Open3.popen3(Xolo::Server.config.xadm_authenticator) do |inp, outp, serr, wthr|
+            inp.print upw
+            inp.close
+
+            out = outp.read.chomp
+            err = serr.read.chomp
+            success = wthr.value.success?
+          end
+          log_warn "xadm authenticator failed for admin '#{admin}': #{err} " unless success
+          success && out == Xolo::OK
         end
 
         # Try to authenticate the jamf user trying to log in to xolo.

@@ -42,9 +42,12 @@ module Xolo
           pw = payload[:password]
 
           err =
-            if !member_of_admin_jamf_group?(admin)
-              "'#{admin}' is not allowed to use the Xolo server"
-            elsif !authenticated_via_jamf?(admin, pw)
+            ("'#{admin}' is not allowed to use the Xolo server" unless member_of_admin_jamf_group?(admin))
+
+          err ||=
+            if Xolo::Server.config.xadm_authenticator == Xolo::Server::Helpers::Auth::USE_JAMF
+              "Incorrect xolo admin username or password for '#{admin}'" unless authenticated_via_jamf?(admin, pw)
+            elsif !authenticated_via_xadm_authenticator?(admin, pw)
               "Incorrect xolo admin username or password for '#{admin}'"
             end
 
