@@ -356,6 +356,9 @@ module Xolo
           self.jamf_pkg_id = pkg.save
           # save the data now so the pkg_id is available for immeadiate use, e.g. by pkg upload
           save_local_data
+          log_debug 'TEMP: Pausing 65 secs for server cluster to see new pkg'
+          sleep 65
+
           pkg
         rescue => e
           msg = "Jamf: Failed to create Jamf::JPackage '#{jamf_pkg_name}': #{e.class}: #{e}"
