@@ -40,13 +40,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   - xadm_authenticator
 
-    Originally, the server would authenticate users of xadm by using the name and password given to try to make a simple connection to the Jamf Pro API with those credentials, just to see if they were valid. 
-
-    This doesn't work in some Jamf Cloud instances. 
+    Originally, the server would authenticate users of xadm by using the given credentials to make a simple connection to the Jamf Pro API, just to see if they were valid. This doesn't work in some Jamf Cloud instances. 
 
     There is a new server config setting 'xadm_authenticator' which takes the path to an external CLI tool installed on the xolo server. This tool must take two lines on its standard-input: the username, then the password. It must return 'OK' to its standard-output, and exit with status 0, for the credentials to be considered correct.
 
     Alternatively, if you want the original behavior of making a simple API connection, set this setting to the string 'use-jamf'
+
+    NOTE: The admin_jamf_group and server_admin_jamf_group settings still work the same way, and the username authenticated must be in those jamf groups as before. In a future update, there will be other alternatives for these settings also.
 
 ### Changed
 
