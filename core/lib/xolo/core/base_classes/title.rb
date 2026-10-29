@@ -726,6 +726,25 @@ module Xolo
             ENDDESC
           },
 
+          # @!attribute deprecated_lifetime
+          #   @return [Integer] How many days after deprecation before a version is automatically deleted from Xolo?
+          #
+          deprecated_lifetime: {
+            label: 'Deprecated Lifetime',
+            cli: :L,
+            validate: true,
+            type: :string,
+            changelog: true,
+            invalid_msg: "Invalid value. Must be a positive integer or 'none'",
+            desc: <<~ENDDESC
+               When a version is deprecated, it will be automatically deleted by the nightly maintenance this many days later. If set to 'none', deprecated versions will be auto-deleted based on the Xolo server settings.
+
+               Deprecated versions are those that have been released, but a newer version has been released since then.
+
+               This setting is especially useful for titles that have frequent versions, to avoid cluttering the xolo and Jamf servers with old versions.
+            ENDDESC
+          },
+
           # @!attribute self_service
           #   @return [Boolean] Does this title appear in Self Service?
           self_service: {

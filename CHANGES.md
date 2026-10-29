@@ -4,8 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## \[2.5.0] Unreleased
+## \[2.6.0] Unreleased
 
+### Added
+
+  - Titles can now take the `--deprecated-lifetime` option, a positive integer number of days, or 'none'.
+    
+    When a version is deprecated, it will be automatically deleted by the nightly maintenance this many days later. If set to 'none', deprecated versions will be auto-deleted based on the Xolo server settings. (see the server's 'deprecated_lifetime_days' setting)
+    
+    Deprecated versions are those that have been released, but a newer version has been released since then.
+
+    This setting is especially useful for titles that have frequent versions, to avoid cluttering the xolo and Jamf servers with old versions.
+
+## \[2.5.0] 2026-10-22
+ 
 ### Added
 
   - Validate the version fetched by AutoPkg and don't upload it if it doesn't match the desired version, just report the issue.

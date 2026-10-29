@@ -457,7 +457,7 @@ module Xolo
           title_objects.each do |title_obj|
             title_obj.version_objects.each do |version|
               if version.deprecated?
-                cleanup_deprecated_version version
+                cleanup_deprecated_version title_obj, version
               elsif version.skipped?
                 cleanup_skipped_version version
               end # case
@@ -470,13 +470,21 @@ module Xolo
         # @param version [Xolo::Server::Version] the version to cleanup
         # @return [void]
         ################################
-        def cleanup_deprecated_version(version)
-          # do nothing if the deprecated_lifetime_days is 0 or less
-          return unless deprecated_lifetime_days.positive?
+        def cleanup_deprecated_version(title_obj, version)
+          # does this version's title have a custom deprecated lifetime?
+          # title_obj.deprecated_lifetime should be a positive integer or nil
+          # if nil, use the server's setting
+          deprecated_lifetime_to_use = title_obj.deprecated_lifetime || server_deprecated_lifetime_days
+
+          # do nothing if the deprecated_lifetime_to_use is 0 or less
+          # which will only come from the server.
+          return unless deprecated_lifetime_to_use.positive?
+
+          # deprecation_lifetime_to_use is now a positive integer
 
           # how many days has this version been deprecated?
           days_deprecated = (Time.now - version.deprecation_date) / 86_400
-          return unless days_deprecated > deprecated_lifetime_days
+          return unless days_deprecated > deprecated_lifetime_to_use
 
           log_info "Maint: Deleting deprecated version '#{version.version}' of title '#{version.title}'"
           version.delete
@@ -538,8 +546,8 @@ module Xolo
         # how many days can a version be deprecated?
         # @return [Integer] the number of days a version can be deprecated
         ################################
-        def deprecated_lifetime_days
-          @deprecated_lifetime_days ||= Xolo::Server.config.deprecated_lifetime_days || DFT_DEPRECATED_LIFETIME_DAYS
+        def server_deprecated_lifetime_days
+          @server_deprecated_lifetime_days ||= Xolo::Server.config.deprecated_lifetime_days || DFT_DEPRECATED_LIFETIME_DAYS
         end
 
         # Notify the admins about unreleased pilots when the newest one is older than

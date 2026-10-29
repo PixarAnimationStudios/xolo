@@ -366,6 +366,22 @@ module Xolo
         raise_invalid_data_error val, TITLE_ATTRS[:uninstall_script][:invalid_msg]
       end
 
+      # validate a title's deprecated_lifetime:
+      # - a positive integer?
+      # OR
+      # - 'none' to unset the value
+      #
+      # @param val [Object] The value to validate
+      #
+      # @return [String] The valid value
+      #########################
+      def validate_deprecated_lifetime(val)
+        return if val == Xolo::NONE
+        return val.to_i if val.pix_integer? && val.to_i.positive?
+
+        raise_invalid_data_error val, TITLE_ATTRS[:deprecated_lifetime][:invalid_msg]
+      end
+
       # validate a title auto_release_delay:
       # - a non-negative integer?
       # OR
